@@ -88,6 +88,18 @@ class UpdateCheckTest {
     }
 
     @Test
+    void theBannerCarriesTheFirstFewChangesAndSaysHowManyMore() {
+        var entries = Changelog.parse(String.join("\n",
+                "## 2026-10-11 12:40 UTC", "- Changed: one", "",
+                "## 2026-10-11 12:25 UTC", "- Fixed: two", "- Changed: three", "- New: four", ""));
+        String dot = UpdateCheck.CHANGE;
+        assertEquals(java.util.List.of(dot + "Changed: one", dot + "Fixed: two", dot + "Changed: three", "and 1 more"),
+                UpdateCheck.headlines(entries, 3));
+        assertEquals(java.util.List.of(dot + "Changed: one"), UpdateCheck.headlines(entries.subList(0, 1), 3));
+        assertTrue(UpdateCheck.headlines(java.util.List.of(), 3).isEmpty());
+    }
+
+    @Test
     void theChecksumFileNamesTheModsJarAndNotTheOthers() {
         String sums = MOD.toUpperCase() + "  GoNuts-0.1.0-mc26.2.jar\n"
                 + OTHER.toUpperCase() + "  gonuts-cli-0.1.0.jar\r\n"

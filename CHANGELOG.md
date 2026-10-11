@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-11 12:52 UTC
+- Fixed: auto-update could skip installing when the game was closed. The helper sometimes saw the game as still running in the instant it exited, left the jar alone, and the notice came back on the next start.
+- New: the update banner lists the first few changes, so you can see what an update does without opening anything.
+- Changed: following stops at 1,000 players, which is the server's limit.
+
 ## 2026-10-11 12:40 UTC
 - Changed: the mod now notices a new build within two minutes instead of up to three hours. The notice still shows once per build per session, so checking more often does not repeat it.
 

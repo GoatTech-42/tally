@@ -23,6 +23,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -82,8 +83,12 @@ public final class UpdateCheck {
     static final String SWAP_SCRIPT = String.join(" ",
             "$id=[int]$env:GONUTS_PID; $new=$env:GONUTS_NEW; $jar=$env:GONUTS_JAR; $log=$env:GONUTS_LOG;",
             "function Note($m) { try { Add-Content -LiteralPath $log -Value ((Get-Date -Format s) + ' ' + $m) } catch { } }",
-            "try { Wait-Process -Id $id -Timeout 300 -ErrorAction Stop } catch { }",
-            "if (Get-Process -Id $id -ErrorAction SilentlyContinue) { Note 'the game was still running after 5 minutes; jar left alone'; exit 1 }",
+            // Whether the game has gone is asked of the process itself. Looking it up in
+            // the list of running processes straight after it exits can still find it there
+            // for a moment, and that once read as "still running" and left the jar alone.
+            "$gone = $false;",
+            "try { $game = [Diagnostics.Process]::GetProcessById($id); $gone = $game.WaitForExit(300000) } catch { $gone = $true }",
+            "if (-not $gone) { Note 'the game was still running after 5 minutes; jar left alone'; exit 1 }",
             "$tmp = $jar + '.new';",
             "for ($i = 0; $i -lt 30; $i++) {",
             "try { [IO.File]::Copy($new, $tmp, $true); [IO.File]::Replace($tmp, $jar, [NullString]::Value);",
@@ -117,6 +122,7 @@ public final class UpdateCheck {
     /** Long enough to be read by someone who looked away. */
     private static final long BANNER_MILLIS = 20_000L;
     private static final int BANNER_TOP = 10;
+    private static final int BANNER_WIDTH = 430;
     private static volatile long bannerSince;
     private static volatile String bannerTitle = "";
     private static volatile List<String> bannerLines = List.of();
@@ -494,7 +500,9 @@ public final class UpdateCheck {
             changedAnnounced = true;
             String open = DoughBayClient.openKeyName();
             bannerTitle = "GoNuts has something new";
-            bannerLines = List.of(open.isEmpty() ? "Open GoNuts to see what changed" : "Press " + open + " to see what changed");
+            List<String> lines = new ArrayList<>(headlines(changed, BANNER_CHANGES));
+            lines.add(open.isEmpty() ? "Open GoNuts to see what changed" : "Press " + open + " to see what changed");
+            bannerLines = List.copyOf(lines);
             bannerSince = now;
             return;
         }
@@ -512,10 +520,34 @@ public final class UpdateCheck {
         String open = DoughBayClient.openKeyName();
         String more = open.isEmpty() ? "Open GoNuts for details" : "Press " + open + " for details";
         bannerTitle = state == State.READY ? "GoNuts update downloaded" : "GoNuts update available";
-        bannerLines = state == State.READY
-                ? List.of("Installs when you close the game, ready when you reopen it", more)
-                : List.of(more);
+        List<String> lines = new ArrayList<>();
+        if (state == State.READY) lines.add("Installs when you close the game, ready when you reopen it");
+        lines.addAll(headlines(news, BANNER_CHANGES));
+        lines.add(more);
+        bannerLines = List.copyOf(lines);
         bannerSince = now;
+    }
+
+    /** A bullet in front of a line marks it as one of the changes, which the banner draws quieter. */
+    static final String CHANGE = "• ";
+    private static final int BANNER_CHANGES = 3;
+
+    /**
+     * The first few changes of {@code entries}, newest first, one to a line,
+     * for a banner that has no room for all of them. When there are more it
+     * says how many.
+     */
+    static List<String> headlines(List<Changelog.Entry> entries, int most) {
+        List<String> out = new ArrayList<>();
+        int total = 0;
+        for (Changelog.Entry entry : entries) {
+            for (String line : entry.lines()) {
+                if (out.size() < most) out.add(CHANGE + line);
+                total++;
+            }
+        }
+        if (total > most) out.add("and " + (total - most) + " more");
+        return out;
     }
 
     /**
@@ -560,7 +592,8 @@ public final class UpdateCheck {
         List<String> lines = bannerLines;
         int width = font.width(title);
         for (String line : lines) width = Math.max(width, font.width(line));
-        width = Math.min(width + 28, graphics.guiWidth() - 16);
+        // A change can run long; the banner stays a banner and the line is cut short.
+        width = Math.min(width + 28, Math.min(BANNER_WIDTH, graphics.guiWidth() - 16));
         int height = 22 + lines.size() * 11 + 5;
         int x = (graphics.guiWidth() - width) / 2;
         double in = UiTheme.reducedMotion() ? 1 : UiMotion.visibility(age, BANNER_MILLIS, 350, 350);
@@ -569,7 +602,11 @@ public final class UpdateCheck {
         graphics.centeredText(font, UiTheme.fit(font, title, width - 16), x + width / 2, y + 7, UiTheme.GOLD);
         int yy = y + 21;
         for (String line : lines) {
-            graphics.centeredText(font, UiTheme.fit(font, line, width - 16), x + width / 2, yy, UiTheme.TEXT);
+            if (line.startsWith(CHANGE)) {
+                graphics.text(font, UiTheme.fit(font, line, width - 24), x + 12, yy, UiTheme.SECONDARY);
+            } else {
+                graphics.centeredText(font, UiTheme.fit(font, line, width - 16), x + width / 2, yy, UiTheme.TEXT);
+            }
             yy += 11;
         }
     }
