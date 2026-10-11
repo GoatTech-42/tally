@@ -2223,7 +2223,8 @@ public final class AutomationSessionController {
      */
     private boolean heldByPanel(Minecraft client) {
         if (!panelOpen) return false;
-        if (client == null || !(client.gui.screen() instanceof dev.doughbay.fabric.DoughBayScreen)) {
+        if (client == null || !(client.gui.screen() instanceof dev.doughbay.fabric.DoughBayScreen
+                || client.gui.screen() instanceof dev.doughbay.fabric.UpdateScreen)) {
             // The screen went away without telling us; drop the hold.
             panelOpen = false;
             return false;

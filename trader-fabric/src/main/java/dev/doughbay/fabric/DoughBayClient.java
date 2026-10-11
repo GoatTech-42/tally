@@ -792,8 +792,12 @@ public class DoughBayClient implements ClientModInitializer {
         // A newer build the player has not been asked about yet is put in
         // front of the screen they just opened, never raised unasked.
         UpdateCheck.Notice notice = UpdateCheck.takeNotice();
-        client.gui.setScreen(notice == UpdateCheck.Notice.NONE ? main
-                : new UpdateScreen(main, notice == UpdateCheck.Notice.SAMPLE));
+        client.gui.setScreen(switch (notice) {
+            case NONE -> main;
+            case REAL -> new UpdateScreen(main, UpdateScreen.Mode.UPDATE);
+            case CHANGED -> new UpdateScreen(main, UpdateScreen.Mode.CHANGED);
+            case SAMPLE -> new UpdateScreen(main, UpdateScreen.Mode.SAMPLE);
+        });
     }
 
     /** The key that opens the mod's screen, as the player has it bound; "" before the keys exist. */

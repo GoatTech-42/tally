@@ -39,7 +39,7 @@ class UpdateCheckTest {
             """.formatted(OTHER, OTHER, MOD.toUpperCase(), URL, OTHER);
 
     private static UpdateCheck.Release release(String sha, long size) {
-        return new UpdateCheck.Release(sha, UPLOADED, "page", URL, size);
+        return new UpdateCheck.Release(sha, UPLOADED, "page", URL, size, "");
     }
 
     @Test

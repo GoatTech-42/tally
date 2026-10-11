@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -83,7 +84,7 @@ public final class UpdateCheck {
     public enum State { OFF, UNCHECKED, CURRENT, NEWER, READY, AHEAD, FAILED }
 
     /** The mod's jar as the release has it. */
-    record Release(String sha256, long uploadedAt, String page, String url, long size) { }
+    record Release(String sha256, long uploadedAt, String page, String url, long size, String notes) { }
 
     /**
      * @param uploadedAt when the release's jar was put up, 0 when not known
@@ -109,6 +110,13 @@ public final class UpdateCheck {
     private static volatile String bannerTitle = "";
     private static volatile List<String> bannerLines = List.of();
     private static volatile boolean samplePending;
+    /** What the release has that this build does not: its notes, the newest first. */
+    private static volatile List<Changelog.Entry> news = List.of();
+    /** What this build has that the one run before it did not; told once after an update. */
+    private static volatile List<Changelog.Entry> changed = List.of();
+    private static volatile boolean changedPending;
+    private static boolean changedAnnounced;
+    private static volatile List<Changelog.Entry> history;
 
     private UpdateCheck() { }
 
@@ -126,9 +134,69 @@ public final class UpdateCheck {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("doughbay", "update_banner"), UpdateCheck::hud);
     }
 
+    /** The notes of the build on GitHub that this one does not have yet. */
+    static List<Changelog.Entry> news() {
+        return news;
+    }
+
+    /** The notes of what went in since the build this player last ran. */
+    static List<Changelog.Entry> changed() {
+        return changed;
+    }
+
+    /** Every note this build was made with, the newest first. */
+    static List<Changelog.Entry> history() {
+        List<Changelog.Entry> known = history;
+        if (known != null) return known;
+        List<Changelog.Entry> read = List.of();
+        try (InputStream in = UpdateCheck.class.getResourceAsStream("/doughbay-changelog.md")) {
+            if (in != null) read = List.copyOf(Changelog.parse(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
+        } catch (IOException | RuntimeException e) {
+            // A build without its notes still runs.
+        }
+        history = read;
+        return read;
+    }
+
+    /**
+     * Works out what is new to this player: the notes written since the build
+     * they last ran. The build is remembered per jar, since two clients can
+     * share one config folder. With no record yet the latest notes are this
+     * build's own, and those are shown.
+     */
+    private static void noteInstalled(long built) {
+        try {
+            if (built <= 0) return;
+            Path jar = ownJar();
+            String which = Integer.toHexString((jar == null ? "" : jar.toAbsolutePath().toString()).hashCode());
+            Path record = updateDirectory().resolve("seen-" + which + ".txt");
+            long seen = -1;
+            if (Files.isRegularFile(record)) {
+                try {
+                    seen = Long.parseLong(Files.readString(record).strip());
+                } catch (NumberFormatException e) {
+                    seen = -1;
+                }
+            }
+            if (seen == built) return;
+            List<Changelog.Entry> all = history();
+            List<Changelog.Entry> fresh = seen < 0 ? all.subList(0, Math.min(1, all.size()))
+                    : seen < built ? Changelog.after(all, seen) : List.<Changelog.Entry>of();
+            Files.createDirectories(record.getParent());
+            Files.writeString(record, Long.toString(built));
+            if (!fresh.isEmpty()) {
+                changed = List.copyOf(fresh);
+                changedPending = true;
+            }
+        } catch (Exception e) {
+            DoughBayClient.LOGGER.info("DoughBay update: what changed could not be worked out ({})", e.toString());
+        }
+    }
+
     private static void loop() {
         String own = null;
         long built = builtAt();
+        noteInstalled(built);
         try {
             Thread.sleep(FIRST_MILLIS);
             while (true) {
@@ -171,6 +239,8 @@ public final class UpdateCheck {
             Release release = parse(response.body());
             if (release == null) throw new IOException("the release lists no mod jar");
             State state = compare(own, built, release);
+            news = state == State.CURRENT ? List.of()
+                    : List.copyOf(Changelog.after(Changelog.parse(release.notes()), built));
             if (state == State.NEWER && Tuning.get("update.auto") >= 0.5) {
                 try {
                     staged = fetch(http, release, updateDirectory(), ownJar);
@@ -223,7 +293,7 @@ public final class UpdateCheck {
             }
             return new Release(digest.substring("sha256:".length()).toLowerCase(Locale.ROOT), uploaded,
                     page.isBlank() ? PAGE : page, asset.path("browser_download_url").asText(""),
-                    asset.path("size").asLong(0));
+                    asset.path("size").asLong(0), root.path("body").asText(""));
         }
         return null;
     }
@@ -349,12 +419,23 @@ public final class UpdateCheck {
             inWorldSince = 0;
             return;
         }
-        Status s = status;
-        if (s.state() != State.NEWER && s.state() != State.READY) return;
         long now = System.currentTimeMillis();
         if (inWorldSince == 0) inWorldSince = now;
+        if (now - inWorldSince < SETTLE_MILLIS) return;
+        if (changedPending && !changedAnnounced) {
+            // An update went in since the last run: say so before anything about the next one.
+            changedAnnounced = true;
+            String open = DoughBayClient.openKeyName();
+            bannerTitle = "GoNuts has something new";
+            bannerLines = List.of(open.isEmpty() ? "Open GoNuts to see what changed" : "Press " + open + " to see what changed");
+            bannerSince = now;
+            return;
+        }
+        Status s = status;
+        if (s.state() != State.NEWER && s.state() != State.READY) return;
         String key = s.state() + s.detail();
-        if (now - inWorldSince < SETTLE_MILLIS || key.equals(announced)) return;
+        // One banner at a time: the next waits for the one that is up.
+        if (key.equals(announced) || now - bannerSince < BANNER_MILLIS) return;
         announced = key;
         raise(s.state(), now);
     }
@@ -382,12 +463,16 @@ public final class UpdateCheck {
     }
 
     /** Which notice, if any, belongs in front of the mod's screen as it opens. */
-    enum Notice { NONE, REAL, SAMPLE }
+    enum Notice { NONE, REAL, CHANGED, SAMPLE }
 
     static Notice takeNotice() {
         boolean sample = samplePending;
         samplePending = false;
         if (alertPending()) return Notice.REAL;
+        if (changedPending) {
+            changedPending = false;
+            return Notice.CHANGED;
+        }
         return sample ? Notice.SAMPLE : Notice.NONE;
     }
 

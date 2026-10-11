@@ -49,6 +49,11 @@ processResources {
     filesMatching('doughbay-build.properties') {
         expand 'built_at': builtAt
     }
+    // What each build changed, carried in the jar so that what an update
+    // brought can be shown without asking anyone.
+    from(rootProject.file('CHANGELOG.md')) {
+        rename { 'doughbay-changelog.md' }
+    }
 }
 
 // Minecraft 26.2 runs on Java 25; the headless modules stay on 21.
