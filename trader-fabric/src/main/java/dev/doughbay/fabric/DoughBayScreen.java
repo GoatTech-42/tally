@@ -4636,9 +4636,20 @@ public final class DoughBayScreen extends Screen {
             yy = drawWrapped(graphics, setupMessage, innerX, yy + 4, innerWidth, textBottom,
                     setupMessageColor);
         }
+        // What the two boxes below mean depends on whether the limits follow
+        // the bank. Said here, because "never past the limits below" was not
+        // true once the balance had been read.
+        boolean followBank = Tuning.get("buy.scale_with_bank") >= 0.5;
+        String limits = followBank
+                ? "Limits follow your bank: one buy may cost up to "
+                        + String.format(Locale.ROOT, "%.0f%%", Tuning.get("buy.purchase_cap_pct"))
+                        + " of it and up to " + String.format(Locale.ROOT, "%.0f%%", Tuning.get("buy.outstanding_cap_pct"))
+                        + " may be out at once. The two amounts below are used until your balance is read. "
+                        + "To make them the limits whatever your balance, turn off \"Limits follow your bank\" in Settings."
+                : "It never spends past the two limits below, whatever your balance.";
         drawWrapped(graphics,
-                "Turn it on and GoNuts buys underpriced items and relists them for you, never spending past "
-                        + "the limits below. Stop any time with Stop, E-stop or B. DonutSMP's rules ban bots, "
+                "Turn it on and GoNuts buys underpriced items and relists them for you. " + limits
+                        + " Stop any time with Stop, E-stop or B. DonutSMP's rules ban bots, "
                         + "so running this is a ban risk you are choosing to take.",
                 innerX, yy + 4, innerWidth, textBottom, SECONDARY);
         graphics.text(this.font, "Max per trade", innerX, labelsY, MUTED);

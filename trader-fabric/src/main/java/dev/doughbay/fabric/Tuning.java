@@ -56,10 +56,18 @@ public final class Tuning {
 
     public static final List<Setting> SETTINGS = List.of(
             // Buying
+            new Setting("buy.scale_with_bank", "Buying", "Limits follow your bank",
+                    "On, the most one buy may cost and the most that may be out at once are shares of your balance "
+                    + "(the two settings below), so they grow as the bank grows and shrink if it falls; the Max per "
+                    + "trade and Max per session you typed on Autopilot are used only until your balance has been "
+                    + "read. Off, those two typed amounts are the limits whatever your balance is (1 on, 0 off)",
+                    1, 0, 1, Kind.TOGGLE),
             new Setting("buy.purchase_cap_pct", "Buying", "Per-purchase cap",
-                    "Most one buy may cost, as a share of the bank", 14, 0.5, 50, Kind.PERCENT),
+                    "Most one buy may cost, as a share of the bank. Used while limits follow your bank",
+                    14, 0.5, 50, Kind.PERCENT),
             new Setting("buy.outstanding_cap_pct", "Buying", "Money out at once",
-                    "Most that may sit in listings, as a share of the bank", 70, 10, 95, Kind.PERCENT),
+                    "Most that may sit in listings, as a share of the bank. Used while limits follow your bank",
+                    70, 10, 95, Kind.PERCENT),
             new Setting("demand.clock", "Buying", "Time-of-day demand",
                     "Rank markets by how busy they are at this hour and skip their dead hours (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("demand.dead_pct", "Buying", "Dead hour means",

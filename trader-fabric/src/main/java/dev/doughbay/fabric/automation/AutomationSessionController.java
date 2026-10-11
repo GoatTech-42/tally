@@ -198,8 +198,34 @@ public final class AutomationSessionController {
      * unknown, such as before the first API sweep.
      */
     private long effectivePurchaseCap() {
-        if (lastKnownBalance <= 0) return policy.maxPurchasePrice();
-        return Math.max(1_000, Math.round(lastKnownBalance * PURCHASE_CAP_PERCENT_OF_BALANCE() / 100.0));
+        return capFor(lastKnownBalance, PURCHASE_CAP_PERCENT_OF_BALANCE(), policy.maxPurchasePrice(), 1_000,
+                capsFollowBank());
+    }
+
+    /** Whether the caps are shares of the bank, or the two amounts the player typed and nothing else. */
+    private static boolean capsFollowBank() {
+        return dev.doughbay.fabric.Tuning.get("buy.scale_with_bank") >= 0.5;
+    }
+
+    /**
+     * A cap as it stands now. Following the bank, it is {@code percent} of
+     * the balance and never under {@code least}; the typed amount stands in
+     * only while the balance is not known. Not following it, the typed amount
+     * is the cap whatever the balance is.
+     */
+    static long capFor(long balance, double percent, long typed, long least, boolean followBank) {
+        if (!followBank || balance <= 0) return typed;
+        return Math.max(least, Math.round(balance * percent / 100.0));
+    }
+
+    /** What one purchase may cost right now, for the screens. */
+    public long purchaseCapNow() {
+        return effectivePurchaseCap();
+    }
+
+    /** What may sit in listings and bids at once right now, for the screens. */
+    public long spendCapNow() {
+        return effectiveSpendCap();
     }
 
     /**
@@ -472,8 +498,8 @@ public final class AutomationSessionController {
     }
 
     private long effectiveSpendCap() {
-        if (lastKnownBalance <= 0) return policy.maxSessionSpend();
-        return Math.max(5_000, Math.round(lastKnownBalance * SPEND_CAP_PERCENT_OF_BALANCE() / 100.0));
+        return capFor(lastKnownBalance, SPEND_CAP_PERCENT_OF_BALANCE(), policy.maxSessionSpend(), 5_000,
+                capsFollowBank());
     }
 
     /**
