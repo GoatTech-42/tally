@@ -34,8 +34,17 @@ class NavigationProgressTest {
             assertTrue(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
             set(driver, "ownStage", 1);
             assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
+            // A Your Orders page gets 20 s to begin with, not 90.
+            set(driver, "ticksInPhase", 399);
+            assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
+            set(driver, "ticksInPhase", 400);
+            assertTrue(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
+            // After pages that never came it is given longer, and 20 s is then too soon to ask again.
+            set(driver, "ownOrdersPatienceTicks", 1800);
+            assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
             set(driver, "ticksInPhase", 1800);
             assertTrue(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
+            set(driver, "ownOrdersPatienceTicks", 400);
             assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders -> Your Orders"));
             assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders -> Edit Order"));
             set(driver, "ownNavigationReopens", 1);
@@ -50,6 +59,17 @@ class NavigationProgressTest {
         set(driver, "placeConfirmed", false);
         operation(driver, "BUY");
         assertFalse(driver.shouldReopenOwnOrdersNavigation("Orders (Page 1)"));
+    }
+
+    @Test
+    void theWaitForYourOrdersGrowsAfterAPageThatNeverCameAndStopsAtNinetySeconds() {
+        int first = AutomatedExecutionDriver.OWN_ORDERS_PATIENCE_MIN_TICKS;
+        assertEquals(400, first);
+        int second = AutomatedExecutionDriver.longerPatience(first);
+        int third = AutomatedExecutionDriver.longerPatience(second);
+        assertEquals(900, second);
+        assertEquals(1800, third);
+        assertEquals(1800, AutomatedExecutionDriver.longerPatience(third));
     }
 
     @Test

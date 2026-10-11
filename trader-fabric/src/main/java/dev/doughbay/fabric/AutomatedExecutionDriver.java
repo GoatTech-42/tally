@@ -97,6 +97,27 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     // goes out after 8 s again.
     private static final int OWN_ORDERS_OPEN_TICKS = 1800;
     private static final int OWN_ORDERS_RECLICK_TICKS = 160;
+    /**
+     * How long a Your Orders page is waited for to begin with. 2,158 order
+     * house operations on 2026-10-10 and 11: nineteen in twenty were done in
+     * 4 s, and of the pages that had not come by 20 s hardly any came at all
+     * until the order house was closed and asked again. Each of those was a
+     * fixed 90 s of nothing, then 90 s more before the step was given up:
+     * three minutes with the listing side stood still, 22 times in a day and
+     * three times in twenty minutes with the server at its fullest.
+     *
+     * <p>So the first wait is short, and it is the wait that grows, not the
+     * retrying: after a page that never came the next is given longer, up to
+     * the 90 s a struggling server has been seen to need, and one page that
+     * does come puts it back.
+     */
+    static final int OWN_ORDERS_PATIENCE_MIN_TICKS = 400;
+    private int ownOrdersPatienceTicks = OWN_ORDERS_PATIENCE_MIN_TICKS;
+
+    /** The wait after one that ended with no page: 20 s, then 45 s, then 90 s and no more. */
+    static int longerPatience(int ticks) {
+        return Math.min(OWN_ORDERS_OPEN_TICKS, ticks * 2 + 100);
+    }
     /** Wall-clock room for one slow Your Orders page; see OWN_ORDERS_OPEN_TICKS. */
     private static final long OWN_ORDERS_WALLCLOCK_TIMEOUT_MILLIS = 120_000L;
     /**
@@ -855,7 +876,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 && (ownStage == 0 || ownStage == 1) && page.contains("orders")
                 && !page.contains("your orders") && !page.contains("edit order")
                 && !page.contains("collect") && !page.contains("cancel")
-                && ticksInPhase >= (ownStage == 0 ? OPEN_TIMEOUT_TICKS * 2 : OWN_ORDERS_OPEN_TICKS);
+                && ticksInPhase >= (ownStage == 0 ? OPEN_TIMEOUT_TICKS * 2 : ownOrdersPatienceTicks);
     }
 
     public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice) {
@@ -995,7 +1016,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             if (newOrder >= 0 && clickDeferred) return;
         }
-        if (ticksInPhase >= Math.max(OPEN_TIMEOUT_TICKS * 2, ownStage == 1 ? OWN_ORDERS_OPEN_TICKS + 40 : 0)) {
+        if (ticksInPhase >= Math.max(OPEN_TIMEOUT_TICKS * 2, ownStage == 1 ? ownOrdersPatienceTicks + 40 : 0)) {
             abort(client, "No progress at stage " + ownStage + " of " + operation + " on \"" + title + "\"");
             return;
         }
@@ -1040,10 +1061,20 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         return;
                     }
                 }
-                if (ticksInPhase >= OWN_ORDERS_OPEN_TICKS) abort(client, "Your Orders did not open (page: \"" + title + "\")");
+                if (ticksInPhase >= ownOrdersPatienceTicks) {
+                    // Asked twice and waited twice. The step is given up so the
+                    // listing side can work, and the next try waits longer.
+                    int waited = ownOrdersPatienceTicks;
+                    ownOrdersPatienceTicks = longerPatience(ownOrdersPatienceTicks);
+                    DoughBayClient.LOGGER.info("DoughBay: Your Orders did not come in {} s, twice; the next try waits {} s",
+                            waited / 20, ownOrdersPatienceTicks / 20);
+                    abort(client, "Your Orders did not open (page: \"" + title + "\")");
+                }
                 return;
             }
             ownNavRetries = 0;
+            // The page came: the order house is answering, so the short wait is the right one again.
+            ownOrdersPatienceTicks = OWN_ORDERS_PATIENCE_MIN_TICKS;
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
             int matchSlot = -1;
