@@ -821,6 +821,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         placeConfirmed = false;
         placeReceipt = "";
         ownDone = false;
+        placeReturnWaitTicks = -1;
+        placeFromContainerId = -1;
+        // Your Orders is already open from the step before: start from it.
+        boolean onKeptPage = oneTrip() && holdsOrdersPage(client);
+        keptOrdersContainerId = -1;
+        if (onKeptPage) {
+            ownStage = 1;
+            ownOrdersArrivalNoted = true;   // not a fresh arrival: it says nothing about how slow the page is
+            DoughBayClient.LOGGER.info("DoughBay: staying on Your Orders for {}", op);
+            enterPhase(Phase.WAITING_FOR_LISTING, message);
+            return ExecutionResult.awaitingPlayer(lastMessage);
+        }
         try {
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
@@ -1231,6 +1243,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         return;
                     }
                     lastMessage = "Opening a new order";
+                    placeFromContainerId = container.getMenu().containerId;
                     if (!advanceOwnOrderStep(clickSlot(client, container, newOrder), 2)) {
                         if (clickDeferred) return;   // paced, not impossible: try again next tick
                         abort(client, "The New Order slot could not be clicked");
@@ -1410,6 +1423,72 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private String placeReceipt = "";
     private static final Pattern PLACE_RECEIPT = Pattern.compile("(?i)^you ordered +([0-9,]+) +(.+)$");
     private boolean ownDone;
+
+    /**
+     * The order house hands Your Orders back by itself after an order is
+     * placed, and that page is as slow as any other: 10 to 40 s with the
+     * server full. A placement used to finish on the chat receipt and the
+     * next step asked for a page of its own, so two were on their way at
+     * once, and the one nobody was waiting for arrived in the middle of the
+     * next step and replaced whatever it had open. On 2026-10-11, 5 of 14
+     * placements in a quarter of an hour ended "No progress at stage 8 of
+     * PLACE_ORDER on orders -> your orders", every one of them the placement
+     * straight after one that had worked, at 40 s each.
+     *
+     * <p>So a placement now waits for the page it is owed, and the page a
+     * step ends on is kept a moment for the next step to start from: one
+     * page per step where there were two, and none arriving unasked.
+     */
+    static final long KEPT_ORDERS_PAGE_MILLIS = 3_000L;
+    /** Ticks waited so far for Your Orders to come back after a placement; -1 when not waiting. */
+    private int placeReturnWaitTicks = -1;
+    /** The Your Orders page New Order was clicked on. It shows again when the dialogs close, and it is dead by then. */
+    private int placeFromContainerId = -1;
+    private int placeReturnsSeen;
+    private int placeReturnsMissed;
+    private int keptOrdersContainerId = -1;
+    private long keptOrdersUntilMillis;
+
+    private static boolean oneTrip() {
+        return Tuning.get("orders.one_trip") >= 0.5;
+    }
+
+    /**
+     * Whether a placement still waits for its page. Two that never came with
+     * none that did means this server does not send one, and waiting for it
+     * would cost every placement the full wait for nothing.
+     */
+    static boolean waitsForReturnPage(boolean enabled, int seen, int missed) {
+        return enabled && !(seen == 0 && missed >= 2);
+    }
+
+    /** As long as Your Orders is currently worth waiting for, and never past what the phase budget allows. */
+    static int returnPageLimitTicks(int patienceTicks) {
+        return Math.max(OWN_ORDERS_PATIENCE_MIN_TICKS, Math.min(1600, patienceTicks));
+    }
+
+    private static boolean isYourOrdersPage(Screen screen) {
+        return screen instanceof AbstractContainerScreen<?> container
+                && container.getTitle().getString().toLowerCase(Locale.ROOT).contains("your orders");
+    }
+
+    /** A Your Orders page this driver left open for the next order-house step, still on screen and still fresh. */
+    public synchronized boolean holdsOrdersPage(Minecraft client) {
+        if (client == null || keptOrdersContainerId < 0 || System.currentTimeMillis() > keptOrdersUntilMillis) return false;
+        return client.gui.screen() instanceof AbstractContainerScreen<?> container
+                && container.getMenu().containerId == keptOrdersContainerId && isYourOrdersPage(container);
+    }
+
+    /** A kept page nobody started from is closed the way a player would close it. */
+    private void expireKeptOrdersPage(Minecraft client) {
+        if (keptOrdersContainerId < 0 || System.currentTimeMillis() <= keptOrdersUntilMillis) return;
+        if (client != null && client.player != null && !isActive()
+                && client.gui.screen() instanceof AbstractContainerScreen<?> container
+                && container.getMenu().containerId == keptOrdersContainerId) {
+            client.player.closeContainer();
+        }
+        keptOrdersContainerId = -1;
+    }
 
     private static String dialogTitle(DialogScreen<?> dialogScreen) {
         Dialog dialog = ((DialogScreenAccessor) dialogScreen).doughbay$dialog();
@@ -3827,6 +3906,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** A server line refusing the listing command, e.g. "That is not a valid number." */
     /** Times the opening command has been repeated for the operation in flight. */
     private int openRetries;
+    private int sellUnstickTries;
     /** The order house's own confirmation that a bid was taken down. */
     private String cancelOrderReceipt = "";
     private String serverRejection = "";
@@ -4539,6 +4619,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     public synchronized void tick(Minecraft client) {
         drainExternalCommands(client);
+        expireKeptOrdersPage(client);
         if (!isActive()) {
             return;
         }
@@ -4655,9 +4736,38 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return;
         }
         if (operation == Operation.PLACE_ORDER && placeConfirmed && !placeReceipt.isEmpty()) {
-            // On the receipt, not on the click: the alert says what the order
-            // house accepted, which is the only version worth showing.
-            DoughBayClient.alertOrderPlaced(shortName(targetItemId), placeCount, placeUnitPrice);
+            if (placeReturnWaitTicks < 0) {
+                placeReturnWaitTicks = 0;
+                // On the receipt, not on the click: the alert says what the order
+                // house accepted, which is the only version worth showing.
+                DoughBayClient.alertOrderPlaced(shortName(targetItemId), placeCount, placeUnitPrice);
+                // The order is placed; what is left is the page coming back,
+                // and that is given its own time, not what the dialogs left.
+                resetPhaseObservation();
+            }
+            // The bid is placed whatever happens next. What is waited for is
+            // Your Orders coming back, so it is this step that receives it.
+            boolean waits = waitsForReturnPage(oneTrip(), placeReturnsSeen, placeReturnsMissed);
+            // The page the order was started from comes back on screen when the
+            // dialogs close, but only on this side: the server shut it long
+            // ago. The one waited for is a new page, with a new number.
+            boolean back = isYourOrdersPage(screen)
+                    && ((AbstractContainerScreen<?>) screen).getMenu().containerId != placeFromContainerId;
+            int limit = returnPageLimitTicks(ownOrdersPatienceTicks);
+            if (waits && !back && ++placeReturnWaitTicks < limit) {
+                lastMessage = "Bid placed; waiting for the order house to hand Your Orders back";
+                return;
+            }
+            if (waits) {
+                if (back) {
+                    placeReturnsSeen++;
+                    ownOrdersPatienceTicks = patienceAfter(ownOrdersPatienceTicks, placeReturnWaitTicks);
+                } else {
+                    placeReturnsMissed++;
+                    DoughBayClient.LOGGER.info("DoughBay: Your Orders did not come back within {} s of the placement "
+                            + "({} came back, {} did not)", limit / 20, placeReturnsSeen, placeReturnsMissed);
+                }
+            }
             complete(client, String.format(Locale.ROOT, "Bid placed: %s x%d at %s each (%s)",
                     shortName(targetItemId), placeCount, money(placeUnitPrice), placeReceipt));
             return;
@@ -4843,6 +4953,28 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     abort(client, "The auction GUI closed before a confirmation could be verified");
                     return;
                 }
+            }
+            // The same silence, and the same cure, as an /ah that opens
+            // nothing: the server has come to believe a menu is open and
+            // ignores the command. It ignored five /ah sell in a row over four
+            // and a half minutes on 2026-10-11 (and four minutes that morning),
+            // each waited out in full with longer and longer holds between,
+            // and answered the first /ah sent after the player inventory was
+            // closed. So close it and ask again halfway through the first
+            // wait. The stack is still in hand and nothing has been said, so
+            // the first command listed nothing and this cannot list twice.
+            if (operation == Operation.LIST && screen == null && !sawContainerInPhase
+                    && ticksInPhase == CONFIRM_TIMEOUT_TICKS / 2 && sellUnstickTries < 1
+                    && listingReceipt.isEmpty() && lastDispatchedCommand.startsWith("ah sell")
+                    && client.player != null && resendCommand == null) {
+                sellUnstickTries++;
+                client.player.closeContainer();
+                DoughBayClient.LOGGER.info(
+                        "DoughBay: nothing opened in {} s after /{}; closed the player inventory and asking once more",
+                        CONFIRM_TIMEOUT_TICKS / 40, lastDispatchedCommand);
+                deferCommand(lastDispatchedCommand, System.currentTimeMillis(), System.currentTimeMillis() + 600,
+                        commandGapMillis());
+                return;
             }
             if (ticksInPhase >= CONFIRM_TIMEOUT_TICKS) {
                 String screenName = screen == null ? "none" : screen.getClass().getSimpleName();
@@ -5814,6 +5946,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private void complete(Minecraft client, String message) {
         dev.doughbay.fabric.ServerStrain.noteSuccess();
+        // A step that ends on Your Orders leaves it open a moment: the next
+        // order-house step starts from it instead of asking for another.
+        boolean keepOrdersPage = oneTrip() && client != null
+                && (operation == Operation.OWN_ORDERS || operation == Operation.PLACE_ORDER
+                || operation == Operation.CANCEL_ORDER)
+                && isYourOrdersPage(client.gui.screen())
+                && (operation != Operation.PLACE_ORDER
+                || ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId != placeFromContainerId);
         lastMessage = message;
         DoughBayClient.LOGGER.info("{}", message);
         publishTerminal(TerminalOutcome.SUCCEEDED, message);
@@ -5821,6 +5961,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         phase = Phase.IDLE;
         resetPhaseObservation();
         notifyPlayer(client, message);
+        if (keepOrdersPage) {
+            keptOrdersContainerId = ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId;
+            keptOrdersUntilMillis = System.currentTimeMillis() + KEPT_ORDERS_PAGE_MILLIS;
+            return;
+        }
         closeAuctionScreen(client);
     }
 
@@ -6023,6 +6168,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         listingScanRestarts = 0;
         serverRejection = "";
         openRetries = 0;
+        sellUnstickTries = 0;
         cancelOrderReceipt = "";
         listingReceipt = "";
         listingSettleTicks = 0;

@@ -73,6 +73,28 @@ class NavigationProgressTest {
     }
 
     @Test
+    void aPlacementWaitsForYourOrdersToComeBackUntilItIsClearThisServerSendsNone() {
+        // On, and nothing known yet: wait for it.
+        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 0));
+        // One that did not come is not proof; a slow server looks the same.
+        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 1));
+        // Two that never came and none that did: stop paying for it.
+        assertFalse(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 2));
+        // Once one has come back the server is known to send them, however many are late.
+        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 1, 5));
+        // Off is off.
+        assertFalse(AutomatedExecutionDriver.waitsForReturnPage(false, 3, 0));
+    }
+
+    @Test
+    void theWaitForThePageComingBackFollowsHowSlowYourOrdersIsAndStopsAtEightySeconds() {
+        assertEquals(400, AutomatedExecutionDriver.returnPageLimitTicks(400));
+        assertEquals(900, AutomatedExecutionDriver.returnPageLimitTicks(900));
+        assertEquals(1600, AutomatedExecutionDriver.returnPageLimitTicks(1800));
+        assertEquals(400, AutomatedExecutionDriver.returnPageLimitTicks(0));
+    }
+
+    @Test
     void aPageThatCameSetsTheNextWaitByHowLongItTook() {
         // 58 s to arrive, as on the server at its fullest: the next one gets the full 90, not 20.
         assertEquals(1800, AutomatedExecutionDriver.patienceAfter(1800, 58 * 20));

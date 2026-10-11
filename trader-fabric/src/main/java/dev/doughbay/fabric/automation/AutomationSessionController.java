@@ -4580,6 +4580,12 @@ public final class AutomationSessionController {
         return false;
     }
 
+    /** The steps that are done on Your Orders, as against an auction search or an order-book quote. */
+    static boolean ownOrdersStep(DeskAction action) {
+        return action == DeskAction.READ || action == DeskAction.COLLECT
+                || action == DeskAction.CANCEL || action == DeskAction.PLACE;
+    }
+
     private boolean startDeskAction(Minecraft client, MarketWatcher.Snapshot snapshot, long now) {
         reportDeskGate(now);
         // The desk runs when it is bidding, or when it is only collecting filled
@@ -4681,14 +4687,21 @@ public final class AutomationSessionController {
         if (dev.doughbay.fabric.ServerStrain.holding()) {
             return deskBlocked(dev.doughbay.fabric.ServerStrain.describe());
         }
-        if (closeStrayAuctionPage(client)) return true;
-        if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
-            detail = "Closing the GoNuts screen for the bid desk";
-            return true;
+        // A step that ends on Your Orders leaves the page open for a moment,
+        // and the next order-house step starts from it. That page is not a
+        // stray one and is not closed here; anything else still is.
+        boolean onOrdersPage = head != null && ownOrdersStep(head.action()) && driver.holdsOrdersPage(client)
+                && client.player != null && client.player.containerMenu.getCarried().isEmpty();
+        if (!onOrdersPage) {
+            if (closeStrayAuctionPage(client)) return true;
+            if (modScreenOpen(client)) {
+                client.gui.setScreen(null);
+                detail = "Closing the GoNuts screen for the bid desk";
+                return true;
+            }
+            if (!safeInventoryContext(client)) return deskBlocked("not a safe moment");
         }
-        if (!safeInventoryContext(client)) return deskBlocked("not a safe moment");
-        if (now < deskSettleUntilMillis) {
+        if (now < deskSettleUntilMillis && !onOrdersPage) {
             // The server is still closing the last order's pages. A /orders
             // sent in the same instant opens a page it then replaces, and the
             // Your Orders click on it is lost.

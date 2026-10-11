@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-11 19:27 UTC
+- Changed: the bot now stays in the order house between steps. After an order is placed the server sends Your Orders back by itself; the bot used to ignore that and ask for a fresh page, so two were on their way at once and the unwanted one landed in the middle of the next step and broke it. On a busy Sunday that failed 5 of 14 order placements, about 40 seconds each. It now waits for the page it is owed and starts the next step from it, and does the same after reading or cancelling orders. There is a switch for it under Orders in Settings (Stay in the order house between steps, on by default).
+- Fixed: a sell command the server ignores is retried at once after closing the player inventory, the same cure already used for the auction and order commands. Before, the bot waited out five tries with longer and longer holds, which cost four and a half minutes each time the server thought a menu was still open.
+- Collecting is unchanged: one order at a time, with the stock listed before the next, so nothing piles up in the inventory.
+
 ## 2026-10-11 18:34 UTC
 - Changed: the bot now collects from an order only when a whole stack is waiting or the order is completely filled. It used to make a trip for a quarter of a stack, or for whatever was there when an order went quiet, which is where listings of 3, 14 or 53 of something came from. A part stack is only taken when the order itself is being pulled.
 - Changed: a small delivery no longer sends the bot to Your Orders at once. It goes when an order completes or a stack has built up, which saves a slow page load each time on a busy server.
