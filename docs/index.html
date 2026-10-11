@@ -45,7 +45,8 @@
     font: 400 17px/1.6 var(--body);
     -webkit-font-smoothing: antialiased;
   }
-  img, video { max-width: 100%; display: block; }
+  /* height: auto, or the width and height attributes hold the height while the width shrinks. */
+  img, video { max-width: 100%; height: auto; display: block; }
   a { color: var(--teal); text-underline-offset: 3px; }
   a:hover { color: var(--text); }
   :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
@@ -104,7 +105,7 @@
   .desk { background: linear-gradient(160deg, #173238, var(--surface) 62%); border: 1px solid var(--edge); border-radius: 12px; padding: 24px; display: grid; gap: 16px; }
   .desk .faces { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .desk figure { margin: 0; background: var(--inset); border: 1px solid var(--edge); border-radius: 8px; padding: 10px 6px 8px; text-align: center; }
-  .desk figure img { width: 100%; max-width: 86px; margin-inline: auto; image-rendering: pixelated; }
+  .desk figure img { width: 100%; max-width: 86px; height: auto; aspect-ratio: 1; margin-inline: auto; image-rendering: pixelated; }
   .desk figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.3; }
   .desk .say { font-family: var(--display); font-size: 22px; font-weight: 500; }
   .desk .sub { color: var(--secondary); font-size: 15px; }
