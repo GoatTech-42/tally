@@ -73,6 +73,22 @@ class NavigationProgressTest {
     }
 
     @Test
+    void aPageThatCameSetsTheNextWaitByHowLongItTook() {
+        // 58 s to arrive, as on the server at its fullest: the next one gets the full 90, not 20.
+        assertEquals(1800, AutomatedExecutionDriver.patienceAfter(1800, 58 * 20));
+        assertEquals(1800, AutomatedExecutionDriver.patienceAfter(400, 58 * 20));
+        // 12 s to arrive: wait a bit over twice that.
+        assertEquals(580, AutomatedExecutionDriver.patienceAfter(400, 12 * 20));
+        // Quick pages ease a long wait back a quarter at a time, down to the shortest and no further.
+        int wait = 1800;
+        int[] expected = {1350, 1012, 759, 569, 426, 400, 400};
+        for (int next : expected) {
+            wait = AutomatedExecutionDriver.patienceAfter(wait, 30);
+            assertEquals(next, wait);
+        }
+    }
+
+    @Test
     void navigationUsesTheStableButtonWhileTradePagesStillRequireTheWholeGrid() throws Exception {
         var driver = new AutomatedExecutionDriver();
         operation(driver, "CANCEL");

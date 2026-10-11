@@ -108,11 +108,29 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      *
      * <p>So the first wait is short, and it is the wait that grows, not the
      * retrying: after a page that never came the next is given longer, up to
-     * the 90 s a struggling server has been seen to need, and one page that
-     * does come puts it back.
+     * the 90 s a struggling server has been seen to need.
+     *
+     * <p>A page that does come sets the wait by how long it took. Putting it
+     * straight back to 20 s was tried for half an hour on 2026-10-11 with the
+     * server at 45,000 players and Your Orders taking 58 s: every operation
+     * then gave up at 20 s and at 45 s before the try that waited long
+     * enough, which was worse than the fixed 90 s it replaced.
      */
     static final int OWN_ORDERS_PATIENCE_MIN_TICKS = 400;
     private int ownOrdersPatienceTicks = OWN_ORDERS_PATIENCE_MIN_TICKS;
+    /** The page's arrival is timed once an operation, not on every tick it stays open. */
+    private boolean ownOrdersArrivalNoted;
+
+    /**
+     * The wait after a page that came in {@code tookTicks}: twice that and a
+     * little, so a page that slow is waited for next time; and never less
+     * than three quarters of what it was, so a run of quick pages eases it
+     * back to the shortest over several of them rather than at the first.
+     */
+    static int patienceAfter(int current, int tookTicks) {
+        int wanted = Math.max(Math.max(0, tookTicks) * 2 + 100, current * 3 / 4);
+        return Math.max(OWN_ORDERS_PATIENCE_MIN_TICKS, Math.min(OWN_ORDERS_OPEN_TICKS, wanted));
+    }
 
     /** The wait after one that ended with no page: 20 s, then 45 s, then 90 s and no more. */
     static int longerPatience(int ticks) {
@@ -798,6 +816,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         newOrderNavigationRetries = 0;
         ownNavRetries = 0;
         ownNavigationReopens = 0;
+        ownOrdersArrivalNoted = false;
         ownTargetUnitPrice = unitPrice;
         placeConfirmed = false;
         placeReceipt = "";
@@ -1073,8 +1092,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
             ownNavRetries = 0;
-            // The page came: the order house is answering, so the short wait is the right one again.
-            ownOrdersPatienceTicks = OWN_ORDERS_PATIENCE_MIN_TICKS;
+            // The page came. How long it took is how long the next is worth waiting for.
+            if (!ownOrdersArrivalNoted) {
+                ownOrdersArrivalNoted = true;
+                int before = ownOrdersPatienceTicks;
+                ownOrdersPatienceTicks = patienceAfter(ownOrdersPatienceTicks, ticksInPhase);
+                if (ticksInPhase >= 200 || before != ownOrdersPatienceTicks && ownOrdersPatienceTicks > OWN_ORDERS_PATIENCE_MIN_TICKS) {
+                    DoughBayClient.LOGGER.info("DoughBay: Your Orders came in {} s; the next is waited for up to {} s",
+                            ticksInPhase / 20, ownOrdersPatienceTicks / 20);
+                }
+            }
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
             int matchSlot = -1;
