@@ -528,6 +528,11 @@ public final class Tuning {
                     "Open /orders between trades and read every open buy order (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("orders.scan_min", "Orders", "Read every",
                     "Minutes between reads of the order house", 20, 2, 120, Kind.MINUTES),
+            new Setting("orders.collect_whole_stacks", "Orders", "Collect whole stacks only",
+                    "Goods delivered to an order are left on it until a whole stack is waiting or the order is "
+                            + "completely filled. A part stack is only taken when the order itself is about to be "
+                            + "pulled. Off, a quarter of a stack is enough for a trip, which lists odd small lots and "
+                            + "costs a visit to Your Orders for each of them (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("orders.collect", "Orders", "Collect filled orders",
                     "Sweep Your Orders on the read timer and collect any that show fully delivered, even with no fill "
                             + "notice and even when Place bids is off (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),

@@ -860,10 +860,28 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     /** Collects from the {@code ordinal}-th row (0-based) of your orders matching the item and price. */
     public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int ordinal) {
-        ownMatchOrdinal = Math.max(0, ordinal);
-        return beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
-                "Collecting " + shortName(itemId) + " delivered to your order");
+        return collectOrder(itemId, unitPrice, ordinal, false);
     }
+
+    /**
+     * As above. With {@code wholeStacksOnly} a part stack is left on the
+     * order, unless the page shows the order finished or cancelled: then
+     * nothing more is coming and all of it is taken.
+     */
+    public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int ordinal, boolean wholeStacksOnly) {
+        ownMatchOrdinal = Math.max(0, ordinal);
+        ExecutionResult result = beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
+                "Collecting " + shortName(itemId) + " delivered to your order");
+        collectWholeStacksOnly = wholeStacksOnly;
+        ownTargetFinished = false;
+        return result;
+    }
+
+    /** What a collect that found only a part stack ends with; the desk leaves that order alone for a while. */
+    public static final String PART_STACK_WAITING = "Only part of a stack is waiting on the order";
+    private boolean collectWholeStacksOnly;
+    /** The order being collected shows on Your Orders as fully delivered or cancelled. */
+    private boolean ownTargetFinished;
 
     private int ownMatchOrdinal;
     private int wrongPageReopens;
@@ -1125,6 +1143,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (matchSlot < 0 && matchesSeen == ownMatchOrdinal) {
                         matchSlot = menuSlot;
                         ownTargetTooltip = List.copyOf(tooltipLines(client, stack));
+                        ownTargetFinished = row.remaining() == 0 || row.alreadyCancelled();
                     }
                     matchesSeen++;
                 }
@@ -1321,13 +1340,25 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             int now = countInventory(client, targetItemId);
             if (title.contains("collect items")) {
                 int pending = -1;
+                // A part stack stays on an order that is still being filled:
+                // it becomes a whole one, and a whole one is what sells.
+                boolean partsToo = !collectWholeStacksOnly || ownTargetFinished;
+                int partsLeft = 0;
                 for (int menuSlot = 0; menuSlot < Math.min(54, container.getMenu().slots.size()); menuSlot++) {
                     Slot slot = container.getMenu().slots.get(menuSlot);
                     if (slot.container == inventory) continue;
                     ItemStack stack = slot.getItem();
                     if (stack.isEmpty() || !itemId(stack).equals(targetItemId)) continue;
+                    if (!partsToo && stack.getCount() < stack.getMaxStackSize()) {
+                        partsLeft++;
+                        continue;
+                    }
                     pending = menuSlot;
                     break;
+                }
+                if (pending < 0 && partsLeft > 0 && collectClicks == 0 && ticksInPhase >= 10) {
+                    abort(client, PART_STACK_WAITING + " for " + shortName(targetItemId) + "; left until it is whole");
+                    return;
                 }
                 if (pending >= 0) {
                     if (collectClicks >= 40) {

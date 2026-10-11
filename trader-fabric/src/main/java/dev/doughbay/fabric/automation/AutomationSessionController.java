@@ -3813,6 +3813,45 @@ public final class AutomationSessionController {
     private final OrderDeskRecovery deskRecovery = new OrderDeskRecovery();
     private long deskAsideLoggedAt;
 
+    /** How a collect step that must take a part stack begins its reason. */
+    private static final String TAKE_ALL = "taking ";
+    /** An order found with only part of a stack waiting is not opened again for this long. */
+    private static final long PART_STACK_REST_MILLIS = 5 * 60_000L;
+    private final java.util.Map<String, Long> partStackAt = new java.util.HashMap<>();
+    /** Items named in fill notices since the orders were last read, by the name the server used. */
+    private final java.util.Map<String, Integer> noticedSinceRead = new java.util.HashMap<>();
+
+    /** A collect whose reason says the order is finished with, so a part stack on it is taken too. */
+    static boolean takesAll(String why) {
+        return why != null && (why.startsWith(TAKE_ALL) || why.startsWith("the order was cancelled")
+                || why.startsWith("a delivery was waiting"));
+    }
+
+    /**
+     * Whether what is waiting on an order is worth a trip to it. With whole
+     * stacks only: a whole stack, or an order that is completely filled.
+     * Otherwise the older rule, a quarter stack or half of a small order.
+     */
+    static boolean worthCollecting(int pending, int stackSize, boolean complete, int requested, boolean sizeBySale,
+                                   boolean wholeStacksOnly) {
+        if (pending <= 0) return false;
+        if (complete) return true;
+        if (wholeStacksOnly) return pending >= Math.max(1, stackSize);
+        return pending >= 16 || (sizeBySale && requested < 32 && pending * 2 >= requested);
+    }
+
+    /** The most of an item one slot holds: 64 for most things, 16 or 1 for some. 64 when the item is not known. */
+    private static int stackSizeOf(String itemId) {
+        try {
+            net.minecraft.resources.Identifier id = net.minecraft.resources.Identifier.tryParse(itemId);
+            if (id == null) return 64;
+            return net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(id)
+                    .map(item -> Math.max(1, item.getDefaultMaxStackSize())).orElse(64);
+        } catch (RuntimeException e) {
+            return 64;
+        }
+    }
+
     /** Refresh our small order book independently of the much slower public sweep. */
     static boolean ownOrdersRefreshDue(long now, long lastRead, long lastAttempt) {
         long last = Math.max(lastRead, lastAttempt);
@@ -3824,8 +3863,18 @@ public final class AutomationSessionController {
         if (text == null || dev.doughbay.fabric.Tuning.get("orders.bid") < 0.5) return;
         String t = text.strip().toLowerCase(java.util.Locale.ROOT);
         if (t.contains(" delivered you ") || t.endsWith("order is complete!")) {
-            if (!deskReadDue) LOGGER.info("DoughBay bid desk: fill notice ({}); collecting on the next turn", text.strip());
-            deskReadDue = true;
+            // Every notice used to send the desk to Your Orders at once. With
+            // whole stacks only, a delivery of nine is nothing to go for: the
+            // desk goes when an order completes or the deliveries of one item
+            // since its last look add up to a stack, and otherwise on its
+            // ordinary timer. Each trip saved is a page that can take half a
+            // minute on a full server.
+            boolean go = dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") < 0.5
+                    || t.endsWith("order is complete!") || stackNoticed(text.strip());
+            if (go) {
+                if (!deskReadDue) LOGGER.info("DoughBay bid desk: fill notice ({}); collecting on the next turn", text.strip());
+                deskReadDue = true;
+            }
             int at = t.indexOf(" delivered you ");
             if (at >= 0) {
                 String rest = text.strip().substring(at + " delivered you ".length()).strip();
@@ -3848,6 +3897,29 @@ public final class AutomationSessionController {
             }
         }
     }
+    /**
+     * Adds a delivery notice to what has been delivered of that item since
+     * the orders were last read, and says whether that now makes a stack. A
+     * notice that names no item ("Players delivered you 19") or no count
+     * cannot be added up and counts as a reason to look.
+     */
+    private boolean stackNoticed(String notice) {
+        int at = notice.toLowerCase(java.util.Locale.ROOT).indexOf(" delivered you ");
+        if (at < 0) return true;
+        String rest = notice.substring(at + " delivered you ".length()).strip();
+        int space = rest.indexOf(' ');
+        if (space <= 0) return true;
+        int count;
+        try {
+            count = Integer.parseInt(rest.substring(0, space).replace(",", ""));
+        } catch (NumberFormatException e) {
+            return true;
+        }
+        String name = rest.substring(space + 1).strip().toLowerCase(java.util.Locale.ROOT);
+        if (name.isEmpty()) return true;
+        return noticedSinceRead.merge(name, count, Integer::sum) >= 64;
+    }
+
     private final java.util.ArrayDeque<DeskStep> deskQueue = new java.util.ArrayDeque<>();
     private DeskStep deskStep;
     private final java.util.Map<BidKey, Long> bidPlacedAt = new java.util.HashMap<>();
@@ -4653,7 +4725,8 @@ public final class AutomationSessionController {
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
         ExecutionResult result = switch (step.action()) {
             case READ -> driver.readOwnOrders();
-            case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.ordinal());
+            case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.ordinal(),
+                    dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why()));
             case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
             case PLACE -> driver.placeOrder(step.itemId(), step.count(), step.unitPrice());
             case SWEEP -> driver.probeCheapest(step.itemId(), step.count(), dev.doughbay.fabric.DoughBayClient.account());
@@ -4752,7 +4825,14 @@ public final class AutomationSessionController {
                             step.itemId(), step.unitPrice(), tries, event.detail());
                 }
             }
-            if (step.action() == DeskAction.COLLECT && event.detail() != null && event.detail().contains("Nothing arrived")) {
+            if (step.action() == DeskAction.COLLECT && event.detail() != null
+                    && event.detail().contains(AutomatedExecutionDriver.PART_STACK_WAITING)) {
+                // Not a failure and not a reason to give up on the order: the
+                // stack is still filling. It is left alone for a few minutes.
+                partStackAt.put(orderKey(step.itemId(), step.unitPrice(), step.count()), now);
+                LOGGER.info("DoughBay bid desk: {} at {} each has only part of a stack waiting; leaving it to fill",
+                        step.itemId(), step.unitPrice());
+            } else if (step.action() == DeskAction.COLLECT && event.detail() != null && event.detail().contains("Nothing arrived")) {
                 collectedNothing(client, now, step);
                 if (trackedPosition != null) return;   // a hand-collected stack was booked and is being listed
             } else if (step.action() == DeskAction.COLLECT && !navigationFailed) {
@@ -4775,6 +4855,7 @@ public final class AutomationSessionController {
         switch (step.action()) {
             case READ -> {
                 deskRecovery.recovered();
+                noticedSinceRead.clear();
                 ownOrders = List.copyOf(driver.lastOwnOrders());
                 ownOrdersReadAt = now;
                 planDesk(lastSnapshot, now);
@@ -4970,10 +5051,10 @@ public final class AutomationSessionController {
             String k = orderKey(r.itemId(), r.unitPrice(), r.requested());
             int collected = collectedByKey.getOrDefault(k, 0);
             int pending = deliveredByKey.getOrDefault(k, 0) - collected;
-            // An order for the single slots is a dozen items and would never
-            // reach sixteen delivered: half of it is worth the trip.
-            boolean listablePart = pending >= 16 || completeByKey.getOrDefault(k, false)
-                    || (sizeBySale() && r.requested() < 32 && pending * 2 >= r.requested());
+            boolean wholeOnly = dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5;
+            boolean listablePart = worthCollecting(pending, stackSizeOf(r.itemId()), completeByKey.getOrDefault(k, false)
+                    || r.remaining() == 0, r.requested(), sizeBySale(), wholeOnly)
+                    && now - partStackAt.getOrDefault(k, 0L) > PART_STACK_REST_MILLIS;
             if (pending > 0 && listablePart && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         "collecting " + pending + " " + r.itemId(), collectAttempts.getOrDefault(k, 0)));
@@ -5029,6 +5110,14 @@ public final class AutomationSessionController {
                 }
                 continue;
             }
+            // An order that is to be pulled gives up what is on it first,
+            // part stack or not: nothing more is coming to it.
+            if (wholeOnly && (bidding || denied) && why != null && pending > 0 && !listablePart
+                    && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
+                deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
+                        TAKE_ALL + pending + " " + r.itemId() + " before pulling the order (" + why + ")",
+                        collectAttempts.getOrDefault(k, 0)));
+            }
             // A blacklisted item is pulled even in collect-only mode; everything
             // else is only cancelled while the desk is actively bidding.
             if ((bidding || denied) && why != null && pending <= 0
@@ -5050,7 +5139,12 @@ public final class AutomationSessionController {
                     orderProgress.put(k, new long[]{r.delivered(), seen == null ? bidPlacedAt.getOrDefault(key, now) : now});
                 } else if (now - seen[1] >= nofill) {
                     long minutes = (now - seen[1]) / 60_000L;
-                    if (pending > 0) {
+                    // A quiet order used to have its part stack taken. That is
+                    // where the lots of three and fourteen came from. With
+                    // whole stacks only it is looked into like any other quiet
+                    // order: if it has been outbid it is pulled, and what is
+                    // on it is taken then.
+                    if (pending > 0 && !wholeOnly) {
                         if (collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                             deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                                     "taking " + pending + " " + r.itemId() + "; nothing more delivered for " + minutes + " min",
