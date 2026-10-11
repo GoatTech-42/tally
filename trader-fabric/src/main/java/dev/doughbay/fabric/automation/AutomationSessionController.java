@@ -3121,7 +3121,7 @@ public final class AutomationSessionController {
         }
         if (pendingOpportunity == null && startInHandRelisting(client, now)) return;
         if (pendingOpportunity == null && startOrphanListing(client, snapshot, now)) return;
-        if (pendingOpportunity == null && deskRecovery.pending()) {
+        if (pendingOpportunity == null && deskRecovery.pending() && !deskRecovery.steppedAside(now)) {
             detail = "Recovering Your Orders before watching auctions";
             return;
         }
@@ -3811,6 +3811,7 @@ public final class AutomationSessionController {
     private long ownOrdersAttemptAt;
     private boolean deskReadDue;
     private final OrderDeskRecovery deskRecovery = new OrderDeskRecovery();
+    private long deskAsideLoggedAt;
 
     /** Refresh our small order book independently of the much slower public sweep. */
     static boolean ownOrdersRefreshDue(long now, long lastRead, long lastAttempt) {
@@ -4516,6 +4517,17 @@ public final class AutomationSessionController {
                 && dev.doughbay.fabric.Tuning.get("orders.collect") < 0.5) return false;
         if (deskRecovery.pending()) {
             if (!deskRecovery.ready(now)) {
+                // An order house that is down is not waited at. Until the next
+                // try the rest of the session carries on: listing, repricing,
+                // the auction house.
+                if (deskRecovery.steppedAside(now)) {
+                    if (now - deskAsideLoggedAt > 60_000L) {
+                        deskAsideLoggedAt = now;
+                        LOGGER.info("DoughBay bid desk: the order house is not answering; working the auction side and "
+                                + "trying Your Orders again in {} s", deskRecovery.remainingSeconds(now));
+                    }
+                    return false;
+                }
                 detail = "Order navigation recovery: retrying Your Orders in " + deskRecovery.remainingSeconds(now) + " s";
                 return true;
             }

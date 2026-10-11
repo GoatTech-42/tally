@@ -1,13 +1,36 @@
 package dev.doughbay.fabric.automation;
 
-/** Retry own-order reads with backoff, without hiding them behind a long auction watch. */
+/**
+ * Retry own-order reads with backoff, without hiding them behind a long auction watch.
+ *
+ * <p>The first two failures are retried at once, because a lost click is the
+ * usual cause and the order house is where the stock comes from. From the
+ * third the order house is taken to be down, as it was for hours on
+ * 2026-10-10 and again with the server at its fullest on 2026-10-11, and the
+ * gaps lengthen to four minutes. During those gaps the desk steps aside: the
+ * session lists what it holds, reprices and watches the auction house
+ * instead of standing at a page that is not coming.
+ */
 final class OrderDeskRecovery {
+    /** Failures before the order house is treated as down rather than as having dropped a click. */
+    static final int DOWN_AFTER = 3;
     private int failures;
     private long retryAt;
 
     void failed(long now) {
-        failures = Math.min(3, failures + 1);
-        retryAt = now + (failures == 1 ? 5_000L : failures == 2 ? 15_000L : 60_000L);
+        failures = Math.min(5, failures + 1);
+        retryAt = now + switch (failures) {
+            case 1 -> 5_000L;
+            case 2 -> 15_000L;
+            case 3 -> 60_000L;
+            case 4 -> 120_000L;
+            default -> 240_000L;
+        };
+    }
+
+    /** Between tries at an order house that is down: nothing else should be kept waiting on it. */
+    boolean steppedAside(long now) {
+        return failures >= DOWN_AFTER && now < retryAt;
     }
 
     void recovered() { failures = 0; retryAt = 0; }

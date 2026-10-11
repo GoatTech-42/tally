@@ -14,17 +14,38 @@ class OrderDeskRecoveryTest {
         assertEquals(1, recovery.remainingSeconds(5999));
     }
 
-    @Test void repeatedFailuresBackOffToOneAttemptPerMinute() {
+    @Test void repeatedFailuresBackOffToOneAttemptEveryFourMinutes() {
         var recovery = new OrderDeskRecovery();
         recovery.failed(1000);
         recovery.failed(6000);
         assertFalse(recovery.ready(20999));
         assertTrue(recovery.ready(21000));
-        for (long now = 21000; now < 300000; now += 60000) {
+        long now = 21000;
+        for (long gap : new long[] {60_000, 120_000, 240_000, 240_000, 240_000}) {
             recovery.failed(now);
-            assertFalse(recovery.ready(now + 59999));
-            assertTrue(recovery.ready(now + 60000));
+            assertFalse(recovery.ready(now + gap - 1));
+            assertTrue(recovery.ready(now + gap));
+            now += gap;
         }
+    }
+
+    @Test void anOrderHouseThatIsDownIsNotStoodAt() {
+        var recovery = new OrderDeskRecovery();
+        // The first two failures are a lost click as likely as not: everything waits for the retry.
+        recovery.failed(1000);
+        assertFalse(recovery.steppedAside(2000));
+        recovery.failed(6000);
+        assertFalse(recovery.steppedAside(7000));
+        // The third is an order house that is down. Until the next try the session works on.
+        recovery.failed(21000);
+        assertTrue(recovery.steppedAside(21001));
+        assertTrue(recovery.steppedAside(80999));
+        // When the try comes due the desk has the floor again.
+        assertFalse(recovery.steppedAside(81000));
+        assertTrue(recovery.ready(81000));
+        // And one page that comes ends it.
+        recovery.recovered();
+        assertFalse(recovery.steppedAside(81001));
     }
 
     @Test void aSuccessfulReadReleasesTheWatchAndResetsBackoff() {
