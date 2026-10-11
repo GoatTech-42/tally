@@ -187,7 +187,10 @@ public final class Tuning {
                     + "A scanner's real value is the pages it walks, which cost no API requests at all",
                     50, 10, 100, Kind.PERCENT),
             new Setting("slots.max", "Tiers", "Auction slots",
-                    "Listings your rank allows at once: 18 with no rank, 45 with Donut+, 90 with Donut++ and up", 45, 1, 90, Kind.COUNT),
+                    "Listings your rank allows at once: 18 with no rank, 45 with Donut+, 90 with Donut++ and up. "
+                    + "The bot reads the real number off your listings pages and lowers this by itself when your "
+                    + "rank has fewer. After buying a rank, raise it yourself; the bot tells you when there is room",
+                    45, 1, 90, Kind.COUNT),
             new Setting("list.singles", "Selling", "Piece out premium markets",
                     "For the markets that measurably pay more per unit for a single than for a stack, break the bought "
                     + "stack into singles and list them one at a time at the single price instead of dumping the whole "

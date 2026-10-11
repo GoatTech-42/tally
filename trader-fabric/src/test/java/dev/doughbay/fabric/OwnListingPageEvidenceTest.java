@@ -121,4 +121,43 @@ class OwnListingPageEvidenceTest {
         early.set(3, AIR);
         assertEquals(0, rankSlotsFromPage(early));
     }
+
+    private static final OwnListingCell LOCKED = new OwnListingCell("minecraft:red_stained_glass_pane", 1,
+            List.of("Locked", "Buy Donut++ for even more auction slots"));
+
+    @Test void thePagePastTheEndOfARankOfFortyFiveIsReadAsTheEnd() {
+        // As the server draws it for Donut+: a first page of 45 cells to list
+        // in, and a second of 45 locked ones.
+        assertTrue(lockedPage(page(LOCKED)));
+        var past = ownListingPageEvidence(page(LOCKED));
+        assertTrue(past.loaded(), "a page of locked cells is a page that arrived");
+        assertTrue(past.empty());
+        assertTrue(past.last());
+        // It proves no smaller rank, and one cell that is not locked makes it some other page.
+        assertEquals(0, rankSlotsFromPage(page(LOCKED)));
+        var mixed = page(LOCKED);
+        mixed.set(0, LISTING);
+        assertFalse(lockedPage(mixed));
+        var loading = page(LOCKED);
+        loading.set(44, AIR);
+        assertFalse(lockedPage(loading));
+        assertFalse(ownListingPageEvidence(loading).loaded());
+        // The first page of that rank, thirty listed and fifteen free, is an ordinary one.
+        var first = page(VACANT);
+        for (int i = 0; i < 30; i++) first.set(i, LISTING);
+        assertFalse(lockedPage(first));
+        assertEquals(45, ownCells(first));
+        assertEquals(0, rankSlotsFromPage(first));
+        assertTrue(ownListingPageEvidence(first).loaded());
+    }
+
+    @Test void theCellsARankHasAreCountedUpToTheFirstThatIsNotOne() {
+        var cells = page(LOCKED);
+        for (int i = 0; i < 18; i++) cells.set(i, i < 7 ? LISTING : VACANT);
+        assertEquals(18, ownCells(cells));
+        assertEquals(18, rankSlotsFromPage(cells));
+        // A listing past the locked cells is not a page this understands.
+        cells.set(40, LISTING);
+        assertEquals(0, rankSlotsFromPage(cells));
+    }
 }

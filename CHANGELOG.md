@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-11 12:25 UTC
+- Fixed: with a Donut+ rank (45 auction slots) the slot check and every pull-back failed, and the panel stuck at 45 of 45. The bot was turning to a second listings page that, for that rank, is all locked cells.
+- Changed: the bot reads your rank's slot count off your listings pages and lowers the Auction slots setting to match. It says so in chat when it does.
+- New: after you buy a rank, the bot tells you there are more slots to use. Raising the setting stays your choice.
+
 ## 2026-10-11 12:10 UTC
 - New: a changelog. Every update now says what it changes: in the update notice, after it installs, and under What's new on the About tab.
 - Fixed: the bot waits while the update notice is open, the same as it does for the GoNuts screen.

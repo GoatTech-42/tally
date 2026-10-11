@@ -3232,6 +3232,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     static OwnListingPageEvidence ownListingPageEvidence(List<OwnListingCell> cells, int usable) {
         if (cells.size() != 45) return new OwnListingPageEvidence(false, false, false);
+        // The page past the end of the book: read, nothing on it, nothing after it.
+        if (lockedPage(cells)) return new OwnListingPageEvidence(true, true, true);
         int checked = Math.max(1, Math.min(45, usable));
         int vacant = 0;
         for (OwnListingCell cell : cells.subList(0, checked)) {
@@ -3279,38 +3281,128 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // and those are full pages; the first page holds the rank's whole book.
         int slots = (int) Math.round(Tuning.get("slots.max"));
         OwnListingPageEvidence evidence = ownListingPageEvidence(cells, slots >= 45 ? 45 : slots);
+        if (lockedPage(cells)) {
+            // Past the end of the book: a rank with 45 slots has a second page
+            // and every cell of it is locked. Arriving here means the first
+            // page was read whole, so the rank has exactly 45.
+            if (slots > 45) {
+                Tuning.set("slots.max", 45);
+                DoughBayClient.LOGGER.info("DoughBay: the second listings page is locked, so your rank has 45 slots; "
+                        + "auction slots set to 45 (was {})", slots);
+                tellPlayer(client, "Your rank has 45 auction slots. The Auction slots setting was " + slots
+                        + " and is now 45.");
+            }
+            return evidence;
+        }
+        int learned = rankSlotsFromPage(cells);
         if (!evidence.loaded()) {
-            int learned = rankSlotsFromPage(cells);
             if (learned > 0 && learned < Math.min(45, slots)) {
                 // The rank used to come from the API, which is gone, so a
                 // no-rank player kept the default 45 and every page failed on
                 // the 27 locked cells. The page itself shows the rank's size.
                 Tuning.set("slots.max", learned);
-                DoughBayClient.LOGGER.info("DoughBay: your listings page shows {} usable slots; auction slots set to {}",
-                        learned, learned);
+                DoughBayClient.LOGGER.info("DoughBay: your listings page shows {} usable slots; auction slots set to {} (was {})",
+                        learned, learned, slots);
+                tellPlayer(client, "Your rank has " + learned + " auction slots. The Auction slots setting was "
+                        + slots + " and is now " + learned + ".");
                 return ownListingPageEvidence(cells, learned);
             }
+            return evidence;
+        }
+        if (slots < 45) {
+            // Fewer than 45 means the first page is the only one read, and it
+            // shows how many cells the rank really has. More than the setting
+            // is a rank bought since. More slots is more money out at once,
+            // so turning it up stays the player's to do.
+            int room = ownCells(cells);
+            if (room > slots && room != hintedRankSlots) {
+                hintedRankSlots = room;
+                DoughBayClient.LOGGER.info("DoughBay: your listings page shows {} usable slots and the setting is {}",
+                        room, slots);
+                tellPlayer(client, "Your rank now has " + (room >= 45 ? "45 or more" : Integer.toString(room))
+                        + " auction slots and the bot is using " + slots
+                        + ". Raise Auction slots in Settings to use them.");
+            }
+            return evidence;
+        }
+        if (slots == 45 && !evidence.last()) {
+            // A rank of exactly 45 has its whole book on this page. The Next
+            // arrow is drawn all the same and leads to a page of locked
+            // cells, which is where a Donut+ player's slot check went and
+            // never came back from: 45 of 45 on the panel with thirty up.
+            return new OwnListingPageEvidence(true, evidence.empty(), true);
         }
         return evidence;
     }
 
+    private static void tellPlayer(Minecraft client, String message) {
+        if (client != null && client.player != null) {
+            client.player.sendSystemMessage(Component.literal("[GoNuts] " + message));
+        }
+    }
+
+    /** The rank size last pointed out to the player, so they are told once and not on every page. */
+    private int hintedRankSlots;
+
+    /** A cell the player's rank can list in: a listing, one waiting to be collected, or a vacant slot. */
+    private static boolean ownCell(OwnListingCell cell) {
+        PriceEvidence price = authoritativePriceEvidence(cell.tooltip());
+        if (price.sawAuthoritativeField()) return !price.unclear();
+        if (waitingToBeCollected(cell.tooltip())) return true;
+        List<String> lines = cell.tooltip().stream().map(String::strip).toList();
+        return cell.itemId().equals("minecraft:gray_stained_glass_pane") && cell.count() == 1
+                && !lines.isEmpty() && lines.getFirst().equalsIgnoreCase("List")
+                && lines.stream().anyMatch(line -> line.equalsIgnoreCase("Click to sell an item"));
+    }
+
+    /** How many cells from the first are the player's to list in, before anything that is not. */
+    static int ownCells(List<OwnListingCell> cells) {
+        int usable = 0;
+        while (usable < cells.size() && ownCell(cells.get(usable))) usable++;
+        return usable;
+    }
+
+    /** A cell the rank does not have: the server's own pane, saying so. */
+    private static boolean lockedCell(OwnListingCell cell) {
+        if (cell.itemId().equals("minecraft:air")) return false;
+        if (authoritativePriceEvidence(cell.tooltip()).sawAuthoritativeField()) return false;
+        List<String> lines = cell.tooltip().stream().map(String::strip).toList();
+        return !lines.isEmpty() && lines.getFirst().equalsIgnoreCase("Locked");
+    }
+
     /**
-     * The rank's slot count as the page shows it: 18 when the first 18 cells
-     * are listings or vacant slots and none of the rest is a listing. 0 when
-     * the page does not prove that.
+     * A page with nothing on it but locked cells: the page after the end of
+     * the book. As seen on 2026-10-11 for a rank of 45, whose second page is
+     * forty-five red panes reading "Locked".
+     */
+    static boolean lockedPage(List<OwnListingCell> cells) {
+        if (cells.size() != 45) return false;
+        for (OwnListingCell cell : cells) if (!lockedCell(cell)) return false;
+        return true;
+    }
+
+    /**
+     * The rank's slot count as its first page shows it, for a rank with fewer
+     * than 45: the cells from the first up to the first locked one are
+     * listings or vacant slots, and everything after is the server's
+     * locked-slot furniture (18, then 27 locked, with no rank). 0 when the
+     * page does not prove a size: a rank of 45 or more, or a page still
+     * loading.
      */
     static int rankSlotsFromPage(List<OwnListingCell> cells) {
-        final int noRank = 18;
         if (cells.size() != 45) return 0;
-        if (!ownListingPageEvidence(cells, noRank).loaded()) return 0;
-        for (OwnListingCell cell : cells.subList(noRank, 45)) {
+        int usable = ownCells(cells);
+        if (usable == 0 || usable == 45) return 0;
+        for (OwnListingCell cell : cells.subList(usable, 45)) {
+            // Air is a page still loading, and a listing or a vacant slot past
+            // a cell that is neither is a page this does not understand.
             if (cell.itemId().equals("minecraft:air")) return 0;
             if (authoritativePriceEvidence(cell.tooltip()).sawAuthoritativeField()) return 0;
             if (waitingToBeCollected(cell.tooltip())) return 0;
             List<String> lines = cell.tooltip().stream().map(String::strip).toList();
             if (!lines.isEmpty() && lines.getFirst().equalsIgnoreCase("List")) return 0;
         }
-        return noRank;
+        return usable;
     }
 
     record OwnItemsControl(int slot, String name, List<String> lore) {}
