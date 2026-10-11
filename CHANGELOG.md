@@ -4,8 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-11 19:42 UTC
+- Fixed: orders that failed to place on a busy server. When Your Orders was slow the bot clicked it a second time after 8 seconds, and the second page then arrived in the middle of the order form and wiped it. Of 32 placements, the 8 that asked once all worked and 10 of the 24 that asked twice failed, about 40 seconds each. The second click now waits for as long as the page has lately been taking, and an order whose form is replaced by a late page starts again from that page at once.
+- Changed: after placing an order the bot tries to place the next one from the same page, without waiting for Your Orders again. If the server does not answer on that page within 3 seconds it goes back to asking for a new one.
+- Removed: the wait added in the last build for a page the server was thought to send back after an order. It does not send one.
+
 ## 2026-10-11 19:27 UTC
-- Changed: the bot now stays in the order house between steps. After an order is placed the server sends Your Orders back by itself; the bot used to ignore that and ask for a fresh page, so two were on their way at once and the unwanted one landed in the middle of the next step and broke it. On a busy Sunday that failed 5 of 14 order placements, about 40 seconds each. It now waits for the page it is owed and starts the next step from it, and does the same after reading or cancelling orders. There is a switch for it under Orders in Settings (Stay in the order house between steps, on by default).
+- Changed: a step that ends on Your Orders (reading or cancelling) leaves the page open for the next step to start from, which saves one slow page load each time. There is a switch for it under Orders in Settings (Stay in the order house between steps, on by default).
 - Fixed: a sell command the server ignores is retried at once after closing the player inventory, the same cure already used for the auction and order commands. Before, the bot waited out five tries with longer and longer holds, which cost four and a half minutes each time the server thought a menu was still open.
 - Collecting is unchanged: one order at a time, with the stock listed before the next, so nothing piles up in the inventory.
 

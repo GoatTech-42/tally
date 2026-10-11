@@ -821,15 +821,25 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         placeConfirmed = false;
         placeReceipt = "";
         ownDone = false;
-        placeReturnWaitTicks = -1;
         placeFromContainerId = -1;
+        placeRestarts = 0;
+        probingKeptPage = false;
         // Your Orders is already open from the step before: start from it.
-        boolean onKeptPage = oneTrip() && holdsOrdersPage(client);
+        // The page left under an order's dialogs is only tried for another
+        // order, where a dialog opening proves it is live; reading, collecting
+        // and cancelling want a page known to be current.
+        boolean kept = oneTrip() && holdsOrdersPage(client);
+        boolean underDialogs = keptUnderDialogs;
         keptOrdersContainerId = -1;
+        keptUnderDialogs = false;
+        boolean onKeptPage = kept && (!underDialogs
+                || (op == Operation.PLACE_ORDER && System.currentTimeMillis() >= underDialogPageDeadUntilMillis));
         if (onKeptPage) {
             ownStage = 1;
             ownOrdersArrivalNoted = true;   // not a fresh arrival: it says nothing about how slow the page is
-            DoughBayClient.LOGGER.info("DoughBay: staying on Your Orders for {}", op);
+            probingKeptPage = underDialogs;
+            DoughBayClient.LOGGER.info("DoughBay: staying on Your Orders for {}{}", op,
+                    underDialogs ? " (trying the page the last order was placed from)" : "");
             enterPhase(Phase.WAITING_FOR_LISTING, message);
             return ExecutionResult.awaitingPlayer(lastMessage);
         }
@@ -1050,6 +1060,42 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             resetPhaseObservation();
             return;
         }
+        if (operation == Operation.PLACE_ORDER && !placeConfirmed && ownStage >= 2 && title.contains("your orders")) {
+            int id = container.getMenu().containerId;
+            // A second Your Orders page has arrived and taken the place of the
+            // order dialogs: one asked for earlier and no longer wanted. The
+            // dialogs are gone and nothing was confirmed, so the order is
+            // started again from the page that is here, not left to time out.
+            if (id != placeFromContainerId && placeRestarts < 3) {
+                placeRestarts++;
+                DoughBayClient.LOGGER.info("DoughBay: a second Your Orders page replaced the order dialogs at stage {}; "
+                        + "starting the order again from it ({} of 3)", ownStage, placeRestarts);
+                ownStage = 1;
+                probingKeptPage = false;
+                placeSearchIndex = 0;
+                newOrderNavigationRetries = 0;
+                ownSettleUntilTick = 0;
+                resetPhaseObservation();
+                return;
+            }
+            // The page the last order was placed from, tried for this one: no
+            // dialog has opened, so the server is not listening to it.
+            if (probingKeptPage && ownStage == 2 && id == placeFromContainerId && ticksInPhase >= KEPT_PAGE_PROBE_TICKS) {
+                probingKeptPage = false;
+                underDialogPageDeadUntilMillis = System.currentTimeMillis() + 10 * 60_000L;
+                DoughBayClient.LOGGER.info("DoughBay: the page the last order was placed from does not answer; "
+                        + "asking for Your Orders afresh, and not trying that again for 10 min");
+                client.player.closeContainer();
+                ownStage = 0;
+                ownSettleUntilTick = 0;
+                ownNavRetries = 0;
+                ownOrdersArrivalNoted = false;
+                placeFromContainerId = -1;
+                sendCommand(client, "orders");
+                resetPhaseObservation();
+                return;
+            }
+        }
         // Only retry opening the chooser, never the final Create Order action.
         // A sent navigation click is not proof that the server opened its page.
         if (shouldRetryNewOrderNavigation(title)) {
@@ -1100,7 +1146,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if (!title.contains("your orders")) {
                 // Still on the order house: the click did not take. Try it
                 // once more before giving up on the whole step.
-                if (title.contains("orders") && ticksInPhase >= OWN_ORDERS_RECLICK_TICKS && ownNavRetries < 1) {
+                if (title.contains("orders") && ticksInPhase >= reclickTicks(ownOrdersPatienceTicks) && ownNavRetries < 1) {
                     int again = findControl(container, inventory, "your orders", 0, container.getMenu().slots.size());
                     if (again >= 0 && clickSlot(client, container, again)) {
                         ownNavRetries++;
@@ -1425,46 +1471,52 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private boolean ownDone;
 
     /**
-     * The order house hands Your Orders back by itself after an order is
-     * placed, and that page is as slow as any other: 10 to 40 s with the
-     * server full. A placement used to finish on the chat receipt and the
-     * next step asked for a page of its own, so two were on their way at
-     * once, and the one nobody was waiting for arrived in the middle of the
-     * next step and replaced whatever it had open. On 2026-10-11, 5 of 14
-     * placements in a quarter of an hour ended "No progress at stage 8 of
-     * PLACE_ORDER on orders -> your orders", every one of them the placement
-     * straight after one that had worked, at 40 s each.
+     * Your Orders is the slow page of the order house: 10 to 40 s with the
+     * server full, against a second or two for everything behind it. Every
+     * step used to close it and ask for another, and a step that had waited
+     * 8 s clicked Your Orders a second time. The click had not been lost; the
+     * page was slow, so two were now on their way, and the second arrived in
+     * the middle of the order dialogs and replaced them. Of 32 placements on
+     * 2026-10-11, the 8 that asked once all went through and 10 of the 24
+     * that asked twice ended "No progress at stage 8 of PLACE_ORDER on
+     * orders -> your orders", at 40 s each.
      *
-     * <p>So a placement now waits for the page it is owed, and the page a
-     * step ends on is kept a moment for the next step to start from: one
-     * page per step where there were two, and none arriving unasked.
+     * <p>Three things follow. The second click waits for as long as the page
+     * has lately been taking. A placement that finds a new Your Orders page
+     * where its dialog was starts again from that page at once. And a step
+     * that ends on Your Orders leaves it open a moment, so the next step
+     * starts from it instead of asking for one more.
      */
     static final long KEPT_ORDERS_PAGE_MILLIS = 3_000L;
-    /** Ticks waited so far for Your Orders to come back after a placement; -1 when not waiting. */
-    private int placeReturnWaitTicks = -1;
-    /** The Your Orders page New Order was clicked on. It shows again when the dialogs close, and it is dead by then. */
+    /** The Your Orders page New Order was clicked on; it shows again underneath when the dialogs close. */
     private int placeFromContainerId = -1;
-    private int placeReturnsSeen;
-    private int placeReturnsMissed;
+    private int placeRestarts;
     private int keptOrdersContainerId = -1;
     private long keptOrdersUntilMillis;
+    /**
+     * The kept page is the one the order dialogs were opened over. Whether
+     * the server still has it open is not known, so only another placement
+     * starts from it, and only on trial: no dialog within three seconds of
+     * clicking New Order and the page is taken for dead, for ten minutes.
+     */
+    private boolean keptUnderDialogs;
+    private boolean probingKeptPage;
+    private long underDialogPageDeadUntilMillis;
+    static final int KEPT_PAGE_PROBE_TICKS = 60;
 
     private static boolean oneTrip() {
         return Tuning.get("orders.one_trip") >= 0.5;
     }
 
     /**
-     * Whether a placement still waits for its page. Two that never came with
-     * none that did means this server does not send one, and waiting for it
-     * would cost every placement the full wait for nothing.
+     * When Your Orders is clicked a second time. Eight seconds is right for a
+     * click that was lost and wrong for a page that is slow, and the two look
+     * the same until the page comes. So it follows how long the page has been
+     * taking: the wait is a little over twice the last arrival, and half of
+     * that is a little after the page was last seen to come.
      */
-    static boolean waitsForReturnPage(boolean enabled, int seen, int missed) {
-        return enabled && !(seen == 0 && missed >= 2);
-    }
-
-    /** As long as Your Orders is currently worth waiting for, and never past what the phase budget allows. */
-    static int returnPageLimitTicks(int patienceTicks) {
-        return Math.max(OWN_ORDERS_PATIENCE_MIN_TICKS, Math.min(1600, patienceTicks));
+    static int reclickTicks(int patienceTicks) {
+        return Math.max(OWN_ORDERS_RECLICK_TICKS, patienceTicks / 2);
     }
 
     private static boolean isYourOrdersPage(Screen screen) {
@@ -1557,6 +1609,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** The order-creation dialogs: choose the item, the amount, the price, review, create. */
     private void tickPlaceDialog(Minecraft client, DialogScreen<?> dialogScreen) {
         sawContainerInPhase = true;
+        if (probingKeptPage) {
+            probingKeptPage = false;
+            DoughBayClient.LOGGER.info("DoughBay: the page the last order was placed from is live; "
+                    + "this order needed no new Your Orders page");
+        }
         if (ticksInPhase < ownSettleUntilTick) return;
         String title = dialogTitle(dialogScreen).toLowerCase(Locale.ROOT);
         List<EditBox> boxes = new ArrayList<>();
@@ -4736,38 +4793,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return;
         }
         if (operation == Operation.PLACE_ORDER && placeConfirmed && !placeReceipt.isEmpty()) {
-            if (placeReturnWaitTicks < 0) {
-                placeReturnWaitTicks = 0;
-                // On the receipt, not on the click: the alert says what the order
-                // house accepted, which is the only version worth showing.
-                DoughBayClient.alertOrderPlaced(shortName(targetItemId), placeCount, placeUnitPrice);
-                // The order is placed; what is left is the page coming back,
-                // and that is given its own time, not what the dialogs left.
-                resetPhaseObservation();
-            }
-            // The bid is placed whatever happens next. What is waited for is
-            // Your Orders coming back, so it is this step that receives it.
-            boolean waits = waitsForReturnPage(oneTrip(), placeReturnsSeen, placeReturnsMissed);
-            // The page the order was started from comes back on screen when the
-            // dialogs close, but only on this side: the server shut it long
-            // ago. The one waited for is a new page, with a new number.
-            boolean back = isYourOrdersPage(screen)
-                    && ((AbstractContainerScreen<?>) screen).getMenu().containerId != placeFromContainerId;
-            int limit = returnPageLimitTicks(ownOrdersPatienceTicks);
-            if (waits && !back && ++placeReturnWaitTicks < limit) {
-                lastMessage = "Bid placed; waiting for the order house to hand Your Orders back";
-                return;
-            }
-            if (waits) {
-                if (back) {
-                    placeReturnsSeen++;
-                    ownOrdersPatienceTicks = patienceAfter(ownOrdersPatienceTicks, placeReturnWaitTicks);
-                } else {
-                    placeReturnsMissed++;
-                    DoughBayClient.LOGGER.info("DoughBay: Your Orders did not come back within {} s of the placement "
-                            + "({} came back, {} did not)", limit / 20, placeReturnsSeen, placeReturnsMissed);
-                }
-            }
+            // On the receipt, not on the click: the alert says what the order
+            // house accepted, which is the only version worth showing.
+            DoughBayClient.alertOrderPlaced(shortName(targetItemId), placeCount, placeUnitPrice);
             complete(client, String.format(Locale.ROOT, "Bid placed: %s x%d at %s each (%s)",
                     shortName(targetItemId), placeCount, money(placeUnitPrice), placeReceipt));
             return;
@@ -5951,9 +5979,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         boolean keepOrdersPage = oneTrip() && client != null
                 && (operation == Operation.OWN_ORDERS || operation == Operation.PLACE_ORDER
                 || operation == Operation.CANCEL_ORDER)
-                && isYourOrdersPage(client.gui.screen())
-                && (operation != Operation.PLACE_ORDER
-                || ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId != placeFromContainerId);
+                && isYourOrdersPage(client.gui.screen());
+        boolean underDialogs = keepOrdersPage && operation == Operation.PLACE_ORDER
+                && ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId == placeFromContainerId;
         lastMessage = message;
         DoughBayClient.LOGGER.info("{}", message);
         publishTerminal(TerminalOutcome.SUCCEEDED, message);
@@ -5964,6 +5992,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (keepOrdersPage) {
             keptOrdersContainerId = ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId;
             keptOrdersUntilMillis = System.currentTimeMillis() + KEPT_ORDERS_PAGE_MILLIS;
+            keptUnderDialogs = underDialogs;
             return;
         }
         closeAuctionScreen(client);

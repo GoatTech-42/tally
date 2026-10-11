@@ -73,25 +73,15 @@ class NavigationProgressTest {
     }
 
     @Test
-    void aPlacementWaitsForYourOrdersToComeBackUntilItIsClearThisServerSendsNone() {
-        // On, and nothing known yet: wait for it.
-        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 0));
-        // One that did not come is not proof; a slow server looks the same.
-        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 1));
-        // Two that never came and none that did: stop paying for it.
-        assertFalse(AutomatedExecutionDriver.waitsForReturnPage(true, 0, 2));
-        // Once one has come back the server is known to send them, however many are late.
-        assertTrue(AutomatedExecutionDriver.waitsForReturnPage(true, 1, 5));
-        // Off is off.
-        assertFalse(AutomatedExecutionDriver.waitsForReturnPage(false, 3, 0));
-    }
-
-    @Test
-    void theWaitForThePageComingBackFollowsHowSlowYourOrdersIsAndStopsAtEightySeconds() {
-        assertEquals(400, AutomatedExecutionDriver.returnPageLimitTicks(400));
-        assertEquals(900, AutomatedExecutionDriver.returnPageLimitTicks(900));
-        assertEquals(1600, AutomatedExecutionDriver.returnPageLimitTicks(1800));
-        assertEquals(400, AutomatedExecutionDriver.returnPageLimitTicks(0));
+    void yourOrdersIsNotClickedASecondTimeWhileTheFirstPageIsStillLikelyToCome() {
+        // A quick order house: the second click comes at 10 s, about what it always was.
+        assertEquals(200, AutomatedExecutionDriver.reclickTicks(400));
+        // The page has been taking 15 s, so the wait is 35 s: no second click before 17 s.
+        assertEquals(350, AutomatedExecutionDriver.reclickTicks(700));
+        // At its slowest the second click still comes, at half the wait.
+        assertEquals(900, AutomatedExecutionDriver.reclickTicks(1800));
+        // Never sooner than the eight seconds a lost click was always given.
+        assertEquals(160, AutomatedExecutionDriver.reclickTicks(0));
     }
 
     @Test

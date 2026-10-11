@@ -534,10 +534,11 @@ public final class Tuning {
                             + "pulled. Off, a quarter of a stack is enough for a trip, which lists odd small lots and "
                             + "costs a visit to Your Orders for each of them (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("orders.one_trip", "Orders", "Stay in the order house between steps",
-                    "After an order is placed the server sends Your Orders back by itself. On, the bot waits for that "
-                            + "page and starts its next order-house step from it, and does the same after reading or "
-                            + "cancelling. Off, every step closes the page and asks for a new one, and the page nobody "
-                            + "waited for can arrive in the middle of the next step and break it (1 on, 0 off)",
+                    "Your Orders is the slow page of the order house. On, a step that ends on it leaves it open for "
+                            + "the next step to start from, another order is tried from the page the last one was "
+                            + "placed on, and an order whose dialogs are replaced by a second Your Orders page starts "
+                            + "again from that page. Off, every step closes the page and asks for a new one "
+                            + "(1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("orders.collect", "Orders", "Collect filled orders",
                     "Sweep Your Orders on the read timer and collect any that show fully delivered, even with no fill "
