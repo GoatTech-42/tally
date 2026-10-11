@@ -53,7 +53,18 @@ public final class UpdateCheck {
     static final String PAGE = "https://github.com/cody-raves/GoNuts/releases/latest";
     /** The only place a jar is ever fetched from. */
     static final String DOWNLOADS = "https://github.com/cody-raves/gonuts/releases/download/";
-    private static final long EVERY_MILLIS = 3 * 3_600_000L;
+    /**
+     * The release's checksum file: a few hundred bytes, fetched like any
+     * download. GitHub's API allows an address sixty questions an hour, which
+     * two clients in one house asking every two minutes would use up; this
+     * file can be read as often as that, and the API is asked only when the
+     * file names a jar not yet looked at.
+     */
+    static final String SUMS = "https://github.com/cody-raves/GoNuts/releases/latest/download/SHA256SUMS.txt";
+    /** How often the checksum file is read. A fix put up is on a running client's screen within this. */
+    private static final long EVERY_MILLIS = 2 * 60_000L;
+    /** The API is asked this often whatever the checksum file says, in case that file cannot be read. */
+    private static final long FULL_MILLIS = 3 * 3_600_000L;
     private static final long FIRST_MILLIS = 20_000L;
     /** In the world this long before the notice, so it is not lost among the lines a join prints. */
     private static final long SETTLE_MILLIS = 10_000L;
@@ -196,6 +207,8 @@ public final class UpdateCheck {
     private static void loop() {
         String own = null;
         long built = builtAt();
+        // The first look is a full one; so is one the player asked for.
+        boolean asked = true;
         noteInstalled(built);
         try {
             Thread.sleep(FIRST_MILLIS);
@@ -211,16 +224,68 @@ public final class UpdateCheck {
                             DoughBayClient.LOGGER.info("DoughBay update check: this jar could not be read ({})", e.toString());
                         }
                     }
-                    check(own, built);
+                    look(own, built, asked);
                 }
                 synchronized (WAKE) {
                     if (!wake) WAKE.wait(EVERY_MILLIS);
+                    asked = wake;
                     wake = false;
                 }
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /** The hash the release gave for its jar at the last full look, and when that was. */
+    private static String lookedAt = "";
+    private static long lookedAtMillis;
+
+    /**
+     * One turn of the watch. Reads the checksum file, and asks the API for
+     * the whole of it only when that file names a jar that has not been
+     * looked at, when asked to, or when it has been a long while.
+     */
+    private static void look(String own, long built, boolean asked) {
+        long now = System.currentTimeMillis();
+        if (!asked && !lookedAt.isEmpty() && now - lookedAtMillis < FULL_MILLIS) {
+            String listed = null;
+            try {
+                HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
+                        .followRedirects(HttpClient.Redirect.NORMAL).build();
+                HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(SUMS))
+                        .timeout(Duration.ofSeconds(20)).header("User-Agent", "GoNuts-update-check")
+                        .GET().build(), HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) listed = listed(response.body());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                // Offline for a moment: what is known stands, and the next turn asks again.
+            }
+            if (listed == null) return;
+            if (listed.equalsIgnoreCase(lookedAt)) {
+                // Nothing new. Only the time of the look moves on.
+                Status s = status;
+                if (s.checkedAt() > 0) status = new Status(s.state(), now, s.uploadedAt(), s.page(), s.detail());
+                return;
+            }
+        }
+        check(own, built);
+    }
+
+    /** The hash a checksum file gives for the mod's jar, or null when it names none. */
+    static String listed(String sums) {
+        if (sums == null) return null;
+        for (String line : sums.split("\\r?\\n")) {
+            String[] parts = line.strip().split("\\s+");
+            if (parts.length != 2) continue;
+            String name = parts[1].startsWith("*") ? parts[1].substring(1) : parts[1];
+            if (MOD_JAR.matcher(name).matches() && parts[0].matches("[0-9A-Fa-f]{64}")) {
+                return parts[0].toLowerCase(Locale.ROOT);
+            }
+        }
+        return null;
     }
 
     private static void check(String own, long built) {
@@ -238,6 +303,8 @@ public final class UpdateCheck {
             if (response.statusCode() != 200) throw new IOException("GitHub answered " + response.statusCode());
             Release release = parse(response.body());
             if (release == null) throw new IOException("the release lists no mod jar");
+            lookedAt = release.sha256();
+            lookedAtMillis = now;
             State state = compare(own, built, release);
             news = state == State.CURRENT ? List.of()
                     : List.copyOf(Changelog.after(Changelog.parse(release.notes()), built));

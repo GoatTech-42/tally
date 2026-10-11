@@ -567,7 +567,7 @@ public final class Tuning {
                     + "stale login is still the launcher's problem, not this (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("update.check", "Session", "Tell me when a newer build is out",
-                    "Asks GitHub at start and every three hours whether the released jar is newer than this one, "
+                    "Asks GitHub at start and every two minutes whether the released jar is newer than this one, "
                     + "and says so with a notice and on the About tab. By itself it only looks: nothing is "
                     + "downloaded or installed (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("update.auto", "Session", "Install a newer build by itself",

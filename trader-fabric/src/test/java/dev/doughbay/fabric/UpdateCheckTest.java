@@ -88,6 +88,21 @@ class UpdateCheckTest {
     }
 
     @Test
+    void theChecksumFileNamesTheModsJarAndNotTheOthers() {
+        String sums = MOD.toUpperCase() + "  GoNuts-0.1.0-mc26.2.jar\n"
+                + OTHER.toUpperCase() + "  gonuts-cli-0.1.0.jar\r\n"
+                + OTHER.toUpperCase() + "  gonuts-server-0.1.0.jar\n";
+        assertEquals(MOD, UpdateCheck.listed(sums));
+        // The star some tools put before a name is not part of it.
+        assertEquals(MOD, UpdateCheck.listed(MOD + " *GoNuts-0.1.0-mc26.2.jar\n"));
+        assertNull(UpdateCheck.listed(OTHER + "  gonuts-cli-0.1.0.jar\n"));
+        assertNull(UpdateCheck.listed("not a hash  GoNuts-0.1.0-mc26.2.jar\n"));
+        assertNull(UpdateCheck.listed("<html>rate limited</html>"));
+        assertNull(UpdateCheck.listed(""));
+        assertNull(UpdateCheck.listed(null));
+    }
+
+    @Test
     void theNoticeSaysWhenABuildThatInstallsItselfWillDoSo() {
         String when = "installs when you close the game and is ready when you open it again";
         UpdateCheck.Alert ready = UpdateCheck.explain(UpdateCheck.State.READY, true, 0);
