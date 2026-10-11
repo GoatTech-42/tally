@@ -1,0 +1,40 @@
+WEBVTT
+
+00:00.000 --> 00:05.000
+Six steps from download to trading. No API key needed.
+
+00:05.000 --> 00:14.000
+Use the Fabric profile in your launcher. It already includes the right Java.
+
+00:14.000 --> 00:22.000
+Go to the Releases page and download GoNuts-0.1.0-mc26.2.jar.
+
+00:22.000 --> 00:32.000
+Close Minecraft first. Then drop the jar into your mods folder and launch.
+
+00:32.000 --> 00:40.000
+Turn the sidebar scoreboard on. GoNuts reads your balance from it.
+
+00:40.000 --> 00:48.000
+B opens GoNuts. Click Autopilot in the list on the left.
+
+00:48.000 --> 00:57.000
+Max per trade and Max per session. Start small: you can raise them later.
+
+00:57.000 --> 01:04.000
+Click "Enable live trading on DonutSMP".
+
+01:04.000 --> 01:11.000
+The button changes. Click it a second time within 8 seconds.
+
+01:11.000 --> 01:20.000
+Then press Esc to close the screen. This test capture is offline, so Start looks greyed out here.
+
+01:20.000 --> 01:31.000
+Leave the game window open and visible, with no menu left open.
+
+01:31.000 --> 01:40.000
+DonutSMP bans automation. Running this is a ban risk you choose to take.
+
+01:40.000 --> 01:45.000
+github.com/cody-raves/Gonuts

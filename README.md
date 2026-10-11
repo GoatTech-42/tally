@@ -4,6 +4,8 @@
 
 ### Trade the DonutSMP auction house on autopilot
 
+**[Website, download and a two minute install video](https://cody-raves.github.io/Gonuts/)**
+
 GoNuts learns real prices from completed sales, hunts flips on both sides of the
 market, and can run the whole play from bidding to reselling. Safety gated, and
 off by default.

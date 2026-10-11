@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoNuts</title>
+<meta name="description" content="Auction trading for DonutSMP. A free, open source Fabric mod for Minecraft 26.2 that reads the market, places orders, and lists what it buys, inside limits you set.">
+<meta property="og:title" content="GoNuts: auction trading for DonutSMP">
+<meta property="og:description" content="A free, open source Fabric mod for Minecraft 26.2. Reads the market, places orders, lists what it buys. Off by default, inside limits you set.">
+<meta property="og:image" content="https://cody-raves.github.io/Gonuts/assets/logo.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c121b">
+<link rel="icon" href="assets/mascot-idle.gif">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;600&display=swap">
+<style>
+  /* The mod's own palette, taken from its screens: one dark world, by design. */
+  :root {
+    --night: #0c121b;
+    --inset: #101823;
+    --surface: #182230;
+    --edge: #2c3b4c;
+    --hover: #243747;
+    --text: #f0eee7;
+    --secondary: #b6c2cd;
+    --muted: #8799aa;
+    --gold: #f4cd7a;
+    --teal: #56dccb;
+    --good: #77deb0;
+    --warn: #f3b576;
+    --display: "Pixelify Sans", "Rubik", system-ui, sans-serif;
+    --body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --wide: 1080px;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--text);
+    font: 400 17px/1.6 var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+  img, video { max-width: 100%; display: block; }
+  a { color: var(--teal); text-underline-offset: 3px; }
+  a:hover { color: var(--text); }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { width: min(var(--wide), 100% - 32px); margin-inline: auto; }
+  section { padding-block: 64px; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.15; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(34px, 5.2vw, 54px); letter-spacing: 0.01em; }
+  h2 { font-size: clamp(27px, 3.4vw, 36px); }
+  h3 { font-size: 21px; font-weight: 500; }
+  p { margin: 0; max-width: 62ch; }
+  .lede { color: var(--secondary); font-size: 19px; }
+  .label {
+    font: 500 13px/1 var(--display);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+  .section-head { display: grid; gap: 12px; margin-bottom: 32px; }
+  code, .mono { font-family: var(--mono); font-size: 0.88em; }
+  code { background: var(--inset); border: 1px solid var(--edge); border-radius: 5px; padding: 1px 6px; color: var(--gold); }
+
+  /* ---- top bar ---- */
+  .bar { position: sticky; top: 0; z-index: 10; background: rgba(12, 18, 27, 0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--edge); }
+  .bar .wrap { display: flex; align-items: center; gap: 20px; min-height: 60px; }
+  .bar img { height: 30px; width: auto; }
+  .bar nav { display: flex; gap: 22px; margin-left: auto; align-items: center; }
+  .bar nav a { color: var(--secondary); text-decoration: none; font-size: 15px; }
+  .bar nav a:hover { color: var(--text); }
+  .bar nav a.plain { display: none; }
+
+  /* ---- buttons ---- */
+  .button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: 600 16px/1 var(--body); text-decoration: none;
+    padding: 14px 22px; border-radius: 8px; border: 1px solid var(--edge);
+    background: var(--surface); color: var(--text);
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .button:hover { background: var(--hover); border-color: var(--muted); color: var(--text); }
+  .button.primary { background: var(--gold); border-color: var(--gold); color: #1b1408; }
+  .button.primary:hover { background: #ffdf9a; border-color: #ffdf9a; color: #1b1408; transform: translateY(-1px); }
+  .button.small { padding: 9px 14px; font-size: 14px; }
+
+  /* ---- hero ---- */
+  .hero { padding-block: 56px 48px; }
+  .hero-grid { display: grid; gap: 40px; align-items: center; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); }
+  .hero-logo { width: min(380px, 80%); margin-bottom: 26px; }
+  .hero h1 + .lede { margin-top: 18px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .build { margin-top: 16px; color: var(--muted); font-size: 14px; min-height: 1.6em; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 26px 0 0; padding: 0; list-style: none; color: var(--secondary); font-size: 15px; }
+  .facts li::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; background: var(--good); vertical-align: 2px; }
+
+  /* The mod's "your trading desk" card, standing in for a product shot. */
+  .desk { background: linear-gradient(160deg, #173238, var(--surface) 62%); border: 1px solid var(--edge); border-radius: 12px; padding: 24px; display: grid; gap: 16px; }
+  .desk .faces { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .desk figure { margin: 0; background: var(--inset); border: 1px solid var(--edge); border-radius: 8px; padding: 10px 6px 8px; text-align: center; }
+  .desk figure img { width: 100%; max-width: 86px; margin-inline: auto; image-rendering: pixelated; }
+  .desk figcaption { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.3; }
+  .desk .say { font-family: var(--display); font-size: 22px; font-weight: 500; }
+  .desk .sub { color: var(--secondary); font-size: 15px; }
+
+  /* ---- install: the video and its steps ---- */
+  .install-grid { display: grid; gap: 24px; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+  .player { background: var(--inset); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
+  .player video { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .player .under { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; align-items: center; padding: 12px 16px; color: var(--muted); font-size: 14px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .steps button {
+    all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+    display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: start;
+    padding: 12px 14px; border-radius: 8px; border: 1px solid var(--edge); background: var(--surface);
+  }
+  .steps button:hover { background: var(--hover); }
+  .steps button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .steps .n { font: 700 15px/26px var(--display); width: 26px; height: 26px; text-align: center; border-radius: 6px; background: var(--inset); color: var(--gold); border: 1px solid var(--edge); }
+  .steps .what { font-weight: 500; }
+  .steps .how { color: var(--secondary); font-size: 14.5px; margin-top: 2px; }
+  .steps .at { font: 400 13px/26px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .steps li.now button { border-color: var(--gold); background: #243042; }
+  .steps li.now .n { background: var(--gold); color: #1b1408; border-color: var(--gold); }
+  .after { margin-top: 14px; color: var(--muted); font-size: 14.5px; }
+
+  /* ---- what it does ---- */
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--edge); border-radius: 10px; padding: 20px; display: grid; gap: 8px; align-content: start; }
+  .card p { color: var(--secondary); font-size: 16px; }
+
+  /* ---- the screen ---- */
+  .shots { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shot { margin: 0; background: var(--inset); border: 1px solid var(--edge); border-radius: 12px; overflow: hidden; }
+  .shot figcaption { padding: 12px 16px; color: var(--secondary); font-size: 15px; border-top: 1px solid var(--edge); }
+
+  /* ---- what's new ---- */
+  .log { display: grid; gap: 12px; }
+  .entry { background: var(--surface); border: 1px solid var(--edge); border-radius: 10px; padding: 16px 20px; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px 20px; }
+  .entry time { font: 400 14px/1.7 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .entry ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .entry li { padding-left: 16px; position: relative; max-width: 68ch; }
+  .entry li::before { content: ""; position: absolute; left: 0; top: 0.68em; width: 6px; height: 6px; background: var(--gold); }
+  .entry .kind { font-weight: 600; color: var(--gold); }
+  .log-foot { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; color: var(--muted); font-size: 15px; }
+
+  /* ---- the risk ---- */
+  .risk { background: #241c14; border: 1px solid #5a4327; border-radius: 12px; padding: 26px 28px; display: grid; gap: 12px; }
+  .risk h2 { color: var(--warn); font-size: 26px; }
+  .risk p { color: var(--text); max-width: 72ch; }
+  .risk p + p { color: var(--secondary); }
+
+  footer { border-top: 1px solid var(--edge); padding-block: 32px 48px; color: var(--muted); font-size: 15px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; }
+
+  @media (max-width: 860px) {
+    section { padding-block: 44px; }
+    .hero-grid, .install-grid { grid-template-columns: minmax(0, 1fr); }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .shots { grid-template-columns: minmax(0, 1fr); }
+    .bar nav a.optional { display: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .cards { grid-template-columns: minmax(0, 1fr); }
+    .entry { grid-template-columns: minmax(0, 1fr); }
+    .desk .faces { grid-template-columns: repeat(2, 1fr); }
+    .steps button { grid-template-columns: 30px minmax(0, 1fr); }
+    .steps .at { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .button { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a href="#top" aria-label="GoNuts, top of page"><img src="assets/logo.png" alt="GoNuts"></a>
+    <nav aria-label="Sections">
+      <a class="optional" href="#install">Install</a>
+      <a class="optional" href="#does">What it does</a>
+      <a class="optional" href="#new">What's new</a>
+      <a href="https://github.com/cody-raves/Gonuts">GitHub</a>
+      <a class="button primary small" href="https://github.com/cody-raves/Gonuts/releases/latest/download/GoNuts-0.1.0-mc26.2.jar">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <img class="hero-logo" src="assets/logo.png" alt="GoNuts" width="512" height="185">
+      <h1>Trade the DonutSMP auction house on autopilot</h1>
+      <p class="lede">A Fabric mod that reads the market, places buy orders, and lists what it buys. It stays inside the limits you set, and it is off until you turn it on.</p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/cody-raves/Gonuts/releases/latest/download/GoNuts-0.1.0-mc26.2.jar">Download for Minecraft 26.2</a>
+        <a class="button" href="#install">Watch the install, 1:45</a>
+      </div>
+      <p class="build" id="build" aria-live="polite"></p>
+      <ul class="facts">
+        <li>Free and open source (MIT)</li>
+        <li>No API key needed</li>
+        <li>Fabric, Java 25</li>
+      </ul>
+    </div>
+
+    <div class="desk" aria-label="The GoNuts bot and its moods">
+      <div>
+        <div class="label">Your trading desk</div>
+        <div class="say">A little less watching.</div>
+        <div class="sub">It watches the market, bids, buys and relists, and it lights up when a sale lands.</div>
+      </div>
+      <div class="faces">
+        <figure><img src="assets/mascot-reading.gif" alt="The bot reading the market" width="110" height="110"><figcaption>Reading the market</figcaption></figure>
+        <figure><img src="assets/mascot-working.gif" alt="The bot working a trade" width="110" height="110"><figcaption>Working a trade</figcaption></figure>
+        <figure><img src="assets/mascot-sale.gif" alt="The bot with dollar signs for eyes" width="110" height="110"><figcaption>A sale landed</figcaption></figure>
+        <figure><img src="assets/mascot-idle.gif" alt="The bot yawning" width="110" height="110"><figcaption>Nothing to do</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">Install</div>
+      <h2>Six steps from download to trading</h2>
+      <p class="lede">Watch it through, or pick a step to jump the video to it.</p>
+    </div>
+    <div class="install-grid">
+      <div class="player">
+        <video id="film" controls preload="metadata" poster="assets/site/first-install-poster.jpg">
+          <source src="assets/site/first-install.mp4" type="video/mp4">
+          <track kind="captions" src="assets/site/first-install.vtt" srclang="en" label="English" default>
+          Your browser cannot play this video. <a href="assets/site/first-install.mp4">Download it</a> instead.
+        </video>
+        <div class="under">
+          <span>Your first install, with captions</span>
+          <a href="https://github.com/cody-raves/Gonuts/blob/main/docs/getting-started.md">Prefer to read? The written guide</a>
+        </div>
+      </div>
+      <div>
+        <ol class="steps" id="steps">
+          <li><button type="button" data-at="5"><span class="n">1</span><span><span class="what">Get what you need</span><div class="how">Minecraft Java 26.2, Fabric Loader for 26.2, and the Fabric API mod.</div></span><span class="at">0:05</span></button></li>
+          <li><button type="button" data-at="14"><span class="n">2</span><span><span class="what">Download GoNuts</span><div class="how">One file: <span class="mono">GoNuts-0.1.0-mc26.2.jar</span> from the Releases page.</div></span><span class="at">0:14</span></button></li>
+          <li><button type="button" data-at="22"><span class="n">3</span><span><span class="what">Put it in your mods folder</span><div class="how">Close Minecraft first. The folder is <span class="mono">%appdata%\.minecraft\mods</span>.</div></span><span class="at">0:22</span></button></li>
+          <li><button type="button" data-at="32"><span class="n">4</span><span><span class="what">Join DonutSMP</span><div class="how">Turn the sidebar scoreboard on in <span class="mono">/settings</span>. GoNuts reads your balance from it.</div></span><span class="at">0:32</span></button></li>
+          <li><button type="button" data-at="40"><span class="n">5</span><span><span class="what">Press B and open Autopilot</span><div class="how">Check Max per trade and Max per session. Start small.</div></span><span class="at">0:40</span></button></li>
+          <li><button type="button" data-at="57"><span class="n">6</span><span><span class="what">Enable live trading, then Start</span><div class="how">Click the button, click again within 8 seconds to confirm, press Start.</div></span><span class="at">0:57</span></button></li>
+        </ol>
+        <p class="after">After that, leave the game window open and visible with no menu left open. The End key stops it at once.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="does">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">What it does</div>
+      <h2>A trader that explains itself</h2>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <h3>No API key</h3>
+        <p>DonutSMP switched off its public API. GoNuts reads the market from what the game shows: order house fills, live auction prices, and your own sales.</p>
+      </article>
+      <article class="card">
+        <h3>Both sides of the market</h3>
+        <p>It places buy orders in the order house, collects what fills, and lists it on the auction house. It also buys underpriced listings and relists them.</p>
+      </article>
+      <article class="card">
+        <h3>Limits you set</h3>
+        <p>A cap per trade and per session, a dry run mode, and an emergency stop. When something does not match, it stops instead of guessing.</p>
+      </article>
+      <article class="card">
+        <h3>Rivals and money</h3>
+        <p>Follow other players and see what they order and list, which markets they work, and who pays whom among them.</p>
+      </article>
+      <article class="card">
+        <h3>Run it from Discord</h3>
+        <p>One live panel in a channel of yours shows what the bot is doing, with buttons to start, stop and tune it.</p>
+      </article>
+      <article class="card">
+        <h3>Keeps itself current</h3>
+        <p>It tells you when a new build is out and what it changes. Turn on auto-update and it installs when you close the game.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="screen">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">The screen</div>
+      <h2>Everything on one key</h2>
+      <p class="lede">Press B in game. Opportunities, live markets, the order house, rivals, performance and every setting are in one place.</p>
+    </div>
+    <div class="shots">
+      <figure class="shot">
+        <img src="assets/site/dashboard.jpg" alt="The GoNuts dashboard: realized profit, active listings, opportunities and win rate, with the bot's face at the top" width="1600" height="900" loading="lazy">
+        <figcaption>The dashboard, on a fresh install before any trades.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="assets/site/autopilot.jpg" alt="The Autopilot tab with its setup checklist and the spend limits" width="1600" height="900" loading="lazy">
+        <figcaption>Autopilot, where the spend limits and the on switch live.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="new">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">What's new</div>
+      <h2>The latest builds</h2>
+      <p class="lede">The same notes the mod shows in its update notice, in your local time.</p>
+    </div>
+    <div class="log" id="log" aria-live="polite">
+      <div class="entry"><time>Loading</time><ul><li>Fetching the changelog from GitHub.</li></ul></div>
+    </div>
+    <div class="log-foot">
+      <button class="button small" id="more" type="button" hidden>Show older builds</button>
+      <a href="https://github.com/cody-raves/Gonuts/blob/main/CHANGELOG.md">The full changelog on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section id="risk">
+  <div class="wrap">
+    <div class="risk">
+      <h2>Know the risk before you turn it on</h2>
+      <p>DonutSMP's rules ban scripts, macros and auto-clickers, and enforcement can reach every account linked to a player. Running live trading is a ban risk that you, the account owner, choose to take.</p>
+      <p>Watching prices and reading the screens carry no such risk; live trading does. GoNuts is an independent project, not affiliated with or endorsed by DonutSMP.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>GoNuts is free and open source under the MIT license.</span>
+    <span><a href="https://github.com/cody-raves/Gonuts">Source</a> · <a href="https://github.com/cody-raves/Gonuts/releases/latest">Releases</a> · <a href="https://github.com/cody-raves/Gonuts/issues">Report a problem</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- the install video and its steps -------------------------------------
+  var film = document.getElementById("film");
+  var steps = Array.prototype.slice.call(document.querySelectorAll("#steps li"));
+  var starts = steps.map(function (li) { return Number(li.querySelector("button").dataset.at); });
+
+  function mark(seconds) {
+    var current = -1;
+    for (var i = 0; i < starts.length; i++) if (seconds >= starts[i]) current = i;
+    steps.forEach(function (li, i) { li.classList.toggle("now", i === current); });
+  }
+
+  steps.forEach(function (li, i) {
+    li.querySelector("button").addEventListener("click", function () {
+      film.currentTime = starts[i];
+      mark(starts[i]);
+      var playing = film.play();
+      if (playing && playing.catch) playing.catch(function () { /* the browser wants a click on the video itself */ });
+      if (window.matchMedia("(max-width: 860px)").matches) film.scrollIntoView({ block: "center" });
+    });
+  });
+  film.addEventListener("timeupdate", function () { mark(film.currentTime); });
+
+  // ---- the build that the download button fetches ---------------------------
+  var when = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  fetch("https://api.github.com/repos/cody-raves/Gonuts/releases/latest", { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (release) {
+      var jar = (release.assets || []).filter(function (a) { return /^gonuts-[0-9].*-mc.*\.jar$/i.test(a.name); })[0];
+      if (!jar) return;
+      document.getElementById("build").textContent =
+        "Latest build: " + when.format(new Date(jar.updated_at)) + ", " + (jar.size / 1048576).toFixed(1) + " MB";
+    })
+    .catch(function () { /* the button works without it */ });
+
+  // ---- what's new: the dated entries of CHANGELOG.md ------------------------
+  var log = document.getElementById("log");
+  var more = document.getElementById("more");
+  var FIRST = 4;
+
+  function parse(text) {
+    var entries = [], current = null;
+    text.split(/\r?\n/).forEach(function (line) {
+      var heading = /^##\s+(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?:\s*UTC)?\s*$/.exec(line.trim());
+      if (heading) {
+        var at = new Date(heading[1] + "T" + heading[2] + ":00Z");
+        current = isNaN(at) ? null : { at: at, lines: [] };
+        if (current) entries.push(current);
+        return;
+      }
+      if (line.charAt(0) === "#") { current = null; return; }
+      if (!current) return;
+      var bullet = /^\s*[-*]\s+(.+?)\s*$/.exec(line);
+      if (bullet) current.lines.push(bullet[1]);
+      else if (line.trim() && /^\s/.test(line) && current.lines.length) current.lines[current.lines.length - 1] += " " + line.trim();
+    });
+    return entries.filter(function (e) { return e.lines.length; }).sort(function (a, b) { return b.at - a.at; });
+  }
+
+  function draw(entries, all) {
+    log.textContent = "";
+    entries.slice(0, all ? entries.length : FIRST).forEach(function (entry) {
+      var box = document.createElement("div");
+      box.className = "entry";
+      var time = document.createElement("time");
+      time.dateTime = entry.at.toISOString();
+      time.textContent = when.format(entry.at);
+      var list = document.createElement("ul");
+      entry.lines.forEach(function (line) {
+        var item = document.createElement("li");
+        var clean = line.replace(/\*\*/g, "").replace(/`/g, "");
+        var kind = /^(New|Fixed|Changed):\s*(.*)$/.exec(clean);
+        if (kind) {
+          var tag = document.createElement("span");
+          tag.className = "kind";
+          tag.textContent = kind[1] + ": ";
+          item.appendChild(tag);
+          item.appendChild(document.createTextNode(kind[2]));
+        } else {
+          item.textContent = clean;
+        }
+        list.appendChild(item);
+      });
+      box.appendChild(time);
+      box.appendChild(list);
+      log.appendChild(box);
+    });
+    more.hidden = all || entries.length <= FIRST;
+  }
+
+  fetch("https://raw.githubusercontent.com/cody-raves/Gonuts/main/CHANGELOG.md")
+    .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+    .then(function (text) {
+      var entries = parse(text);
+      if (!entries.length) throw new Error("no entries");
+      draw(entries, false);
+      more.addEventListener("click", function () { draw(entries, true); });
+    })
+    .catch(function () {
+      log.textContent = "";
+      var box = document.createElement("div");
+      box.className = "entry";
+      box.innerHTML = "<time>Not loaded</time><ul><li>The changelog could not be fetched just now. It is on GitHub, linked below.</li></ul>";
+      log.appendChild(box);
+    });
+})();
+</script>
+</body>
+</html>
