@@ -1796,8 +1796,256 @@ public final class DoughBayScreen extends Screen {
         statsModeInitialized = true;
     }
 
+    /** Performance tab, Items view: what each item has earned, in place of the overview. */
+    private boolean statsBoard;
+    private ItemBoard.Range boardRange = ItemBoard.Range.DAY;
+    private ItemBoard.Sort boardSort = ItemBoard.Sort.PROFIT;
+    /** The most of whatever the sort is comes first; off, the least does. */
+    private boolean boardBest = true;
+    private int boardScroll;
+    private int boardMaxScroll;
+    private String boardSelected;
+    /** Header cells as {left, right, top, bottom, sort ordinal}, and the rows' {top, rowHeight, count}. */
+    private final List<int[]> boardHeads = new ArrayList<>();
+    private int[] boardRowsGeometry = new int[0];
+    private final List<String> boardRowIds = new ArrayList<>();
+
     private void initStatsWidgets(UiLayout ui) {
-        // The Stats page has no controls; everything is on one screen.
+        int y = ui.contentTop() + 3;
+        int x = ui.innerRight() - 74;
+        addRenderableWidget(CockpitButton.builder(Component.literal(statsBoard ? "Overview" : "Items"), b -> {
+            statsBoard = !statsBoard;
+            boardScroll = 0;
+            rebuildWidgets();
+        }).bounds(x, y, 74, 18).build());
+        if (!statsBoard) return;
+        ItemBoard.Range[] ranges = ItemBoard.Range.values();
+        for (int i = ranges.length - 1; i >= 0; i--) {
+            ItemBoard.Range range = ranges[i];
+            String label = range == boardRange ? "[" + range.label + "]" : range.label;
+            int w = this.font.width(label) + 14;
+            x -= 4 + w;
+            addRenderableWidget(CockpitButton.builder(Component.literal(label), b -> {
+                boardRange = range;
+                boardScroll = 0;
+                rebuildWidgets();
+            }).bounds(x, y, w, 18).build());
+        }
+    }
+
+    /** "45s", "12m", "3.4h", "2.1d": how long something took, to two figures. */
+    private static String span(long millis) {
+        if (millis <= 0) return "-";
+        long seconds = millis / 1000;
+        if (seconds < 60) return seconds + "s";
+        if (seconds < 3_600) return seconds / 60 + "m";
+        if (seconds < 86_400) return String.format(Locale.ROOT, "%.1fh", seconds / 3_600.0);
+        return String.format(Locale.ROOT, "%.1fd", seconds / 86_400.0);
+    }
+
+    private void renderItemBoard(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+        LedgerStatsProvider ledger = DoughBayClient.ledgerStats();
+        ItemBoard.Board board = ledger == null ? ItemBoard.Board.empty(boardRange) : ledger.board(boardRange);
+        boardHeads.clear();
+        boardRowIds.clear();
+        boardRowsGeometry = new int[0];
+        int x = ui.innerLeft();
+        int width = ui.innerWidth();
+        int right = ui.innerRight();
+        int top = ui.contentTop() + 7;
+        int contentBottom = ui.bottom() - 10;
+        graphics.text(this.font, truncate("ITEMS  ·  what each item has earned", Math.max(40, width - 330)), x, top, GOLD);
+
+        int sellers = 0;
+        for (ItemBoard.Row row : board.rows()) if (row.sales() > 0) sellers++;
+        int cardsTop = top + 16;
+        int gap = 6;
+        int columns = width >= 700 ? 5 : 2;
+        int cardWidth = (width - gap * (columns - 1)) / columns;
+        int cardHeight = 44;
+        String[] labels = {"PROFIT  ·  " + boardRange.label.toUpperCase(Locale.ROOT), "SALES", "RETURN ON MONEY SPENT",
+                "TIED UP NOW", "ITEMS SOLD"};
+        String[] values = {signedMoney(board.profit()), grouped(board.sales()),
+                board.cost() <= 0 ? "n/a" : String.format(Locale.ROOT, "%.0f%%", board.returnPercent()),
+                money(board.openCost()), grouped(sellers)};
+        String[] notes = {"closed sales", "in this stretch", money(board.cost()) + " spent on what sold",
+                board.open() + " listing(s) and stock in hand", "different items"};
+        int[] colors = {board.profit() >= 0 ? GOOD : BAD, TEXT, TEXT, TEXT, TEXT};
+        for (int i = 0; i < labels.length; i++) {
+            headlineCard(graphics, x + (i % columns) * (cardWidth + gap), cardsTop + (i / columns) * (cardHeight + gap),
+                    cardWidth, cardHeight, labels[i], values[i], notes[i], colors[i]);
+        }
+        int cardRows = (labels.length + columns - 1) / columns;
+        int mainTop = cardsTop + cardRows * (cardHeight + gap) + 4;
+        if (board.rows().isEmpty()) {
+            card(graphics, x, mainTop, width, Math.max(60, contentBottom - mainTop), CARD_DARK);
+            sectionTitle(graphics, "EVERY ITEM", x, mainTop, width);
+            drawWrapped(graphics, board.builtAt() == 0 ? "Reading the ledger." : "Nothing has sold in this stretch and nothing is listed.",
+                    x + 9, mainTop + 27, width - 18, contentBottom - 8, MUTED);
+            return;
+        }
+        boolean wide = width >= 700;
+        int tableWidth = wide ? (width * 70) / 100 : width;
+        int tableHeight = wide ? Math.max(120, contentBottom - mainTop) : Math.max(120, (contentBottom - mainTop) * 6 / 10);
+        renderItemBoardTable(graphics, board, x, mainTop, tableWidth, tableHeight, wide, mouseX, mouseY);
+        int sideX = wide ? x + tableWidth + 8 : x;
+        int sideTop = wide ? mainTop : mainTop + tableHeight + 8;
+        int sideWidth = wide ? right - sideX : width;
+        int sideHeight = contentBottom - sideTop;
+        if (sideHeight >= 60) renderItemBoardSide(graphics, board, sideX, sideTop, sideWidth, sideHeight);
+    }
+
+    private void renderItemBoardTable(GuiGraphicsExtractor graphics, ItemBoard.Board board, int x, int y,
+                                      int width, int height, boolean wide, int mouseX, int mouseY) {
+        card(graphics, x, y, width, height, CARD_DARK);
+        sectionTitle(graphics, "EVERY ITEM  ·  click a column to sort by it, again for the worst first", x, y, width);
+        int innerX = x + 9;
+        int innerWidth = width - 18;
+        int yy = y + 27;
+        // Column lefts as shares of the width, and what each sorts by (null: the name).
+        ItemBoard.Sort[] sorts = wide
+                ? new ItemBoard.Sort[] {null, ItemBoard.Sort.PROFIT, ItemBoard.Sort.SALES, ItemBoard.Sort.PER_SALE,
+                        ItemBoard.Sort.RETURN, ItemBoard.Sort.SLOT_HOUR, ItemBoard.Sort.SELLS_IN,
+                        ItemBoard.Sort.TIED_UP, ItemBoard.Sort.TREND}
+                : new ItemBoard.Sort[] {null, ItemBoard.Sort.PROFIT, ItemBoard.Sort.SALES, ItemBoard.Sort.SLOT_HOUR,
+                        ItemBoard.Sort.SELLS_IN};
+        int[] share = wide ? new int[] {0, 24, 36, 44, 55, 64, 76, 84, 92} : new int[] {0, 38, 57, 70, 86};
+        String[] heads = wide
+                ? new String[] {"ITEM", "PROFIT", "SALES", "PER SALE", "RETURN", "/SLOT-HR", "SELLS IN", "TIED UP", "TREND"}
+                : new String[] {"ITEM", "PROFIT", "SALES", "/SLOT-HR", "SELLS IN"};
+        int[] col = new int[share.length];
+        for (int i = 0; i < share.length; i++) col[i] = innerWidth * share[i] / 100;
+        for (int i = 0; i < heads.length; i++) {
+            boolean active = sorts[i] == boardSort;
+            String text = heads[i] + (active ? (boardBest ? " ▼" : " ▲") : "");
+            int left = innerX + col[i];
+            int cellRight = i + 1 < col.length ? innerX + col[i + 1] : innerX + innerWidth;
+            boolean hover = sorts[i] != null && mouseX >= left && mouseX < cellRight && mouseY >= yy - 2 && mouseY < yy + 10;
+            graphics.text(this.font, truncate(text, cellRight - left - 2), left, yy, active ? GOLD : hover ? TEXT : MUTED);
+            if (sorts[i] != null) boardHeads.add(new int[] {left, cellRight, yy - 2, yy + 10, sorts[i].ordinal()});
+        }
+        yy += 13;
+        List<ItemBoard.Row> rows = board.sorted(boardSort, boardBest);
+        int rowHeight = 12;
+        int visible = Math.max(1, (y + height - 6 - yy) / rowHeight);
+        boardMaxScroll = Math.max(0, rows.size() - visible);
+        boardScroll = clamp(boardScroll, 0, boardMaxScroll);
+        int rowsTop = yy;
+        int shown = 0;
+        for (int i = boardScroll; i < rows.size() && shown < visible; i++) {
+            ItemBoard.Row row = rows.get(i);
+            boolean chosen = row.itemId().equals(boardSelected);
+            boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
+            if (chosen || hover) {
+                graphics.fill(innerX - 2, yy, innerX + innerWidth + 2, yy + rowHeight, chosen ? 0xFF2F4A6B : ROW_HOVER);
+            }
+            int textY = yy + 2;
+            boolean any = row.sales() > 0;
+            for (int c = 0; c < heads.length; c++) {
+                int cellWidth = (c + 1 < col.length ? col[c + 1] : innerWidth) - col[c] - 4;
+                String text;
+                int color = any ? SECONDARY : MUTED;
+                if (sorts[c] == null) {
+                    text = row.name();
+                    color = any ? TEXT : MUTED;
+                } else {
+                    switch (sorts[c]) {
+                        case PROFIT -> {
+                            text = any ? signedMoney(row.profit()) : "-";
+                            if (any) color = row.profit() >= 0 ? GOOD : BAD;
+                        }
+                        case SALES -> text = any ? grouped(row.sales()) : "-";
+                        case PER_SALE -> text = any ? money(row.perSale()) : "-";
+                        case RETURN -> text = any && row.cost() > 0
+                                ? String.format(Locale.ROOT, "%.0f%%", row.returnPercent()) : "-";
+                        case SLOT_HOUR -> text = any ? money(row.perSlotHour()) : "-";
+                        case SELLS_IN -> text = span(row.medianSellMillis());
+                        case TIED_UP -> {
+                            text = row.openCost() > 0 ? money(row.openCost()) : "-";
+                            if (row.openCost() > 0) color = TEXT;
+                        }
+                        case TREND -> {
+                            text = any && row.compared() ? signedMoney(row.change()) : "-";
+                            if (any && row.compared()) color = row.change() >= 0 ? GOOD : BAD;
+                        }
+                        default -> text = "";
+                    }
+                }
+                graphics.text(this.font, truncate(text, cellWidth), innerX + col[c], textY, color);
+            }
+            boardRowIds.add(row.itemId());
+            yy += rowHeight;
+            shown++;
+        }
+        boardRowsGeometry = new int[] {rowsTop, rowHeight, shown, innerX, innerX + innerWidth};
+        if (boardMaxScroll > 0) {
+            String at = (boardScroll + 1) + "-" + (boardScroll + shown) + " of " + rows.size() + "  ·  scroll for more";
+            graphics.text(this.font, at, x + width - 9 - this.font.width(at), y + 7, MUTED);
+        }
+    }
+
+    /** Beside the table: the chosen item in full, or, with none chosen, when in the day the money comes. */
+    private void renderItemBoardSide(GuiGraphicsExtractor graphics, ItemBoard.Board board, int x, int y,
+                                     int width, int height) {
+        card(graphics, x, y, width, height, CARD);
+        int innerX = x + 9;
+        int innerWidth = width - 18;
+        int bottom = y + height - 8;
+        ItemBoard.Row row = board.row(boardSelected);
+        if (row == null) {
+            sectionTitle(graphics, "WHEN THE MONEY COMES  ·  profit by hour of day", x, y, width);
+            int[] hourly = new int[24];
+            for (int h = 0; h < 24; h++) hourly[h] = (int) Math.max(0, Math.min(Integer.MAX_VALUE, board.byHour()[h] / 1_000));
+            int stripHeight = Math.min(48, Math.max(20, height - 110));
+            activityStrip(graphics, hourly, innerX, y + 30, innerWidth, stripHeight, System.currentTimeMillis());
+            int barWidth = Math.max(1, innerWidth / 24);
+            for (int h = 0; h < 24; h += 6) {
+                graphics.text(this.font, String.valueOf(h), innerX + h * barWidth, y + 32 + stripHeight, MUTED);
+            }
+            int yy = y + 46 + stripHeight;
+            int best = -1;
+            for (int h = 0; h < 24; h++) if (board.byHour()[h] > 0 && (best < 0 || board.byHour()[h] > board.byHour()[best])) best = h;
+            if (best >= 0 && yy + 11 <= bottom) {
+                yy = kvRight(graphics, innerX, yy, innerWidth, "Best hour",
+                        String.format(Locale.ROOT, "%02d:00  ·  %s", best, money(board.byHour()[best])), GOOD);
+            }
+            drawWrapped(graphics, "Click an item for the rest of what it has done: what it costs and sells for, "
+                    + "singles against stacks, what is on the shelf now. /SLOT-HR is profit for each hour an auction "
+                    + "slot was held, which is what tells a quick small earner from a slow big one.",
+                    innerX, yy + 4, innerWidth, bottom, MUTED);
+            return;
+        }
+        sectionTitle(graphics, row.name().toUpperCase(Locale.ROOT) + "  ·  " + boardRange.label, x, y, width);
+        int yy = y + 27;
+        boolean any = row.sales() > 0;
+        String[][] lines = {
+                {"Profit", any ? signedMoney(row.profit()) : "nothing sold"},
+                {"Sales", any ? grouped(row.sales()) + "  ·  " + grouped(row.units()) + " units" : "-"},
+                {"Bought for (each)", any && row.units() > 0 ? money(row.cost() / row.units()) : "-"},
+                {"Sold for (each)", any && row.units() > 0 ? money(row.revenue() / row.units()) : "-"},
+                {"Return on money spent", any && row.cost() > 0 ? String.format(Locale.ROOT, "%.0f%%", row.returnPercent()) : "-"},
+                {"Per sale", any ? money(row.perSale()) : "-"},
+                {"Per slot-hour", any ? money(row.perSlotHour()) : "-"},
+                {"Sells in (typical)", span(row.medianSellMillis())},
+                {"Sold at a profit", any ? row.wins() + " of " + row.sales()
+                        + (row.losses() > 0 ? "  ·  " + row.losses() + " at a loss" : "") : "-"},
+                {"Best sale / worst", any ? signedMoney(row.best()) + " / " + signedMoney(row.worst()) : "-"},
+                {"As singles", row.singleSales() > 0 ? row.singleSales() + " sale(s)  ·  " + signedMoney(row.singleProfit()) : "-"},
+                {"As stacks", row.lotSales() > 0 ? row.lotSales() + " sale(s)  ·  " + signedMoney(row.lotProfit()) : "-"},
+                {"On the shelf now", row.open() > 0 ? row.open() + "  ·  " + money(row.openCost()) + " at cost" : "nothing"},
+                {"Oldest on the shelf", row.open() > 0 && row.oldestOpenMillis() > 0 ? span(row.oldestOpenMillis()) : "-"},
+                {"Best hour", row.bestHour() >= 0 ? String.format(Locale.ROOT, "%02d:00", row.bestHour()) : "-"},
+                {"Against the stretch before", any && row.compared() ? signedMoney(row.change())
+                        + " (was " + signedMoney(row.before()) + ")" : "-"},
+        };
+        int[] colors = new int[lines.length];
+        java.util.Arrays.fill(colors, SECONDARY);
+        colors[0] = !any ? MUTED : row.profit() >= 0 ? GOOD : BAD;
+        if (any && row.compared()) colors[lines.length - 1] = row.change() >= 0 ? GOOD : BAD;
+        for (int i = 0; i < lines.length; i++) {
+            if (yy + 11 > bottom) break;
+            yy = kvRight(graphics, innerX, yy, innerWidth, lines[i][0], lines[i][1], colors[i]);
+        }
     }
 
     private PerformanceStatsSnapshot performanceStats(MarketWatcher.Snapshot marketSnapshot,
@@ -1823,6 +2071,10 @@ public final class DoughBayScreen extends Screen {
     private void renderStats(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot marketSnapshot,
                              UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
+        if (statsBoard) {
+            renderItemBoard(graphics, ui, mouseX, mouseY);
+            return;
+        }
         statsMode = PerformanceStatsSnapshot.Mode.REAL;
         PerformanceStatsSnapshot stats = performanceStats(marketSnapshot, statsMode);
         int x = ui.innerLeft();
@@ -1859,7 +2111,8 @@ public final class DoughBayScreen extends Screen {
 
         graphics.text(this.font, "STATS  ·  real ledger, this database", x, top, GOLD);
         String stamp = stats.hasHistory() ? stats.status() : stats.status();
-        graphics.text(this.font, truncate(stamp, width / 2), right - this.font.width(truncate(stamp, width / 2)),
+        // Clear of the Items button, which has the corner.
+        graphics.text(this.font, truncate(stamp, width / 2), right - 80 - this.font.width(truncate(stamp, width / 2)),
                 top, MUTED);
 
         int cardsTop = top + 16;
@@ -5962,6 +6215,28 @@ public final class DoughBayScreen extends Screen {
             }
         }
 
+        if (tab == Tab.STATS && statsBoard) {
+            for (int[] head : boardHeads) {
+                if (event.x() >= head[0] && event.x() < head[1] && event.y() >= head[2] && event.y() < head[3]) {
+                    ItemBoard.Sort sort = ItemBoard.Sort.values()[head[4]];
+                    // The same column again turns it over; a new one starts with its best.
+                    boardBest = sort != boardSort || !boardBest;
+                    boardSort = sort;
+                    boardScroll = 0;
+                    return true;
+                }
+            }
+            if (boardRowsGeometry.length == 5 && event.x() >= boardRowsGeometry[3] && event.x() < boardRowsGeometry[4]
+                    && event.y() >= boardRowsGeometry[0]) {
+                int index = (int) Math.floor((event.y() - boardRowsGeometry[0]) / (double) boardRowsGeometry[1]);
+                if (index >= 0 && index < boardRowsGeometry[2] && index < boardRowIds.size()) {
+                    String id = boardRowIds.get(index);
+                    boardSelected = id.equals(boardSelected) ? null : id;
+                    return true;
+                }
+            }
+        }
+
         if (tab == Tab.RIVALS && rivalsMoney && selectedMoney == null && moneyRowsGeometry.length == 3) {
             int index = (int) Math.floor((event.y() - moneyRowsGeometry[0]) / (double) moneyRowsGeometry[1]);
             if (event.y() >= moneyRowsGeometry[0] && index >= 0 && index < moneyRowsGeometry[2]
@@ -6104,6 +6379,10 @@ public final class DoughBayScreen extends Screen {
         }
         if (tab == Tab.ITEMS) {
             itemsScrollRow = Math.max(0, itemsScrollRow - (int) Math.signum(deltaY));
+            return true;
+        }
+        if (tab == Tab.STATS && statsBoard) {
+            boardScroll = clamp(boardScroll - (int) Math.signum(deltaY) * 3, 0, boardMaxScroll);
             return true;
         }
         if (tab == Tab.LOGS) {

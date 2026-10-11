@@ -785,6 +785,11 @@ public class DoughBayClient implements ClientModInitializer {
         return PAYROLL;
     }
 
+    /** The real ledger's figures, or null before the config is read. */
+    public static LedgerStatsProvider ledgerStats() {
+        return LEDGER_STATS;
+    }
+
     /** Opens the mod's screen, with the update notice in front of it when there is one to answer. */
     private static void openPanel(net.minecraft.client.Minecraft client) {
         DoughBayScreen main = new DoughBayScreen(watcher,

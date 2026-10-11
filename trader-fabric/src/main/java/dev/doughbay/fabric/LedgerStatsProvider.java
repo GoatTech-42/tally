@@ -27,6 +27,7 @@ public final class LedgerStatsProvider implements PerformanceStatsProvider {
     private volatile PerformanceStatsSnapshot paper =
             PerformanceStatsSnapshot.empty(PerformanceStatsSnapshot.Mode.PAPER, "No paper ledger");
     private volatile long refreshedAt;
+    private volatile Map<ItemBoard.Range, ItemBoard.Board> boards = Map.of();
 
     LedgerStatsProvider(Path databasePath) {
         this.databasePath = databasePath;
@@ -37,6 +38,12 @@ public final class LedgerStatsProvider implements PerformanceStatsProvider {
 
     public long refreshedAt() {
         return refreshedAt;
+    }
+
+    /** What each item has done over {@code range}, as of the last read of the ledger. */
+    public ItemBoard.Board board(ItemBoard.Range range) {
+        ItemBoard.Board board = boards.get(range);
+        return board == null ? ItemBoard.Board.empty(range) : board;
     }
 
     private void loop() {
@@ -60,7 +67,15 @@ public final class LedgerStatsProvider implements PerformanceStatsProvider {
         try (Database db = new Database(databasePath)) {
             positions = new PositionRepository(db).findAll("REAL");
         }
-        real = build(PerformanceStatsSnapshot.Mode.REAL, positions, System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        real = build(PerformanceStatsSnapshot.Mode.REAL, positions, now);
+        // The same ledger, item by item, for each stretch of time the item board offers.
+        Map<ItemBoard.Range, ItemBoard.Board> built = new java.util.EnumMap<>(ItemBoard.Range.class);
+        for (ItemBoard.Range range : ItemBoard.Range.values()) {
+            built.put(range, ItemBoard.build(positions, now, range, java.time.ZoneId.systemDefault(),
+                    LedgerStatsProvider::displayName));
+        }
+        boards = built;
         refreshedAt = System.currentTimeMillis();
     }
 

@@ -45,7 +45,7 @@ public final class DiscordBridge {
     private static final long REFRESH_MILLIS = 15_000;
     private static final long FEED_MILLIS = 5_000;
 
-    enum Page { MONEY, STATUS, HIVE, LISTINGS, OPPS, ORDERS, RIVALS, EVASION, PAYROLL, TUNE, SEARCH }
+    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, RIVALS, EVASION, PAYROLL, TUNE, SEARCH }
 
     private final Logger log;
     private final Path configDir;
@@ -72,6 +72,10 @@ public final class DiscordBridge {
     private volatile String applicationId = "";
     private volatile String status = "not configured";
     private volatile Page page = Page.MONEY;
+    /** The Items page: which stretch of time, in what order, and best or worst first. */
+    private volatile dev.doughbay.fabric.ItemBoard.Range itemsRange = dev.doughbay.fabric.ItemBoard.Range.DAY;
+    private volatile dev.doughbay.fabric.ItemBoard.Sort itemsSort = dev.doughbay.fabric.ItemBoard.Sort.PROFIT;
+    private volatile boolean itemsBest = true;
     /**
      * Whose figures the pages show: empty is the whole hive, otherwise one
      * account. Only meaningful with more than one client trading, and the hive
@@ -425,6 +429,14 @@ public final class DiscordBridge {
                 if (!r.target().equalsIgnoreCase(DoughBayClient.account())) note(r.target() + ": " + r.result());
             }
         }
+        if (page == Page.ITEMS) {
+            // Three buttons that each step to the next choice: a dropdown
+            // would take a row apiece, and there is one row to spare.
+            ArrayNode ri = row(rows);
+            button(ri, "items:range", "Range: " + itemsRange.label, 2, false);
+            button(ri, "items:sort", "Sort: " + itemsSort.label, 2, false);
+            button(ri, "items:flip", itemsBest ? "Best first" : "Worst first", 2, false);
+        }
         if (page == Page.TUNE) {
             List<String> groups = new ArrayList<>(Tuning.groups());
             if (tuneGroup.isBlank() && !groups.isEmpty()) tuneGroup = groups.get(0);
@@ -497,6 +509,7 @@ public final class DiscordBridge {
             case STATUS -> "Status";
             case HIVE -> "Hive";
             case LISTINGS -> "Listings";
+            case ITEMS -> "Items";
             case OPPS -> "Opps";
             case ORDERS -> "Orders";
             case RIVALS -> "Rivals";
@@ -569,6 +582,9 @@ public final class DiscordBridge {
         switch (customId) {
             case "ctl:start" -> control(dev.doughbay.fabric.HiveControl.START);
             case "ctl:stop" -> control(dev.doughbay.fabric.HiveControl.STOP);
+            case "items:range" -> itemsRange = itemsRange.next();
+            case "items:sort" -> itemsSort = itemsSort.next();
+            case "items:flip" -> itemsBest = !itemsBest;
             case "tune:group" -> {
                 tuneGroup = value;
                 tuneKey = "";
@@ -827,6 +843,7 @@ public final class DiscordBridge {
             case STATUS -> statusPage(s, v, stateColor, subtitle, footer);
             case HIVE -> hivePage(stateColor, subtitle, footer);
             case LISTINGS -> listingsPage(v, stateColor, subtitle, footer, slots);
+            case ITEMS -> itemsPage(stateColor, subtitle, footer);
             case OPPS -> oppsPage(m, stateColor, subtitle, footer);
             case ORDERS -> ordersPage(stateColor, subtitle, footer);
             case RIVALS -> rivalsPage(stateColor, subtitle, footer);
@@ -1516,6 +1533,34 @@ public final class DiscordBridge {
         }
         return new StatsImage.Page("Rivals", subtitle, color, head, 0, 0,
                 new String[] {"Name", "Sales", "Revenue", "Margin", "Status"}, new boolean[] {false, true, true, true, false}, rows, footer);
+    }
+
+    /** What each item has earned, from the ledger: the item board of the Performance tab, top fifteen. */
+    private StatsImage.Page itemsPage(String color, String subtitle, String footer) {
+        dev.doughbay.fabric.LedgerStatsProvider ledger = DoughBayClient.ledgerStats();
+        dev.doughbay.fabric.ItemBoard.Board b = ledger == null
+                ? dev.doughbay.fabric.ItemBoard.Board.empty(itemsRange) : ledger.board(itemsRange);
+        List<String[]> head = new ArrayList<>();
+        head.add(new String[] {"Profit", money(b.profit()) + " · " + itemsRange.label});
+        head.add(new String[] {"Sales", String.valueOf(b.sales())});
+        head.add(new String[] {"Return", b.cost() <= 0 ? "n/a" : String.format(Locale.ROOT, "%.0f%%", b.returnPercent())});
+        head.add(new String[] {"Tied up", money(b.openCost()) + " in " + b.open()});
+        List<String[]> rows = new ArrayList<>();
+        int n = 0;
+        for (dev.doughbay.fabric.ItemBoard.Row r : b.sorted(itemsSort, itemsBest)) {
+            if (n++ >= 15) break;
+            boolean any = r.sales() > 0;
+            long took = r.medianSellMillis() / 1000;
+            String sellsIn = took <= 0 ? "-" : took < 60 ? took + "s" : took < 3_600 ? took / 60 + "m"
+                    : String.format(Locale.ROOT, "%.1fh", took / 3_600.0);
+            rows.add(new String[] {r.name(), any ? money(r.profit()) : "-", any ? String.valueOf(r.sales()) : "-",
+                    any ? money(r.perSale()) : "-", any ? money(r.perSlotHour()) : "-", sellsIn,
+                    r.openCost() > 0 ? money(r.openCost()) : "-"});
+        }
+        return new StatsImage.Page("Items · by " + itemsSort.label.toLowerCase(Locale.ROOT)
+                + (itemsBest ? "" : ", worst first"), subtitle, color, head, 0, 0,
+                new String[] {"Item", "Profit", "Sales", "Per sale", "Per slot-hr", "Sells in", "Tied up"},
+                new boolean[] {false, true, true, true, true, true, true}, rows, footer);
     }
 
     private StatsImage.Page payrollPage(String color, String subtitle, String footer) {
