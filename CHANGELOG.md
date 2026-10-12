@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-12 22:17 UTC
+- New: follow the known bots with one click. The Rivals tab has a "Follow known bots (500)" button. It adds the 500 busiest seller accounts to your follow list, turns following on, and raises the follow limit to fit them if yours was lower. Nothing to download and no file to edit. Names you already follow are left alone, and a name the server does not know in your region is skipped.
+- The bot follows them a few seconds apart in the background, so the full list takes about 40 minutes. Their orders and listings then show up on the Rivals tab and feed its prices.
+
 ## 2026-10-12 18:51 UTC
 - Changed: settings codes no longer carry the follow settings. Whether an account follows other players, whom it adds, and how many is left as it is on the account that imports a code, the same as slot counts. A code made by an older build that still has them in it is accepted, and those values are ignored.
 

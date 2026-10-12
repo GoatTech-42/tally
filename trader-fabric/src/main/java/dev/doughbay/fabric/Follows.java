@@ -434,6 +434,72 @@ public final class Follows {
     }
 
     /** A line for the status screens and the log. */
+    private static List<String> knownBots;
+
+    /**
+     * The accounts the mod ships with: the busiest sellers on the server when
+     * its sales were last public, which trade the way bots do and whose
+     * orders and listings are the best price feed a follower can have.
+     */
+    public static synchronized List<String> knownBots() {
+        if (knownBots == null) {
+            List<String> names = new ArrayList<>();
+            try (java.io.InputStream in = Follows.class.getResourceAsStream("/doughbay/known-bots.txt")) {
+                if (in != null) {
+                    for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\\R")) {
+                        String name = line.strip();
+                        if (!name.isEmpty() && !name.startsWith("#") && name.matches(NAME)) names.add(name);
+                    }
+                }
+            } catch (IOException e) {
+                DoughBayClient.LOGGER.warn("DoughBay follows: the bundled list could not be read: {}", e.toString());
+            }
+            knownBots = List.copyOf(names);
+        }
+        return knownBots;
+    }
+
+    /** The bundled names that are not on a follow list already, whatever case either is written in. */
+    static List<String> notYetListed(List<String> listLines, List<String> bundled) {
+        java.util.Set<String> have = new java.util.HashSet<>();
+        for (String line : listLines) {
+            String name = line.strip();
+            if (!name.isEmpty() && !name.startsWith("#")) have.add(name.toLowerCase(Locale.ROOT));
+        }
+        List<String> missing = new ArrayList<>();
+        for (String name : bundled) if (have.add(name.toLowerCase(Locale.ROOT))) missing.add(name);
+        return missing;
+    }
+
+    /**
+     * Puts the bundled accounts on this player's follow list, after whatever
+     * is on it already and without touching that. Returns how many were added;
+     * the list is read again at once, and they are followed in turn like any
+     * other name on it.
+     */
+    public synchronized int addKnownBots() throws IOException {
+        List<String> lines = Files.exists(listFile)
+                ? Files.readAllLines(listFile, StandardCharsets.UTF_8) : new ArrayList<>();
+        List<String> missing = notYetListed(lines, knownBots());
+        if (missing.isEmpty()) return 0;
+        StringBuilder out = new StringBuilder();
+        if (lines.isEmpty()) {
+            out.append("# Players to follow, one per line, in order.\n")
+                    .append("# Edit freely: the bot re-reads this file within 30 seconds. Lines starting with # are ignored.\n");
+        } else if (!lines.get(lines.size() - 1).isBlank()) {
+            // The file may not end in a line break; the first new name must not be glued to the last old one.
+            String all = Files.readString(listFile, StandardCharsets.UTF_8);
+            if (!all.endsWith("\n")) out.append("\n");
+        }
+        for (String name : missing) out.append(name).append("\n");
+        Files.writeString(listFile, out.toString(), StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        listReadAt = 0;
+        listModified = -1;
+        DoughBayClient.LOGGER.info("DoughBay follows: {} known bot account(s) added to the follow list", missing.size());
+        return missing.size();
+    }
+
     public String status() {
         long followed = state.values().stream().filter("FOLLOWED"::equals).count();
         return followed + " followed of " + wanted.size() + " listed" + (stopped == null ? "" : "; stopped: " + stopped);

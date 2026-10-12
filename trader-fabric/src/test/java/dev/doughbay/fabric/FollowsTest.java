@@ -8,6 +8,28 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class FollowsTest {
     @Test
+    void theListThatShipsIsFiveHundredNamesTheServerWouldAccept() {
+        java.util.List<String> bots = Follows.knownBots();
+        assertEquals(500, bots.size());
+        java.util.Set<String> once = new java.util.HashSet<>();
+        for (String name : bots) {
+            // Two to twenty letters, digits or underscores; a Bedrock name carries its dot.
+            assertEquals(true, name.matches("\\.?[A-Za-z0-9_]{2,20}"), name);
+            assertEquals(true, once.add(name.toLowerCase(java.util.Locale.ROOT)), name + " is listed twice");
+        }
+    }
+
+    @Test
+    void addingTheKnownBotsLeavesAlonePlayersAlreadyOnTheList() {
+        java.util.List<String> mine = java.util.List.of("# my own notes", "", "TraderOne", "  bedrock_two  ");
+        java.util.List<String> shipped = java.util.List.of("traderone", "NewSeller", ".Bedrock_Two", "newseller", "Third");
+        // Already there in another case, or twice in what ships: added once or not at all.
+        assertEquals(java.util.List.of("NewSeller", ".Bedrock_Two", "Third"), Follows.notYetListed(mine, shipped));
+        // A name with the Bedrock dot is a different player from the same name without it.
+        assertEquals(java.util.List.of(), Follows.notYetListed(java.util.List.of("NewSeller", ".Bedrock_Two", "Third", "traderone"), shipped));
+    }
+
+    @Test
     void theNoticesTheServerSendsAboutAFollowedPlayerAreRead() {
         // Lines as observed on 2026-10-10.
         Follows.Event order = Follows.parse("traderone ordered 128 Nether Wart for $ 50K");

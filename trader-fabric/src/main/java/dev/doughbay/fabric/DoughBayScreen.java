@@ -388,6 +388,38 @@ public final class DoughBayScreen extends Screen {
     private final List<int[]> moneyLinkBounds = new ArrayList<>();
     private final List<String> moneyLinkNames = new ArrayList<>();
 
+    /** What the known-bots button says once it has been pressed. */
+    private String knownBotsNote = "";
+    private static final int KNOWN_BOTS_WIDTH = 170;
+    /** Narrower than this and the button would sit on the tab's own title. */
+    private static final int KNOWN_BOTS_MIN_WIDTH = 520;
+
+    /** How far left of the corner the "updated" stamp has to end: past Money, and past the known-bots button when it is there. */
+    private static int rivalsCorner(int width) {
+        return 64 + (width >= KNOWN_BOTS_MIN_WIDTH ? KNOWN_BOTS_WIDTH + 6 : 0);
+    }
+
+    /**
+     * Adds the bundled accounts to the follow list and sees to it that they
+     * will actually be followed: following on, and the cap on how many raised
+     * to hold them if it was lower. Never past the server's own limit.
+     */
+    private void followKnownBots() {
+        Follows follows = DoughBayClient.follows();
+        if (follows == null) return;
+        try {
+            int added = follows.addKnownBots();
+            int listed = Follows.knownBots().size();
+            if (Tuning.get("follow.enabled") < 0.5) Tuning.set("follow.enabled", 1);
+            if (Tuning.get("follow.max") < listed) Tuning.set("follow.max", Math.min(1000, listed));
+            knownBotsNote = added == 0 ? "Known bots: already listed" : "Following " + added + " more";
+        } catch (java.io.IOException e) {
+            knownBotsNote = "Could not write the list";
+            DoughBayClient.LOGGER.warn("DoughBay follows: the known bots could not be added: {}", e.toString());
+        }
+        rebuildWidgets();
+    }
+
     /** Queues everyone the open account pays or is paid by, and the account itself, to be followed. */
     private void followAroundMoney() {
         Follows follows = DoughBayClient.follows();
@@ -657,6 +689,16 @@ public final class DoughBayScreen extends Screen {
                 moneyMessage = "";
                 rebuildWidgets();
             }).bounds(ui.innerRight() - 58, ui.contentTop() + 3, 58, 18).build());
+            // One click for the accounts the mod ships with, so nobody needs a
+            // list handed to them or a file to edit.
+            if (ui.innerWidth() >= KNOWN_BOTS_MIN_WIDTH) {
+                int count = Follows.knownBots().size();
+                Button bots = CockpitButton.builder(Component.literal(knownBotsNote.isEmpty()
+                                ? "Follow known bots (" + count + ")" : knownBotsNote), ignored -> followKnownBots())
+                        .bounds(ui.innerRight() - 58 - 4 - KNOWN_BOTS_WIDTH, ui.contentTop() + 3, KNOWN_BOTS_WIDTH, 18).build();
+                bots.active = knownBotsNote.isEmpty() && count > 0 && DoughBayClient.follows() != null;
+                addRenderableWidget(bots);
+            }
         }
 
         if (tab == Tab.RIVALS && rivalsMoney && selectedMoney != null) {
@@ -2189,9 +2231,12 @@ public final class DoughBayScreen extends Screen {
                 : "RIVALS  ·  flippers seen in the sales feed, last 24 h", x, top, GOLD);
         String stamp = s.refreshedAt() > 0 ? "updated " + relativeAge(now - s.refreshedAt()) : s.status();
         if (selectedRival == null) {
-            // Clear of the Money button, which has the corner.
-            graphics.text(this.font, truncate(stamp, width / 2),
-                    right - 64 - this.font.width(truncate(stamp, width / 2)), top, MUTED);
+            // Clear of the buttons, which have the corner. With the known-bots
+            // button there the stamp only fits on a wide screen.
+            if (width < KNOWN_BOTS_MIN_WIDTH || width >= 760) {
+                graphics.text(this.font, truncate(stamp, width / 2),
+                        right - rivalsCorner(width) - this.font.width(truncate(stamp, width / 2)), top, MUTED);
+            }
         }
 
         if (selectedRival != null) {
@@ -2297,7 +2342,9 @@ public final class DoughBayScreen extends Screen {
         int stampWidth = this.font.width(stamp);
         graphics.text(this.font, truncate("MONEY  ·  payments seen through the players you follow, last 24 h",
                 width - 70 - stampWidth - 8), x, top, GOLD);
-        if (width >= 480) graphics.text(this.font, stamp, right - 64 - stampWidth, top, MUTED);
+        if (width >= 480 && (width < KNOWN_BOTS_MIN_WIDTH || width >= 760)) {
+            graphics.text(this.font, stamp, right - rivalsCorner(width) - stampWidth, top, MUTED);
+        }
 
         int cardsTop = top + 16;
         int gap = 6;
