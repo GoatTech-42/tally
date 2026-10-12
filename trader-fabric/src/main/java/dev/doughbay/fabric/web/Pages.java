@@ -46,9 +46,6 @@ final class Pages {
             .now { margin-top:10px; padding:8px 10px 10px; }
             .now .label { color:var(--warn); }
             #now { color:var(--text); overflow-wrap:anywhere; }
-            #capacity { display:grid; grid-template-columns: repeat(auto-fill, 12px); gap:3px; margin-top:8px; }
-            #capacity i { width:12px; height:12px; background:var(--inset); border:1px solid var(--edge); }
-            #capacity i.used { background:var(--warn); border-color:var(--warn); }
             .work { display:grid; grid-template-columns: minmax(0, 1fr); gap:10px; margin-top:10px; }
             nav { display:flex; gap:6px; overflow-x:auto; padding:8px; -webkit-overflow-scrolling:touch; }
             @media (min-width: 860px) {
@@ -109,7 +106,9 @@ final class Pages {
     }
 
     /**
-     * The panel. The header and the tiles under it are the HUD's; the pages
+     * The panel. The header and the tiles under it are the HUD's, less its
+     * grid of slot squares: "72 / 90" in a tile says it, and ninety squares
+     * across the top of a page said it again at ten times the size. The pages
      * run down the side as they do on the screen in game; the page on view is
      * the picture the mod draws, with its controls underneath.
      */
@@ -123,7 +122,7 @@ final class Pages {
             + "<div class=\"tile\"><span class=\"label\">Trades</span><b id=\"trades\">-</b></div>"
             + "<div class=\"tile\"><span class=\"label\">Account</span><b id=\"who\">-</b></div></section>"
             + "<section class=\"panel now\"><span class=\"label\">Now</span><div id=\"now\" role=\"status\"></div>"
-            + "<div id=\"capacity\" aria-hidden=\"true\"></div></section>"
+            + "</section>"
             + "<div class=\"work\"><nav class=\"panel\" id=\"pages\" aria-label=\"Pages\"></nav>"
             + "<section class=\"panel\"><h1 class=\"title\" id=\"page\">&nbsp;</h1><div class=\"body\">"
             + "<div class=\"wide\" tabindex=\"0\" aria-label=\"The page on view; scroll sideways to see all of it\">"
@@ -136,7 +135,6 @@ final class Pages {
             const pages = document.getElementById('pages');
             let last = '';
             let lastPages = '';
-            let lastCapacity = '';
             let setting = null;
             function put(id, text) { document.getElementById(id).textContent = text; }
             function picture() { shot.src = '/panel.png?t=' + Date.now(); }
@@ -176,16 +174,6 @@ final class Pages {
               put('who', h.who || '-');
               put('now', h.now || '');
               put('clock', h.clock || '');
-              const shape = h.listed + '/' + h.slots;
-              if (shape === lastCapacity) return;
-              lastCapacity = shape;
-              const grid = document.getElementById('capacity');
-              grid.replaceChildren();
-              for (let i = 0; i < Math.min(180, h.slots); i++) {
-                const cell = document.createElement('i');
-                if (i < h.listed) cell.className = 'used';
-                grid.appendChild(cell);
-              }
             }
             function tabs(pick) {
               const shape = JSON.stringify(pick ? pick.options : []);
