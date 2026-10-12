@@ -2527,6 +2527,7 @@ public final class AutomationSessionController {
         // went. The auction house does not care which of our records exist.
         soldSinceAudit++;
         noteSlotFreed();
+        anotherStackSold = false;
         if (observeTrackedSale(notice)) return true;
         for (Position listed : new ArrayList<>(openListings)) {
             if (saleMatcher.match(listed, notice).matched()) {
@@ -2534,7 +2535,39 @@ public final class AutomationSessionController {
                 return true;
             }
         }
+        if (anotherStackSold) {
+            // A second sale of the stack being watched, and no parked listing
+            // like it to give the sale to. The page says what is still up, so
+            // it is asked; nothing is concluded here.
+            slotAuditPending = true;
+            LOGGER.info("DoughBay automation: a second sale of {} matches no parked listing; recounting the book",
+                    notice.itemText());
+        }
         return false;
+    }
+
+    /**
+     * Set while a notice is being placed: it matched the listing being
+     * watched, which already has its own notice, so it is another stack.
+     */
+    private boolean anotherStackSold;
+
+    /**
+     * Whether a notice is the watched listing's own: the first to match it,
+     * or that same notice seen again.
+     *
+     * <p>A different notice at the same price used to stop the session:
+     * "Multiple distinct exact sale notices are ambiguous", a pause that
+     * waited for somebody to press Resume. It froze the trader three times in
+     * thirteen hours on 2026-10-11 and 12, once for seven minutes with nobody
+     * there. But nothing was ambiguous that mattered. Both notices name the
+     * same item at the same price, so the watched listing is booked the same
+     * whichever is its own; the other is a second stack of the same thing
+     * selling to someone else, which is what a book of ninety listings does
+     * all day. It belongs to a parked listing, and is offered to them.
+     */
+    static boolean ownNotice(DonutSaleMessageParser.SaleNotice buffered, DonutSaleMessageParser.SaleNotice notice) {
+        return buffered == null || buffered.equals(notice);
     }
 
     private boolean observeTrackedSale(DonutSaleMessageParser.SaleNotice notice) {
@@ -2543,7 +2576,7 @@ public final class AutomationSessionController {
             TrackedSaleMatcher.MatchResult earlyMatch = saleMatcher.match(
                     trackedPosition.withStatus(PositionStatus.LISTED), notice);
             if (!earlyMatch.matched()) return false;
-            if (bufferedSaleNotice == null || bufferedSaleNotice.equals(notice)) {
+            if (ownNotice(bufferedSaleNotice, notice)) {
                 if (bufferedSaleNotice == null) {
                     bufferedSaleNotice = notice;
                     saleNoticeBaselineScanStartedAt = lastActiveListingScanStartedAt;
@@ -2554,7 +2587,8 @@ public final class AutomationSessionController {
                 detail = "Exact sale notice buffered until LIST terminal proof completes";
                 return true;
             }
-            pauseInternal("Multiple distinct sale notices arrived before listing verification");
+            // Another stack of the same thing sold; see ownNotice.
+            anotherStackSold = true;
             return false;
         }
         if (state != State.MONITORING) return false;
@@ -2567,8 +2601,9 @@ public final class AutomationSessionController {
             bufferedSaleNotice = notice;
             saleNoticeBaselineScanStartedAt = lastActiveListingScanStartedAt;
             saleNoticeObservedAtMillis = System.currentTimeMillis();
-        } else if (!bufferedSaleNotice.equals(notice)) {
-            pauseInternal("Multiple distinct exact sale notices are ambiguous");
+        } else if (!ownNotice(bufferedSaleNotice, notice)) {
+            // Another stack of the same thing sold; see ownNotice.
+            anotherStackSold = true;
             return false;
         }
         reconciliationStatus = "Exact sale notice received; awaiting active-listing disappearance";
