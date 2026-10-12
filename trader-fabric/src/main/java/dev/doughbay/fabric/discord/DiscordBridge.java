@@ -133,6 +133,21 @@ public final class DiscordBridge {
         root.put("page", label(page));
         root.put("notice", notice.isBlank() || System.currentTimeMillis() - noticeAt > 120_000 ? "" : notice);
         root.set("components", components());
+        // What the HUD in game shows across its top, for the page to show across its own.
+        AutomationSessionController.SessionSnapshot s = session.snapshot();
+        MarketWatcher watcher = DoughBayClient.watcher();
+        MarketWatcher.Snapshot m = watcher == null ? null : watcher.snapshot();
+        Viewed v = viewed(s, m == null ? 0 : dev.doughbay.fabric.SidebarBalance.best(m.accountBalance()));
+        ObjectNode hud = root.putObject("hud");
+        hud.put("state", account.isBlank() && !v.live() ? "hive" : v.state());
+        hud.put("now", s.detail() == null ? "" : s.detail());
+        hud.put("listed", v.listed());
+        hud.put("slots", (int) Tuning.get("slots.max")
+                * (account.isBlank() ? Math.max(1, DoughBayClient.hiveAccounts().size()) : 1));
+        hud.put("bank", money(v.bank()));
+        hud.put("trades", v.trades());
+        hud.put("who", v.label());
+        hud.put("clock", CLOCK.format(Instant.now()));
         Tuning.Setting st = page == Page.TUNE ? setting(tuneKey) : null;
         if (st != null) {
             ObjectNode set = root.putObject("setting");
@@ -140,7 +155,8 @@ public final class DiscordBridge {
             set.put("description", st.description());
             set.put("value", st.format(Tuning.get(st.key())));
         }
-        return root.toString();
+        // Through the same filter the Discord message goes through, so a hidden name is hidden here too.
+        return DiscordPrivacy.payload(root.toString());
     }
 
     /** A button pressed or a choice made, by the id the control carries. */

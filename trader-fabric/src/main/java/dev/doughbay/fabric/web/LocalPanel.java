@@ -248,6 +248,12 @@ public final class LocalPanel implements AutoCloseable {
             send(out, 403, "text/plain; charset=utf-8", "Open this page by its address.".getBytes(StandardCharsets.UTF_8), "");
             return;
         }
+        // The mod's own logo, which the door shows too: the one thing served to anybody who can reach the page.
+        if (r.method().equals("GET") && r.path().equals("/logo.png")) {
+            byte[] logo = logo();
+            send(out, logo.length == 0 ? 404 : 200, "image/png", logo, "");
+            return;
+        }
         boolean in = sessions.contains(r.cookie("gonuts")) && !r.cookie("gonuts").isBlank();
         if (r.method().equals("POST") && r.path().equals("/login")) {
             login(r, out);
@@ -342,6 +348,19 @@ public final class LocalPanel implements AutoCloseable {
     private static String waitText(long millis) {
         long seconds = Math.max(1, (millis + 999) / 1000);
         return seconds >= 120 ? (seconds + 59) / 60 + " min" : seconds + " s";
+    }
+
+    private static byte[] logoBytes;
+
+    private static synchronized byte[] logo() {
+        if (logoBytes == null) {
+            try (InputStream in = LocalPanel.class.getResourceAsStream("/assets/doughbay/textures/gui/logo.png")) {
+                logoBytes = in == null ? new byte[0] : in.readAllBytes();
+            } catch (IOException e) {
+                logoBytes = new byte[0];
+            }
+        }
+        return logoBytes;
     }
 
     private synchronized byte[] picture() throws Exception {
