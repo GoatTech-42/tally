@@ -60,6 +60,21 @@ class OfflineSaleRoomTest {
     }
 
     @Test
+    void whatTheServerSaysWasEarnedIsReadAtTheTopOfWhatItCanMean() {
+        // Two stacks of bone blocks at 44,949 each, announced as one line with no listing named.
+        assertEquals(89_899, AutomationSessionController.unnamedEarnings("You earned $89.8K from auction"));
+        assertTrue(AutomationSessionController.unnamedEarnings("You earned $89.8K from auction") >= 2 * 44_949);
+        assertEquals(923_999, AutomationSessionController.unnamedEarnings("You earned $923K from auction"));
+        assertEquals(1_199_999, AutomationSessionController.unnamedEarnings("You earned $1.1M from auction while you were away"));
+        assertEquals(44_999, AutomationSessionController.unnamedEarnings("You earned $44.9K from auction got delivered 2 items"));
+        assertEquals(502, AutomationSessionController.unnamedEarnings("You earned $502 from auction"));
+        // Anything else is not an earnings line and stands for nothing.
+        assertEquals(0, AutomationSessionController.unnamedEarnings("You earned 1 Shard for playing the server"));
+        assertEquals(0, AutomationSessionController.unnamedEarnings("Somebody earned $5M from auction"));
+        assertEquals(0, AutomationSessionController.unnamedEarnings(null));
+    }
+
+    @Test
     void aCancelGivesBackOnlyWhatWasNotDelivered() {
         assertEquals(0, AutomationSessionController.refundOnCancel(1_000, 64, 64));
         assertEquals(0, AutomationSessionController.refundOnCancel(1_000, 64, 90));

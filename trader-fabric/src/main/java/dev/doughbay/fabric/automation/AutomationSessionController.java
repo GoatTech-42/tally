@@ -5710,6 +5710,49 @@ public final class AutomationSessionController {
     private long lastDriftAuditAt;
 
     /**
+     * What the server has said was earned from the auction, with no listing
+     * named, since the last slot check. It is the server's own word that
+     * listings sold, and the slot check may book that much of what is missing
+     * from the page as sold whatever the bank looks like: the balance is read
+     * a moment late, orders move it both ways, and on 2026-10-12 it came up
+     * short seven times in an hour and a quarter while these lines added up
+     * to more than the listings in question every time. Thirty-four sales
+     * were booked as stock handed back.
+     */
+    private final java.util.concurrent.atomic.AtomicLong unnamedEarningsSinceAudit =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.regex.Pattern EARNED =
+            java.util.regex.Pattern.compile("(?i)you earned \\$ ?([0-9][0-9,]*(?:\\.[0-9]+)?)([kmb]?)\\s+from auction");
+
+    /**
+     * The most a "You earned $89.8K from auction" line can stand for. The
+     * server cuts the figure short, so $89.8K is anything up to $89,899 and
+     * $1.1M anything up to $1,199,999; the top of that is taken, since a sale
+     * the line does cover must not be left out for the sake of the cut.
+     */
+    static long unnamedEarnings(String line) {
+        if (line == null) return 0;
+        java.util.regex.Matcher m = EARNED.matcher(line);
+        if (!m.find()) return 0;
+        String digits = m.group(1).replace(",", "");
+        long unit = switch (m.group(2).toLowerCase(java.util.Locale.ROOT)) {
+            case "k" -> 1_000L;
+            case "m" -> 1_000_000L;
+            case "b" -> 1_000_000_000L;
+            default -> 1L;
+        };
+        int decimals = digits.contains(".") ? digits.length() - digits.indexOf('.') - 1 : 0;
+        long grain = unit;
+        for (int i = 0; i < decimals && grain > 1; i++) grain /= 10;
+        try {
+            long shown = Math.round(Double.parseDouble(digits) * unit);
+            return shown + Math.max(0, grain - 1);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /**
      * The server refusing a listing is the truth about how many are up.
      *
      * <p>The count drifts one way all session: a listing that succeeds on the
@@ -5730,6 +5773,7 @@ public final class AutomationSessionController {
         // until the page is counted again. Count it now, not at the next slow
         // turn.
         if (lower.startsWith("you earned $") && lower.contains("from auction")) {
+            unnamedEarningsSinceAudit.addAndGet(unnamedEarnings(line));
             long at = System.currentTimeMillis();
             if (at - lastDriftAuditAt >= 30_000L) {
                 lastDriftAuditAt = at;
@@ -7183,11 +7227,16 @@ public final class AutomationSessionController {
             room = Long.MAX_VALUE / 4;
         }
         missing.sort(Comparator.comparingLong(Position::targetPrice));
+        long earned = unnamedEarningsSinceAudit.getAndSet(0);
         if (!missing.isEmpty()) {
             LOGGER.info("DoughBay automation: {} listing(s) missing from the page; {} of unexplained balance to "
-                            + "account for them with (tolerance {})",
-                    missing.size(), room == Long.MAX_VALUE / 4 ? "no measurement" : String.valueOf(room), slack);
+                            + "account for them with (tolerance {}), and the server reported {} earned with no listing named",
+                    missing.size(), room == Long.MAX_VALUE / 4 ? "no measurement" : String.valueOf(room), slack, earned);
         }
+        // What the server said was earned is room too, and the better kind:
+        // it is not inferred from a balance. The larger of the two is used,
+        // never their sum, because the earnings are in the bank as well.
+        room = Math.max(room, earned);
         for (Position listed : missing) {
             long net = Math.round(auctionFees.netSale(listed.targetPrice()));
             if (net <= room) {
@@ -7195,7 +7244,16 @@ public final class AutomationSessionController {
                 closeOpenListingSoldOffline(listed, now);
                 settled++;
             } else {
-                closeOpenListingReturned(client, listed, now);
+                // One stack in the pack is one listing come back. Eight
+                // missing stacks of bone blocks were each "found" in the same
+                // single stack and queued as purchases waiting to be listed;
+                // seven of them were not there, and the session paused on
+                // each in turn: "Recovered purchase is next; listing it".
+                String kind = listed.itemKey() + "x" + listed.quantity();
+                int left = inHandLeft.computeIfAbsent(kind, k -> unclaimedStacksInHand(client, listed));
+                boolean cameBack = left > 0;
+                if (cameBack) inHandLeft.put(kind, left - 1);
+                closeOpenListingReturned(client, listed, now, cameBack);
                 returned++;
             }
         }
@@ -7380,7 +7438,7 @@ public final class AutomationSessionController {
      * for: pulled back by hand and kept. Closed with no sale and no profit;
      * the item is the player's again.
      */
-    private void closeOpenListingReturned(Minecraft client, Position listed, long now) {
+    private void closeOpenListingReturned(Minecraft client, Position listed, long now, boolean mayBeInHand) {
         // "Returned to you" means the stack came back to the inventory, and
         // that is exactly where it was found sitting: three stacks in the
         // hotbar that nothing would ever list again. Closing the position was
@@ -7391,7 +7449,7 @@ public final class AutomationSessionController {
         // goes back on the queue as a purchase waiting to be listed, keeping
         // its original cost, and the normal listing flow picks it up. Only a
         // stack that is genuinely nowhere is booked as returned.
-        if (client != null && client.player != null
+        if (mayBeInHand && client != null && client.player != null
                 && unlistedPurchaseSlot(client, listed.itemKey(), listed.quantity()) >= 0) {
             Position again = new Position(listed.positionId(), listed.mode(), listed.itemKey(),
                     listed.bucket(), listed.quantity(), listed.purchasePrice(), listed.targetPrice(),
