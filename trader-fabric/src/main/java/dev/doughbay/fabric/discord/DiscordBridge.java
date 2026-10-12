@@ -113,6 +113,56 @@ public final class DiscordBridge {
         return b;
     }
 
+    /**
+     * The same panel with no Discord behind it. The local web page draws its
+     * pages and presses its buttons, and keeps its own view: which page is up
+     * here says nothing about which is up in the Discord channel.
+     */
+    public static DiscordBridge panelOnly(Logger log, Path configDir, Path ledgerPath, AutomationSessionController session) {
+        return new DiscordBridge(log, configDir, ledgerPath, session);
+    }
+
+    /** The page on view, as the picture Discord would be sent. */
+    public byte[] panelPng() throws Exception {
+        return StatsImage.render(buildPage().withFaces(faces()).withMascot(mascotFace()));
+    }
+
+    /** What is under the picture: the page's name, the last reply, and the controls in the shape Discord takes them. */
+    public String panelState() {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("page", label(page));
+        root.put("notice", notice.isBlank() || System.currentTimeMillis() - noticeAt > 120_000 ? "" : notice);
+        root.set("components", components());
+        Tuning.Setting st = page == Page.TUNE ? setting(tuneKey) : null;
+        if (st != null) {
+            ObjectNode set = root.putObject("setting");
+            set.put("label", st.label());
+            set.put("description", st.description());
+            set.put("value", st.format(Tuning.get(st.key())));
+        }
+        return root.toString();
+    }
+
+    /** A button pressed or a choice made, by the id the control carries. */
+    public void panelPress(String customId, String value) {
+        if (customId == null || customId.isBlank()) return;
+        ObjectNode d = MAPPER.createObjectNode();
+        d.putObject("data").putArray("values").add(value == null ? "" : value);
+        String reply = handleComponent(d, customId);
+        if (reply != null) note(reply);
+    }
+
+    /** The two controls that ask for typing: an item to search for, and a value for the setting on view. */
+    public void panelText(String customId, String text) {
+        String modal = "ctl:search".equals(customId) ? "modal:search"
+                : "tune:set".equals(customId) && setting(tuneKey) != null ? "modal:set:" + tuneKey : null;
+        if (modal == null) return;
+        ObjectNode d = MAPPER.createObjectNode();
+        d.putObject("data").putArray("components").addObject().putArray("components").addObject()
+                .put("value", text == null ? "" : text);
+        handleModal(d, modal);
+    }
+
     /** A sale to show under the bot's name for the next half minute. */
     public void noteSale(String itemKey, int quantity, long salePrice, double profit) {
         saleFlash = "Sold " + item(itemKey) + " x" + quantity + " for " + money(salePrice)

@@ -79,7 +79,9 @@ public final class DoughBayScreen extends Screen {
         /** Setup and proving tools: the API key card and the test buy/sell. */
         TOOLS("TOOLS"),
         /** The Discord command centre: token, channel, operator. */
-        DISCORD("DISCORD");
+        DISCORD("DISCORD"),
+        /** The same panel as a page this computer serves: PIN, and who may reach it. */
+        WEB("WEB");
 
         final String label;
 
@@ -88,7 +90,7 @@ public final class DoughBayScreen extends Screen {
         }
 
         AutomationMode next() {
-            return this == CONTINUOUS ? TOOLS : this == TOOLS ? DISCORD : CONTINUOUS;
+            return this == CONTINUOUS ? TOOLS : this == TOOLS ? DISCORD : this == DISCORD ? WEB : CONTINUOUS;
         }
     }
 
@@ -3579,8 +3581,10 @@ public final class DoughBayScreen extends Screen {
                 || session.state() != AutomationSessionController.State.STOPPED
                 || session.unresolvedExposure();
         automationModeButton = CockpitButton.builder(
-                        Component.literal(automationMode == AutomationMode.DISCORD
+                        Component.literal(automationMode == AutomationMode.WEB
                                 ? "◀ Back to Continuous"
+                                : automationMode == AutomationMode.DISCORD
+                                ? "Web panel ▶"
                                 : automationMode == AutomationMode.TOOLS
                                 ? "Discord command centre ▶"
                                 : "Tools: API key / test ▶"), ignored -> {
@@ -3614,6 +3618,7 @@ public final class DoughBayScreen extends Screen {
                 initTestBuyWidgets(geometry, active);
             }
             case DISCORD -> initDiscordWidgets(geometry);
+            case WEB -> initWebPanelWidgets(geometry);
             case CONTINUOUS -> {
                 if (showLiveTradingSetup()) {
                     initLiveTradingSetupWidgets(geometry);
@@ -4182,6 +4187,7 @@ public final class DoughBayScreen extends Screen {
                 renderApiKeyCard(graphics, apiKeyGeometry(geometry));
             }
             case DISCORD -> renderDiscordCard(graphics, geometry);
+            case WEB -> renderWebPanelCard(graphics, geometry);
             case CONTINUOUS -> {
                 if (showLiveTradingSetup()) {
                     renderLiveTradingSetup(graphics, snapshot, geometry);
@@ -5080,6 +5086,111 @@ public final class DoughBayScreen extends Screen {
                 + "Only the user id above may press them.", innerX, textY, innerWidth, y + height - 14, SECONDARY);
         if (!discordMessage.isBlank()) {
             drawWrapped(graphics, discordMessage, innerX, textY + 4, innerWidth, y + height - 4, discordMessageColor);
+        }
+    }
+
+    // ---------------------------------------------------------------- web panel
+
+    private EditBox webPinField;
+    private String webPinDraft = "";
+    private String webMessage = "";
+    private int webMessageColor = SECONDARY;
+
+    private void initWebPanelWidgets(AutomationModeGeometry geometry) {
+        dev.doughbay.fabric.web.WebPanelHost host = DoughBayClient.webPanel();
+        int x = geometry.left() + 9;
+        int width = geometry.width() - 18;
+        int y = geometry.bodyY() + 26;
+        boolean pinSet = host != null && host.pinSet();
+        webPinField = new EditBox(this.font, x, y, width - 92, 20, Component.literal("PIN"));
+        webPinField.setMaxLength(dev.doughbay.fabric.web.WebPanelHost.PIN_MAX);
+        webPinField.setHint(Component.literal(pinSet ? "PIN set; type a new one to change it" : "Choose a PIN, 4 to 8 digits"));
+        webPinField.addFormatter((text, offset) -> FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
+        webPinField.setValue(webPinDraft);
+        webPinField.setResponder(v -> webPinDraft = v);
+        addRenderableWidget(webPinField);
+        addRenderableWidget(CockpitButton.builder(Component.literal(pinSet ? "Change PIN" : "Set PIN"), ignored -> handleWebPinSave())
+                .bounds(x + width - 86, y, 86, 20).build());
+
+        y += 26;
+        int half = (width - 6) / 2;
+        Button reach = CockpitButton.builder(Component.literal(host != null && host.lan()
+                        ? "Phones on your Wi-Fi: ON" : "Phones on your Wi-Fi: OFF"), ignored -> {
+                    dev.doughbay.fabric.web.WebPanelHost h = DoughBayClient.webPanel();
+                    if (h != null) {
+                        h.setLan(!h.lan());
+                        webMessage = h.lan()
+                                ? "Phones and other devices on this network can now open the panel with the PIN"
+                                : "Only this PC can open the panel now";
+                        webMessageColor = h.lan() ? WARN : GOOD;
+                    }
+                    rebuildWidgets();
+                })
+                .bounds(x, y, half, 20).build();
+        reach.active = host != null;
+        addRenderableWidget(reach);
+        Button power = CockpitButton.builder(Component.literal(host != null && host.enabled()
+                        ? "Turn the panel off" : "Turn the panel on"), ignored -> {
+                    dev.doughbay.fabric.web.WebPanelHost h = DoughBayClient.webPanel();
+                    if (h != null) {
+                        h.setEnabled(!h.enabled());
+                        webMessage = h.enabled() ? "Web panel on" : "Web panel off; nothing is listening";
+                        webMessageColor = h.enabled() ? GOOD : WARN;
+                    }
+                    rebuildWidgets();
+                })
+                .bounds(x + half + 6, y, width - half - 6, 20).build();
+        power.active = pinSet;
+        addRenderableWidget(power);
+    }
+
+    /** Setting a PIN is what turns the panel on. */
+    private void handleWebPinSave() {
+        dev.doughbay.fabric.web.WebPanelHost host = DoughBayClient.webPanel();
+        if (host == null) {
+            webMessage = "The web panel is not running yet";
+            webMessageColor = BAD;
+        } else {
+            String problem = host.setPin(webPinDraft == null ? "" : webPinDraft.strip());
+            if (problem != null) {
+                webMessage = problem;
+                webMessageColor = WARN;
+            } else {
+                webPinDraft = "";
+                webMessage = host.running() ? "PIN saved; the panel is on" : "PIN saved, but the panel is " + host.status();
+                webMessageColor = host.running() ? GOOD : BAD;
+            }
+        }
+        rebuildWidgets();
+    }
+
+    private void renderWebPanelCard(GuiGraphicsExtractor graphics, AutomationModeGeometry geometry) {
+        int x = geometry.left();
+        int y = geometry.bodyY();
+        int width = geometry.width();
+        int height = Math.max(150, geometry.bottom() - y);
+        card(graphics, x, y, width, height, CARD_DARK);
+        dev.doughbay.fabric.web.WebPanelHost host = DoughBayClient.webPanel();
+        String status = host == null ? "not running" : host.status();
+        sectionTitle(graphics, "WEB PANEL: " + status.toUpperCase(java.util.Locale.ROOT), x, y, width);
+        int innerX = x + 9;
+        int innerWidth = width - 18;
+        int textY = y + 26 + 26 * 2 + 4;
+        if (host != null && host.running()) {
+            java.util.List<String> addresses = host.addresses();
+            for (int i = 0; i < addresses.size(); i++) {
+                textY = drawWrapped(graphics, (i == 0 ? "On this PC: " : "On your phone, same Wi-Fi: ") + addresses.get(i),
+                        innerX, textY, innerWidth, y + height - 14, GOOD);
+            }
+            textY += 4;
+        }
+        textY = drawWrapped(graphics, "The same pages and buttons as the Discord panel, in a browser, with no Discord and no "
+                + "token: money, listings, items, orders, rivals, settings, Start and Stop. Open the address and type the "
+                + "PIN. It never answers anything outside your own network, and five wrong PINs lock it, for longer each "
+                + "time. With phones on, anyone on this Wi-Fi who knows the PIN can start and stop the trader, so pick one "
+                + "you do not use elsewhere.", innerX, textY, innerWidth, y + height - 14, SECONDARY);
+        if (!webMessage.isBlank()) {
+            drawWrapped(graphics, webMessage, innerX, textY + 4, innerWidth, y + height - 4, webMessageColor);
         }
     }
 

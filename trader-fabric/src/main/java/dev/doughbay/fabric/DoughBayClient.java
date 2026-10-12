@@ -329,6 +329,32 @@ public class DoughBayClient implements ClientModInitializer {
         // The Discord command centre: one message in the operator's channel,
         // refreshed with the trader's state and carrying its controls.
         DISCORD = dev.doughbay.fabric.discord.DiscordBridge.start(LOGGER, config.directory(), config.databasePath(), AUTOMATION_SESSION);
+        // The same panel as a page this computer serves, for a browser or a
+        // phone on the home network. Off until a PIN is set on the screen.
+        dev.doughbay.fabric.discord.DiscordBridge webView = dev.doughbay.fabric.discord.DiscordBridge.panelOnly(
+                LOGGER, config.directory(), config.databasePath(), AUTOMATION_SESSION);
+        WEB_PANEL = dev.doughbay.fabric.web.WebPanelHost.start(LOGGER, config.directory(),
+                new dev.doughbay.fabric.web.LocalPanel.Backend() {
+                    @Override
+                    public byte[] png() throws Exception {
+                        return webView.panelPng();
+                    }
+
+                    @Override
+                    public String state() {
+                        return webView.panelState();
+                    }
+
+                    @Override
+                    public void press(String id, String value) {
+                        webView.panelPress(id, value);
+                    }
+
+                    @Override
+                    public void text(String id, String text) {
+                        webView.panelText(id, text);
+                    }
+                });
         HUD_ALERTS.register();
         QuietScreen.register();
         // Observe action-bar/system messages after Minecraft receives them.
@@ -847,6 +873,12 @@ public class DoughBayClient implements ClientModInitializer {
     }
 
     private static dev.doughbay.fabric.discord.DiscordBridge DISCORD;
+    private static dev.doughbay.fabric.web.WebPanelHost WEB_PANEL;
+
+    /** The local web panel's keeper, or null before the mod has started. */
+    public static dev.doughbay.fabric.web.WebPanelHost webPanel() {
+        return WEB_PANEL;
+    }
 
     private static long deathScreenSince;
     private static long respawnedAt;
