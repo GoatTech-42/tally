@@ -41,6 +41,18 @@ public final class SettingsCode {
      * code, and left alone when a code from an older build still carries them.
      */
     static final Set<String> PER_ACCOUNT = Set.of("slots.max", "orders.bid_slots");
+
+    /**
+     * Whether a setting stays with the player who set it. The slot counts,
+     * and everything about following other players: who an account follows,
+     * how many, and whether it does so at all is that account's own business
+     * on the server, with a limit of its own there, and a friend who pastes a
+     * code to copy a trading setup has not asked for his account to start
+     * sending follow commands.
+     */
+    static boolean staysBehind(String key) {
+        return key != null && (PER_ACCOUNT.contains(key) || key.startsWith("follow."));
+    }
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
     private SettingsCode() {
@@ -64,7 +76,7 @@ public final class SettingsCode {
         root.put("v", VERSION);
         ObjectNode numbers = root.putObject("n");
         for (Tuning.Setting s : Tuning.SETTINGS) {
-            if (PER_ACCOUNT.contains(s.key())) continue;
+            if (staysBehind(s.key())) continue;
             numbers.put(s.key(), Tuning.get(s.key()));
         }
         ObjectNode texts = root.putObject("t");
@@ -119,7 +131,7 @@ public final class SettingsCode {
                     skipped++;
                     continue;
                 }
-                if (PER_ACCOUNT.contains(e.getKey())) {
+                if (staysBehind(e.getKey())) {
                     kept++;
                     continue;
                 }

@@ -2936,7 +2936,7 @@ public final class DoughBayScreen extends Screen {
         settingsMessage = r.ok()
                 ? "Imported " + r.applied() + " setting(s) from the clipboard"
                         + (r.skipped() > 0 ? " (" + r.skipped() + " unknown skipped)" : "")
-                        + "; your slot counts are left as they were"
+                        + "; your slot counts and follow settings are left as they were"
                 : "Import failed: " + r.error();
         selectedSetting = null;
         rebuildWidgets();
