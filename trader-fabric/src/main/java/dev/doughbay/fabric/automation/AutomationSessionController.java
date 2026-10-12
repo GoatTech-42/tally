@@ -6968,6 +6968,7 @@ public final class AutomationSessionController {
         cancelledSinceAudit = 0;
         int settled = 0;
         List<Position> missing = new ArrayList<>();
+        java.util.Map<String, Integer> inHandLeft = new java.util.HashMap<>();
         for (Position listed : new ArrayList<>(openListings)) {
             String itemId = baseItemId(listed.itemKey());
             int match = -1;
@@ -7085,7 +7086,17 @@ public final class AutomationSessionController {
                         row.count(), row.displayedPrice(), fixed.positionId());
                 continue;
             }
-            if (uniqueExactPlainSlot(client, listed.itemKey(), listed.quantity()) >= 0) {
+            // One stack in the inventory is one listing pulled back, not all of
+            // them. Every missing listing of an item used to be excused by the
+            // same stack: nine sold stacks of emeralds stayed on the books as
+            // listed because a tenth, just collected from an order, was in the
+            // pack. The ledger said 45 of 45 with 35 on the page, and nothing
+            // more was listed into slots that were standing empty.
+            String inHandKind = listed.itemKey() + "x" + listed.quantity();
+            int inHand = uniqueExactPlainSlot(client, listed.itemKey(), listed.quantity()) < 0 ? 0
+                    : inHandLeft.computeIfAbsent(inHandKind, k -> unclaimedStacksInHand(client, listed));
+            if (inHand > 0) {
+                inHandLeft.put(inHandKind, inHand - 1);
                 // Not on the page and in the inventory: pulled back, never relisted.
                 inHandCorroborated = true;
                 LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) is missing from the page but in the inventory; will relist",
@@ -10517,6 +10528,34 @@ public final class AutomationSessionController {
         if (itemKeyOrId.indexOf('#') >= 0) return false;
         if (!itemId(stack).equals(baseItemId(itemKeyOrId)) || stack.getCount() != count) return false;
         return !AutomatedExecutionDriver.worn(stack);
+    }
+
+    /**
+     * How many missing listings of this item and size the inventory can
+     * stand for: the stacks of exactly that size in it, less the ones a
+     * purchase waiting to be listed already owns. A stack that only matches
+     * loosely counts as the one it is.
+     */
+    private int unclaimedStacksInHand(Minecraft client, Position listed) {
+        if (client == null || client.player == null) return 0;
+        int stacks = 0;
+        for (ItemStack stack : client.player.getInventory().getNonEquipmentItems()) {
+            if (!stack.isEmpty() && exactPlainStack(stack, listed.itemKey(), listed.quantity())) stacks++;
+        }
+        int owned = 0;
+        if (trackedPosition != null && trackedPosition.status() == PositionStatus.PURCHASED
+                && trackedPosition.itemKey().equals(listed.itemKey())
+                && trackedPosition.quantity() == listed.quantity()) owned++;
+        for (Position queued : recoveredQueue) {
+            if (queued.itemKey().equals(listed.itemKey()) && queued.quantity() == listed.quantity()) owned++;
+        }
+        return stacksToVouchFor(stacks, owned);
+    }
+
+    /** One in-hand stack vouches for one missing listing; a stack a purchase owns vouches for none. */
+    static int stacksToVouchFor(int exactStacksInHand, int ownedByPurchases) {
+        if (exactStacksInHand <= 0) return 1;   // found only by the looser match, which admits a single candidate
+        return Math.max(0, exactStacksInHand - Math.max(0, ownedByPurchases));
     }
 
     private static int uniqueExactPlainSlot(Minecraft client, String itemKeyOrId, int count) {

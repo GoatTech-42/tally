@@ -46,6 +46,20 @@ class OfflineSaleRoomTest {
     }
 
     @Test
+    void oneStackInThePackStandsForOneMissingListingNotAllOfThem() {
+        // Nine stacks of emeralds gone from the page and one stack in the pack: one was pulled back, eight were not.
+        assertEquals(1, AutomationSessionController.stacksToVouchFor(1, 0));
+        // Three in the pack, three listings excused, and no more however many are missing.
+        assertEquals(3, AutomationSessionController.stacksToVouchFor(3, 0));
+        // A stack a purchase is waiting to list is that purchase's, and excuses nothing.
+        assertEquals(0, AutomationSessionController.stacksToVouchFor(1, 1));
+        assertEquals(2, AutomationSessionController.stacksToVouchFor(3, 1));
+        assertEquals(0, AutomationSessionController.stacksToVouchFor(1, 4));
+        // Found only by the looser match, which takes a stack when there is exactly one candidate.
+        assertEquals(1, AutomationSessionController.stacksToVouchFor(0, 0));
+    }
+
+    @Test
     void aCancelGivesBackOnlyWhatWasNotDelivered() {
         assertEquals(0, AutomationSessionController.refundOnCancel(1_000, 64, 64));
         assertEquals(0, AutomationSessionController.refundOnCancel(1_000, 64, 90));
