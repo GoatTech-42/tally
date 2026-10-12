@@ -100,6 +100,14 @@ class LocalPanelTest {
             assertEquals((byte) 0x89, logo.body()[0]);
             assertEquals('P', logo.body()[1]);
             assertTrue(get(panel, "/", null).body().contains("/logo.png"));
+            // And the page's font, which the door is set in too.
+            HttpResponse<byte[]> font = HttpClient.newHttpClient().send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + panel.port() + "/font.ttf")).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+            assertEquals(200, font.statusCode());
+            assertEquals("font/ttf", font.headers().firstValue("Content-Type").orElse(""));
+            assertTrue(font.body().length > 100_000);
+            assertTrue(get(panel, "/", null).body().contains("/font.ttf"));
             // Nothing else under that name, and no other file by asking for one.
             assertEquals(401, get(panel, "/logo.png/../state", null).statusCode());
             assertEquals(401, get(panel, "/mascot_idle.png", null).statusCode());

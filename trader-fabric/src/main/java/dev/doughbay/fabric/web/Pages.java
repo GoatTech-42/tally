@@ -5,6 +5,10 @@ package dev.doughbay.fabric.web;
  * mod has in game: the same dark panels, edges, gold titles and button
  * states, taken from UiTheme. Everything is in the page itself; no script,
  * font or picture comes from anywhere but this computer.
+ *
+ * <p>The lettering is Monocraft, a pixel face drawn after the game's own and
+ * published under the SIL Open Font License, which the game's font is not. It
+ * ships beside its licence in {@code doughbay/web}.
  */
 final class Pages {
     private Pages() {
@@ -18,9 +22,10 @@ final class Pages {
             :root { --background:#0c121b; --surface:#182230; --inset:#101823; --edge:#2c3b4c; --hover:#243747;
               --selected:#354034; --text:#f0eee7; --secondary:#b6c2cd; --muted:#8799aa; --gold:#f4cd7a;
               --teal:#56dccb; --good:#77deb0; --warn:#f3b576; --bad:#ff858c; color-scheme: dark; }
+            @font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
             * { box-sizing: border-box; }
             body { margin:0; background:var(--background); color:var(--text);
-              font: 15px/1.45 "Minecraft", "Monocraft", ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
+              font: 16px/1.45 "GoNuts Pixel", "Monocraft", ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
             main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
             .panel { background:var(--surface); border:1px solid var(--edge); border-radius:7px;
               box-shadow: 2px 3px 0 rgba(0,0,0,.31); }

@@ -106,3 +106,7 @@ affiliated with or endorsed by DonutSMP.
 ## License
 
 [MIT](LICENSE).
+
+The web panel is set in [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees Hassan, which is
+bundled under the SIL Open Font License 1.1. The font and its licence are in
+`trader-fabric/src/main/resources/doughbay/web/`.

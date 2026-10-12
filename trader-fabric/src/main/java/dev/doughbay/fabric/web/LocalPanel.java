@@ -248,10 +248,16 @@ public final class LocalPanel implements AutoCloseable {
             send(out, 403, "text/plain; charset=utf-8", "Open this page by its address.".getBytes(StandardCharsets.UTF_8), "");
             return;
         }
-        // The mod's own logo, which the door shows too: the one thing served to anybody who can reach the page.
+        // The mod's own logo and the page's font, which the door uses too: the
+        // only things served to anybody who can reach the page.
         if (r.method().equals("GET") && r.path().equals("/logo.png")) {
-            byte[] logo = logo();
+            byte[] logo = bundled("/assets/doughbay/textures/gui/logo.png");
             send(out, logo.length == 0 ? 404 : 200, "image/png", logo, "");
+            return;
+        }
+        if (r.method().equals("GET") && r.path().equals("/font.ttf")) {
+            byte[] font = bundled("/doughbay/web/Monocraft.ttf");
+            send(out, font.length == 0 ? 404 : 200, "font/ttf", font, "");
             return;
         }
         boolean in = sessions.contains(r.cookie("gonuts")) && !r.cookie("gonuts").isBlank();
@@ -350,17 +356,17 @@ public final class LocalPanel implements AutoCloseable {
         return seconds >= 120 ? (seconds + 59) / 60 + " min" : seconds + " s";
     }
 
-    private static byte[] logoBytes;
+    private static final Map<String, byte[]> BUNDLED = new ConcurrentHashMap<>();
 
-    private static synchronized byte[] logo() {
-        if (logoBytes == null) {
-            try (InputStream in = LocalPanel.class.getResourceAsStream("/assets/doughbay/textures/gui/logo.png")) {
-                logoBytes = in == null ? new byte[0] : in.readAllBytes();
+    /** A file that ships inside the mod, read once. Only ever called with a name written in this class. */
+    private static byte[] bundled(String resource) {
+        return BUNDLED.computeIfAbsent(resource, name -> {
+            try (InputStream in = LocalPanel.class.getResourceAsStream(name)) {
+                return in == null ? new byte[0] : in.readAllBytes();
             } catch (IOException e) {
-                logoBytes = new byte[0];
+                return new byte[0];
             }
-        }
-        return logoBytes;
+        });
     }
 
     private synchronized byte[] picture() throws Exception {
