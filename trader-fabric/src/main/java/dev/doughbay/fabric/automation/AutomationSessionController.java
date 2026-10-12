@@ -1026,6 +1026,17 @@ public final class AutomationSessionController {
      * carried forward by every receipted sale and every purchase and payout
      * since. Whatever the bank holds beyond that is money from sales the bot
      * never saw a notice for, and only that much may be booked as sold.
+     *
+     * <p>"Every purchase" has to include the bot's own buy orders. The order
+     * house takes an order's whole price when it is placed and gives back the
+     * unfilled part when it is cancelled, and for a long time neither was
+     * counted here. An account placing orders therefore looked poorer than
+     * the ledger expected: a 14.8M order for wither skulls read as 16.6M of
+     * money gone missing, and thirteen listings that had sold in that half
+     * hour were booked as "returned to you, not sold" because the bank
+     * showed no room for them. The other way round, a 13.9M refund from a
+     * cancelled order read as 14.7M of unexplained income, which is room to
+     * book as sold anything that had merely been pulled back.
      */
     private long auditBalance = -1;
     private long auditAt;
@@ -1049,6 +1060,23 @@ public final class AutomationSessionController {
     public synchronized void setRecentlyReturned(List<Position> positions) {
         recentlyReturned.clear();
         if (positions != null) recentlyReturned.addAll(positions);
+    }
+
+    /**
+     * How much of the bank is money nothing on record explains, and so may be
+     * booked as sales nobody saw: what the bank holds now, less what it held
+     * at the last check carried forward by everything spent and received
+     * since, plus the tolerance. Money put into an order counts as spent and
+     * money a cancelled order gave back counts against it.
+     */
+    static long offlineSaleRoom(long balanceNow, long balanceAtAudit, long spentSince, long salesSince, long slack) {
+        return balanceNow - (balanceAtAudit - spentSince + salesSince) + slack;
+    }
+
+    /** What the order house gives back when an order is cancelled: the price of everything not yet delivered. */
+    static long refundOnCancel(long unitPrice, int requested, int delivered) {
+        if (unitPrice <= 0) return 0;
+        return unitPrice * Math.max(0, requested - Math.max(0, delivered));
     }
 
     private void rebaseAudit(long now) {
@@ -4882,9 +4910,22 @@ public final class AutomationSessionController {
                 bidPlacedAt.put(new BidKey(step.itemId(), step.unitPrice()), now);
                 placedBids.put(step.itemId(), new PlacedBid(step.itemId(), step.unitPrice(), step.count(), now));
                 saveBidsAndFills();
+                // The order house has taken the whole price of the order. The
+                // slot check has to know, or it reads the fall in the bank as
+                // sales that never happened.
+                spentSinceAudit += step.unitPrice() * Math.max(0, step.count());
                 LOGGER.info("DoughBay bid desk: bid placed for {} x{} at {} each", step.itemId(), step.count(), step.unitPrice());
             }
             case CANCEL -> {
+                // And it gives back what was not delivered. Taken from the
+                // order as Your Orders last showed it; a delivery since then
+                // makes this a little too much, which the tolerance is for.
+                for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
+                    if (r.itemId().equals(step.itemId()) && r.unitPrice() == step.unitPrice() && r.remaining() > 0) {
+                        spentSinceAudit -= refundOnCancel(r.unitPrice(), r.requested(), r.delivered());
+                        break;
+                    }
+                }
                 bidPlacedAt.remove(new BidKey(step.itemId(), step.unitPrice()));
                 PlacedBid placed = placedBids.get(step.itemId());
                 if (placed != null && placed.unitPrice() == step.unitPrice()) {
@@ -7124,7 +7165,7 @@ public final class AutomationSessionController {
         long slack = Math.max(50_000, Math.min(1_000_000, lastKnownBalance / 100));
         long room;
         if (auditBalance >= 0 && lastKnownBalance >= 0) {
-            room = lastKnownBalance - (auditBalance - spentSinceAudit + salesSinceAudit) + slack;
+            room = offlineSaleRoom(lastKnownBalance, auditBalance, spentSinceAudit, salesSinceAudit, slack);
         } else if (balanceBeforeStart >= 0 && lastKnownBalance >= 0) {
             room = lastKnownBalance - balanceBeforeStart + slack;
         } else {
