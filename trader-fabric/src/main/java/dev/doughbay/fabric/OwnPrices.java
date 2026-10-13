@@ -115,8 +115,31 @@ public final class OwnPrices {
         if (most <= 0) return 0;
         if (standing <= 0) return most;
         long step = over > 0 ? over : Math.max(1L, (long) Math.ceil(standing * 0.01));
+        // The order house shows a price to three figures: an order at 1,180
+        // reads as 1.1K. A step smaller than what it rounds away could land
+        // under the order it was meant to beat.
+        step = Math.max(step, shownGrain(standing));
         long bid = standing + step;
         return bid <= most ? bid : 0;
+    }
+
+    /**
+     * How coarsely the order house shows a price of this size: to the hundred
+     * from a thousand up ("1.1K"), to the hundred thousand from a million
+     * ("2.3M"), exactly under a thousand.
+     */
+    public static long shownGrain(long price) {
+        return price >= 1_000_000_000L ? 100_000_000L : price >= 1_000_000L ? 100_000L : price >= 1_000L ? 100L : 1L;
+    }
+
+    /**
+     * Whether a price read off the order house could be this exact price. It
+     * abbreviates, so an order placed at 1,150 reads back as 1,100; taken at
+     * its word that is a different price, and an order compared that way was
+     * cancelled and placed again every time it was looked at.
+     */
+    public static boolean shownAs(long shown, long exact) {
+        return shown == exact || Math.abs(exact - shown) < shownGrain(exact);
     }
 
     public static Parsed parse(String text) {

@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 05:03 UTC
+- Fixed: an order from your Flips list at a price of 1,000 or more was cancelled and placed again every couple of minutes. The order house shows prices rounded (1,150 reads as 1.1K), and the bot took the rounded figure for a different price from the one you set. It now knows the order is its own and leaves it up.
+- Changed: "Over top order" bids at least 100 over the best order when prices are in the thousands (100,000 over in the millions). The order house rounds what it shows, so a smaller step could land under the order it was meant to beat.
+
 ## 2026-10-13 04:58 UTC
 - Fixed: after "Trade only these" or "Wind down" was switched on, the bot still placed the orders it had already planned, for a few minutes. Steps the new mode does not allow are now dropped the moment they come up.
 - Changed: with "Trade only these" on, the orders the bot had placed for other items are cancelled (the money comes back), so they stop buying. Turning it off lets the bot place its own orders again.

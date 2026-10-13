@@ -5248,8 +5248,16 @@ public final class AutomationSessionController {
             // ours: it is pulled only when it is no longer the price they set.
             dev.doughbay.fabric.OwnPrices.Entry priced = ownPrice(r.itemId());
             if (priced != null && !denied) {
+                // The page abbreviates the price, so it cannot be compared
+                // to the last coin. Where we placed the order ourselves we
+                // know what it is really at; otherwise the page is believed
+                // as far as it goes.
+                PlacedBid ours = placedBids.get(r.itemId());
+                boolean thisIsOurs = ours != null && dev.doughbay.fabric.OwnPrices.shownAs(r.unitPrice(), ours.unitPrice());
                 if (!priced.top()) {
-                    why = r.unitPrice() != priced.buy() ? "your buy price for it is now " + priced.buy() + " each" : null;
+                    boolean atTheirPrice = thisIsOurs ? ours.unitPrice() == priced.buy()
+                            : dev.doughbay.fabric.OwnPrices.shownAs(r.unitPrice(), priced.buy());
+                    why = atTheirPrice ? null : "your buy price for it is now " + priced.buy() + " each";
                 } else {
                     if (r.remaining() > 0) ownTopOrderSeenAt.put(r.itemId(), now);
                     // Following the top of the book: pulled when the most it may
@@ -5258,7 +5266,8 @@ public final class AutomationSessionController {
                     long over = bestOrder.getOrDefault(r.itemId(), 0L);
                     long again = over > r.unitPrice()
                             ? dev.doughbay.fabric.OwnPrices.topBid(over, priced.over(), priced.buy()) : 0;
-                    why = r.unitPrice() > priced.buy() ? "the most you pay for it is now " + priced.buy() + " each"
+                    why = (thisIsOurs ? ours.unitPrice() : r.unitPrice()) > priced.buy()
+                            ? "the most you pay for it is now " + priced.buy() + " each"
                             : again > 0 && now - chasedAt.getOrDefault(r.itemId(), 0L) > 10 * 60_000L
                             ? "outbid at " + over + " each; placing again above it" : null;
                     if (why != null && again > 0 && r.unitPrice() <= priced.buy()) chasedAt.put(r.itemId(), now);

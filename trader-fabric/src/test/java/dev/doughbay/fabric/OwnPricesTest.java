@@ -87,6 +87,11 @@ class OwnPricesTest {
         assertEquals(550, OwnPrices.topBid(450, 100, 600));
         // One step, a hundredth and at least one, when no amount was given.
         assertEquals(455, OwnPrices.topBid(450, 0, 600));
+        // From a thousand up the page shows hundreds only, so a step is never less than a hundred there:
+        // the order read as 1.1K may really be at 1,180.
+        assertEquals(1_200, OwnPrices.topBid(1_100, 0, 2_000));
+        assertEquals(1_200, OwnPrices.topBid(1_100, 5, 2_000));
+        assertEquals(1_350, OwnPrices.topBid(1_100, 250, 2_000));
         assertEquals(11, OwnPrices.topBid(10, 0, 600));
         // Being top would cost more than the most: an order under the best one is not filled, so none.
         assertEquals(0, OwnPrices.topBid(550, 100, 600));
@@ -124,6 +129,22 @@ class OwnPricesTest {
         assertEquals("emerald 50 70", OwnPrices.without(list, "minecraft:diamond"));
         assertEquals("", OwnPrices.without("diamond 80 120", "diamond"));
         assertEquals("observer 2600 20000 x15 singles", OwnPrices.with("", observer, ""));
+    }
+
+    @Test
+    void aPriceReadOffTheOrderHouseIsOnlyGoodToThreeFigures() {
+        // An order placed at 1,150 reads back as 1.1K. It is the same order at the same price.
+        assertTrue(OwnPrices.shownAs(1_100, 1_150));
+        assertTrue(OwnPrices.shownAs(1_150, 1_150));
+        assertTrue(OwnPrices.shownAs(1_400, 1_401));
+        assertTrue(OwnPrices.shownAs(2_300_000, 2_345_678));
+        // Under a thousand the page shows every coin, and a different price is a different price.
+        assertEquals(false, OwnPrices.shownAs(80, 85));
+        assertEquals(false, OwnPrices.shownAs(1_000, 1_150));
+        assertEquals(false, OwnPrices.shownAs(1_300, 1_150));
+        assertEquals(100, OwnPrices.shownGrain(1_150));
+        assertEquals(1, OwnPrices.shownGrain(999));
+        assertEquals(100_000, OwnPrices.shownGrain(45_000_000));
     }
 
     @Test
