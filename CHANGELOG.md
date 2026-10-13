@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 23:25 UTC
+- Fixed: a bot being hit waited up to a minute for the trade in flight before it escaped. That wait was meant for a player walking up from a distance. A mob hits an unarmoured account for 4.5 at a time, so the bot took its first hit, kept waiting for a listing to finish, and was dead in under ten seconds with its teleport still unsent. A hit now waits a second and a half at most.
+- A death now shows on the Evasion page (in game, on Discord and on the web panel), with what was being held and what was lost. It was only in the log and on the webhook before.
+- The damage line in the log and in chat now names the mobs within twelve blocks. It used to say "nobody the client can see" when it meant no player, with a zombie standing on the bot.
+
 ## 2026-10-13 21:42 UTC
 - New: "Least a single must earn" (Settings, Selling). Off (0) unless you set it. With "Piece out premium markets" on, an item is sold one at a time only when one of them earns at least this much over its cost. Under that, the stock goes up in stacks.
 - Why: every listing takes the bot the same few seconds whatever it is worth, and a cheap item that sells the instant it is listed gets listed again at once. One bot spent an hour selling ender chests for 1,600 profit each, 421 of its 546 sales, and made a third of what the hour before had made. A lot already set aside for singles follows the floor too: what is left of it goes up in stacks.

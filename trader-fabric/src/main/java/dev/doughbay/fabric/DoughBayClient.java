@@ -936,6 +936,9 @@ public class DoughBayClient implements ClientModInitializer {
                         ? "Respawned; nothing the session was holding is missing"
                         : "Respawned; lost on death: " + String.join(", ", lost);
                 LOGGER.warn("DoughBay: {}", message);
+                if (EVASION != null) {
+                    EVASION.noteDeath(lost.isEmpty() ? "respawned; nothing lost" : "respawned; lost " + String.join(", ", lost));
+                }
                 try {
                     if (WEBHOOK != null && Tuning.get("webhook.alert_death") >= 0.5) {
                         java.util.List<String[]> lines = new java.util.ArrayList<>();
@@ -969,6 +972,7 @@ public class DoughBayClient implements ClientModInitializer {
             heldAtDeath = java.util.List.copyOf(held);
             LOGGER.warn("DoughBay: the player died{}; respawning in {} s",
                     held.isEmpty() ? "" : " holding " + held, (long) Tuning.get("session.auto_respawn_sec"));
+            if (EVASION != null) EVASION.noteDeath(held.isEmpty() ? "DIED" : "DIED holding " + String.join(", ", held));
             return;
         }
         if (now - deathScreenSince < Tuning.get("session.auto_respawn_sec") * 1000) return;

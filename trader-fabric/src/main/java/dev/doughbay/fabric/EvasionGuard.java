@@ -66,6 +66,15 @@ public final class EvasionGuard {
         ledger = path;
     }
 
+    /**
+     * A death, put where the guard's other events are. It was in the log and
+     * on the webhook and nowhere on the Evasion page, which is the first
+     * place anyone looks to see what happened to the bot.
+     */
+    public void noteDeath(String what) {
+        note("", 0, what);
+    }
+
     private void note(String who, double distance, String action) {
         long at = System.currentTimeMillis();
         String name = who == null ? "" : who;
@@ -318,6 +327,24 @@ public final class EvasionGuard {
     }
     private volatile boolean leaveWanted;
     private volatile long leaveWantedAt;
+    /** How long an escape waits for the trade in flight: a minute for somebody walking up, no time at all for a hit. */
+    static final long APPROACH_PATIENCE_MILLIS = 60_000L;
+    static final long HURT_PATIENCE_MILLIS = 1_500L;
+    private volatile long leavePatienceMillis = APPROACH_PATIENCE_MILLIS;
+
+    /**
+     * Whether an escape still holds on for the trade in flight.
+     *
+     * <p>A minute is right when somebody is walking up from a hundred blocks
+     * away. It was also what a bot being hit was given: a mob does 4.5 a
+     * blow, an unarmoured account has 20, and three times on 2026-10-13 the
+     * bot took its first hit, waited for a listing to finish, and was dead
+     * inside ten seconds with the teleport still unsent. A trade cut short
+     * is a retry.
+     */
+    static boolean waitsForTrade(boolean safeToLeave, long waitedMillis, long patienceMillis) {
+        return !safeToLeave && waitedMillis < patienceMillis;
+    }
     private volatile boolean away;
     private volatile long leftAt;
     private volatile boolean waitingLogged;
@@ -370,7 +397,7 @@ public final class EvasionGuard {
             if (leaveWantedAt == 0) leaveWantedAt = now;
             // Waiting is right for a second or two, but never for ever: after
             // a minute the threat matters more than the tidy exit.
-            if (!session.safeToLeave() && now - leaveWantedAt < 60_000) {
+            if (waitsForTrade(session.safeToLeave(), now - leaveWantedAt, leavePatienceMillis)) {
                 if (!waitingLogged) {
                     waitingLogged = true;
                     DoughBayClient.LOGGER.info("DoughBay evasion: waiting for the trade in flight before escaping");
@@ -378,9 +405,11 @@ public final class EvasionGuard {
                 return;
             }
             if (!session.safeToLeave()) {
-                DoughBayClient.LOGGER.warn("DoughBay evasion: waited a minute for the trade in flight; escaping anyway");
+                DoughBayClient.LOGGER.warn("DoughBay evasion: waited {} s for the trade in flight; escaping anyway",
+                        (now - leaveWantedAt) / 1000);
             }
             leaveWantedAt = 0;
+            leavePatienceMillis = APPROACH_PATIENCE_MILLIS;
             if (escapeMode() == 0) {
                 // Escapes are switched off, so this is a pause and nothing
                 // more. Falling through to leave() here is what turned a
@@ -535,13 +564,28 @@ public final class EvasionGuard {
                 near.add(other.getName().getString() + " at " + Math.round(other.distanceTo(client.player)) + "b");
                 if (!SafeHomes.isAlly(other.getName().getString())) strangerAbout = true;
             }
+            // What hits and is not a player. The line used to end "nobody the
+            // client can see" with a zombie standing on the bot, and three
+            // deaths went down as withers and water before a hit of exactly
+            // 4.5, a zombie's on hard, gave it away.
+            java.util.List<String> mobs = new java.util.ArrayList<>();
+            try {
+                for (net.minecraft.world.entity.Entity e : client.level.entitiesForRendering()) {
+                    if (!(e instanceof net.minecraft.world.entity.monster.Enemy) || mobs.size() >= 4) continue;
+                    double far = e.distanceTo(client.player);
+                    if (far <= 12) mobs.add(e.getName().getString() + " at " + Math.round(far) + "b");
+                }
+            } catch (RuntimeException ignored) {
+                // The list is for the log; the escape does not wait on it.
+            }
             // A friend caught us with a stray swing. Running from that costs a
             // session and, when the server refuses the teleport for being in
             // combat, the whole connection: an accidental punch took the bot
             // off the server entirely. Damage still stops nothing when the only
             // people who can see us are on the ally list.
             boolean onlyFriendsAbout = anyoneAbout && !strangerAbout;
-            String who = near.isEmpty() ? "nobody the client can see" : String.join(", ", near);
+            String who = (near.isEmpty() ? "no player the client can see" : String.join(", ", near))
+                    + (mobs.isEmpty() ? "" : "; mobs: " + String.join(", ", mobs));
             String message = String.format(java.util.Locale.ROOT,
                     "Evasion: took %.1f damage (%.1f health left); nearby: %s", lastHealth - health, health, who);
             DoughBayClient.LOGGER.warn("DoughBay {}", message);
@@ -567,6 +611,9 @@ public final class EvasionGuard {
                 if (escapeOnDamage) {
                     leaveWanted = true;
                     waitingLogged = false;
+                    // Being hit does not wait for a listing to finish.
+                    leaveWantedAt = now;
+                    leavePatienceMillis = HURT_PATIENCE_MILLIS;
                 }
             }
         }

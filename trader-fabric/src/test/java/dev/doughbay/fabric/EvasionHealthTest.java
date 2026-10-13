@@ -28,6 +28,18 @@ class EvasionHealthTest {
     }
 
     @Test
+    void aHitDoesNotWaitForATradeTheWaySomebodyWalkingUpDoes() {
+        // Somebody a hundred blocks off: the listing in flight is let finish, for up to a minute.
+        assertTrue(EvasionGuard.waitsForTrade(false, 20_000, EvasionGuard.APPROACH_PATIENCE_MILLIS));
+        assertFalse(EvasionGuard.waitsForTrade(false, 60_000, EvasionGuard.APPROACH_PATIENCE_MILLIS));
+        // Being hit: a second and a half and no more. A mob kills an unarmoured account in under ten.
+        assertTrue(EvasionGuard.waitsForTrade(false, 1_000, EvasionGuard.HURT_PATIENCE_MILLIS));
+        assertFalse(EvasionGuard.waitsForTrade(false, 1_500, EvasionGuard.HURT_PATIENCE_MILLIS));
+        // Nothing in flight: nothing to wait for either way.
+        assertFalse(EvasionGuard.waitsForTrade(true, 0, EvasionGuard.APPROACH_PATIENCE_MILLIS));
+    }
+
+    @Test
     void aFallInHealthOnceSettledIs() {
         assertTrue(EvasionGuard.tookDamage(20f, 14f, EvasionGuard.HEALTH_SETTLE_MILLIS));
         assertTrue(EvasionGuard.tookDamage(4.5f, 2.5f, 60_000));
