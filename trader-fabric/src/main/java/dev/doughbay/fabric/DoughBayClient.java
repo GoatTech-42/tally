@@ -354,6 +354,21 @@ public class DoughBayClient implements ClientModInitializer {
                     public void text(String id, String text) {
                         webView.panelText(id, text);
                     }
+
+                    @Override
+                    public String data(String name, java.util.Map<String, String> query) {
+                        return WebPages.data(name, query);
+                    }
+
+                    @Override
+                    public String change(String name, java.util.Map<String, String> form) {
+                        return WebPages.change(name, form);
+                    }
+
+                    @Override
+                    public byte[] icon(String itemId) {
+                        return WebPages.icon(itemId);
+                    }
                 });
         HUD_ALERTS.register();
         QuietScreen.register();

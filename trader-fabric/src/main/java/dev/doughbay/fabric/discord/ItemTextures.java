@@ -34,6 +34,12 @@ final class ItemTextures {
         if (itemId != null && image != null) CACHE.put(itemId, image);
     }
 
+    /** Whether the game has been asked for this item's picture and has not answered yet. */
+    static boolean pending(String itemId) {
+        if (itemId == null) return false;
+        return PENDING.contains(itemId.indexOf('#') >= 0 ? itemId.substring(0, itemId.indexOf('#')) : itemId);
+    }
+
     /**
      * The picture for an item id, or null while it is being loaded or when
      * the game has no flat texture for it.

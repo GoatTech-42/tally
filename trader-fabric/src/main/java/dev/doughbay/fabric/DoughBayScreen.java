@@ -408,10 +408,7 @@ public final class DoughBayScreen extends Screen {
         Follows follows = DoughBayClient.follows();
         if (follows == null) return;
         try {
-            int added = follows.addKnownBots();
-            int listed = Follows.knownBots().size();
-            if (Tuning.get("follow.enabled") < 0.5) Tuning.set("follow.enabled", 1);
-            if (Tuning.get("follow.max") < listed) Tuning.set("follow.max", Math.min(1000, listed));
+            int added = follows.followKnownBots();
             knownBotsNote = added == 0 ? "Known bots: already listed" : "Following " + added + " more";
         } catch (java.io.IOException e) {
             knownBotsNote = "Could not write the list";
@@ -502,9 +499,7 @@ public final class DoughBayScreen extends Screen {
 
     /** "x19" for an ask nineteen times the order price. */
     private static String askOverOrder(long order, long ask) {
-        if (order <= 0 || ask <= 0) return "-";
-        double times = ask / (double) order;
-        return times >= 10 ? String.format(Locale.ROOT, "x%.0f", times) : String.format(Locale.ROOT, "x%.1f", times);
+        return Figures.askOverOrder(order, ask);
     }
     /** Settings tab: the row being edited, its draft text, scroll, and row hit boxes {top, bottom, index}. */
     private String selectedSetting;
@@ -6498,21 +6493,10 @@ public final class DoughBayScreen extends Screen {
 
     /** 0 exclude, 1 include, 2 clear-from-both, applied to every selected item. */
     private void applyItemsSelection(int option) {
-        for (String id : itemsSelected) {
-            switch (option) {
-                case 0 -> {
-                    Tuning.removeFromList("items.allow", id);
-                    Tuning.addToList("items.deny", id);
-                }
-                case 1 -> {
-                    Tuning.removeFromList("items.deny", id);
-                    Tuning.addToList("items.allow", id);
-                }
-                default -> {
-                    Tuning.removeFromList("items.deny", id);
-                    Tuning.removeFromList("items.allow", id);
-                }
-            }
+        switch (option) {
+            case 0 -> ItemLists.exclude(itemsSelected);
+            case 1 -> ItemLists.include(itemsSelected);
+            default -> ItemLists.clear(itemsSelected);
         }
         rebuildWidgets();
     }
@@ -7156,9 +7140,17 @@ public final class DoughBayScreen extends Screen {
      * actually do with the shared config, never a second, disagreeing view.
      */
     private static boolean listMatches(java.util.Set<String> tokens, String bare) {
-        if (tokens.contains(bare)) return true;
-        for (String t : tokens) if (bare.endsWith("_" + t)) return true;
-        return false;
+        return ItemLists.listMatches(tokens, bare);
+    }
+
+    /**
+     * Every item as the web panel lists it: id, name and group. Called on the
+     * client thread, like the grid's own list, which this is.
+     */
+    static List<String[]> itemCatalog() {
+        List<String[]> out = new ArrayList<>();
+        for (ItemEntry e : allItems()) out.add(new String[] {e.id(), e.name(), e.cat().label});
+        return out;
     }
 
     private List<ItemEntry> filteredItems() {
@@ -7254,18 +7246,7 @@ public final class DoughBayScreen extends Screen {
      * its real set.
      */
     private java.util.Set<String> trackedBareSet() {
-        if (Tuning.get("watch.tracked_managed") >= 0.5) {
-            return Tuning.itemSet("watch.tracked");
-        }
-        java.util.Set<String> out = new java.util.HashSet<>();
-        DoughBayConfig cfg = DoughBayClient.activeConfig();
-        if (cfg != null) {
-            for (String id : cfg.trackedCommodities()) {
-                String b = Tuning.normalizeItem(id);
-                if (!b.isEmpty()) out.add(b);
-            }
-        }
-        return out;
+        return ItemLists.tracked();
     }
 
     /**
@@ -7273,25 +7254,11 @@ public final class DoughBayScreen extends Screen {
      * mark it managed, so nothing is lost and later edits stick even to empty.
      */
     private void seedTrackedIfNeeded() {
-        if (Tuning.get("watch.tracked_managed") >= 0.5) return;
-        DoughBayConfig cfg = DoughBayClient.activeConfig();
-        java.util.LinkedHashSet<String> bare = new java.util.LinkedHashSet<>();
-        if (cfg != null) {
-            for (String id : cfg.trackedCommodities()) {
-                String b = Tuning.normalizeItem(id);
-                if (!b.isEmpty()) bare.add(b);
-            }
-        }
-        Tuning.setText("watch.tracked", String.join(", ", bare));
-        Tuning.set("watch.tracked_managed", 1);
+        ItemLists.seedTracked();
     }
 
     private void trackSelected(boolean track) {
-        seedTrackedIfNeeded();
-        for (String id : itemsSelected) {
-            if (track) Tuning.addToList("watch.tracked", id);
-            else Tuning.removeFromList("watch.tracked", id);
-        }
+        ItemLists.track(itemsSelected, track);
         rebuildWidgets();
     }
 
@@ -8386,12 +8353,7 @@ public final class DoughBayScreen extends Screen {
     }
 
     private static String relativeAge(long millis) {
-        long seconds = Math.max(0, millis) / 1_000;
-        if (seconds < 60) return seconds + "s ago";
-        long minutes = seconds / 60;
-        if (minutes < 60) return minutes + "m ago";
-        long hours = minutes / 60;
-        return hours + "h ago";
+        return Figures.relativeAge(millis);
     }
 
     private static String shortName(String itemId) {
@@ -8420,16 +8382,7 @@ public final class DoughBayScreen extends Screen {
     }
 
     private static String money(double value) {
-        if (!Double.isFinite(value)) return "$—";
-        String sign = value < 0 ? "-" : "";
-        double absolute = Math.abs(value);
-        if (absolute >= 1_000_000) {
-            return sign + "$" + String.format(Locale.ROOT, "%.2fm", absolute / 1e6);
-        }
-        if (absolute >= 1_000) {
-            return sign + "$" + String.format(Locale.ROOT, "%.1fk", absolute / 1e3);
-        }
-        return sign + "$" + String.format(Locale.ROOT, "%.0f", absolute);
+        return Figures.money(value);
     }
 
     private static String signedMoney(long value) {
@@ -8446,7 +8399,7 @@ public final class DoughBayScreen extends Screen {
     }
 
     private static String grouped(long value) {
-        return String.format(Locale.ROOT, "%,d", value);
+        return Figures.grouped(value);
     }
 
     private String truncate(String text, int maxWidth) {

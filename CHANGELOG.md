@@ -4,6 +4,15 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 00:26 UTC
+- New: the web panel has real pages for Settings, Items and Rivals, laid out like the screen in game. They replace the Tune and Rivals pictures. The other pages are still pictures for now and come next.
+- Settings: every setting in its group, with search. Tap a row to read what it does and change it; switches flip in place. Presets, reset to default, the item lists, and copying or pasting a settings code all work from the browser. Changes apply at once, with no restart.
+- Items: the item grid with search, a group filter, and All, Included, Excluded or Tracked. Tick items and press Exclude, Include, Clear, Track or Untrack, the same buttons as in game.
+- Rivals: the headline cards, the rivals table, Underdog and Repeat buyers. Tap a player for their figures, their hours and their trades, and to include or track their markets. The "Follow known bots" button is there too.
+- The status webhook is never sent to the browser and cannot be changed from it. The PIN and the Wi-Fi switch are still set only in game.
+- Fixed: a setting kept in doughbay-local.json (one client's own file) went back to its old value at the next start, or as soon as a second account saved the shared settings. A change made in game or from the web panel is now saved to that file too.
+- Faster: ticking many items on the Items tab and pressing a button saves each list once, not once per item.
+
 ## 2026-10-12 22:17 UTC
 - New: follow the known bots with one click. The Rivals tab has a "Follow known bots (500)" button. It adds the 500 busiest seller accounts to your follow list, turns following on, and raises the follow limit to fit them if yours was lower. Nothing to download and no file to edit. Names you already follow are left alone, and a name the server does not know in your region is skipped.
 - The bot follows them a few seconds apart in the background, so the full list takes about 40 minutes. Their orders and listings then show up on the Rivals tab and feed its prices.

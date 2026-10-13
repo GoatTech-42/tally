@@ -1178,9 +1178,15 @@ public final class Tuning {
         } catch (Throwable e) {
             return;   // not running inside the game, as in the tests
         }
+        loadLocalFrom(local);
+    }
+
+    /** Reads this client's own file; null forgets it. Apart from the tests, only ever given the game folder's. */
+    static void loadLocalFrom(Path local) {
         localFile = local;
+        LOCAL_KEYS.clear();
         seenLocalModifiedAt = modifiedAt(local);
-        if (!Files.exists(local)) return;
+        if (local == null || !Files.exists(local)) return;
         try {
             JsonNode root = new ObjectMapper().readTree(Files.readString(local, StandardCharsets.UTF_8));
             if (root == null || !root.isObject()) return;
@@ -1192,6 +1198,7 @@ public final class Tuning {
                     for (ListSetting l : LISTS) {
                         if (l.key().equals(e.getKey())) {
                             TEXTS.put(l.key(), e.getValue().asText());
+                            LOCAL_KEYS.add(l.key());
                             loaded++;
                         }
                     }
@@ -1200,17 +1207,30 @@ public final class Tuning {
                 Setting s = BY_KEY.get(e.getKey());
                 if (s == null || !e.getValue().isNumber()) continue;
                 VALUES.put(s.key(), s.clamp(e.getValue().asDouble()));
+                LOCAL_KEYS.add(s.key());
                 loaded++;
             }
             if (loaded > 0) {
-                DoughBayClient.LOGGER.info("DoughBay tuning: {} setting(s) for this client only from {}", loaded, local);
+                LOG.info("DoughBay tuning: {} setting(s) for this client only from {}", loaded, local);
             }
         } catch (IOException | RuntimeException e) {
-            DoughBayClient.LOGGER.warn("DoughBay could not read {}: {}", local, e.toString());
+            LOG.warn("DoughBay could not read {}: {}", local, e.toString());
         }
     }
 
     private static volatile Path localFile;
+    /** The same log the rest of the mod writes to, reached without starting the mod: the tests read this class too. */
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("DoughBay");
+    /** The settings whose value this client's own file gave, and so the ones saved back to it. */
+    private static final java.util.Set<String> LOCAL_KEYS = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Whether a setting is this client's own: its value comes from
+     * {@code doughbay-local.json}, not the file a second client may share.
+     */
+    public static boolean thisClientOnly(String key) {
+        return key != null && LOCAL_KEYS.contains(key);
+    }
     private static volatile long seenLocalModifiedAt;
 
     private static volatile long seenModifiedAt;
@@ -1261,6 +1281,53 @@ public final class Tuning {
     }
 
     private static synchronized void save() {
+        saveShared();
+        saveLocal();
+    }
+
+    /**
+     * A setting this client keeps to itself is saved where it is kept. Left
+     * only in the shared file, a change made on the screen or from the web
+     * panel lasted until the next read of this client's own file, which put
+     * the old value back: at the next start, or as soon as another client
+     * saved the shared one.
+     */
+    private static void saveLocal() {
+        Path local = localFile;
+        if (local == null || LOCAL_KEYS.isEmpty() || !Files.exists(local)) return;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode read = mapper.readTree(Files.readString(local, StandardCharsets.UTF_8));
+            if (!(read instanceof ObjectNode root)) return;
+            boolean changed = false;
+            for (String key : LOCAL_KEYS) {
+                JsonNode had = root.get(key);
+                Setting s = BY_KEY.get(key);
+                if (s != null) {
+                    double now = get(key);
+                    if (had != null && had.isNumber() && Math.abs(had.asDouble() - now) < 1e-9) continue;
+                    if (now == Math.rint(now) && Math.abs(now) < 1e15) root.put(key, (long) now);
+                    else root.put(key, now);
+                } else {
+                    String now = text(key);
+                    if (had != null && had.isTextual() && had.asText().equals(now)) continue;
+                    root.put(key, now);
+                }
+                changed = true;
+            }
+            if (!changed) return;
+            // Written beside the file and moved over it, so a crash half way leaves the old one whole.
+            Path fresh = local.resolveSibling(local.getFileName() + ".tmp");
+            Files.writeString(fresh, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root),
+                    StandardCharsets.UTF_8);
+            Files.move(fresh, local, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            seenLocalModifiedAt = modifiedAt(local);
+        } catch (IOException | RuntimeException e) {
+            LOG.warn("DoughBay could not save {}: {}", local, e.toString());
+        }
+    }
+
+    private static void saveShared() {
         Path f = file;
         if (f == null) return;
         try {

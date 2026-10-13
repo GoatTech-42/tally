@@ -21,7 +21,9 @@ final class Pages {
     private static final String STYLE = """
             :root { --background:#0c121b; --surface:#182230; --inset:#101823; --edge:#2c3b4c; --hover:#243747;
               --selected:#354034; --text:#f0eee7; --secondary:#b6c2cd; --muted:#8799aa; --gold:#f4cd7a;
-              --teal:#56dccb; --good:#77deb0; --warn:#f3b576; --bad:#ff858c; color-scheme: dark; }
+              --teal:#56dccb; --good:#77deb0; --warn:#f3b576; --bad:#ff858c;
+              --deny:#e0553b; --pick:#2f4a6b; --pickedge:#5b9bff; --bar:#5fcf78; --barzero:#2a2d36;
+              color-scheme: dark; }
             @font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
             * { box-sizing: border-box; }
             body { margin:0; background:var(--background); color:var(--text);
@@ -52,12 +54,14 @@ final class Pages {
               .work { grid-template-columns: 190px minmax(0, 1fr); align-items:start; }
               nav { flex-direction:column; overflow:visible; }
             }
-            button, select, input { font: inherit; color:var(--text); background:var(--surface);
+            button, select, input, textarea { font: inherit; color:var(--text); background:var(--surface);
               border:1px solid var(--edge); border-radius:4px; padding:9px 12px; min-height:42px; }
+            [hidden] { display:none !important; }
             button { cursor:pointer; text-align:center; }
             button:hover:not(:disabled) { background:var(--hover); }
             button:disabled { background:var(--inset); color:var(--muted); cursor:default; }
-            button:focus-visible, select:focus-visible, input:focus-visible, .wide:focus-visible {
+            button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible,
+            .wide:focus-visible {
               outline:none; border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
             nav button { text-align:left; white-space:nowrap; flex:0 0 auto; border-left-width:3px; }
             nav button[aria-current="page"] { background:var(--selected); color:var(--gold); border-left-color:var(--gold); }
@@ -74,6 +78,107 @@ final class Pages {
             .row button { flex:1 1 auto; }
             .row select { flex:1 1 100%; max-width:100%; }
             form.out button { min-height:34px; padding:5px 12px; }
+            #own { min-width:0; }
+            .muted { color:var(--muted); }
+            .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+            .bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+            .bar input[type=search] { flex:1 1 200px; min-width:0; background:var(--inset); }
+            .line { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+            .line input { width:120px; background:var(--inset); text-align:right; }
+            .line .unit { color:var(--muted); }
+            textarea { display:block; width:100%; min-height:88px; resize:vertical; background:var(--inset); }
+            .cards { columns: 2 330px; column-gap:10px; }
+            .card { break-inside:avoid; background:var(--inset); border:1px solid var(--edge); border-radius:4px;
+              margin:0 0 10px; }
+            .setline { display:flex; align-items:center; gap:8px; padding:0 10px; }
+            .setline:hover { background:var(--hover); }
+            .setname, .val { background:none; border:0; border-radius:0; padding:7px 0; min-height:36px; }
+            .setname:hover:not(:disabled), .val:hover:not(:disabled) { background:none; }
+            .setname { flex:1 1 auto; min-width:0; text-align:left; overflow-wrap:anywhere; }
+            .val { flex:0 0 auto; color:var(--secondary); text-align:right; white-space:nowrap;
+              font-variant-numeric:tabular-nums; }
+            .val.long { flex:0 1 auto; max-width:55%; overflow:hidden; text-overflow:ellipsis; }
+            .val.changed { color:var(--gold); }
+            .switch { min-height:30px; min-width:60px; padding:2px 12px; flex:0 0 auto; }
+            .switch.on { color:var(--good); border-color:var(--good); }
+            .switch.off { color:var(--muted); }
+            .tag { color:var(--teal); font-size:11px; border:1px solid var(--edge); border-radius:3px; padding:0 5px;
+              white-space:nowrap; flex:0 0 auto; }
+            .edit { padding:2px 10px 10px; background:var(--surface); border-top:1px solid var(--edge);
+              border-bottom:1px solid var(--edge); }
+            .desc { color:var(--secondary); font-size:13px; margin:8px 0; max-width:65ch; }
+            .range { color:var(--muted); font-size:12px; margin:8px 0 0; }
+            .seg { display:flex; flex-wrap:wrap; }
+            .seg button { flex:1 1 auto; border-radius:0; margin-right:-1px; min-height:42px; padding:6px 7px;
+              font-size:14px; }
+            .seg button[aria-pressed="true"] { background:var(--selected); color:var(--gold); }
+            .legend { color:var(--muted); font-size:12px; margin:0 0 8px; }
+            .legend .d { color:var(--deny); } .legend .a { color:var(--good); } .legend .g { color:var(--gold); }
+            .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:4px; }
+            .it { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px;
+              padding:7px 3px 5px; min-height:80px; background:var(--inset); border-radius:3px; }
+            .it img, .it .noicon { width:32px; height:32px; image-rendering:pixelated; flex:0 0 auto; }
+            .it .noicon { display:grid; place-items:center; color:var(--muted); border:1px dashed var(--edge); }
+            .it .nm { font-size:11px; line-height:1.25; color:var(--secondary); overflow-wrap:anywhere; }
+            .it.deny { border-color:var(--deny); } .it.allow { border-color:var(--good); }
+            .it.track { border-color:var(--gold); }
+            .it .corner { position:absolute; top:2px; right:2px; width:9px; height:4px; background:var(--gold); }
+            .it.picked, .it.picked:hover:not(:disabled) { background:var(--pick); border-color:var(--pickedge);
+              box-shadow:0 0 0 1px var(--pickedge); }
+            .acts { position:sticky; bottom:0; display:flex; flex-wrap:wrap; gap:4px; align-items:center;
+              padding:8px 0 2px; margin-top:8px; background:var(--surface); border-top:1px solid var(--edge); }
+            .acts button { flex:1 1 78px; padding:6px 4px; }
+            .acts .count { flex:1 1 100%; color:var(--secondary); font-size:13px; }
+            .more { display:block; width:100%; margin-top:8px; }
+            .headline { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; }
+            .headline .what { color:var(--gold); flex:1 1 240px; overflow-wrap:anywhere; }
+            .headline .stamp { color:var(--muted); font-size:13px; }
+            .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:6px;
+              margin-bottom:10px; }
+            .stat .label { display:block; font-size:11px; letter-spacing:.04em; }
+            .stat { background:var(--inset); border:1px solid var(--edge); border-radius:4px; padding:7px 10px; }
+            .stat b { display:block; font-weight:400; font-size:18px; font-variant-numeric:tabular-nums; }
+            .stat small { display:block; color:var(--muted); font-size:11px; }
+            .split { display:grid; grid-template-columns:minmax(0, 1fr); gap:10px; }
+            @media (min-width: 1000px) { .split { grid-template-columns:minmax(0, 5fr) minmax(0, 2fr);
+              align-items:start; } }
+            .detail { display:grid; grid-template-columns:minmax(0, 1fr); gap:14px; padding:10px; }
+            @media (min-width: 760px) { .detail { grid-template-columns:minmax(0, 400px) minmax(0, 1fr); } }
+            table { border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums; }
+            th { color:var(--muted); font-weight:400; text-align:left; text-transform:uppercase; font-size:11px;
+              letter-spacing:.08em; padding:5px 8px; white-space:nowrap; }
+            td { padding:3px 6px; white-space:nowrap; border-top:1px solid var(--edge); }
+            th { padding:5px 6px; }
+            tr.go { cursor:pointer; }
+            tr.go:hover td { background:var(--hover); }
+            td img { width:16px; height:16px; image-rendering:pixelated; vertical-align:middle; margin-right:6px; }
+            button.link { background:none; border:0; border-radius:0; padding:3px 0; min-height:28px; text-align:left;
+              text-decoration:underline; text-decoration-color:var(--muted); text-underline-offset:3px; }
+            button.link:hover:not(:disabled) { background:none; color:var(--gold); }
+            .spark { display:inline-flex; align-items:flex-end; gap:1px; height:18px; width:60px;
+              vertical-align:middle; }
+            .strip { display:flex; align-items:flex-end; gap:2px; height:84px; margin-top:6px; }
+            .spark i, .strip i { flex:1 1 0; background:var(--bar); min-height:1px; }
+            .spark i.z, .strip i.z { background:var(--barzero); }
+            .spark i.n, .strip i.n { background:var(--gold); }
+            .ticks { display:flex; color:var(--muted); font-size:11px; }
+            .ticks span { flex:1 1 0; }
+            .kv { margin:0; }
+            .kv div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 14px; padding:2px 0; }
+            .kv dt { color:var(--secondary); }
+            .kv dd { margin:0 0 0 auto; text-align:right; overflow-wrap:break-word; min-width:0; }
+            .entry { padding:5px 10px; border-top:1px solid var(--edge); }
+            .entry .top { display:flex; flex-wrap:wrap; gap:2px 10px; justify-content:space-between; }
+            .entry small { display:block; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+            .lessons { padding:0 10px 10px; }
+            .lessons p { margin:2px 0; font-size:13px; }
+            .t-text { color:var(--text); } .t-secondary { color:var(--secondary); } .t-muted { color:var(--muted); }
+            .t-good { color:var(--good); } .t-warn { color:var(--warn); } .t-bad { color:var(--bad); }
+            .t-gold { color:var(--gold); }
+            #toast { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:5;
+              width:max-content; max-width:min(92vw, 560px); background:var(--inset); border:1px solid var(--gold);
+              border-radius:4px; padding:8px 14px; box-shadow:2px 3px 0 rgba(0,0,0,.4); overflow-wrap:anywhere; }
+            #toast.bad { border-color:var(--bad); color:var(--bad); }
             .door { max-width:360px; margin:10vh auto 0; }
             .door .body { padding:14px; }
             .door img { display:block; width:210px; max-width:70%; height:auto; margin:4px auto 14px; image-rendering:pixelated; }
@@ -109,8 +214,11 @@ final class Pages {
      * The panel. The header and the tiles under it are the HUD's, less its
      * grid of slot squares: "72 / 90" in a tile says it, and ninety squares
      * across the top of a page said it again at ten times the size. The pages
-     * run down the side as they do on the screen in game; the page on view is
-     * the picture the mod draws, with its controls underneath.
+     * run down the side as they do on the screen in game. Most are the picture
+     * the mod draws, with its controls underneath. Settings, Items and Rivals
+     * are pages of the panel's own: the same rows, grid and tables the screen
+     * in game has, built here from what {@code /api} answers, so they can be
+     * searched, ticked and changed and not only looked at.
      */
     static final String APP = HEAD
             + "<header class=\"panel\"><img src=\"/logo.png\" alt=\"GoNuts\">"
@@ -125,19 +233,69 @@ final class Pages {
             + "</section>"
             + "<div class=\"work\"><nav class=\"panel\" id=\"pages\" aria-label=\"Pages\"></nav>"
             + "<section class=\"panel\"><h1 class=\"title\" id=\"page\">&nbsp;</h1><div class=\"body\">"
+            + "<div id=\"pic\">"
             + "<div class=\"wide\" tabindex=\"0\" aria-label=\"The page on view; scroll sideways to see all of it\">"
             + "<img id=\"shot\" alt=\"The page of the panel on view\" src=\"/panel.png\"></div>"
             + "<div id=\"notice\" role=\"status\"></div>"
-            + "<div id=\"controls\"></div></div></section></div>"
+            + "<div id=\"controls\"></div></div>"
+            + "<div id=\"own\" hidden></div></div></section></div>"
+            + "<div id=\"toast\" role=\"status\" aria-live=\"polite\" hidden></div>"
             + "</main><script>" + """
-            const shot = document.getElementById('shot');
-            const controls = document.getElementById('controls');
-            const pages = document.getElementById('pages');
+            const $ = id => document.getElementById(id);
+            const shot = $('shot');
+            const controls = $('controls');
+            const pages = $('pages');
+            const own = $('own');
             let last = '';
             let lastPages = '';
             let setting = null;
-            function put(id, text) { document.getElementById(id).textContent = text; }
+            let view = '';
+            let ticks = 0;
+            function put(id, text) { $(id).textContent = text; }
+            function el(tag, cls, text) {
+              const e = document.createElement(tag);
+              if (cls) e.className = cls;
+              if (text !== undefined && text !== null) e.textContent = text;
+              return e;
+            }
+            function button(cls, text, press) {
+              const b = el('button', cls, text);
+              b.type = 'button';
+              if (press) b.addEventListener('click', press);
+              return b;
+            }
             function picture() { shot.src = '/panel.png?t=' + Date.now(); }
+            let toastTimer = 0;
+            function toast(text, bad) {
+              const t = $('toast');
+              t.textContent = text || '';
+              t.className = bad ? 'bad' : '';
+              t.hidden = !text;
+              clearTimeout(toastTimer);
+              if (text) toastTimer = setTimeout(() => { t.hidden = true; }, 5000);
+            }
+            const SILENT = 'The game is not answering. Is it still running?';
+            async function api(name, query) {
+              const r = await fetch('/api/' + name + (query ? '?' + new URLSearchParams(query) : ''), { cache: 'no-store' });
+              if (r.status === 401) { location.reload(); throw new Error('locked'); }
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+            }
+            async function change(name, fields) {
+              try {
+                const r = await fetch('/api/' + name, { method: 'POST', headers: { 'X-GoNuts': '1',
+                  'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields) });
+                if (r.status === 401) { location.reload(); return null; }
+                if (!r.ok) { toast('The game did not take that (' + r.status + ').', true); return null; }
+                const j = await r.json();
+                toast(j.note, !j.ok);
+                return j;
+              } catch (e) {
+                toast(SILENT, true);
+                return null;
+              }
+            }
+            function failed() { own.replaceChildren(el('p', 'muted', SILENT)); }
             async function act(id, value, text) {
               const body = new URLSearchParams();
               body.set('id', id);
@@ -164,7 +322,7 @@ final class Pages {
             }
             function hud(h) {
               if (!h) return;
-              const state = document.getElementById('state');
+              const state = $('state');
               state.textContent = h.state || '...';
               const s = (h.state || '').toUpperCase();
               state.className = s === 'STOPPED' ? 'bad' : s === 'PAUSED' ? '' : 'good';
@@ -175,23 +333,50 @@ final class Pages {
               put('now', h.now || '');
               put('clock', h.clock || '');
             }
+
+            // ---- the pages down the side: the pictures the mod draws, and the panel's own
+            const OWN = {
+              settings: { label: 'Settings', open: openSettings },
+              items: { label: 'Items', open: openItems },
+              rivals: { label: 'Rivals', open: openRivals }
+            };
+            function show(name) {
+              view = OWN[name] ? name : '';
+              try { history.replaceState(null, '', view ? '#' + view : location.pathname); } catch (e) { }
+              $('pic').hidden = !!view;
+              own.hidden = !view;
+              lastPages = '';
+              last = '';
+              if (view) {
+                put('page', OWN[view].label);
+                own.replaceChildren(el('p', 'muted', 'Reading...'));
+                OWN[view].open();
+              }
+              refresh();
+            }
             function tabs(pick) {
-              const shape = JSON.stringify(pick ? pick.options : []);
+              const options = (pick ? pick.options : []) || [];
+              const shape = JSON.stringify(options) + view;
               if (shape === lastPages) return;
               lastPages = shape;
               pages.replaceChildren();
-              for (const o of (pick ? pick.options : []) || []) {
-                const b = document.createElement('button');
-                b.type = 'button';
-                b.textContent = o.label;
-                if (o.default) b.setAttribute('aria-current', 'page');
-                b.addEventListener('click', () => act('page:pick', o.value));
+              const add = (label, current, go) => {
+                const b = button('', label, go);
+                if (current) b.setAttribute('aria-current', 'page');
                 pages.appendChild(b);
+              };
+              const mine = name => add(OWN[name].label, view === name, () => show(name));
+              for (const o of options) {
+                // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
+                if (o.value === 'RIVALS') { mine('rivals'); continue; }
+                if (o.value === 'TUNE') { mine('items'); mine('settings'); continue; }
+                add(o.value === 'ITEMS' ? 'Item profit' : o.label, !view && o.default, () => {
+                  if (view) show('');
+                  act('page:pick', o.value);
+                });
               }
             }
             function draw(state) {
-              put('page', state.page || '');
-              put('notice', state.notice || '');
               hud(state.hud);
               setting = state.setting || null;
               let pick = null;
@@ -204,34 +389,31 @@ final class Pages {
                 if (rest.length) rows.push(rest);
               }
               tabs(pick);
+              if (view) return;
+              put('page', state.page || '');
+              put('notice', state.notice || '');
               const shape = JSON.stringify(rows);
               if (shape === last || controls.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;
               last = shape;
               controls.replaceChildren();
               for (const row of rows) {
-                const div = document.createElement('div');
-                div.className = 'row';
+                const div = el('div', 'row');
                 for (const c of row) {
                   if (c.type === 2) {
-                    const b = document.createElement('button');
-                    b.type = 'button';
-                    b.textContent = c.label;
-                    b.className = c.style === 3 ? 'go' : c.style === 4 ? 'stop' : c.style === 1 ? 'pick' : '';
+                    const b = button(c.style === 3 ? 'go' : c.style === 4 ? 'stop' : c.style === 1 ? 'pick' : '', c.label,
+                      () => press(c.custom_id));
                     b.disabled = !!c.disabled;
-                    b.addEventListener('click', () => press(c.custom_id));
                     div.appendChild(b);
                   } else if (c.type === 3) {
-                    const s = document.createElement('select');
+                    const s = el('select');
                     s.setAttribute('aria-label', c.placeholder || 'Choose');
-                    const first = document.createElement('option');
-                    first.textContent = c.placeholder || 'Choose';
+                    const first = el('option', '', c.placeholder || 'Choose');
                     first.value = '';
                     first.disabled = true;
                     first.selected = true;
                     s.appendChild(first);
                     for (const o of c.options || []) {
-                      const opt = document.createElement('option');
-                      opt.textContent = o.label;
+                      const opt = el('option', '', o.label);
                       opt.value = o.value;
                       s.appendChild(opt);
                     }
@@ -242,17 +424,527 @@ final class Pages {
                 controls.appendChild(div);
               }
             }
+
+            // ---- Settings: every setting the screen in game has, changed where it stands
+            const S = { data: null, q: '', open: '' };
+            async function openSettings() {
+              try {
+                S.data = await api('settings');
+                if (view === 'settings') drawSettings();
+              } catch (e) { failed(); }
+            }
+            function sift() {
+              const q = S.q.trim().toLowerCase();
+              let any = false;
+              for (const card of own.querySelectorAll('.card')) {
+                let shown = 0;
+                for (const row of card.querySelectorAll('.set')) {
+                  const hit = !q || row.dataset.hay.includes(q);
+                  row.hidden = !hit;
+                  if (hit) shown++;
+                }
+                card.hidden = shown === 0;
+                any = any || shown > 0;
+              }
+              const none = $('nomatch');
+              if (none) { none.hidden = any; none.textContent = 'No settings match "' + S.q.trim() + '"'; }
+            }
+            function unfold(row, wrap) {
+              const was = S.open;
+              for (const e of own.querySelectorAll('.edit')) e.remove();
+              for (const e of own.querySelectorAll('[aria-expanded="true"]')) e.setAttribute('aria-expanded', 'false');
+              if (was === row.key) { S.open = ''; return; }
+              S.open = row.key;
+              wrap.appendChild(editor(row));
+              wrap.querySelector('.setname').setAttribute('aria-expanded', 'true');
+              const field = wrap.querySelector('.edit input, .edit textarea');
+              if (field) field.focus();
+            }
+            function editor(row) {
+              const box = el('div', 'edit');
+              box.appendChild(el('p', 'desc', row.description));
+              const saved = j => { if (j) openSettings(); };
+              if (row.locked) {
+                box.appendChild(el('p', 'range', 'This one is set on the GoNuts screen in game, not from a browser.'));
+                return box;
+              }
+              if (row.list) {
+                const area = el('textarea');
+                area.value = row.value || '';
+                area.setAttribute('aria-label', row.label);
+                box.appendChild(area);
+                const line = el('div', 'line');
+                line.style.marginTop = '6px';
+                line.appendChild(button('pick', 'Save', async () => saved(await change('list', { key: row.key, text: area.value }))));
+                box.appendChild(line);
+                if (row.local) box.appendChild(el('p', 'range', 'Kept for this PC only, not shared with a second account.'));
+                return box;
+              }
+              if (!row.toggle) {
+                const line = el('div', 'line');
+                const input = el('input');
+                input.type = 'text';
+                input.inputMode = 'decimal';
+                input.value = String(row.value);
+                input.setAttribute('aria-label', row.label + (row.unit ? ', in ' + row.unit : ''));
+                const bump = by => {
+                  const n = parseFloat(input.value);
+                  const v = Math.min(row.max, Math.max(row.min, (isNaN(n) ? row.value : n) + by));
+                  input.value = String(Math.round(v * 100) / 100);
+                };
+                const go = async () => saved(await change('setting', { key: row.key, value: input.value }));
+                input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+                const minus = button('', '-', () => bump(-row.step));
+                minus.setAttribute('aria-label', 'Less');
+                const plus = button('', '+', () => bump(row.step));
+                plus.setAttribute('aria-label', 'More');
+                line.append(minus, input);
+                if (row.unit) line.appendChild(el('span', 'unit', row.unit));
+                line.append(plus, button('pick', 'Apply', go));
+                box.appendChild(line);
+              }
+              const foot = el('div', 'line');
+              foot.style.marginTop = '6px';
+              const reset = button('', 'Reset to ' + row.standard,
+                async () => saved(await change('setting', { key: row.key, reset: '1' })));
+              reset.disabled = !row.changed;
+              foot.appendChild(reset);
+              box.appendChild(foot);
+              const notes = [];
+              if (!row.toggle) notes.push('From ' + row.least + ' to ' + row.most + '.');
+              if (row.local) notes.push('Kept for this PC only, not shared with a second account.');
+              if (notes.length) box.appendChild(el('p', 'range', notes.join(' ')));
+              return box;
+            }
+            function settingRow(row) {
+              const wrap = el('div', 'set');
+              wrap.dataset.hay = (row.label + ' ' + row.key + ' ' + row.description).toLowerCase();
+              const line = el('div', 'setline');
+              const name = button('setname', row.label, () => unfold(row, wrap));
+              name.setAttribute('aria-expanded', S.open === row.key ? 'true' : 'false');
+              line.appendChild(name);
+              if (row.local) line.appendChild(el('span', 'tag', 'this PC'));
+              if (row.toggle) {
+                const on = row.value >= 0.5;
+                const sw = button('switch ' + (on ? 'on' : 'off'), row.shown, async () => {
+                  if (await change('setting', { key: row.key, toggle: '1' })) openSettings();
+                });
+                sw.setAttribute('role', 'switch');
+                sw.setAttribute('aria-checked', on ? 'true' : 'false');
+                sw.setAttribute('aria-label', row.label);
+                line.appendChild(sw);
+              } else {
+                const v = button('val' + (row.changed ? ' changed' : '') + (row.list ? ' long' : ''), row.shown,
+                  () => unfold(row, wrap));
+                v.setAttribute('aria-label', row.label + ': ' + row.shown + '. Change it');
+                line.appendChild(v);
+              }
+              wrap.appendChild(line);
+              if (S.open === row.key) wrap.appendChild(editor(row));
+              return wrap;
+            }
+            function drawSettings() {
+              const d = S.data;
+              if (!d) return;
+              const bar = el('div', 'bar');
+              const q = el('input');
+              q.type = 'search';
+              q.placeholder = 'Search settings...';
+              q.value = S.q;
+              q.setAttribute('aria-label', 'Search settings');
+              q.addEventListener('input', () => { S.q = q.value; sift(); });
+              bar.appendChild(q);
+              const preset = el('select');
+              preset.setAttribute('aria-label', 'Apply a preset');
+              const first = el('option', '', 'Apply a preset');
+              first.value = '';
+              first.disabled = true;
+              first.selected = true;
+              preset.appendChild(first);
+              for (const p of d.presets || []) preset.appendChild(el('option', '', p));
+              preset.addEventListener('change', async () => {
+                const name = preset.value;
+                preset.selectedIndex = 0;
+                if (!confirm('Apply the ' + name + ' preset? It changes several settings at once.')) return;
+                if (await change('preset', { name })) openSettings();
+              });
+              bar.appendChild(preset);
+              const codeBox = el('div', 'card');
+              codeBox.hidden = true;
+              const codeShow = (text, pasting) => {
+                codeBox.hidden = false;
+                codeBox.replaceChildren(el('h2', 'title', pasting ? 'Paste a settings code' : 'Your settings code'));
+                const body = el('div', 'edit');
+                const area = el('textarea');
+                area.value = text;
+                area.readOnly = !pasting;
+                area.setAttribute('aria-label', 'Settings code');
+                body.appendChild(el('p', 'desc', pasting
+                  ? 'Paste a code somebody shared. It sets the trading settings it carries; your slot counts and follow settings stay as they are.'
+                  : 'Everything set here in one line of text, to send to a friend. Slot counts, follow settings and the webhook are left out.'));
+                body.appendChild(area);
+                const line = el('div', 'line');
+                line.style.marginTop = '6px';
+                if (pasting) {
+                  line.appendChild(button('pick', 'Apply the code', async () => {
+                    const j = await change('code', { code: area.value });
+                    if (j && j.ok) { codeBox.hidden = true; openSettings(); }
+                  }));
+                } else {
+                  line.appendChild(button('pick', 'Copy', async () => {
+                    area.select();
+                    let done = false;
+                    try { await navigator.clipboard.writeText(area.value); done = true; } catch (e) { }
+                    if (!done) { try { done = document.execCommand('copy'); } catch (e) { } }
+                    toast(done ? 'Copied' : 'Select the text and copy it by hand.', !done);
+                  }));
+                }
+                line.appendChild(button('', 'Close', () => { codeBox.hidden = true; }));
+                body.appendChild(line);
+                codeBox.appendChild(body);
+                area.focus();
+                if (!pasting) area.select();
+              };
+              bar.appendChild(button('', 'Copy settings code', async () => {
+                try { codeShow((await api('code')).code || '', false); } catch (e) { toast(SILENT, true); }
+              }));
+              bar.appendChild(button('', 'Paste a code', () => codeShow('', true)));
+              const cards = el('div', 'cards');
+              for (const g of d.groups || []) {
+                const card = el('section', 'card');
+                card.appendChild(el('h2', 'title', g.name));
+                for (const row of g.settings || []) card.appendChild(settingRow(row));
+                cards.appendChild(card);
+              }
+              const lists = el('section', 'card');
+              lists.appendChild(el('h2', 'title', 'Items'));
+              for (const l of d.lists || []) lists.appendChild(settingRow(Object.assign({ list: true, changed: !!l.value }, l)));
+              cards.appendChild(lists);
+              const none = el('p', 'muted');
+              none.id = 'nomatch';
+              none.hidden = true;
+              own.replaceChildren(bar, codeBox, none, cards);
+              sift();
+            }
+
+            // ---- Items: the grid the screen in game has, ticked and sorted onto its lists
+            const I = { all: null, allow: new Set(), deny: new Set(), tracked: new Set(), q: '', show: 'all', cat: 'All',
+              picked: new Set(), limit: 150 };
+            function bare(id) { const c = id.indexOf(':'); return c >= 0 ? id.slice(c + 1) : id; }
+            // The trader's own rule: the name itself, or the end of it (boots covers netherite_boots).
+            function covers(set, b) {
+              if (set.has(b)) return true;
+              for (const t of set) if (b.endsWith('_' + t)) return true;
+              return false;
+            }
+            function takeLists(j) {
+              I.allow = new Set(j.allow || []);
+              I.deny = new Set(j.deny || []);
+              I.tracked = new Set(j.tracked || []);
+            }
+            async function openItems() {
+              try {
+                const j = await api('items');
+                I.all = (j.items || []).map(r => ({ id: r[0], bare: bare(r[0]), name: r[1], cat: r[2] }));
+                takeLists(j);
+                if (view === 'items') drawItems();
+              } catch (e) { failed(); }
+            }
+            function matching() {
+              const needle = I.q.trim().toLowerCase().split(' ').filter(Boolean).join('_');
+              return (I.all || []).filter(e => (!needle || e.bare.includes(needle))
+                && (I.cat === 'All' || e.cat === I.cat)
+                && (I.show !== 'deny' || covers(I.deny, e.bare))
+                && (I.show !== 'allow' || covers(I.allow, e.bare))
+                && (I.show !== 'tracked' || I.tracked.has(e.bare)));
+            }
+            function tile(e) {
+              const d = covers(I.deny, e.bare);
+              const a = !d && covers(I.allow, e.bare);
+              const t = I.tracked.has(e.bare);
+              const b = button('it' + (d ? ' deny' : a ? ' allow' : t ? ' track' : '') + (I.picked.has(e.bare) ? ' picked' : ''));
+              b.setAttribute('aria-pressed', I.picked.has(e.bare) ? 'true' : 'false');
+              const img = el('img');
+              img.loading = 'lazy';
+              img.alt = '';
+              img.width = 32;
+              img.height = 32;
+              img.addEventListener('error', () => img.replaceWith(el('span', 'noicon', e.name.charAt(0))));
+              img.src = '/item/' + e.id + '.png';
+              b.append(img, el('span', 'nm', e.name));
+              const state = (d ? 'excluded' : a ? 'included' : '') + (t ? (d || a ? ', ' : '') + 'tracked' : '');
+              if (state) b.appendChild(el('span', 'sr', state));
+              if (t) b.appendChild(el('i', 'corner'));
+              b.title = e.name + (state ? ' · ' + state : '');
+              b.addEventListener('click', () => {
+                const on = !I.picked.has(e.bare);
+                if (on) I.picked.add(e.bare); else I.picked.delete(e.bare);
+                b.classList.toggle('picked', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                counted();
+              });
+              return b;
+            }
+            function counted() {
+              const c = $('picked');
+              if (c) c.textContent = I.picked.size + ' ticked';
+            }
+            function drawGrid() {
+              const grid = $('grid');
+              if (!grid) return;
+              const found = matching();
+              grid.replaceChildren();
+              for (const e of found.slice(0, I.limit)) grid.appendChild(tile(e));
+              const more = $('more');
+              more.hidden = found.length <= I.limit;
+              more.textContent = 'Show ' + Math.min(150, found.length - I.limit) + ' more of ' + found.length;
+              const none = $('noitems');
+              none.hidden = found.length > 0;
+              none.textContent = I.all && I.all.length ? 'No items match.'
+                : 'The game has not listed its items yet. Open this page again in a moment.';
+              put('itemsums', 'Only these may be traded: ' + (I.allow.size || 'everything') + '  ·  never traded: '
+                + I.deny.size + '  ·  tracked: ' + I.tracked.size);
+              counted();
+            }
+            async function itemsDo(what) {
+              if (!I.picked.size) { toast('Tick some items first.', true); return; }
+              const j = await change('items', { ids: [...I.picked].join(','), do: what });
+              if (j && j.ok) { takeLists(j); drawGrid(); }
+            }
+            function drawItems() {
+              const bar = el('div', 'bar');
+              const q = el('input');
+              q.type = 'search';
+              q.placeholder = 'Search items...';
+              q.value = I.q;
+              q.setAttribute('aria-label', 'Search items');
+              q.addEventListener('input', () => { I.q = q.value; I.limit = 150; drawGrid(); });
+              bar.appendChild(q);
+              const seg = el('div', 'seg');
+              seg.setAttribute('role', 'group');
+              seg.setAttribute('aria-label', 'Which items to show');
+              for (const [key, label] of [['all', 'All items'], ['allow', 'Included'], ['deny', 'Excluded'], ['tracked', 'Tracked']]) {
+                const b = button('', label, () => { I.show = key; I.limit = 150; drawItems(); });
+                b.setAttribute('aria-pressed', I.show === key ? 'true' : 'false');
+                seg.appendChild(b);
+              }
+              bar.appendChild(seg);
+              const cat = el('select');
+              cat.setAttribute('aria-label', 'Group');
+              const cats = ['All'];
+              for (const e of I.all || []) if (!cats.includes(e.cat)) cats.push(e.cat);
+              for (const c of cats) {
+                const o = el('option', '', c === 'All' ? 'Every group' : c);
+                o.value = c;
+                o.selected = c === I.cat;
+                cat.appendChild(o);
+              }
+              cat.addEventListener('change', () => { I.cat = cat.value; I.limit = 150; drawGrid(); });
+              bar.appendChild(cat);
+              const legend = el('p', 'legend');
+              legend.append(el('span', 'd', 'Red edge'), ' never traded  ·  ', el('span', 'a', 'green edge'),
+                ' may be traded  ·  ', el('span', 'g', 'gold corner'), ' tracked. Tap items to tick them, then use the buttons below.');
+              const sums = el('p', 'legend');
+              sums.id = 'itemsums';
+              const grid = el('div', 'grid');
+              grid.id = 'grid';
+              const none = el('p', 'muted');
+              none.id = 'noitems';
+              const more = button('more', '', () => { I.limit += 150; drawGrid(); });
+              more.id = 'more';
+              const acts = el('div', 'acts');
+              const count = el('span', 'count');
+              count.id = 'picked';
+              acts.appendChild(count);
+              for (const [what, label] of [['exclude', 'Exclude'], ['include', 'Include'], ['clear', 'Clear'], ['track', 'Track'],
+                  ['untrack', 'Untrack']]) {
+                acts.appendChild(button(what === 'exclude' ? 'stop' : what === 'include' ? 'go' : what === 'track' ? 'pick' : '',
+                  label, () => itemsDo(what)));
+              }
+              acts.appendChild(button('', 'All', () => { for (const e of matching()) I.picked.add(e.bare); drawGrid(); }));
+              acts.appendChild(button('', 'None', () => { I.picked.clear(); drawGrid(); }));
+              own.replaceChildren(bar, legend, sums, grid, none, more, acts);
+              drawGrid();
+            }
+
+            // ---- Rivals: who else is trading, and one of them opened up
+            const R = { data: null, open: '', detail: null, limit: 60 };
+            async function openRivals() {
+              try {
+                if (R.open) {
+                  const j = await api('rival', { id: R.open });
+                  if (j.ok) {
+                    R.detail = j;
+                    if (view === 'rivals') drawRival();
+                    return;
+                  }
+                  R.open = '';
+                }
+                R.data = await api('rivals');
+                if (view === 'rivals') drawRivals();
+              } catch (e) { failed(); }
+            }
+            function bars(hourly, nowHour, cls) {
+              const box = el('span', cls);
+              box.setAttribute('aria-hidden', 'true');
+              let max = 1;
+              for (const v of hourly || []) max = Math.max(max, v);
+              (hourly || []).forEach((v, h) => {
+                const bar = el('i', v === 0 ? 'z' : h === nowHour ? 'n' : '');
+                bar.style.height = (v === 0 ? 6 : Math.max(14, Math.round(v * 100 / max))) + '%';
+                box.appendChild(bar);
+              });
+              return box;
+            }
+            function entries(title, block) {
+              const card = el('section', 'card');
+              card.appendChild(el('h2', 'title', title));
+              if (!block.rows || !block.rows.length) {
+                const p = el('p', 'desc', block.empty);
+                p.style.padding = '0 10px';
+                card.appendChild(p);
+                return card;
+              }
+              for (const r of block.rows) {
+                const e = el('div', 'entry');
+                const top = el('div', 'top');
+                top.append(el('span', '', r.name), el('span', 't-' + r.tone, r.value));
+                e.append(top, el('small', '', r.note));
+                card.appendChild(e);
+              }
+              return card;
+            }
+            function drawRivals() {
+              const d = R.data;
+              if (!d) return;
+              const head = el('div', 'headline');
+              head.append(el('span', 'what', d.title.charAt(0).toUpperCase() + d.title.slice(1)), el('span', 'stamp', d.stamp));
+              const bots = button('', 'Follow known bots (' + d.knownBots + ')', async () => {
+                bots.disabled = true;
+                const j = await change('knownbots', {});
+                if (j && j.ok) bots.textContent = j.note; else bots.disabled = false;
+              });
+              bots.disabled = !d.knownBots;
+              head.appendChild(bots);
+              const stats = el('div', 'stats');
+              for (const c of d.cards || []) {
+                const s = el('div', 'stat');
+                s.append(el('span', 'label', c.label), el('b', 't-' + c.tone, c.value), el('small', '', c.note));
+                stats.appendChild(s);
+              }
+              const split = el('div', 'split');
+              const wide = el('div', 'wide');
+              wide.tabIndex = 0;
+              wide.setAttribute('aria-label', 'The rivals; scroll sideways to see every column');
+              const table = el('table');
+              const hr = el('tr');
+              for (const h of d.heads || []) hr.appendChild(el('th', '', h));
+              table.appendChild(el('thead')).appendChild(hr);
+              const body = table.appendChild(el('tbody'));
+              for (const r of (d.rivals || []).slice(0, R.limit)) {
+                const tr = el('tr', 'go');
+                const name = el('td');
+                const open = () => { R.open = r.id; own.replaceChildren(el('p', 'muted', 'Reading...')); openRivals(); };
+                // The name is the button, for a keyboard; the whole row answers a tap, as it does a click in game.
+                name.appendChild(button('link', r.name, e => { e.stopPropagation(); open(); }));
+                tr.addEventListener('click', open);
+                tr.append(name, el('td', '', r.sales), el('td', 't-secondary', r.items),
+                  el('td', r.shared > 0 ? 't-good' : 't-muted', String(r.shared)), el('td', 't-secondary', r.revenue),
+                  el('td', 't-muted', r.seen),
+                  el('td', r.status === 'active' ? 't-warn' : r.status === 'quiet' ? 't-secondary' : 't-muted', r.status),
+                  el('td', r.bot >= 60 ? 't-warn' : 't-secondary', r.bot + '%'));
+                tr.appendChild(el('td')).appendChild(bars(r.hourly, d.nowHour, 'spark'));
+                body.appendChild(tr);
+              }
+              wide.appendChild(table);
+              const left = el('div');
+              left.appendChild(wide);
+              const total = (d.rivals || []).length;
+              if (!total) left.appendChild(el('p', 'desc', 'Nobody on the list yet. ' + d.stamp));
+              if (total > R.limit) left.appendChild(button('more', 'Show ' + Math.min(60, total - R.limit) + ' more of ' + total,
+                () => { R.limit += 60; drawRivals(); }));
+              else if (d.more > 0) left.appendChild(el('p', 'range', d.more + ' more are not shown.'));
+              const side = el('div');
+              side.append(entries(d.underdog.title, d.underdog), entries('Repeat buyers  ·  who buys from you', d.buyers));
+              split.append(left, side);
+              own.replaceChildren(head, stats, split);
+            }
+            function drawRival() {
+              const d = R.detail;
+              if (!d) return;
+              const head = el('div', 'headline');
+              head.appendChild(button('', 'Back', () => { R.open = ''; R.detail = null; if (R.data) drawRivals(); openRivals(); }));
+              head.appendChild(el('span', 'what', d.title));
+              head.appendChild(button('go', 'Include their markets', () => change('rival', { id: d.id, do: 'include' })));
+              head.appendChild(button('pick', 'Track their markets', () => change('rival', { id: d.id, do: 'track' })));
+              const card = el('section', 'card');
+              const detail = el('div', 'detail');
+              const kv = el('dl', 'kv');
+              for (const p of d.pairs || []) {
+                const pair = el('div');
+                pair.append(el('dt', '', p.k), el('dd', 't-' + p.tone, p.v));
+                kv.appendChild(pair);
+              }
+              const right = el('div');
+              right.appendChild(el('span', 'label', d.strip));
+              right.appendChild(bars(d.hourly, d.nowHour, 'strip'));
+              const ticks = el('div', 'ticks');
+              for (const h of [0, 6, 12, 18]) ticks.appendChild(el('span', '', String(h)));
+              right.appendChild(ticks);
+              detail.append(kv, right);
+              card.appendChild(detail);
+              const lessons = el('div', 'lessons');
+              lessons.appendChild(el('span', 'label t-gold', 'Lessons  ·  their listing price vs your target on shared markets'));
+              for (const l of d.lessons || []) lessons.appendChild(el('p', 't-' + l.tone, l.t));
+              card.appendChild(lessons);
+              const wide = el('div', 'wide');
+              wide.tabIndex = 0;
+              wide.setAttribute('aria-label', 'Their trades; scroll sideways to see every column');
+              if (!d.flips || !d.flips.length) {
+                wide.appendChild(el('p', 'desc', d.empty));
+              } else {
+                const table = el('table');
+                const hr = el('tr');
+                for (const h of d.heads || []) hr.appendChild(el('th', '', h));
+                table.appendChild(el('thead')).appendChild(hr);
+                const body = table.appendChild(el('tbody'));
+                for (const f of d.flips) {
+                  const tr = el('tr');
+                  f.cells.forEach((c, i) => {
+                    const td = el('td', 't-' + c.tone);
+                    if (i === 0) {
+                      const img = el('img');
+                      img.alt = '';
+                      img.loading = 'lazy';
+                      img.addEventListener('error', () => img.remove());
+                      img.src = '/item/' + f.icon.split('#')[0] + '.png';
+                      td.appendChild(img);
+                    }
+                    td.appendChild(document.createTextNode(c.t));
+                    tr.appendChild(td);
+                  });
+                  body.appendChild(tr);
+                }
+                wide.appendChild(table);
+              }
+              own.replaceChildren(head, card, wide);
+            }
+
             async function refresh() {
               try {
                 const r = await fetch('/state', { cache: 'no-store' });
                 if (r.status === 401) { location.reload(); return; }
                 draw(await r.json());
-                picture();
+                if (!view) picture();
               } catch (e) {
-                put('notice', 'The game is not answering. Is it still running?');
+                if (!view) put('notice', SILENT);
               }
             }
-            refresh();
-            setInterval(refresh, 5000);
+            if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();
+            setInterval(() => {
+              refresh();
+              // The rivals move by themselves; a setting or a list only when somebody changes it.
+              if (view === 'rivals' && ++ticks % 4 === 0) openRivals();
+            }, 5000);
             """ + "</script></body></html>";
 }

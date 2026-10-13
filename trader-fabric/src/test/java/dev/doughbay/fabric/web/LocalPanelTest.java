@@ -42,6 +42,24 @@ class LocalPanelTest {
         public synchronized void text(String id, String text) {
             calls.add("text " + id + " " + text);
         }
+
+        @Override
+        public synchronized String data(String name, java.util.Map<String, String> query) {
+            calls.add("data " + name + " " + new java.util.TreeMap<>(query));
+            return name.equals("settings") || name.equals("rival") ? "{\"page\":\"" + name + "\"}" : null;
+        }
+
+        @Override
+        public synchronized String change(String name, java.util.Map<String, String> form) {
+            calls.add("change " + name + " " + new java.util.TreeMap<>(form));
+            return name.equals("setting") ? "{\"ok\":true,\"note\":\"done\"}" : null;
+        }
+
+        @Override
+        public synchronized byte[] icon(String itemId) {
+            calls.add("icon " + itemId);
+            return itemId.endsWith("diamond") ? new byte[] {(byte) 0x89, 'P', 'N', 'G'} : null;
+        }
     }
 
     private static LocalPanel open(Recorder backend) throws Exception {
@@ -111,6 +129,55 @@ class LocalPanelTest {
             // Nothing else under that name, and no other file by asking for one.
             assertEquals(401, get(panel, "/logo.png/../state", null).statusCode());
             assertEquals(401, get(panel, "/mascot_idle.png", null).statusCode());
+        }
+    }
+
+    @Test
+    void thePanelsOwnPagesAreBehindThePinAndChangeNothingForAnotherSite() throws Exception {
+        Recorder backend = new Recorder();
+        try (LocalPanel panel = open(backend)) {
+            // A stranger: no page, no change, no picture, and the trader never hears of the asking.
+            assertEquals(401, get(panel, "/api/settings", null).statusCode());
+            assertEquals(401, post(panel, "/api/setting", "key=buy.purchase_cap_pct&value=50", null, true).statusCode());
+            assertEquals(401, get(panel, "/item/minecraft:diamond.png", null).statusCode());
+            assertTrue(backend.calls.isEmpty());
+
+            String cookie = signIn(panel);
+            HttpResponse<String> page = get(panel, "/api/settings", cookie);
+            assertEquals(200, page.statusCode());
+            assertEquals("{\"page\":\"settings\"}", page.body());
+            assertTrue(page.headers().firstValue("Content-Type").orElse("").startsWith("application/json"));
+            assertEquals("no-store", page.headers().firstValue("Cache-Control").orElse(""));
+            // What follows the question mark reaches the page as what was asked for.
+            assertEquals(200, get(panel, "/api/rival?id=54726164&x=a%20b", cookie).statusCode());
+            assertEquals(404, get(panel, "/api/nothing", cookie).statusCode());
+            assertEquals(404, get(panel, "/api/Settings", cookie).statusCode());
+            assertEquals(404, get(panel, "/api/settings/more", cookie).statusCode());
+
+            // Signed in, but not sent by the page's own script: another site's form, which changes nothing.
+            assertEquals(403, post(panel, "/api/setting", "key=buy.purchase_cap_pct&value=50", cookie, false).statusCode());
+            HttpResponse<String> changed = post(panel, "/api/setting", "key=buy.purchase_cap_pct&value=30%25", cookie, true);
+            assertEquals(200, changed.statusCode());
+            assertEquals("{\"ok\":true,\"note\":\"done\"}", changed.body());
+            assertEquals(404, post(panel, "/api/nothing", "a=b", cookie, true).statusCode());
+
+            HttpResponse<byte[]> icon = HttpClient.newHttpClient().send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + panel.port() + "/item/minecraft:diamond.png"))
+                            .header("Cookie", cookie).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+            assertEquals(200, icon.statusCode());
+            assertEquals("image/png", icon.headers().firstValue("Content-Type").orElse(""));
+            // A picture is the same every time, and a page of the grid asks for a hundred: the browser may keep it.
+            assertTrue(icon.headers().firstValue("Cache-Control").orElse("").contains("max-age"));
+            assertEquals(404, get(panel, "/item/stone.png", cookie).statusCode());
+            // A name that is not an item's name is never passed on to be looked up.
+            assertEquals(404, get(panel, "/item/..%2Fsecret.png", cookie).statusCode());
+            assertEquals(404, get(panel, "/item/A.png", cookie).statusCode());
+
+            synchronized (backend) {
+                assertEquals(List.of("data settings {}", "data rival {id=54726164, x=a b}", "data nothing {}",
+                        "change setting {key=buy.purchase_cap_pct, value=30%}", "change nothing {a=b}",
+                        "icon minecraft:diamond", "icon stone"), backend.calls);
+            }
         }
     }
 

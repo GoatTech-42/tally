@@ -48,10 +48,26 @@ public final class LocalPanel implements AutoCloseable {
         void press(String id, String value);
 
         void text(String id, String text);
+
+        /** One of the panel's own pages as JSON: settings, items, rivals. Null when there is no such page. */
+        default String data(String name, Map<String, String> query) {
+            return null;
+        }
+
+        /** A change one of those pages asks for; the JSON that comes back says what was done. Null when there is none such. */
+        default String change(String name, Map<String, String> form) {
+            return null;
+        }
+
+        /** An item's picture as a PNG, or null when there is none to show. */
+        default byte[] icon(String itemId) {
+            return null;
+        }
     }
 
     static final int MAX_HEAD = 8 * 1024;
-    static final int MAX_BODY = 4 * 1024;
+    /** Room for a watch list typed out in full, and no more. */
+    static final int MAX_BODY = 64 * 1024;
     static final int MAX_SESSIONS = 16;
     static final int WRONG_TRIES = 5;
     static final long LOCK_MILLIS = 60_000L;
@@ -78,7 +94,8 @@ public final class LocalPanel implements AutoCloseable {
         this.pinMatches = pinMatches;
         this.backend = backend;
         this.log = log;
-        this.pool = Executors.newFixedThreadPool(4, r -> {
+        // A page of the item grid asks for a hundred small pictures at once.
+        this.pool = Executors.newFixedThreadPool(8, r -> {
             Thread t = new Thread(r, "doughbay-web");
             t.setDaemon(true);
             return t;
@@ -169,7 +186,8 @@ public final class LocalPanel implements AutoCloseable {
         }
     }
 
-    record Request(String method, String path, Map<String, String> headers, Map<String, String> form) {
+    record Request(String method, String path, Map<String, String> query, Map<String, String> headers,
+                   Map<String, String> form) {
         String cookie(String name) {
             String all = headers.getOrDefault("cookie", "");
             for (String part : all.split(";")) {
@@ -200,6 +218,7 @@ public final class LocalPanel implements AutoCloseable {
             if (colon > 0) headers.put(lines[i].substring(0, colon).strip().toLowerCase(Locale.ROOT), lines[i].substring(colon + 1).strip());
         }
         Map<String, String> form = new HashMap<>();
+        Map<String, String> asked = new HashMap<>();
         int length;
         try {
             length = Integer.parseInt(headers.getOrDefault("content-length", "0"));
@@ -209,21 +228,29 @@ public final class LocalPanel implements AutoCloseable {
         if (length < 0 || length > MAX_BODY) return null;
         if (length > 0) {
             byte[] body = in.readNBytes(length);
-            for (String pair : new String(body, StandardCharsets.UTF_8).split("&")) {
-                int eq = pair.indexOf('=');
-                if (eq <= 0) continue;
-                try {
-                    form.put(URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8),
-                            URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8));
-                } catch (IllegalArgumentException ignored) {
-                    // a pair that does not decode is a pair that is not there
-                }
-            }
+            pairs(new String(body, StandardCharsets.UTF_8), form);
         }
         String path = first[1];
         int query = path.indexOf('?');
-        if (query >= 0) path = path.substring(0, query);
-        return new Request(first[0].toUpperCase(Locale.ROOT), path, headers, form);
+        if (query >= 0) {
+            pairs(path.substring(query + 1), asked);
+            path = path.substring(0, query);
+        }
+        return new Request(first[0].toUpperCase(Locale.ROOT), path, asked, headers, form);
+    }
+
+    /** name=value pairs, as a form or the end of an address carries them. */
+    private static void pairs(String text, Map<String, String> into) {
+        for (String pair : text.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq <= 0) continue;
+            try {
+                into.put(URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8),
+                        URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException ignored) {
+                // a pair that does not decode is a pair that is not there
+            }
+        }
     }
 
     private void serve(Socket socket) {
@@ -252,12 +279,12 @@ public final class LocalPanel implements AutoCloseable {
         // only things served to anybody who can reach the page.
         if (r.method().equals("GET") && r.path().equals("/logo.png")) {
             byte[] logo = bundled("/assets/doughbay/textures/gui/logo.png");
-            send(out, logo.length == 0 ? 404 : 200, "image/png", logo, "");
+            send(out, logo.length == 0 ? 404 : 200, "image/png", logo, "", logo.length > 0);
             return;
         }
         if (r.method().equals("GET") && r.path().equals("/font.ttf")) {
             byte[] font = bundled("/doughbay/web/Monocraft.ttf");
-            send(out, font.length == 0 ? 404 : 200, "font/ttf", font, "");
+            send(out, font.length == 0 ? 404 : 200, "font/ttf", font, "", font.length > 0);
             return;
         }
         boolean in = sessions.contains(r.cookie("gonuts")) && !r.cookie("gonuts").isBlank();
@@ -280,6 +307,34 @@ public final class LocalPanel implements AutoCloseable {
         }
         if (r.method().equals("GET") && r.path().equals("/state")) {
             send(out, 200, "application/json; charset=utf-8", backend.state().getBytes(StandardCharsets.UTF_8), "");
+            return;
+        }
+        // The panel's own pages. What they show is read here; what they
+        // change has to come from the page's own script, like a button press.
+        if (r.path().startsWith("/api/") && r.path().substring(5).matches("[a-z]{1,24}")) {
+            String name = r.path().substring(5);
+            String json = null;
+            if (r.method().equals("GET")) {
+                json = backend.data(name, r.query());
+            } else if (r.method().equals("POST")) {
+                if (!"1".equals(r.headers().get("x-gonuts"))) {
+                    send(out, 403, "text/plain; charset=utf-8", "Not from the panel.".getBytes(StandardCharsets.UTF_8), "");
+                    return;
+                }
+                json = backend.change(name, r.form());
+            }
+            if (json == null) {
+                send(out, 404, "text/plain; charset=utf-8", "Not found".getBytes(StandardCharsets.UTF_8), "");
+            } else {
+                send(out, 200, "application/json; charset=utf-8", json.getBytes(StandardCharsets.UTF_8), "");
+            }
+            return;
+        }
+        if (r.method().equals("GET") && r.path().startsWith("/item/") && r.path().endsWith(".png")) {
+            String id = r.path().substring(6, r.path().length() - 4);
+            byte[] icon = id.matches("([a-z0-9_.\\-]{1,40}:)?[a-z0-9_.\\-]{1,64}") ? backend.icon(id) : null;
+            if (icon == null) send(out, 404, "text/plain; charset=utf-8", new byte[0], "");
+            else send(out, 200, "image/png", icon, "", true);
             return;
         }
         if (r.method().equals("POST") && r.path().equals("/act")) {
@@ -379,6 +434,16 @@ public final class LocalPanel implements AutoCloseable {
     }
 
     private static void send(OutputStream out, int status, String type, byte[] body, String extraHeaders) throws IOException {
+        send(out, status, type, body, extraHeaders, false);
+    }
+
+    /**
+     * @param keep the browser may hold on to this for a day: a picture or the
+     *             font, which are the same every time and are what a page of
+     *             the item grid asks for by the hundred
+     */
+    private static void send(OutputStream out, int status, String type, byte[] body, String extraHeaders, boolean keep)
+            throws IOException {
         String reason = switch (status) {
             case 200 -> "OK";
             case 204 -> "No Content";
@@ -391,7 +456,7 @@ public final class LocalPanel implements AutoCloseable {
         String head = "HTTP/1.1 " + status + " " + reason + "\r\n"
                 + "Content-Type: " + type + "\r\n"
                 + "Content-Length: " + body.length + "\r\n"
-                + "Cache-Control: no-store\r\n"
+                + "Cache-Control: " + (keep ? "private, max-age=86400" : "no-store") + "\r\n"
                 + "X-Content-Type-Options: nosniff\r\n"
                 + "X-Frame-Options: DENY\r\n"
                 + "Referrer-Policy: no-referrer\r\n"

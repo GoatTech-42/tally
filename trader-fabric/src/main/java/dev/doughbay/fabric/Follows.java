@@ -500,6 +500,20 @@ public final class Follows {
         return missing.size();
     }
 
+    /**
+     * Adds the bundled accounts to the follow list and sees to it that they
+     * will actually be followed: following on, and the cap on how many raised
+     * to hold them if it was lower. Never past the server's own limit. Returns
+     * how many names were added.
+     */
+    public int followKnownBots() throws IOException {
+        int added = addKnownBots();
+        int listed = knownBots().size();
+        if (Tuning.get("follow.enabled") < 0.5) Tuning.set("follow.enabled", 1);
+        if (Tuning.get("follow.max") < listed) Tuning.set("follow.max", Math.min(1000, listed));
+        return added;
+    }
+
     public String status() {
         long followed = state.values().stream().filter("FOLLOWED"::equals).count();
         return followed + " followed of " + wanted.size() + " listed" + (stopped == null ? "" : "; stopped: " + stopped);

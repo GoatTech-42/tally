@@ -122,6 +122,33 @@ public final class DiscordBridge {
         return new DiscordBridge(log, configDir, ledgerPath, session);
     }
 
+    /**
+     * An item's picture as a PNG, for the web panel's own pages: the flat
+     * texture the panel's pictures are drawn with. Null when the game has
+     * none, or has not read it within half a second of first being asked; the
+     * next ask finds it.
+     */
+    public static byte[] itemPng(String itemId) {
+        java.awt.image.BufferedImage image = ItemTextures.get(itemId);
+        for (int i = 0; image == null && i < 20 && ItemTextures.pending(itemId); i++) {
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+            image = ItemTextures.get(itemId);
+        }
+        if (image == null) return null;
+        try {
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
     /** The page on view, as the picture Discord would be sent. */
     public byte[] panelPng() throws Exception {
         return StatsImage.render(buildPage().withFaces(faces()).withMascot(mascotFace()));
