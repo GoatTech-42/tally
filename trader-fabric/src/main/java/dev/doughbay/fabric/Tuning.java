@@ -784,7 +784,7 @@ public final class Tuning {
                     + "another address of the same network, then joins the usual one again, which puts it straight "
                     + "back in the world. The session stays stopped until the world is really there. The server "
                     + "warns that leaving the waiting room can lose your position, so use it where that does not "
-                    + "matter; it needs 'Resume after leaving the server' on to carry on by itself (1 on, 0 off)",
+                    + "matter. A session the restart stopped is started again once it is back (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("session.wind_down", "Session", "Wind down (soft stop)",
                     "On, the bot buys nothing more: no new orders and no auction buys, and its open orders are "

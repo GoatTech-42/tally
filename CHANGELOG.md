@@ -4,6 +4,9 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 15:12 UTC
+- Changed: "Skip the restart waiting room" starts the session again by itself once it is back in the world. It no longer needs "Resume after leaving the server" switched on: that setting is for when you leave the server, and this leaving is the bot's own.
+
 ## 2026-10-13 15:09 UTC
 - Fixed: an item on your Flips list went up at three times what it cost when your sell price was higher than that. The bot has a safety cap for prices it works out itself, and it was applied to prices you set. An item ordered at 250 to sell at your price was listed at 750 instead. Your price is now listed exactly as you set it. Prices on the Flips list are per item, so check that the sell price is what one item should sell for.
 - Fixed: an account that logged off hurt was treated as attacked every time it joined. The game starts a join believing in full health and is told the real figure a moment later, and the bot read that as a hit, fled, and when the teleport was refused it left the server and joined again, round and round. Health reported in the first five seconds after joining or respawning is no longer taken for damage.
@@ -11,7 +14,7 @@ About tab.
 ## 2026-10-13 15:04 UTC
 - Changed: after a server restart the bot starts again as soon as it is put back in the world. It used to wait a fixed ten minutes from the restart notice, even when the server was back after four. It now takes being moved back to a world with the money sidebar showing as the end of the restart.
 - New: "Skip the restart waiting room" (Settings, Session). Off unless you turn it on. When the server parks you for a restart, the client leaves, joins through another address of the same network (east and west of your usual address, or the ones you list in "Addresses to come back in through"), then joins the usual address again, which puts it straight back in the world. The session stays stopped until the world is really there.
-- The server warns that leaving the waiting room can lose your position, so only use the skip where that does not matter. It needs "Resume after leaving the server" on to carry on by itself. It only ever joins addresses of the same network as the one you were on.
+- The server warns that leaving the waiting room can lose your position, so only use the skip where that does not matter. It only ever joins addresses of the same network as the one you were on.
 
 ## 2026-10-13 14:28 UTC
 - New: the game can be closed from outside it. A line reading `!quit` in `send-command.txt` in the game folder closes the game the same way closing its window does, and it works on the title screen too. This is for running the game without a window, where there is no window to close and ending the process by force can drop whatever is on the cursor.

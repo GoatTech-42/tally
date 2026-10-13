@@ -36,7 +36,7 @@ import java.util.List;
  * as it takes.
  */
 final class RestartRecovery {
-    private enum Step { IDLE, ARMED, TO_HOP, ON_HOP, TO_HOME, HOME_CHECK }
+    private enum Step { IDLE, ARMED, TO_HOP, ON_HOP, TO_HOME, HOME_CHECK, RESUMING }
 
     private Step step = Step.IDLE;
     private long stepAt;
@@ -49,13 +49,16 @@ final class RestartRecovery {
     private long homeJoinedAt;
     /** No second round of hops for the same restart. */
     private long hoppedUntil;
+    /** Whether the session was running until the restart stopped it, so it is this that starts it again. */
+    private boolean resumeOwed;
+    private int resumeTries;
     private volatile long limboSeenAt;
     private Object lastLevel;
     private long levelChangedAt;
 
     /** True while this owns the connection: nothing else may join, leave or flee. */
     boolean active() {
-        return step != Step.IDLE;
+        return step != Step.IDLE && step != Step.RESUMING;
     }
 
     void observeChat(String line) {
@@ -131,6 +134,7 @@ final class RestartRecovery {
                     connectAt = now;
                 }
             }
+            case RESUMING -> resume(session, now);
             case HOME_CHECK -> {
                 if (!inWorld) {
                     go(Step.TO_HOME, now);
@@ -153,13 +157,42 @@ final class RestartRecovery {
                             home, (now - hoppedUntil + 15 * 60_000L) / 1000);
                     session.observeServerAnswered();
                     limboSeenAt = 0;
-                    go(Step.IDLE, now);
+                    resumeTries = 0;
+                    go(resumeOwed ? Step.RESUMING : Step.IDLE, now);
                 } else if (now - homeJoinedAt > 60_000L) {
                     DoughBayClient.LOGGER.info("DoughBay restart: back on {} but no balance shows on the sidebar; "
                             + "the hold runs its time", home);
                     go(Step.IDLE, now);
                 }
             }
+        }
+    }
+
+    /**
+     * Starts the session again after a hop. Leaving the server is ordinarily
+     * the player's doing and waits for the player; this leaving was the
+     * bot's own, around a restart that had stopped a running session, so it
+     * is the bot's to undo. Tried a few times, then left to the session.
+     */
+    private void resume(AutomationSessionController session, long now) {
+        if (session.snapshot().state() != AutomationSessionController.State.PAUSED) {
+            go(Step.IDLE, now);
+            return;
+        }
+        if (now - stepAt < 15_000L) return;
+        stepAt = now;
+        var result = session.resumeRecoveredSession(DoughBayClient.continuousPolicy());
+        if (!result.ok()) {
+            var plain = session.resume();
+            if (plain.ok()) result = plain;
+        }
+        if (result.ok()) {
+            DoughBayClient.LOGGER.info("DoughBay restart: session resumed");
+            go(Step.IDLE, now);
+        } else if (++resumeTries >= 4) {
+            DoughBayClient.LOGGER.info("DoughBay restart: the session would not resume ({}); leaving it to its own resume",
+                    result.detail());
+            go(Step.IDLE, now);
         }
     }
 
@@ -183,6 +216,9 @@ final class RestartRecovery {
             DoughBayClient.LOGGER.info("DoughBay restart: no other address of {} to come back in through; waiting it out", on);
             return;
         }
+        var snapshot = session.snapshot();
+        resumeOwed = snapshot.state() == AutomationSessionController.State.PAUSED && snapshot.detail() != null
+                && snapshot.detail().toLowerCase(java.util.Locale.ROOT).contains("server is restarting");
         homeServer = current;
         home = on;
         hops = doors;
