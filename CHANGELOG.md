@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 23:32 UTC
+- New: "Run from hostile mobs within" (Settings, Evasion). Off (0) unless you set a distance. A hostile mob that close sends the bot away before it can be hit, the same way a player coming close does. A random teleport lands an unarmoured, standing-still account in the open, and one bot died three times in a day to whatever walked up.
+- Only mobs that attack unprovoked count (not endermen or zombified piglins), and a mob the bot cannot see, such as one in a cave underneath, only counts once it is within ten blocks.
+- After five escapes from mobs in ten minutes the distance is ignored for the next ten, so a night full of mobs does not turn into nothing but teleporting. Being hit still sends the bot away at once.
+
 ## 2026-10-13 23:25 UTC
 - Fixed: a bot being hit waited up to a minute for the trade in flight before it escaped. That wait was meant for a player walking up from a distance. A mob hits an unarmoured account for 4.5 at a time, so the bot took its first hit, kept waiting for a listing to finish, and was dead in under ten seconds with its teleport still unsent. A hit now waits a second and a half at most.
 - A death now shows on the Evasion page (in game, on Discord and on the web panel), with what was being held and what was lost. It was only in the log and on the webhook before.

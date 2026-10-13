@@ -390,6 +390,7 @@ public final class EvasionGuard {
         if (client.getCurrentServer() != null) lastServer = client.getCurrentServer();
         witherWatch(client, session, now);
         airWatch(client, session, now);
+        mobWatch(client, session, now);
         wander(client, session, now);
 
         // Asked to leave and waiting for the trade in flight to finish.
@@ -931,6 +932,74 @@ public final class EvasionGuard {
         } else {
             teleportAway(client);
         }
+    }
+
+    private long mobEscapedAt;
+    private long mobWindowAt;
+    private int mobEscapes;
+    private long mobIgnoreUntil;
+
+    /**
+     * Moves on when a hostile mob comes within the player's distance, before
+     * it is close enough to hit. Goes out through the ordinary escape, so the
+     * trade in flight gets a few seconds when the mob is still far off and
+     * none when it is on top of the bot.
+     */
+    private void mobWatch(Minecraft client, AutomationSessionController session, long now) {
+        double reach = Tuning.get("evasion.mob_blocks");
+        if (reach <= 0 || leaveWanted || now < mobIgnoreUntil || now - mobEscapedAt < MobWatch.RETRY_MILLIS) return;
+        // Needs somewhere to go: with escapes off or teleports refused this would only pause the bot beside the mob.
+        if (escapeMode() == 0 || DoughBayClient.executionDriver().refusesTeleports()) return;
+        if (teleportedAt > 0 || playerIsDriving(client, now)) return;
+        String nearest = null;
+        double best = Double.MAX_VALUE;
+        try {
+            for (net.minecraft.world.entity.Entity e : client.level.entitiesForRendering()) {
+                if (!(e instanceof net.minecraft.world.entity.monster.Enemy) || !e.isAlive()) continue;
+                if (!MobWatch.attacksUnprovoked(e.getType().toShortString())) continue;
+                double far = e.distanceTo(client.player);
+                if (far >= best || far > reach) continue;
+                if (!MobWatch.threatens(far, reach, far <= MobWatch.CLOSE_BLOCKS || client.player.hasLineOfSight(e))) continue;
+                best = far;
+                nearest = e.getName().getString();
+            }
+        } catch (RuntimeException e) {
+            return;
+        }
+        if (nearest == null) return;
+        if (now - mobWindowAt > MobWatch.WINDOW_MILLIS) {
+            mobWindowAt = now;
+            mobEscapes = 0;
+        }
+        if (MobWatch.givesUp(mobEscapes)) {
+            mobIgnoreUntil = now + MobWatch.IGNORE_MILLIS;
+            String message = "Evasion: " + mobEscapes + " escapes from mobs in ten minutes and there is another ("
+                    + nearest + "); staying put for " + MobWatch.IGNORE_MILLIS / 60_000L + " min. A hit still sends it away";
+            DoughBayClient.LOGGER.warn("DoughBay {}", message);
+            client.player.sendSystemMessage(Component.literal("[GoNuts]" + message));
+            note(nearest, best, "mobs everywhere; staying put");
+            return;
+        }
+        mobEscapes++;
+        mobEscapedAt = now;
+        String message = String.format(java.util.Locale.ROOT, "Evasion: %s within %d blocks (%.0f); escaping",
+                nearest, (int) reach, best);
+        DoughBayClient.LOGGER.info("DoughBay {}", message);
+        client.player.sendSystemMessage(Component.literal("[GoNuts]" + message));
+        AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
+        if (snapshot.state() != AutomationSessionController.State.STOPPED
+                && snapshot.state() != AutomationSessionController.State.PAUSED) {
+            session.pause("Evasion: " + nearest + " within " + (int) reach + " blocks");
+        }
+        closeAnyScreen(client);
+        triggered = true;
+        lastIntruder = nearest;
+        note(nearest, best, "hostile mob; escaping");
+        clearSinceMillis = 0;
+        leaveWanted = true;
+        waitingLogged = false;
+        leaveWantedAt = now;
+        leavePatienceMillis = best <= MobWatch.URGENT_BLOCKS ? HURT_PATIENCE_MILLIS : MobWatch.PATIENCE_MILLIS;
     }
 
     private long witherEscapedAt;
