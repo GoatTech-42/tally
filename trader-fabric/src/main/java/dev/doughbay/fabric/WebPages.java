@@ -218,6 +218,15 @@ public final class WebPages {
         String text = form.getOrDefault("text", "").replaceAll("[\\r\\n\\t]+", " ").strip();
         if (text.length() > 8_000) return answer(false, "That is too long to save.").toString();
         Tuning.setText(key, text);
+        if (key.equals(OwnPrices.KEY) && !text.isEmpty()) {
+            // Said back at once: a price list with a slip in it should not look saved and working.
+            OwnPrices.Parsed read = OwnPrices.current();
+            String note = read.entries().size() + " item(s) on your price list";
+            if (!read.problems().isEmpty()) {
+                return answer(false, note + ". Not understood: " + String.join("; ", read.problems())).toString();
+            }
+            return answer(true, note).toString();
+        }
         return answer(true, found.label() + (text.isEmpty() ? " cleared" : " saved")).toString();
     }
 

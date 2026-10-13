@@ -886,6 +886,13 @@ public final class Tuning {
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
             new ListSetting("items.deny", "Never trade these items",
                     "Comma-separated item names or ids that are always skipped."),
+            new ListSetting("prices.own", "Your own prices",
+                    "Items to order at a price you set and sell at a price you set, as item, buy price, sell price: "
+                    + "\"diamond 80 120, golden apple 4k 5.2k x3\". Prices are per item; x3 orders three stacks at a time. "
+                    + "The bot keeps a buy order up at your buy price, lists what it delivers at your sell price in the "
+                    + "stacks it arrives in, and leaves that listing at your price until it sells. It stops buying these "
+                    + "on the auction, and stops re-ordering while a full set of listings of the item is still up. "
+                    + "Blank means the bot prices everything itself."),
             new ListSetting("items.liquidate", "Sell off and stop buying these",
                     "Comma-separated item names or ids to clear out: they are never bought, but stock "
                     + "you already hold is pulled back and relisted down to the market even below cost until "

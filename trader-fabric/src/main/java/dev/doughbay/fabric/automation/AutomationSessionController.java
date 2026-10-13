@@ -651,6 +651,7 @@ public final class AutomationSessionController {
                 continue;
             }
             if (itemId.indexOf('#') >= 0 || !dev.doughbay.fabric.Tuning.itemAllowed(itemId)) continue;
+            if (ownPrice(itemId) != null) continue;
             if (openOfMarket(itemId, count) >= MAX_OPEN_PER_MARKET()) continue;
             StackBucket bucket = StackBucket.of(count);
             MarketStats stats = null;
@@ -763,7 +764,7 @@ public final class AutomationSessionController {
         List<Opportunity> out = new ArrayList<>();
         for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : r.shadows()) {
             if (out.size() >= max) break;
-            if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId())) continue;
+            if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null) continue;
             if (openOfMarket(m.itemId(), m.count()) > 0) continue;
             long sell = (long) Math.floor(m.medianSale() * (1.0 - undercut));
             long buy = Math.min(m.medianBuy(), Math.min(effectivePurchaseCap(), effectiveSpendCap() - committedSpend));
@@ -3208,7 +3209,9 @@ public final class AutomationSessionController {
             for (Opportunity o : snapshot.opportunities()) {
                 if (o.listing() == null
                         || marketRestUntil.getOrDefault(o.listing().itemId(), 0L) > nowForRest
-                        || !dev.doughbay.fabric.Tuning.itemAllowed(o.listing().itemId())) {
+                        || !dev.doughbay.fabric.Tuning.itemAllowed(o.listing().itemId())
+                        // Bought through the player's own order and nowhere else.
+                        || ownPrice(o.listing().itemId()) != null) {
                     continue;
                 }
                 // Market signals are shared with the tab and the alerts; the
@@ -3239,6 +3242,7 @@ public final class AutomationSessionController {
                         if (!o.listing().itemId().equals(tip.itemKey())
                                 || o.listing().itemCount() != tip.itemCount()) continue;
                         if (dev.doughbay.fabric.Tuning.itemAllowed(o.listing().itemId())
+                                && ownPrice(o.listing().itemId()) == null
                                 && tips.claim(tip.tipId())) {
                             Opportunity capped = isMarketCandidate(o) ? cappedForSession(o) : o;
                             if (capped != null) offered.add(capped);
@@ -3792,7 +3796,7 @@ public final class AutomationSessionController {
         for (dev.doughbay.fabric.OrderBook.Order o : book.orders()) {
             if (out.size() >= max) break;
             if (!o.parts().isEmpty() || !dev.doughbay.fabric.Tuning.itemAllowed(o.itemId())) continue;
-            if (o.itemId().indexOf('#') >= 0) continue;
+            if (o.itemId().indexOf('#') >= 0 || ownPrice(o.itemId()) != null) continue;
             // The size to deliver is bounded by what one trade can afford, not
             // only by what the order still wants. A high-unit-price item -
             // ancient debris at over a million each - fits just one at a time
@@ -5161,6 +5165,12 @@ public final class AutomationSessionController {
                     : now - placedAt > maxAge ? "unfilled for " + ((now - placedAt) / 3_600_000L) + " h"
                     : ceilingUnit > 0 && r.unitPrice() > ceilingUnit ? "market moved under the bid (" + ceilingUnit + " each now)"
                     : null;
+            // An order at a price the player set is theirs to change, not
+            // ours: it is pulled only when it is no longer the price they set.
+            dev.doughbay.fabric.OwnPrices.Entry priced = ownPrice(r.itemId());
+            if (priced != null && !denied) {
+                why = r.unitPrice() != priced.buy() ? "your buy price for it is now " + priced.buy() + " each" : null;
+            }
             // Sellers fill the best order first, so an order someone has
             // outbid fills nothing: sea lanterns at 2,205 sat for an hour
             // while orders at 2,500 took every delivery. Prices move; the
@@ -5169,7 +5179,7 @@ public final class AutomationSessionController {
             // and not more than once in ten minutes per item.
             long best = bestOrder.getOrDefault(r.itemId(), 0L);
             boolean chaseThisOrder = false;
-            if (why == null && chasing && best > r.unitPrice()
+            if (why == null && priced == null && chasing && best > r.unitPrice()
                     && now - chasedAt.getOrDefault(r.itemId(), 0L) > 10 * 60_000L) {
                 long chaseCeiling = bidCeilingUnit(snapshot, r.itemId(), r.requested(), minimumProfit, chaseRoi);
                 long above = OrderBidPricing.chaseTarget(r.unitPrice(), best, chaseCeiling);
@@ -5222,7 +5232,7 @@ public final class AutomationSessionController {
             // searched for the item, and the follow-the-market rule above
             // acts on what it shows. Nothing is raised on a guess.
             ordersSeen.add(k);
-            if (bidding && nofill > 0 && why == null) {
+            if (bidding && nofill > 0 && why == null && priced == null) {
                 long[] seen = orderProgress.get(k);
                 if (seen == null || seen[0] != r.delivered()) {
                     orderProgress.put(k, new long[]{r.delivered(), seen == null ? bidPlacedAt.getOrDefault(key, now) : now});
@@ -5286,6 +5296,7 @@ public final class AutomationSessionController {
             if (bidItems.contains(m.itemKey())) { bump(why, "bid already out"); continue; }
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
             if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemKey())) { bump(why, "not allowed"); continue; }
+            if (ownPrice(m.itemKey()) != null) { bump(why, "on your own price list"); continue; }
             // Single-item statistics on cheap goods are polluted by "sales" that
             // are really money transfers (one dirt for $10K); bids price off
             // stack markets, and off singles only where a single is the unit.
@@ -5360,7 +5371,7 @@ public final class AutomationSessionController {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
                 for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : rs.shadows()) {
                     if (free <= 0 || underdogSlots <= 0) break;
-                    if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId())) continue;
+                    if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null) continue;
                     if (bidItems.contains(m.itemId()) || chosen.contains(m.itemId()) || hasRetailStock(m.itemId())) continue;
                     if (deskBadItems.contains(m.itemId())) continue;
                     // No second bid and no doubled exposure in the same item
@@ -5422,6 +5433,11 @@ public final class AutomationSessionController {
                 }
             }
         }
+        // The player's own list goes before the desk's own choices: it is the
+        // one thing here somebody asked for by name.
+        long[] left = planOwnPriceOrders(snapshot, now, bidItems, chosen, stacks, room, free);
+        room = left[0];
+        free = (int) left[1];
         int placed = 0;
         refreshStackTrack(now);
         for (MarketStats m : candidates) {
@@ -5930,6 +5946,141 @@ public final class AutomationSessionController {
         counts.merge(reason, 1, Integer::sum);
     }
 
+    // ------------------------------------------------------------------
+    // The player's own price list (OwnPrices): items ordered at a price the
+    // player set and listed at a price the player set. The desk still does
+    // the ordering, collecting and listing; only the two prices are not its
+    // own, and what it would do to a price it worked out itself - follow the
+    // market up, pull an order the market fell under, walk an ask down - it
+    // does not do to these.
+    // ------------------------------------------------------------------
+
+    /** The player's prices for an item, or null when the bot prices it. */
+    private static dev.doughbay.fabric.OwnPrices.Entry ownPrice(String itemKey) {
+        return itemKey == null || itemKey.indexOf('#') >= 0 ? null : dev.doughbay.fabric.OwnPrices.of(itemKey);
+    }
+
+    /**
+     * What a stack of an item on the player's list goes up at, or 0 when the
+     * bot prices it. A stack that cost more than the player's price - bought
+     * before the item went on the list - is not sold under cost on the
+     * strength of it; that one keeps the bot's own pricing.
+     */
+    private static long ownListTarget(String itemKey, int quantity, long cost) {
+        dev.doughbay.fabric.OwnPrices.Entry own = ownPrice(itemKey);
+        if (own == null || quantity <= 0) return 0;
+        long target = own.sell() * quantity;
+        return target > cost ? target : 0;
+    }
+
+    private static long ownListTarget(Position position) {
+        return position == null ? 0
+                : ownListTarget(position.itemKey(), position.quantity(), position.purchasePrice());
+    }
+
+    /** Whether the game knows an item by this id; a name typed wrong is not ordered. */
+    private static boolean knownItem(String itemId) {
+        try {
+            net.minecraft.resources.Identifier ident = net.minecraft.resources.Identifier.tryParse(itemId);
+            return ident != null && net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(ident)
+                    != net.minecraft.world.item.Items.AIR;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** What one of an item sells for as far as our statistics know, taken from the largest stack size they have; 0 when they do not. */
+    private static double marketUnit(MarketWatcher.Snapshot snapshot, String itemId) {
+        double perUnit = 0;
+        int from = 0;
+        if (snapshot == null) return 0;
+        for (MarketStats m : snapshot.markets()) {
+            if (!m.itemKey().equals(itemId) || !m.hasPrices() || !(m.quickSalePrice() > 0)) continue;
+            int size = Math.max(1, m.bucket().exactCount());
+            if (size >= from) {
+                from = size;
+                perUnit = m.quickSalePrice() / size;
+            }
+        }
+        return perUnit;
+    }
+
+    private final java.util.Map<String, Long> ownPriceNotedAt = new java.util.HashMap<>();
+    private List<String> ownPriceProblems = List.of();
+
+    /** Why an item on the player's list is not being ordered just now, said once every five minutes. */
+    private void ownPriceNote(String itemId, String reason, long now) {
+        if (now - ownPriceNotedAt.getOrDefault(itemId, 0L) < 5 * 60_000L) return;
+        ownPriceNotedAt.put(itemId, now);
+        LOGGER.info("DoughBay your prices: no order for {} just now: {}", itemId, reason);
+    }
+
+    /**
+     * An order's size for an item on the player's list: the stacks they asked
+     * for, held under a thousand so the order house shows the count exactly,
+     * and to what one purchase and the money left allow. 0 when not even one
+     * stack fits.
+     */
+    static int ownOrderCount(int full, int stacksWanted, long unit, long budget) {
+        if (full <= 0 || stacksWanted <= 0 || unit <= 0) return 0;
+        int stacks = Math.min(stacksWanted, Math.max(1, 999 / full));
+        long affordable = budget / Math.max(1, unit * full);
+        return (int) Math.min(stacks, Math.max(0, affordable)) * full;
+    }
+
+    /**
+     * Queues an order for each item on the player's list that has none out.
+     * Returns the room and the free slots left, as {room, free}.
+     */
+    private long[] planOwnPriceOrders(MarketWatcher.Snapshot snapshot, long now, java.util.Set<String> bidItems,
+                                      java.util.Set<String> chosen, int defaultStacks, long room, int free) {
+        List<String> problems = dev.doughbay.fabric.OwnPrices.current().problems();
+        if (!problems.equals(ownPriceProblems)) {
+            ownPriceProblems = problems;
+            if (!problems.isEmpty()) LOGGER.warn("DoughBay your prices: not understood, and so not traded: {}", problems);
+        }
+        for (dev.doughbay.fabric.OwnPrices.Entry own : dev.doughbay.fabric.OwnPrices.all()) {
+            if (free <= 0) break;
+            String id = "minecraft:" + own.itemId();
+            if (bidItems.contains(id) || chosen.contains(id)) continue;
+            if (!knownItem(id)) { ownPriceNote(id, "the game has no item by that name", now); continue; }
+            if (deskBadItems.contains(id)) { ownPriceNote(id, "the server refuses an order for it", now); continue; }
+            if (!dev.doughbay.fabric.Tuning.itemAllowed(id)) {
+                ownPriceNote(id, "it is not among the items the bot may trade", now);
+                continue;
+            }
+            // Stock that is not selling is not a reason to buy more of it.
+            int up = 0;
+            for (Position p : openListings) if (baseItemId(p.itemKey()).equals(id)) up++;
+            if (up >= MAX_OPEN_PER_MARKET()) {
+                ownPriceNote(id, up + " listing(s) of it are still up at your sell price", now);
+                continue;
+            }
+            // A buy price far over what the thing sells for is a slip of the
+            // finger until shown otherwise, and it would fill at once.
+            double market = marketUnit(snapshot, id);
+            if (market > 0 && own.buy() > market * 3) {
+                ownPriceNote(id, "your buy price of " + own.buy() + " is over three times the "
+                        + Math.round(market) + " it sells for; check it", now);
+                continue;
+            }
+            int full = fullStack(id);
+            int count = ownOrderCount(full, own.stacks() > 0 ? own.stacks() : Math.max(1, defaultStacks),
+                    own.buy(), Math.min(effectivePurchaseCap(), room));
+            if (count <= 0) {
+                ownPriceNote(id, "one stack at " + own.buy() + " each is more than the buy cap or the money left", now);
+                continue;
+            }
+            chosen.add(id);
+            room -= own.buy() * count;
+            free--;
+            deskQueue.addLast(new DeskStep(DeskAction.PLACE, id, count, own.buy(),
+                    "your price: bidding " + own.buy() + " each for " + count + " " + id
+                            + ", to sell at " + own.sell() + " each"));
+        }
+        return new long[] {room, free};
+    }
+
     /**
      * Whether this market is already ours: sold in it in the last day, or
      * holding some now. Only consulted while "new markets only" is on.
@@ -6112,6 +6263,7 @@ public final class AutomationSessionController {
         if (profile == null) return 0;
         List<String> items = snapshot.markets().stream().map(MarketStats::itemKey).distinct()
                 .filter(id -> id.indexOf('#') < 0 && fullStack(id) > 1 && dev.doughbay.fabric.Tuning.itemAllowed(id)
+                        && ownPrice(id) == null
                         && !deskQueue.stream().anyMatch(st -> st.action() == DeskAction.PLACE && st.itemId().equals(id)) && !hasRetailStock(id)
                         && profile.shapeOf(id) != null && profile.shapeOf(id).prefersSingles())
                 .sorted(java.util.Comparator.comparingLong(id -> Math.min(sweptAt.getOrDefault(id + "x1", 0L),
@@ -6215,6 +6367,7 @@ public final class AutomationSessionController {
         // ("Retail batch identity conflict"), which fails persistence and
         // pauses the session for good.
         if (soldAsStack.contains(trackedPosition.positionId())) return false;
+        if (ownListTarget(trackedPosition) > 0) return false;
         RetailPricing.Plan plan = retailPlan(baseItemId(trackedPosition.itemKey()), now);
         if (plan == null || trackedPosition.purchasePrice() / (double) trackedPosition.quantity() > plan.ceilingUnit()) return false;
         RetailLot lot = new RetailLot(trackedPosition.positionId(), trackedPosition.positionId(), plan.singlePrice());
@@ -6761,6 +6914,10 @@ public final class AutomationSessionController {
                 }
             }
         }
+        // An item on the player's list is sold as it arrives, at their price;
+        // it is not pieced out into singles at one of ours.
+        boolean ownPriced = ownPrice(itemId) != null;
+        if (ownPriced) retailTarget = 0;
         dev.doughbay.fabric.DoughBayClient.alertOrderFilled(
                 baseItemId(itemId).replace("minecraft:", "").replace('_', ' '), count, unitPrice);
         // Account for every unit in the physical stack, including units whose
@@ -6813,6 +6970,12 @@ public final class AutomationSessionController {
             LOGGER.info("DoughBay underdog: {} x{} goes up at {} where a followed rival sells it; our own figure was {}",
                     itemId, count, shadowed, target);
             target = shadowed;
+        }
+        long ownTarget = ownPriced ? ownListTarget(itemId, count, cost) : 0;
+        if (ownTarget > 0) {
+            LOGGER.info("DoughBay your prices: {} x{} goes up at {} ({} each, the price you set); our own figure was {}",
+                    itemId, count, ownTarget, ownTarget / count, target);
+            target = ownTarget;
         }
         tradesStarted++;
         committedSpend = Math.addExact(committedSpend, cost);
@@ -7790,6 +7953,12 @@ public final class AutomationSessionController {
      * expense and freeing it eventually is the whole point of the pull-back.
      */
     private long repricedTarget(Position listed, long now) {
+        // A price the player set is not walked down. It moves only when they
+        // move it, and then straight to the new one.
+        if (!dev.doughbay.fabric.Tuning.liquidating(baseItemId(listed.itemKey()))) {
+            long own = ownListTarget(listed);
+            if (own > 0) return own;
+        }
         // Clearing out a market overrides the whole ladder below. A liquidated
         // item is being sold off, so it ignores the profit floor and the
         // dead-hour hold that keep an ordinary listing patient: it undercuts the
@@ -7890,6 +8059,12 @@ public final class AutomationSessionController {
             // sat there until a buyer took the loss: a lead stack bought at
             // 150k with a standing ask of 104k from the night before. A
             // standing ask below the floor is due to be lifted to it.
+            if (!dev.doughbay.fabric.Tuning.liquidating(repriceItem) && ownListTarget(listed) > 0) {
+                // On the player's list: due only when it is not up at their price.
+                if (ownListTarget(listed) != listed.targetPrice()
+                        && (due == null || listed.listedAt() < due.listedAt())) due = listed;
+                continue;
+            }
             long floorNow = repriceFloor(listed, now);
             boolean underFloor = listed.targetPrice() < floorNow;
             if (!underFloor && repricedTarget(listed, now) >= listed.targetPrice()) continue;

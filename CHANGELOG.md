@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 02:27 UTC
+- New: your own prices. In Settings, under Items, "Your own prices" takes a list of items with a buy price and a sell price you choose, like `diamond 80 120, golden apple 4k 5.2k x3`. Prices are per item, and x3 means three stacks an order. Blank, as it starts, changes nothing.
+- For an item on the list the bot keeps a buy order up at your buy price, lists what the order delivers at your sell price in the stacks it arrives in, and leaves the listing at that price until it sells. It does not raise the order to follow the market, pull it for being old or outbid, or walk the listing down.
+- It also stops buying those items on the auction, so they only come in through your order.
+- Guards: the sell price has to be above the buy price. An order still has to fit your per-purchase cap and the money left. The bot stops re-ordering an item while a full set of its listings is still up unsold. A buy price over three times what the item sells for is treated as a typo and not ordered. Anything it will not order is said in the log, and the web panel says at once if an entry cannot be read.
+- Needs "Place bids" on, like any other order.
+
 ## 2026-10-13 01:05 UTC
 - Fixed: two accounts sharing one folder (multi mode) with no API key each thought it was running alone. The Discord panel showed one account, and both clients posted over each other. The clients now find each other without the API: one of them hosts the panel, both accounts are on it, and the account picker (everyone, or either one) is back.
 - Fixed: in multi mode each account now keeps its own order and balance records, in a folder under its own name. They were single shared files, so after a restart one account could load the other's open orders and bank balance. An account running alone keeps its files where they were.
