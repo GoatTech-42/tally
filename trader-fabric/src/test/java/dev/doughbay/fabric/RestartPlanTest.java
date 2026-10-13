@@ -55,15 +55,13 @@ class RestartPlanTest {
     }
 
     @Test
-    void leaveHasWorkedWhenItPutsUsInAWorldWithABalance() {
+    void leaveHasWorkedWhenWeAreOutOfTheWaitingRoomAndStayOut() {
         long moved = 2_000_000L;
-        assertTrue(RestartPlan.worldAfterLeave(true, moved, true, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
+        assertTrue(RestartPlan.worldAfterLeave(true, moved, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
         // Not moved: still in the waiting room, whenever the command went out.
-        assertFalse(RestartPlan.worldAfterLeave(false, moved, true, moved + 60_000L));
-        // Moved to somewhere with no balance on its sidebar: a lobby, not a world to trade in.
-        assertFalse(RestartPlan.worldAfterLeave(true, moved, false, moved + 60_000L));
+        assertFalse(RestartPlan.worldAfterLeave(false, moved, moved + 60_000L));
         // Only just arrived.
-        assertFalse(RestartPlan.worldAfterLeave(true, moved, true, moved + 500L));
+        assertFalse(RestartPlan.worldAfterLeave(true, moved, moved + 500L));
     }
 
     @Test

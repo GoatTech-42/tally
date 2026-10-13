@@ -67,6 +67,7 @@ final class RestartRecovery {
      */
     private volatile Object limboLevel;
     private long leaveSentAt;
+    private long leftNotedAt;
     private net.minecraft.world.phys.Vec3 rtpFrom;
     private Object lastLevel;
     private long levelChangedAt;
@@ -118,6 +119,7 @@ final class RestartRecovery {
                 DoughBayClient.LOGGER.info("DoughBay restart: parked for the restart; sending /leave to be put in another region");
                 DoughBayClient.executionDriver().sendWhenClear(client, "leave");
                 leaveSentAt = now;
+                leftNotedAt = now;
                 go(Step.LEFT, now);
             }
             case LEFT -> {
@@ -135,17 +137,27 @@ final class RestartRecovery {
                     go(Step.IDLE, now);
                     return;
                 }
-                if (RestartPlan.worldAfterLeave(movedOn, levelChangedAt, balance, now)) {
+                // Moved by either sign: no longer in the world it was parked in, or a new world since the command.
+                boolean moved = movedOn || levelChangedAt > leaveSentAt + 200L;
+                if (RestartPlan.worldAfterLeave(moved, levelChangedAt, now)) {
                     if (DoughBayClient.executionDriver().refusesTeleports()) {
                         finish(session, now, "in a world again after /leave (teleports are switched off, so staying where it put us)");
                         return;
                     }
                     // Wherever /leave sets a player down, others are set down too.
-                    DoughBayClient.LOGGER.info("DoughBay restart: in a world again after /leave; /rtp away from where it put us");
+                    DoughBayClient.LOGGER.info("DoughBay restart: in a world again after /leave (balance on the sidebar: {}); "
+                            + "/rtp away from where it put us", balance ? "showing" : "not read");
                     rtpFrom = client.player.position();
                     DoughBayClient.executionDriver().sendWhenClear(client, "rtp");
                     go(Step.RTP_WAIT, now);
                     return;
+                }
+                if (now - leftNotedAt >= 15_000L) {
+                    // Said as it goes, so the next time this is slow the log says which half was missing.
+                    leftNotedAt = now;
+                    DoughBayClient.LOGGER.info("DoughBay restart: waiting on /leave ({} s): out of the waiting room {}, "
+                            + "new world since the command {}, balance {}", (now - stepAt) / 1000, movedOn,
+                            levelChangedAt > leaveSentAt + 200L, balance ? "showing" : "not read");
                 }
                 if (now - stepAt > RestartPlan.LEAVE_TIMEOUT_MILLIS) {
                     // Nothing is torn down over it. The first version left the
@@ -304,6 +316,12 @@ final class RestartRecovery {
     private void idle(Minecraft client, AutomationSessionController session, long now, boolean inWorld,
                       ServerData current, String on, boolean balance, boolean parked, boolean movedOn) {
         if (!session.serverRestarting() || !inWorld) return;
+        if (movedOn && !balance && now - levelChangedAt >= RestartPlan.SETTLE_MILLIS && now - leftNotedAt >= 60_000L) {
+            // Put back somewhere with no balance to read: held, and said, so it can be looked into.
+            leftNotedAt = now;
+            DoughBayClient.LOGGER.info("DoughBay restart: out of the waiting room for {} s but no balance is read off the "
+                    + "sidebar; the hold stays until a page opens or its time is up", (now - levelChangedAt) / 1000);
+        }
         if (RestartPlan.backFromLimbo(movedOn, levelChangedAt, balance, now)) {
             DoughBayClient.LOGGER.info("DoughBay restart: put back in the world {} s after being parked; the hold is lifted",
                     (now - limboSeenAt) / 1000);

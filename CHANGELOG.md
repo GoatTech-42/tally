@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 21:30 UTC
+- Fixed: after /leave took the bot out of the restart waiting room, it stayed paused. A second restart showed /leave does what it says: the bot was in another region within a second. But the step that follows waited for a balance to show on the sidebar before believing it, did not see one, and so never sent /rtp or started the session again. Being out of the waiting room for a few seconds is now enough.
+- The log now says what it is waiting on while it waits, so a slow one can be explained afterwards.
+
 ## 2026-10-13 21:08 UTC
 - Fixed: "Skip the restart waiting room" could disconnect a bot that was already trading again. At the first real restart the server parked the bot and put it back by itself four seconds later, just before the bot sent /leave. The bot then waited ninety seconds for a move that had already happened, decided /leave had failed, and left and rejoined the server for nothing.
 - It now tells "still parked" from "let go" by whether the client is still in the waiting room world, not by timing. If the server has already put it back, no /leave is sent. And it never disconnects on its own: if /leave does not work it simply waits the restart out.

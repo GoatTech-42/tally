@@ -100,13 +100,15 @@ final class RestartPlan {
     static final long LEAVE_TIMEOUT_MILLIS = 90_000L;
 
     /**
-     * Whether /leave has put the client in a world it can trade from: moved
-     * out of the waiting room to another world, with the money sidebar
-     * showing, and still there a few seconds on. A lobby has no balance on
-     * its sidebar, and is not one.
+     * Whether /leave has taken the client out of the waiting room: it is in
+     * another world, and still there a few seconds on. The balance on the
+     * sidebar is not asked for here. The one time this ran for real the
+     * client was put in another region within a second, with a sidebar and a
+     * tab list full of players, and the step sat for ninety seconds waiting
+     * on a balance it did not read. What /leave leads to is a world.
      */
-    static boolean worldAfterLeave(boolean movedOn, long levelChangedAt, boolean balanceShown, long now) {
-        return movedOn && balanceShown && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
+    static boolean worldAfterLeave(boolean movedOn, long levelChangedAt, long now) {
+        return movedOn && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
     }
 
     /** Whether a fresh join of the home address found the world there: nothing said about a restart since, and the sidebar up. */
