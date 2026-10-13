@@ -220,6 +220,12 @@ public final class Tuning {
                     + "are up, keep the remaining stock and replenish singles as they sell. Keeps one stack from "
                     + "flooding the book and from undercutting its own singles down a long ladder",
                     5, 1, 90, Kind.COUNT),
+            new Setting("list.singles_min_each", "Selling", "Least a single must earn",
+                    "An item is only sold one at a time when one of them earns at least this much over what it "
+                    + "cost; under it, the stock goes up in stacks instead. Every listing takes the bot the same "
+                    + "few seconds, so a cheap item that sells the moment it is listed can take every turn and "
+                    + "leave the profitable markets waiting. 0 for no floor",
+                    0, 0, 1000000, Kind.COUNT),
             new Setting("list.singles_batch_profit", "Selling", "Retail batch minimum profit",
                     "Minimum expected profit from selling one purchased stack as individual listings, after fees. "
                     + "Applies to the whole batch, not to every single. Fresh single and stack prices are required",

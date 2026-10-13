@@ -6847,6 +6847,11 @@ public final class AutomationSessionController {
         if (ownListTarget(trackedPosition) > 0) return false;
         RetailPricing.Plan plan = retailPlan(baseItemId(trackedPosition.itemKey()), now);
         if (plan == null || trackedPosition.purchasePrice() / (double) trackedPosition.quantity() > plan.ceilingUnit()) return false;
+        // Not worth selling one at a time: it goes up as the stack it is.
+        if (singleEarnsTooLittle(plan.singlePrice(), trackedPosition.purchasePrice(), trackedPosition.quantity(),
+                (long) dev.doughbay.fabric.Tuning.get("list.singles_min_each"))) {
+            return false;
+        }
         RetailLot lot = new RetailLot(trackedPosition.positionId(), trackedPosition.positionId(), plan.singlePrice());
         long generation = persistence.submitRetail(checkpoint(sessionOpen, state.name(), trackedPosition,
                 uncertainExposure, "Reserve purchase for individual resale"), lot, null, null);
@@ -7146,9 +7151,35 @@ public final class AutomationSessionController {
      * 533 diamonds, 375 golden apples - until nothing could be collected,
      * repriced or bought, and a seven-million-an-hour session made 36K.
      */
+    /**
+     * Whether one single of a lot earns less than the player's floor.
+     *
+     * <p>A listing costs the bot the same few seconds whatever it is worth.
+     * A single that sells the moment it goes up is listed again at once, so
+     * the best-selling cheap item takes every turn there is: on 2026-10-13
+     * ender chests at 1,600 profit apiece were 421 of an hour's 546 sales,
+     * and the hour made 4.8M where the one before made 13M. Slots were never
+     * what ran out. Under the floor, an item is sold by the stack.
+     *
+     * @param least the least a single has to earn; 0 for no floor
+     */
+    static boolean singleEarnsTooLittle(long singlePrice, long lotCost, int lotQuantity, long least) {
+        if (least <= 0 || lotQuantity <= 0) return false;
+        return singlePrice - lotCost / lotQuantity < least;
+    }
+
     private boolean retailStackDue(Minecraft client, Position p, long now) {
         // One at a time means one at a time: the rest waits for a single slot.
         if (p != null && ownSingles(p.itemKey())) return false;
+        // A lot set aside before the floor was set, or before the price fell
+        // under it: what is left of it goes up in stacks from here.
+        RetailLot kept = p == null ? null : retailLots.get(p.positionId());
+        if (kept != null && p.quantity() >= 2 && p.itemKey().indexOf('#') < 0
+                && now >= retailRetryAfter.getOrDefault(p.positionId(), 0L)
+                && singleEarnsTooLittle(kept.unitTarget(), p.purchasePrice(), p.quantity(),
+                        (long) dev.doughbay.fabric.Tuning.get("list.singles_min_each"))) {
+            return stackSlotUpTo(client, p.itemKey(), p.quantity()) >= 0;
+        }
         if (p == null || p.quantity() < 2 || !retailLots.containsKey(p.positionId())
                 || !singlesListingEnabled() || p.itemKey().indexOf('#') >= 0
                 || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
