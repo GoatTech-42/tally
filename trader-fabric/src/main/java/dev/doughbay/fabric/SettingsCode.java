@@ -40,7 +40,7 @@ public final class SettingsCode {
      * The account's own, set by its rank on the server: never written into a
      * code, and left alone when a code from an older build still carries them.
      */
-    static final Set<String> PER_ACCOUNT = Set.of("slots.max", "orders.bid_slots");
+    static final Set<String> PER_ACCOUNT = Set.of("slots.max", "orders.bid_slots", "session.wind_down");
 
     /**
      * Whether a setting stays with the player who set it. The slot counts,

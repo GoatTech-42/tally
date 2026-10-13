@@ -1690,6 +1690,12 @@ public final class AutomationSessionController {
             return ExecutionResult.refused("The execution driver is already active");
         }
 
+        if (windingDown()) {
+            // Start means trade. A wind-down left switched on would end the new session the moment it began.
+            dev.doughbay.fabric.Tuning.set("session.wind_down", 0);
+            LOGGER.info("DoughBay wind down: switched off, a new session was started");
+        }
+        windDownSince = 0;
         policy = requestedPolicy;
         runMode = requestedMode;
         sessionOpen = true;
@@ -3187,6 +3193,24 @@ public final class AutomationSessionController {
         if (pendingOpportunity == null && startOrphanListing(client, snapshot, now)) return;
         if (pendingOpportunity == null && deskRecovery.pending() && !deskRecovery.steppedAside(now)) {
             detail = "Recovering Your Orders before watching auctions";
+            return;
+        }
+        if (!windingDown()) {
+            windDownSince = 0;
+        } else if (pendingOpportunity == null) {
+            // Everything above this line is selling and looking after what is
+            // held; everything below it is looking for something to buy.
+            if (windDownSince == 0) {
+                windDownSince = now;
+                deskReadDue = true;
+                LOGGER.info("DoughBay wind down: no more buying; open orders are being cancelled and what is held sold");
+            }
+            if (trackedPosition == null && repricing == null && windDownDone()) {
+                LOGGER.info("DoughBay wind down: nothing left to sell and no order open; ending the session");
+                stop();
+                return;
+            }
+            detail = "Winding down: " + openListings.size() + " listing(s) left to sell; not buying";
             return;
         }
         if (pendingOpportunity == null && trackedPosition == null && keylessStillLearning(snapshot)) {
@@ -5064,7 +5088,8 @@ public final class AutomationSessionController {
 
     private void planDesk(MarketWatcher.Snapshot snapshot, long now) {
         deskQueue.clear();
-        boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5;
+        boolean winding = windingDown();
+        boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding;
         if (bidding) enqueueProbe(now);
         double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
         // The desk's own margin floor sits over the global ROI: an order fills
@@ -5171,6 +5196,8 @@ public final class AutomationSessionController {
             if (priced != null && !denied) {
                 why = r.unitPrice() != priced.buy() ? "your buy price for it is now " + priced.buy() + " each" : null;
             }
+            // Winding down, every open order is pulled, whoever set its price.
+            if (winding && !denied && r.remaining() > 0) why = "winding down; no more buying";
             // Sellers fill the best order first, so an order someone has
             // outbid fills nothing: sea lanterns at 2,205 sat for an hour
             // while orders at 2,500 took every delivery. Prices move; the
@@ -5211,7 +5238,7 @@ public final class AutomationSessionController {
             }
             // An order that is to be pulled gives up what is on it first,
             // part stack or not: nothing more is coming to it.
-            if (wholeOnly && (bidding || denied) && why != null && pending > 0 && !listablePart
+            if (wholeOnly && (bidding || denied || winding) && why != null && pending > 0 && !listablePart
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         TAKE_ALL + pending + " " + r.itemId() + " before pulling the order (" + why + ")",
@@ -5219,7 +5246,7 @@ public final class AutomationSessionController {
             }
             // A blacklisted item is pulled even in collect-only mode; everything
             // else is only cancelled while the desk is actively bidding.
-            if ((bidding || denied) && why != null && pending <= 0
+            if ((bidding || denied || winding) && why != null && pending <= 0
                     && !deskUncancellable.contains(orderKey(r.itemId(), r.unitPrice(), 0))) {
                 deskQueue.addLast(new DeskStep(DeskAction.CANCEL, r.itemId(), 0, r.unitPrice(), why));
                 // Pending fills are collected first. Merely considering a
@@ -5944,6 +5971,45 @@ public final class AutomationSessionController {
 
     private static void bump(java.util.Map<String, Integer> counts, String reason) {
         counts.merge(reason, 1, Integer::sum);
+    }
+
+    // ------------------------------------------------------------------
+    // Winding down: the soft stop. Nothing more is bought, open orders are
+    // pulled, and what is held goes on being listed, repriced and sold until
+    // none of it is left, when the session ends by itself. A Stop leaves the
+    // listings up with nobody minding them; this minds them to the end.
+    // ------------------------------------------------------------------
+
+    /** When this session first saw the wind-down switched on; 0 while it is off. */
+    private long windDownSince;
+
+    private static boolean windingDown() {
+        return dev.doughbay.fabric.Tuning.get("session.wind_down") >= 0.5;
+    }
+
+    /**
+     * Whether a wind-down has run its course: nothing listed, nothing in hand
+     * or waiting to be listed, nothing queued at the order desk, and no order
+     * still open. The orders only count as closed once Your Orders has been
+     * read since the wind-down began; before that, an empty list is only a
+     * list nobody has looked at.
+     */
+    static boolean windDownFinished(int listings, int inHand, int queued, boolean ordersInUse,
+                                    boolean ordersReadSince, int ordersOpen) {
+        if (listings > 0 || inHand > 0 || queued > 0) return false;
+        return !ordersInUse || (ordersReadSince && ordersOpen == 0);
+    }
+
+    private boolean windDownDone() {
+        int ordersOpen = 0;
+        for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
+            if (r.remaining() > 0 || (r.alreadyCancelled() && r.delivered() > 0)) ordersOpen++;
+        }
+        boolean ordersInUse = dev.doughbay.fabric.Tuning.get("orders.enabled") >= 0.5
+                && (dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5
+                || dev.doughbay.fabric.Tuning.get("orders.collect") >= 0.5);
+        return windDownFinished(openListings.size(), stockInHand().size() + recoveredQueue.size(),
+                deskQueue.size(), ordersInUse, ownOrdersReadAt >= windDownSince, ordersOpen);
     }
 
     // ------------------------------------------------------------------

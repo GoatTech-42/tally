@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 02:40 UTC
+- New: wind down, a soft stop. In Settings, under Session, turn on "Wind down (soft stop)". The bot stops buying: no new orders, no auction buys. It cancels its open orders (the money comes back) and collects what they already delivered. It keeps listing, repricing and selling what it holds on the auction, and ends the session by itself when nothing is left.
+- Pressing Start switches it back off. It is off unless you turn it on, and it does not travel in a settings code. Accounts sharing one settings file wind down together.
+
 ## 2026-10-13 02:27 UTC
 - New: your own prices. In Settings, under Items, "Your own prices" takes a list of items with a buy price and a sell price you choose, like `diamond 80 120, golden apple 4k 5.2k x3`. Prices are per item, and x3 means three stacks an order. Blank, as it starts, changes nothing.
 - For an item on the list the bot keeps a buy order up at your buy price, lists what the order delivers at your sell price in the stacks it arrives in, and leaves the listing at that price until it sells. It does not raise the order to follow the market, pull it for being old or outbid, or walk the listing down.
