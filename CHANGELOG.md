@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 04:17 UTC
+- Changed: with "Trade only these" on, the bot no longer reads the whole order house to pick markets. That sweep takes minutes and only serves the normal trading. Your own items are still looked up by name.
+- Changed: with "Trade only these" on, an item sold one at a time may fill every auction slot you have, not just the "Singles up per market at once" number.
+- Changed: "Singles up per market at once" can now be set as high as 90 (it stopped at 30).
+
 ## 2026-10-13 04:00 UTC
 - Changed: the Flips tab has an item picker. Under your list is the same grid of item icons the Items tab has. Type part of a name in the item box to narrow it, scroll for more, and click an icon to choose it, so the name never has to be typed out. Items already on your list are ringed in green, and clicking one loads it to change.
 - New: right-click any item on the Items tab to set it up on the Flips tab.

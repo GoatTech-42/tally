@@ -210,7 +210,7 @@ public final class Tuning {
                     "When piecing a stack out, how many singles of one item may be listed at a time. Once this many "
                     + "are up, keep the remaining stock and replenish singles as they sell. Keeps one stack from "
                     + "flooding the book and from undercutting its own singles down a long ladder",
-                    5, 1, 30, Kind.COUNT),
+                    5, 1, 90, Kind.COUNT),
             new Setting("list.singles_batch_profit", "Selling", "Retail batch minimum profit",
                     "Minimum expected profit from selling one purchased stack as individual listings, after fees. "
                     + "Applies to the whole batch, not to every single. Fresh single and stack prices are required",

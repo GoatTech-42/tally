@@ -6614,11 +6614,21 @@ public final class AutomationSessionController {
                 && baseItemId(p.itemKey()).equals(baseItemId(item)));
     }
 
+    /**
+     * How many singles of an item may be up at once. The setting, except for
+     * an item the player sells one at a time while their list is all the bot
+     * trades: nothing else wants the slots then, so it may have all of them.
+     */
+    private static int singlesCap(String itemKey) {
+        int set = (int) dev.doughbay.fabric.Tuning.get("list.singles_max");
+        return ownSingles(itemKey) && ownOnly() ? Math.max(set, (int) dev.doughbay.fabric.Tuning.get("slots.max")) : set;
+    }
+
     private boolean retailWaiting(Position p, long now) {
         if (!retailLots.containsKey(p.positionId())) return false;
         return !(singlesListingEnabled() || ownSingles(p.itemKey()))
                 || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
-                || openSinglesOf(p.itemKey()) >= (int) dev.doughbay.fabric.Tuning.get("list.singles_max");
+                || openSinglesOf(p.itemKey()) >= singlesCap(p.itemKey());
     }
 
     private boolean deferRetail(long now, String reason) {
@@ -7309,6 +7319,10 @@ public final class AutomationSessionController {
 
     private boolean startOrdersRead(Minecraft client, long now) {
         if (dev.doughbay.fabric.Tuning.get("orders.enabled") < 0.5) return false;
+        // The whole order house is read to choose markets. With the player's
+        // list the only thing traded there is nothing to choose, and what
+        // their items need is asked for by name; minutes of pages are not.
+        if (ownOnly()) return false;
         seedOrdersSchedule(now);
         if (now < nextOrdersReadAt || trackedPosition != null || repricing != null) return false;
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return false;
