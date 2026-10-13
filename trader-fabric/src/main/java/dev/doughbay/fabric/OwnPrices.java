@@ -35,8 +35,13 @@ import java.util.Set;
 public final class OwnPrices {
     /** The setting the list is typed into. */
     public static final String KEY = "prices.own";
-    /** An order for more than this many stacks is not what a slip of the finger should be able to ask for. */
-    static final int MAX_STACKS = 15;
+    /**
+     * The most that can be written after the x. For something that stacks an
+     * order is held to fifteen stacks whatever is written, since the order
+     * house shows a count exactly only under a thousand; for something that
+     * does not stack, a totem, this is how many of them an order asks for.
+     */
+    static final int MAX_STACKS = 999;
     private static final Set<String> FILLER = Set.of("buy", "sell", "at", "each", "for", "to", "stack", "stacks", "x",
             "max");
     private static final Set<String> SINGLES = Set.of("singles", "single", "peel", "individually");
@@ -170,7 +175,7 @@ public final class OwnPrices {
                 continue;
             }
             if (stacks < 0 || stacks > MAX_STACKS) {
-                problems.add(item + ": at most " + MAX_STACKS + " stacks an order");
+                problems.add(item + ": at most " + MAX_STACKS + " an order");
                 continue;
             }
             if (total > 1_000_000) {

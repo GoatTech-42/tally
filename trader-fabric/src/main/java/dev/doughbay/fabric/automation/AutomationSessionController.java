@@ -6164,6 +6164,44 @@ public final class AutomationSessionController {
         return left;
     }
 
+    /**
+     * One entry of the player's list as it stands: what it has bought and for
+     * how much, what is still on order, and what is held, listed or in hand.
+     *
+     * @param orderUnit  the price of the order that is up, each; 0 with none up
+     * @param marketUnit what one sells for as far as our statistics know; 0 when they do not
+     */
+    public record OwnPriceView(dev.doughbay.fabric.OwnPrices.Entry entry, long bought, long spent, int onOrder,
+                               long orderUnit, int listings, int listedUnits, int inHandUnits, double marketUnit) {
+    }
+
+    public synchronized List<OwnPriceView> ownPriceViews() {
+        List<OwnPriceView> out = new ArrayList<>();
+        for (dev.doughbay.fabric.OwnPrices.Entry own : dev.doughbay.fabric.OwnPrices.all()) {
+            String id = "minecraft:" + own.itemId();
+            long[] had = ownBought.getOrDefault(ownBoughtKey(own), new long[2]);
+            int onOrder = 0;
+            long orderUnit = 0;
+            for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
+                if (!r.itemId().equals(id) || r.remaining() <= 0 || r.alreadyCancelled()) continue;
+                onOrder += r.remaining();
+                orderUnit = Math.max(orderUnit, r.unitPrice());
+            }
+            int listings = 0;
+            int listedUnits = 0;
+            for (Position p : openListings) {
+                if (!baseItemId(p.itemKey()).equals(id)) continue;
+                listings++;
+                listedUnits += p.quantity();
+            }
+            int inHand = 0;
+            for (Position p : stockInHand()) if (baseItemId(p.itemKey()).equals(id)) inHand += p.quantity();
+            out.add(new OwnPriceView(own, had[0], had[1], onOrder, orderUnit, listings, listedUnits, inHand,
+                    marketUnit(lastSnapshot, id)));
+        }
+        return out;
+    }
+
     private final java.util.Map<String, Long> ownPriceNotedAt = new java.util.HashMap<>();
     private List<String> ownPriceProblems = List.of();
     /** When an order of ours that follows the top of the book was last seen open, by item. */

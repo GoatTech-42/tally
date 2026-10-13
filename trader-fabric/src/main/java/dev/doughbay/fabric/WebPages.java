@@ -56,6 +56,7 @@ public final class WebPages {
             case "settings" -> settings();
             case "code" -> answer(true, "").put("code", SettingsCode.export()).toString();
             case "items" -> items();
+            case "prices" -> prices(ownPriceViews(), OwnPrices.current().problems(), Tuning.text(OwnPrices.KEY));
             case "rivals" -> ours(rivals(snapshot(), System.currentTimeMillis(), ZoneId.systemDefault()));
             case "rival" -> ours(rival(snapshot(), unhex(query == null ? null : query.get("id")), System.currentTimeMillis(),
                     ZoneId.systemDefault(), openListings()));
@@ -245,6 +246,58 @@ public final class WebPages {
         return answer(true, r.applied() + " setting(s) applied from the code"
                 + (r.kept() > 0 ? "; your slot counts and follow settings are left as they were" : "")
                 + (r.skipped() > 0 ? "; " + r.skipped() + " this version does not know were skipped" : "")).toString();
+    }
+
+    // ------------------------------------------------------------- your prices
+
+    private static List<AutomationSessionController.OwnPriceView> ownPriceViews() {
+        try {
+            return DoughBayClient.automationSessionController().ownPriceViews();
+        } catch (Throwable e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * The player's own price list as a table: what each entry has bought and
+     * for how much, what it holds, and what that is worth at the price they
+     * set and at the price the market pays now.
+     */
+    static String prices(List<AutomationSessionController.OwnPriceView> views, List<String> problems, String text) {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("text", text == null ? "" : text);
+        ArrayNode notUnderstood = root.putArray("problems");
+        for (String p : problems) notUnderstood.add(p);
+        ArrayNode rows = root.putArray("rows");
+        for (AutomationSessionController.OwnPriceView v : views) {
+            OwnPrices.Entry e = v.entry();
+            ObjectNode row = rows.addObject();
+            row.put("icon", "minecraft:" + e.itemId());
+            row.put("name", item(e.itemId()));
+            row.put("buy", (e.top() ? "top" + (e.over() > 0 ? "+" + Figures.grouped(e.over()) : "") + ", at most " : "")
+                    + Figures.money(e.buy()));
+            row.put("sell", Figures.money(e.sell()) + (e.singles() ? ", one at a time" : ""));
+            row.put("order", v.onOrder() > 0
+                    ? Figures.grouped(v.onOrder()) + " at " + Figures.money(v.orderUnit()) : "none up");
+            row.put("bought", Figures.grouped(v.bought())
+                    + (e.total() > 0 ? " of " + Figures.grouped(e.total()) : ""));
+            row.put("spent", Figures.money(v.spent())
+                    + (e.budget() > 0 ? " of " + Figures.money(e.budget()) : ""));
+            double each = v.bought() > 0 ? v.spent() / (double) v.bought() : 0;
+            row.put("each", v.bought() > 0 ? Figures.money(each) : "-");
+            int held = v.listedUnits() + v.inHandUnits();
+            row.put("held", held > 0 ? Figures.grouped(held) + " (" + v.listings() + " listed)" : "none");
+            // What is held, against what it cost: the average of what was bought, or the buy price before anything was.
+            double cost = held * (each > 0 ? each : e.buy());
+            long atYours = (long) held * e.sell();
+            row.put("yours", held > 0 ? Figures.money(atYours) : "-");
+            row.put("profit", held > 0 ? Figures.signedMoney(Math.round(atYours - cost)) : "-");
+            row.put("profitTone", atYours - cost >= 0 ? "good" : "bad");
+            row.put("market", v.marketUnit() > 0 ? Figures.money(v.marketUnit()) + " each" : "not known");
+            // The player's price against the market's: above it the listing waits, at or under it it sells.
+            row.put("marketTone", v.marketUnit() <= 0 ? "muted" : v.marketUnit() >= e.sell() ? "good" : "warn");
+        }
+        return root.toString();
     }
 
     // ------------------------------------------------------------------- items

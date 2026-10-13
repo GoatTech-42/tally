@@ -38,6 +38,18 @@ class OwnOrderCountTest {
     }
 
     @Test
+    void hundredsOfSomethingThatDoesNotStackCanBeOnOneOrder() {
+        // 200 totems at 40,000 each, with the money for them.
+        assertEquals(200, AutomationSessionController.ownOrderCount(1, 200, 40_000, 10_000_000));
+        // Money for 50 of them: 50 are ordered.
+        assertEquals(50, AutomationSessionController.ownOrderCount(1, 200, 40_000, 2_000_000));
+        // Still under a thousand, so the order house shows the count exactly.
+        assertEquals(999, AutomationSessionController.ownOrderCount(1, 999, 10, Long.MAX_VALUE / 4));
+        // Something that stacks is held to fifteen stacks whatever is written after the x.
+        assertEquals(960, AutomationSessionController.ownOrderCount(64, 200, 10, Long.MAX_VALUE / 4));
+    }
+
+    @Test
     void somethingThatDoesNotStackIsOrderedByTheOne() {
         assertEquals(4, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 10_000_000));
         assertEquals(2, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 2_500_000));

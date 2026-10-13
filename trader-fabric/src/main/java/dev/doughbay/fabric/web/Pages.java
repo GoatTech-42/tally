@@ -338,6 +338,7 @@ final class Pages {
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
               items: { label: 'Items', open: openItems },
+              prices: { label: 'Your prices', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals }
             };
             function show(name) {
@@ -369,7 +370,7 @@ final class Pages {
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
-                if (o.value === 'TUNE') { mine('items'); mine('settings'); continue; }
+                if (o.value === 'TUNE') { mine('items'); mine('prices'); mine('settings'); continue; }
                 add(o.value === 'ITEMS' ? 'Item profit' : o.label, !view && o.default, () => {
                   if (view) show('');
                   act('page:pick', o.value);
@@ -767,6 +768,65 @@ final class Pages {
               drawGrid();
             }
 
+            // ---- Your prices: the items bought and sold at prices the player set, and how each stands
+            const P = { data: null };
+            async function openPrices() {
+              try {
+                P.data = await api('prices');
+                if (view === 'prices' && !(own.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA')) drawPrices();
+              } catch (e) { failed(); }
+            }
+            function drawPrices() {
+              const d = P.data;
+              if (!d) return;
+              const intro = el('p', 'desc', 'Items the bot orders at a price you set and sells at a price you set. One entry each, '
+                + 'apart by commas: item, buy price, sell price, all per item. Example: observer top+100 600 900 x15 singles total 1000');
+              const area = el('textarea');
+              area.value = d.text || '';
+              area.setAttribute('aria-label', 'Your own prices');
+              area.placeholder = 'diamond 80 120, golden apple 4k 5.2k x3';
+              const line = el('div', 'line');
+              line.style.margin = '6px 0 10px';
+              line.appendChild(button('pick', 'Save', async () => {
+                await change('list', { key: 'prices.own', text: area.value });
+                area.blur();
+                openPrices();
+              }));
+              const parts = [intro, area, line];
+              for (const p of d.problems || []) parts.push(el('p', 't-bad', 'Not understood: ' + p));
+              if (!d.rows || !d.rows.length) {
+                parts.push(el('p', 'muted', 'Nothing on the list yet. The bot prices everything itself.'));
+              } else {
+                const wide = el('div', 'wide');
+                wide.tabIndex = 0;
+                wide.setAttribute('aria-label', 'Your prices; scroll sideways to see every column');
+                const table = el('table');
+                const hr = el('tr');
+                for (const h of ['Item', 'Buy', 'Sell', 'Order up', 'Bought', 'Spent', 'Paid each', 'Held', 'Worth at your price',
+                    'Profit if it sells', 'Market now']) hr.appendChild(el('th', '', h));
+                table.appendChild(el('thead')).appendChild(hr);
+                const body = table.appendChild(el('tbody'));
+                for (const r of d.rows) {
+                  const tr = el('tr');
+                  const name = el('td');
+                  const img = el('img');
+                  img.alt = '';
+                  img.addEventListener('error', () => img.remove());
+                  img.src = '/item/' + r.icon + '.png';
+                  name.append(img, document.createTextNode(r.name));
+                  tr.append(name, el('td', 't-secondary', r.buy), el('td', 't-gold', r.sell), el('td', 't-secondary', r.order),
+                    el('td', '', r.bought), el('td', 't-secondary', r.spent), el('td', 't-secondary', r.each), el('td', '', r.held),
+                    el('td', '', r.yours), el('td', 't-' + r.profitTone, r.profit), el('td', 't-' + r.marketTone, r.market));
+                  body.appendChild(tr);
+                }
+                wide.appendChild(table);
+                parts.push(wide);
+                parts.push(el('p', 'range', 'Bought and spent are counted since the entry was last changed. '
+                  + 'Market now is what one sells for by the figures the bot keeps; green means it is at or over your sell price.'));
+              }
+              own.replaceChildren(...parts);
+            }
+            
             // ---- Rivals: who else is trading, and one of them opened up
             const R = { data: null, open: '', detail: null, limit: 60 };
             async function openRivals() {
@@ -944,7 +1004,9 @@ final class Pages {
             setInterval(() => {
               refresh();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
-              if (view === 'rivals' && ++ticks % 4 === 0) openRivals();
+              if (++ticks % 4 !== 0) return;
+              if (view === 'rivals') openRivals();
+              if (view === 'prices') openPrices();
             }, 5000);
             """ + "</script></body></html>";
 }

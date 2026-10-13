@@ -294,6 +294,47 @@ class WebPagesTest {
     }
 
     @Test
+    void thePricesPageSaysWhatEachEntryHasBoughtAndWhatItIsWorth() throws Exception {
+        OwnPrices.Entry observer = new OwnPrices.Entry("observer", 600, 900, 15, true, 100, 1000, 0);
+        OwnPrices.Entry totem = new OwnPrices.Entry("totem_of_undying", 45_000, 50_000, 200, false, -1, 0, 2_000_000);
+        List<AutomationSessionController.OwnPriceView> views = List.of(
+                // 640 bought for 352,000 (550 each); 320 still on order at 560; 300 held, 5 of them listed.
+                new AutomationSessionController.OwnPriceView(observer, 640, 352_000, 320, 560, 5, 5, 295, 1_000),
+                // Nothing bought yet and the market not known.
+                new AutomationSessionController.OwnPriceView(totem, 0, 0, 0, 0, 0, 0, 0, 0));
+        JsonNode page = json(WebPages.prices(views, List.of("\"junk\" is not an item, a buy price and a sell price"),
+                "observer top+100 600 900 x15 singles total 1000, totem of undying 45k 50k x200 budget 2m, junk"));
+        assertEquals(1, page.path("problems").size());
+        assertTrue(page.path("text").asText().startsWith("observer top+100"));
+
+        JsonNode first = page.path("rows").get(0);
+        assertEquals("Observer", first.path("name").asText());
+        assertEquals("top+100, at most $600", first.path("buy").asText());
+        assertEquals("$900, one at a time", first.path("sell").asText());
+        assertEquals("320 at $560", first.path("order").asText());
+        assertEquals("640 of 1,000", first.path("bought").asText());
+        assertEquals("$352.0k", first.path("spent").asText());
+        assertEquals("$550", first.path("each").asText());
+        assertEquals("300 (5 listed)", first.path("held").asText());
+        // 300 held at 900 is 270,000, against 165,000 they cost.
+        assertEquals("$270.0k", first.path("yours").asText());
+        assertEquals("+$105.0k", first.path("profit").asText());
+        assertEquals("good", first.path("profitTone").asText());
+        // The market pays more than the price asked: it will sell.
+        assertEquals("good", first.path("marketTone").asText());
+
+        JsonNode second = page.path("rows").get(1);
+        assertEquals("Totem Of Undying", second.path("name").asText());
+        assertEquals("$45.0k", second.path("buy").asText());
+        assertEquals("none up", second.path("order").asText());
+        assertEquals("$0 of $2.00m", second.path("spent").asText());
+        assertEquals("-", second.path("each").asText());
+        assertEquals("none", second.path("held").asText());
+        assertEquals("not known", second.path("market").asText());
+        assertEquals("muted", second.path("marketTone").asText());
+    }
+
+    @Test
     void aSettingKeptForThisClientIsSavedBackToItsOwnFile() throws Exception {
         Path local = Files.createTempFile("doughbay-local", ".json");
         double before = Tuning.get("buy.purchase_cap_pct");

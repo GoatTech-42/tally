@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 03:03 UTC
+- New: big orders of things that do not stack. In "Your own prices" the number after the x is how many an order asks for when the item does not stack, up to 999: `totem of undying top 45k 50k x200`. The bot collects what fits in the pack, lists it, and goes back for the rest, which stays on the order until then.
+- Changed: collecting from any order now stops while four slots of the pack are still free, and leaves the rest on the order for the next trip. A pack filled to the last slot could not list, reprice or buy.
+- New on the web panel: a "Your prices" page. It has the price list to edit, and for each entry what is on order, how many were bought and for how much, what each cost on average, how many are held, what they are worth at your price, the profit if they sell, and what the market pays now.
+
 ## 2026-10-13 02:54 UTC
 - New in "Your own prices": bid just over the top order. Write `top` or `top+100` before the prices, like `observer top+100 600 900`. The bot asks the order house what the best order for that item pays, bids one step or that amount over it, and never more than your buy price (600 here). If someone outbids it, it moves the order up again, at most once every ten minutes. If being top would cost more than your buy price, it places no order and says so in the log.
 - New: `total 1000` stops ordering once that many have been bought, and `budget 2m` once that much has been spent on the item. Changing the entry starts the count again.

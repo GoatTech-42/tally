@@ -31,7 +31,7 @@ class OwnPricesTest {
 
     @Test
     void anEntryThatWouldLoseMoneyOrCannotBeReadIsLeftOutAndSaidSo() {
-        OwnPrices.Parsed list = OwnPrices.parse("diamond 120 80, emerald 50, , redstone 10 20 x99, coal 5 9 hello, "
+        OwnPrices.Parsed list = OwnPrices.parse("diamond 120 80, emerald 50, , redstone 10 20 x9999, coal 5 9 hello, "
                 + "iron_ingot 30 45, iron ingot 31 46, 80 120");
         // The one good entry still stands.
         assertEquals(List.of("iron_ingot"), List.copyOf(list.entries().keySet()));
@@ -39,7 +39,9 @@ class OwnPricesTest {
         assertEquals(6, list.problems().size());
         assertTrue(list.problems().get(0).contains("above the buy price"));
         assertTrue(list.problems().get(1).contains("\"emerald 50\""));
-        assertTrue(list.problems().get(2).contains("at most 15 stacks"));
+        assertTrue(list.problems().get(2).contains("redstone 10 20 x9999"));
+        // Up to 999 can be written: for something that does not stack it is how many an order asks for.
+        assertEquals(200, OwnPrices.parse("totem of undying 40k 50k x200").entries().get("totem_of_undying").stacks());
         assertTrue(list.problems().get(4).contains("twice"));
     }
 

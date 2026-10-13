@@ -1420,6 +1420,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     return;
                 }
                 if (pending >= 0) {
+                    // An order can hold far more than the pack can: hundreds
+                    // of something that does not stack. What fits is taken and
+                    // the rest left on the order, which keeps it; a pack filled
+                    // to the last slot cannot list, reprice or buy anything.
+                    if (collectClicks > 0 && now > inventoryCountBefore && freePackSlots(client) <= COLLECT_KEEP_FREE) {
+                        targetCount = now - inventoryCountBefore;
+                        DoughBayClient.LOGGER.info("DoughBay collect: the pack has {} free slot(s) left; {} taken, the rest stays on the order",
+                                freePackSlots(client), targetCount);
+                        complete(client, String.format(Locale.ROOT, "Collected %s x%d from your order; the rest stays on it",
+                                shortName(targetItemId), targetCount));
+                        return;
+                    }
                     if (collectClicks >= 40) {
                         abort(client, "The collect page keeps its stacks after " + collectClicks + " clicks");
                         return;
@@ -1458,6 +1470,17 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private List<String> ownTargetTooltip = List.of();
+
+    /** Slots of the pack a collect leaves empty, for everything else the bot does with its hands. */
+    static final int COLLECT_KEEP_FREE = 4;
+
+    /** Empty slots among the thirty-six of the pack and hotbar. */
+    private static int freePackSlots(Minecraft client) {
+        if (client == null || client.player == null) return 0;
+        int free = 0;
+        for (ItemStack stack : client.player.getInventory().getNonEquipmentItems()) if (stack.isEmpty()) free++;
+        return free;
+    }
 
     /** How many of an item the inventory holds right now. */
     public static int inventoryCount(Minecraft client, String itemId) {
