@@ -362,6 +362,7 @@ public final class EvasionGuard {
         if (client.player == null || client.level == null) return;
         if (client.getCurrentServer() != null) lastServer = client.getCurrentServer();
         witherWatch(client, session, now);
+        airWatch(client, session, now);
         wander(client, session, now);
 
         // Asked to leave and waiting for the trade in flight to finish.
@@ -819,6 +820,69 @@ public final class EvasionGuard {
             return session != null && session.serverRestarting();
         } catch (Throwable t) {
             return false;
+        }
+    }
+
+    /** How long the head has to be under with the air going down before it is believed. */
+    static final long AIR_SETTLE_MILLIS = 1_500L;
+    /** One escape from water is given this long to land before another is sent. */
+    static final long AIR_RETRY_MILLIS = 8_000L;
+    private long airShortSince;
+    private long airEscapedAt;
+
+    /**
+     * Whether the player is under water and running out of air. A full
+     * breath is fifteen seconds; this is true from a second and a half in,
+     * which leaves the rest of them to get out with.
+     */
+    static boolean runningOutOfAir(int air, int maxAir, boolean underWater, long shortForMillis) {
+        return underWater && maxAir > 0 && air < maxAir && shortForMillis >= AIR_SETTLE_MILLIS;
+    }
+
+    /**
+     * Gets out of water before it hurts.
+     *
+     * <p>Players flood this server, and a random teleport can land in the
+     * sea. The guard waited for damage and then for the trade in flight: on
+     * 2026-10-13 the bot took its first drowning tick with 15.5 health, held
+     * on six seconds for a listing to finish, lost two health a second the
+     * whole time, and died the second its teleport was finally sent, with 57
+     * ender chests on it. The air meter says all of this fifteen seconds
+     * before the first damage. Nothing is waited for: a trade cut short is a
+     * retry, and drowning is the whole inventory.
+     */
+    private void airWatch(Minecraft client, AutomationSessionController session, long now) {
+        if (Tuning.get("evasion.air") < 0.5) return;
+        int air = client.player.getAirSupply();
+        int most = client.player.getMaxAirSupply();
+        boolean under = client.player.isUnderWater() && air < most;
+        if (!under) {
+            airShortSince = 0;
+            return;
+        }
+        if (airShortSince == 0) airShortSince = now;
+        if (!runningOutOfAir(air, most, true, now - airShortSince) || now - airEscapedAt < AIR_RETRY_MILLIS) return;
+        airEscapedAt = now;
+        String message = String.format(java.util.Locale.ROOT,
+                "Evasion: under water with %d s of air left; getting out", Math.max(0, air) / 20);
+        DoughBayClient.LOGGER.warn("DoughBay {}", message);
+        client.player.sendSystemMessage(Component.literal("[GoNuts]" + message));
+        AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
+        if (snapshot.state() != AutomationSessionController.State.STOPPED
+                && snapshot.state() != AutomationSessionController.State.PAUSED) {
+            session.pause("Evasion: under water");
+        }
+        closeAnyScreen(client);
+        triggered = true;
+        lastIntruder = "rising water";
+        note(lastIntruder, 0, "under water, air running out");
+        clearSinceMillis = 0;
+        leaveWanted = false;
+        if (DoughBayClient.executionDriver().refusesTeleports()) {
+            // No teleport to use. Logged off, nothing drowns.
+            leave(client, "Evasion: under water and teleports are off; leaving the server");
+        } else {
+            teleportAway(client);
         }
     }
 

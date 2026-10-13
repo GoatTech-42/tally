@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 20:05 UTC
+- Fixed: the bot could drown. Players flood the server and a random teleport can land in water. The evasion guard only reacted once damage started, and then waited for the trade in flight before escaping, so the bot lost two health a second while it finished a listing and died as its teleport went out.
+- New: "Get out of water" (Settings, Evasion), on whenever the evasion guard is on. When the bot's head is under water and its air is going down, the session stops and it teleports away at once. That is about thirteen seconds before the first damage, and nothing is waited for. With teleports switched off it leaves the server instead.
+
 ## 2026-10-13 16:52 UTC
 - New: a Flips page on the Discord panel. It shows your Flips list with what each item is bought and sold at, the market price, and how much is on order and listed. Pick an item, then press "Sell price" or "Buy price" and type the new figure (20k and 1.5m work). "Add item" takes an entry typed out, like `obsidian 250 900`, and "Remove" takes the selected one off.
 - A price that cannot be right is refused with the reason, and the list is left as it was. On the web panel the same list is edited on the Your prices page.
