@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 15:04 UTC
+- Changed: after a server restart the bot starts again as soon as it is put back in the world. It used to wait a fixed ten minutes from the restart notice, even when the server was back after four. It now takes being moved back to a world with the money sidebar showing as the end of the restart.
+- New: "Skip the restart waiting room" (Settings, Session). Off unless you turn it on. When the server parks you for a restart, the client leaves, joins through another address of the same network (east and west of your usual address, or the ones you list in "Addresses to come back in through"), then joins the usual address again, which puts it straight back in the world. The session stays stopped until the world is really there.
+- The server warns that leaving the waiting room can lose your position, so only use the skip where that does not matter. It needs "Resume after leaving the server" on to carry on by itself. It only ever joins addresses of the same network as the one you were on.
+
 ## 2026-10-13 14:28 UTC
 - New: the game can be closed from outside it. A line reading `!quit` in `send-command.txt` in the game folder closes the game the same way closing its window does, and it works on the title screen too. This is for running the game without a window, where there is no window to close and ending the process by force can drop whatever is on the cursor.
 

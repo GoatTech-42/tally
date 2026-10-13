@@ -5968,6 +5968,13 @@ public final class AutomationSessionController {
     /** Until when the server is restarting, so nothing is attempted against a world that is not there. */
     private volatile long limboUntil;
 
+    private volatile long restartNoticedAt;
+
+    /** When the server last said it was restarting, or 0 if it never has. */
+    public long restartNoticedAt() {
+        return restartNoticedAt;
+    }
+
     /** Whether the server has said it is restarting and has not yet said otherwise. */
     public boolean serverRestarting() {
         return System.currentTimeMillis() < limboUntil;
@@ -6006,6 +6013,7 @@ public final class AutomationSessionController {
         if (l.contains("proxy limbo") || l.contains("server is restarting")
                 || (l.contains("servers are updating") && l.contains("do not teleport"))) {
             boolean fresh = !serverRestarting();
+            restartNoticedAt = System.currentTimeMillis();
             limboUntil = System.currentTimeMillis() + 10 * 60_000L;
             if (fresh) {
                 LOGGER.info("DoughBay: the server says it is restarting; holding everything until it is back");

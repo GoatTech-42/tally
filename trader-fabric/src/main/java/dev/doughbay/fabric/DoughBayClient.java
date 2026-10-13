@@ -393,6 +393,7 @@ public class DoughBayClient implements ClientModInitializer {
             if (FOLLOWS != null && !overlay) FOLLOWS.observeChat(message.getString());
             AUTOMATION_SESSION.observeOrderChat(message.getString());
             AUTOMATION_SESSION.observeServerRestart(message.getString());
+            RESTART.observeChat(message.getString());
             AUTOMATION_SESSION.observeListingRefused(message.getString());
             // Donut delivers the sale confirmation as a system chat line
             // (observed: ".JAMESTHEB8312 bought your Ender Chest for $12.2K"),
@@ -588,10 +589,14 @@ public class DoughBayClient implements ClientModInitializer {
                 // second proof scan. Forward that new boundary immediately.
                 syncExactCoverageRequest();
             }
+            // A restart being stepped around owns the connection while it
+            // does: nothing else joins, and nothing flees a server the client
+            // is only passing through.
+            RESTART.tick(client, AUTOMATION_SESSION);
             if (AUTO_JOIN == null) AUTO_JOIN = new AutoJoin(client);
-            AUTO_JOIN.tick();
+            if (!RESTART.active()) AUTO_JOIN.tick();
             autoRespawn(client);
-            if (EVASION != null) EVASION.tick(client, AUTOMATION_SESSION);
+            if (EVASION != null && !RESTART.active()) EVASION.tick(client, AUTOMATION_SESSION);
             pollCommandInbox(client);
             SafeHomes.poll();
             CONSIGNMENT.tick(client);
@@ -1038,6 +1043,7 @@ public class DoughBayClient implements ClientModInitializer {
         return API_BUDGET;
     }
 
+    private static final RestartRecovery RESTART = new RestartRecovery();
     private static java.nio.file.Path commandInbox;
     private static long commandInboxCheckedAt;
 

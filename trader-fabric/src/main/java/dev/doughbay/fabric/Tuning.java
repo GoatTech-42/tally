@@ -779,6 +779,13 @@ public final class Tuning {
                     + "(1 auto, 0 wait for Resume)", 1, 0, 1, Kind.TOGGLE),
             new Setting("session.resume_after_leave", "Session", "Resume after leaving the server",
                     "Leaving the server pauses the session; 1 lets it resume by itself once you are back on, 0 waits for you to press Resume", 0, 0, 1, Kind.TOGGLE),
+            new Setting("restart.hop", "Session", "Skip the restart waiting room",
+                    "When the server restarts it parks everyone in a waiting room. On, the client leaves, joins through "
+                    + "another address of the same network, then joins the usual one again, which puts it straight "
+                    + "back in the world. The session stays stopped until the world is really there. The server "
+                    + "warns that leaving the waiting room can lose your position, so use it where that does not "
+                    + "matter; it needs 'Resume after leaving the server' on to carry on by itself (1 on, 0 off)",
+                    0, 0, 1, Kind.TOGGLE),
             new Setting("session.wind_down", "Session", "Wind down (soft stop)",
                     "On, the bot buys nothing more: no new orders and no auction buys, and its open orders are "
                     + "cancelled, with what they have already delivered collected. It keeps listing, repricing and "
@@ -896,6 +903,10 @@ public final class Tuning {
             new ListSetting("join.address", "Server to join by itself",
                     "The address the auto join connects to, e.g. donutsmp.net. Blank uses the last server this client "
                     + "was on, which is usually what you want"),
+            new ListSetting("restart.hop_addresses", "Addresses to come back in through",
+                    "The other addresses of the network that 'Skip the restart waiting room' joins through, in the "
+                    + "order to try them. Blank uses east and west of the usual address (east.donutsmp.net, "
+                    + "west.donutsmp.net). Only addresses of the same network are ever used"),
             new ListSetting("watch.filter", "Auction pages to watch",
                     "The sorts this client reads, in turn, separated by commas: \"Recently Listed, Lowest Price\". "
                     + "Recently Listed catches a mispriced item as it lands; Lowest Price catches the ones that landed "
