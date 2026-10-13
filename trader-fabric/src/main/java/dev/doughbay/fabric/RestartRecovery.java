@@ -23,20 +23,23 @@ import java.util.List;
  * waiting on nothing. Being moved to another world with the money sidebar up
  * is the end of the restart, and the hold is lifted on that.
  *
- * <p>Switched on, it also does not sit in the waiting room at all. The
- * network has regional addresses beside the main one; a client that leaves,
- * joins through one of those and then joins the main address again is put
- * straight into the world instead of the queue. That is three connections in
- * a row and nothing hidden about any of them. The session stays stopped the
- * whole way and is only let go once the world at the home address is proven
- * to be there.
+ * <p>Switched on, it also does not sit in the waiting room at all. There are
+ * two ways out. The first is the one the waiting room names itself, "Run
+ * /leave to get out": the command puts the player in another region of the
+ * network, where the auction is the same auction, and a teleport takes it
+ * away from wherever that set it down. The second is by address: the network
+ * has regional addresses beside the main one, and a client that leaves, joins
+ * through one of those and then joins the main address again is put straight
+ * into the world instead of the queue. Nothing about either is hidden. The
+ * session stays stopped the whole way and is only let go once a world it can
+ * trade from is proven to be there.
  *
  * <p>Once it has taken a client off the server it never gives up on putting
  * it back: the side doors are tried once each, the home address for as long
  * as it takes.
  */
 final class RestartRecovery {
-    private enum Step { IDLE, ARMED, TO_HOP, ON_HOP, TO_HOME, HOME_CHECK, RESUMING }
+    private enum Step { IDLE, LEAVE_ARMED, LEFT, RTP_WAIT, ARMED, TO_HOP, ON_HOP, TO_HOME, HOME_CHECK, RESUMING }
 
     private Step step = Step.IDLE;
     private long stepAt;
@@ -53,6 +56,8 @@ final class RestartRecovery {
     private boolean resumeOwed;
     private int resumeTries;
     private volatile long limboSeenAt;
+    private long leaveSentAt;
+    private net.minecraft.world.phys.Vec3 rtpFrom;
     private Object lastLevel;
     private long levelChangedAt;
 
@@ -78,6 +83,64 @@ final class RestartRecovery {
         boolean balance = SidebarBalance.current() >= 0;
         switch (step) {
             case IDLE -> idle(client, session, now, inWorld, current, on, balance);
+            case LEAVE_ARMED -> {
+                if (now - stepAt < RestartPlan.ARM_MILLIS) return;
+                if (!inWorld) {
+                    go(Step.IDLE, now);
+                    return;
+                }
+                // The way out the waiting room itself offers: "Run /leave to get out".
+                DoughBayClient.LOGGER.info("DoughBay restart: parked for the restart; sending /leave to be put in another region");
+                DoughBayClient.executionDriver().sendWhenClear(client, "leave");
+                leaveSentAt = now;
+                go(Step.LEFT, now);
+            }
+            case LEFT -> {
+                if (!inWorld) {
+                    // Dropped on the way: the ordinary join and the ordinary hold take it from here.
+                    go(Step.IDLE, now);
+                    return;
+                }
+                if (limboSeenAt > leaveSentAt + 2_000L) {
+                    DoughBayClient.LOGGER.info("DoughBay restart: /leave led back to the waiting room; waiting the restart out");
+                    go(Step.IDLE, now);
+                    return;
+                }
+                if (RestartPlan.worldAfterLeave(leaveSentAt, levelChangedAt, balance, now)) {
+                    if (DoughBayClient.executionDriver().refusesTeleports()) {
+                        finish(session, now, "in a world again after /leave (teleports are switched off, so staying where it put us)");
+                        return;
+                    }
+                    // Wherever /leave sets a player down, others are set down too.
+                    DoughBayClient.LOGGER.info("DoughBay restart: in a world again after /leave; /rtp away from where it put us");
+                    rtpFrom = client.player.position();
+                    DoughBayClient.executionDriver().sendWhenClear(client, "rtp");
+                    go(Step.RTP_WAIT, now);
+                    return;
+                }
+                if (now - stepAt > RestartPlan.LEAVE_TIMEOUT_MILLIS) {
+                    // Somewhere that is neither the waiting room nor a world to
+                    // trade in. From the waiting room the server puts a player
+                    // back by itself; from here it may not, so go round to the
+                    // front door, which leads to one or the other.
+                    DoughBayClient.LOGGER.info("DoughBay restart: /leave has not put us in a world; rejoining {}", home);
+                    hops = List.of();
+                    hopIndex = 0;
+                    leave(client);
+                    go(Step.TO_HOME, now);
+                }
+            }
+            case RTP_WAIT -> {
+                if (!inWorld) {
+                    go(Step.IDLE, now);
+                    return;
+                }
+                boolean moved = rtpFrom != null && client.player.position().distanceTo(rtpFrom) > 64;
+                long patience = (long) (Tuning.get("evasion.rtp_wait_sec") * 1000) + 5_000L;
+                if (moved || now - stepAt > patience) {
+                    finish(session, now, moved ? "teleported away and the world is there" : "the teleport did not move us; carrying on here");
+                }
+            }
             case ARMED -> {
                 if (now - stepAt < RestartPlan.ARM_MILLIS) return;
                 DoughBayClient.LOGGER.info("DoughBay restart: parked for the restart; leaving to come back in through {}",
@@ -168,6 +231,16 @@ final class RestartRecovery {
         }
     }
 
+    /** The world is proven: the hold goes, and a session the restart stopped is started again. */
+    private void finish(AutomationSessionController session, long now, String how) {
+        DoughBayClient.LOGGER.info("DoughBay restart: {}, {} s after being parked; the hold is lifted",
+                how, limboSeenAt > 0 ? (now - limboSeenAt) / 1000 : 0);
+        session.observeServerAnswered();
+        limboSeenAt = 0;
+        resumeTries = 0;
+        go(resumeOwed ? Step.RESUMING : Step.IDLE, now);
+    }
+
     /**
      * Starts the session again after a hop. Leaving the server is ordinarily
      * the player's doing and waits for the player; this leaving was the
@@ -210,17 +283,22 @@ final class RestartRecovery {
         // Only out of the waiting room itself. A warning alone is a restart
         // that may be of some other part of the network.
         if (limboSeenAt == 0 || now - limboSeenAt > 60_000L || current == null) return;
-        List<String> doors = RestartPlan.hops(Tuning.text("restart.hop_addresses"), on);
         hoppedUntil = now + 15 * 60_000L;
-        if (doors.isEmpty()) {
-            DoughBayClient.LOGGER.info("DoughBay restart: no other address of {} to come back in through; waiting it out", on);
-            return;
-        }
         var snapshot = session.snapshot();
         resumeOwed = snapshot.state() == AutomationSessionController.State.PAUSED && snapshot.detail() != null
                 && snapshot.detail().toLowerCase(java.util.Locale.ROOT).contains("server is restarting");
         homeServer = current;
         home = on;
+        homeAttempts = 0;
+        if (Tuning.get("restart.hop_way") < 1.5) {
+            go(Step.LEAVE_ARMED, now);
+            return;
+        }
+        List<String> doors = RestartPlan.hops(Tuning.text("restart.hop_addresses"), on);
+        if (doors.isEmpty()) {
+            DoughBayClient.LOGGER.info("DoughBay restart: no other address of {} to come back in through; waiting it out", on);
+            return;
+        }
         hops = doors;
         hopIndex = 0;
         homeAttempts = 0;

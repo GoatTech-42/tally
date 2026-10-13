@@ -58,6 +58,20 @@ class RestartPlanTest {
     }
 
     @Test
+    void leaveHasWorkedWhenItPutsUsInAWorldWithABalance() {
+        long sent = 2_000_000L;
+        long moved = sent + 1_500L;
+        assertTrue(RestartPlan.worldAfterLeave(sent, moved, true, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
+        // Not moved since the command went out: still in the waiting room.
+        assertFalse(RestartPlan.worldAfterLeave(sent, sent - 10_000L, true, sent + 60_000L));
+        // Moved to somewhere with no balance on its sidebar: a lobby, not a world to trade in.
+        assertFalse(RestartPlan.worldAfterLeave(sent, moved, false, moved + 60_000L));
+        // Only just arrived.
+        assertFalse(RestartPlan.worldAfterLeave(sent, moved, true, moved + 500L));
+        assertFalse(RestartPlan.worldAfterLeave(0, moved, true, moved + 60_000L));
+    }
+
+    @Test
     void aFreshJoinIsOnlyBelievedWhenNothingHasSaidRestartSince() {
         long joined = 5_000_000L;
         assertTrue(RestartPlan.homeProven(joined, joined - 30_000L, true, joined + RestartPlan.SETTLE_MILLIS));

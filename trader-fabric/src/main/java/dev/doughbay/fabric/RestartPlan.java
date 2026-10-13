@@ -93,6 +93,22 @@ final class RestartPlan {
                 && now - levelChangedAt >= SETTLE_MILLIS;
     }
 
+    /** How long a world reached with /leave has to hold before it is acted in. */
+    static final long LEAVE_SETTLE_MILLIS = 4_000L;
+    /** How long /leave is given to put the client in a world. */
+    static final long LEAVE_TIMEOUT_MILLIS = 90_000L;
+
+    /**
+     * Whether /leave has put the client in a world it can trade from: moved
+     * to another world after the command went out, with the money sidebar
+     * showing, and still there a few seconds on. A lobby has no balance on
+     * its sidebar, and is not one.
+     */
+    static boolean worldAfterLeave(long leaveSentAt, long levelChangedAt, boolean balanceShown, long now) {
+        return leaveSentAt > 0 && levelChangedAt > leaveSentAt && balanceShown
+                && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
+    }
+
     /** Whether a fresh join of the home address found the world there: nothing said about a restart since, and the sidebar up. */
     static boolean homeProven(long joinedAt, long lastNoticeAt, boolean balanceShown, long now) {
         return joinedAt > 0 && lastNoticeAt < joinedAt && balanceShown && now - joinedAt >= SETTLE_MILLIS;

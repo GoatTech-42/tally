@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 15:18 UTC
+- New: "Skip the restart waiting room" now gets out the way the waiting room itself offers. It sends /leave, which puts you in another region of the network, then /rtp to get away from where that set you down, and starts the session again there. The auction is the same in every region.
+- "Way out of the waiting room" (Settings, Session) picks between that (1, the default) and the earlier way of rejoining through another address (2). If /leave ends up somewhere that is not a world to trade in, the client rejoins the usual address by itself.
+
 ## 2026-10-13 15:12 UTC
 - Changed: "Skip the restart waiting room" starts the session again by itself once it is back in the world. It no longer needs "Resume after leaving the server" switched on: that setting is for when you leave the server, and this leaving is the bot's own.
 

@@ -780,12 +780,15 @@ public final class Tuning {
             new Setting("session.resume_after_leave", "Session", "Resume after leaving the server",
                     "Leaving the server pauses the session; 1 lets it resume by itself once you are back on, 0 waits for you to press Resume", 0, 0, 1, Kind.TOGGLE),
             new Setting("restart.hop", "Session", "Skip the restart waiting room",
-                    "When the server restarts it parks everyone in a waiting room. On, the client leaves, joins through "
-                    + "another address of the same network, then joins the usual one again, which puts it straight "
-                    + "back in the world. The session stays stopped until the world is really there. The server "
-                    + "warns that leaving the waiting room can lose your position, so use it where that does not "
-                    + "matter. A session the restart stopped is started again once it is back (1 on, 0 off)",
+                    "When the server restarts it parks everyone in a waiting room. On, the client gets itself out "
+                    + "instead of waiting, and a session the restart stopped is started again once it is in a world. "
+                    + "The server warns that leaving the waiting room loses your position, so use it where that "
+                    + "does not matter (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
+            new Setting("restart.hop_way", "Session", "Way out of the waiting room",
+                    "1: the server's own /leave, which puts you in another region, then /rtp away from where it set "
+                    + "you down. 2: leave, join through another address of the network, then join the usual address "
+                    + "again", 1, 1, 2, Kind.COUNT),
             new Setting("session.wind_down", "Session", "Wind down (soft stop)",
                     "On, the bot buys nothing more: no new orders and no auction buys, and its open orders are "
                     + "cancelled, with what they have already delivered collected. It keeps listing, repricing and "
