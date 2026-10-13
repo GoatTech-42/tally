@@ -6718,6 +6718,53 @@ public final class AutomationSessionController {
                 || openSinglesOf(p.itemKey()) >= singlesCap(p.itemKey());
     }
 
+    /** Lots recorded as bigger than what the inventory holds, and how long that has stood. */
+    private final RetailShortfall retailShortfall = new RetailShortfall();
+
+    /**
+     * A lot the book has as bigger than what is carried, once the inventory
+     * has held still at the smaller number for minutes: the missing part is
+     * split off and closed, and the lot goes on at the size it really is. The
+     * same durable split a single is taken off with, so quantity and cost
+     * stay conserved between the part kept and the part written off.
+     */
+    private boolean writeOffMissingRetail(long now, int carried) {
+        Position parent = trackedPosition;
+        RetailLot lot = retailLots.get(parent.positionId());
+        if (lot == null) return false;
+        String item = baseItemId(parent.itemKey());
+        // Other unlisted stock of the same item is in the same count and is not this lot's.
+        java.util.Set<Long> counted = new java.util.HashSet<>();
+        int others = 0;
+        for (Position p : recoveredQueue) {
+            if (p.positionId() != parent.positionId() && p.status() == PositionStatus.PURCHASED
+                    && baseItemId(p.itemKey()).equals(item) && counted.add(p.positionId())) others += p.quantity();
+        }
+        if (repricing != null && repricing.positionId() != parent.positionId()
+                && baseItemId(repricing.itemKey()).equals(item) && counted.add(repricing.positionId())) {
+            others += repricing.quantity();
+        }
+        int missing = retailShortfall.due(parent.positionId(), parent.quantity(), carried - others, now);
+        if (missing <= 0) return false;
+        RetailSplit split = RetailSplit.of(parent, nextPositionId++, nextPositionId++, lot.unitTarget(), missing);
+        long generation = persistence.submitRetail(checkpoint(sessionOpen, state.name(), split.single(),
+                AutomationUncertainExposure.none(), "Wrote off " + missing + " of a retail lot that the inventory does not hold"),
+                lot.child(split.single().positionId()), parent, split.remainder());
+        // Not saved: nothing has changed, and it waits as it did before.
+        if (generation <= 0) return false;
+        LOGGER.warn("DoughBay automation: {} is recorded as x{} and the inventory has held x{} of it for {} min; "
+                        + "writing off the {} missing (cost {}) and carrying on with x{}",
+                parent.itemKey(), parent.quantity(), carried - others, RetailShortfall.MILLIS / 60_000L, missing,
+                split.single().purchasePrice(), split.remainder().quantity());
+        retailLots.remove(parent.positionId());
+        retailLots.put(split.remainder().positionId(), lot.child(split.remainder().positionId()));
+        recoveredQueue.removeIf(p -> p.positionId() == parent.positionId());
+        retailRetryAfter.remove(parent.positionId());
+        closePhantom(split.single(), "it was recorded and is not in the inventory");
+        trackedPosition = split.remainder();
+        return deferRetail(now, "the lot now matches what is in the inventory");
+    }
+
     private boolean deferRetail(long now, String reason) {
         Position held = trackedPosition;
         if (held == null) return false;
@@ -6944,8 +6991,12 @@ public final class AutomationSessionController {
             }
             if (now < singlePeelReadyAt) return true;
             Inventory inventory = client.player.getInventory();
-            if (AutomatedExecutionDriver.inventoryCount(client, baseItemId(trackedPosition.itemKey())) < trackedPosition.quantity())
+            int carried = AutomatedExecutionDriver.inventoryCount(client, baseItemId(trackedPosition.itemKey()));
+            if (carried < trackedPosition.quantity()) {
+                if (writeOffMissingRetail(now, carried)) return true;
                 return deferRetail(now, "waiting for the recorded quantity in inventory");
+            }
+            retailShortfall.clear(trackedPosition.positionId());
             int existing = retailSingleSlot(client, trackedPosition.itemKey());
             if (existing >= 0) {
                 purchasedInventorySlot = existing;

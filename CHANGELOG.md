@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 14:20 UTC
+- Fixed: a lot kept for selling one at a time could freeze its whole market. If the bot had it recorded as one more than the inventory really held (127 recorded, 126 carried), it waited for the missing item for good: nothing of that item was listed, and no new orders went up for it either, for hours.
+- Now, when the inventory has held the same smaller count for three minutes, the missing part is written off, the log says so with the cost, and the bot carries on selling what is really there. A lot is never written off whole: an inventory with none of the item in it changes nothing.
+
 ## 2026-10-13 06:54 UTC
 - New: an exact name in the item lists. An entry like `glass` covers everything ending in it, so it also means every stained glass. Written `=glass` it means plain glass and nothing else. Works in "Only trade these", "Never trade these" and "Sell off and stop buying these".
 - Changed: with the markets split between accounts, an item on the Flips list is ordered by one account only, the one the market belongs to. Two accounts each bidding just over the top order would have been bidding over each other.
