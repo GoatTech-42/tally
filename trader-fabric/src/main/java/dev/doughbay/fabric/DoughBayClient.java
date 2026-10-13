@@ -1050,16 +1050,29 @@ public class DoughBayClient implements ClientModInitializer {
      * {@code send-command.txt} goes out through the same gate every other
      * command uses, in its turn, with no screen to fight. The file is deleted
      * as it is read, so a command is sent once and never repeats.
+     *
+     * <p>The line {@code !quit} is not sent anywhere: it closes the game, as
+     * closing its window would, and works on the title screen too. A game
+     * running without a window has no other clean way to be closed.
      */
     private static void pollCommandInbox(net.minecraft.client.Minecraft client) {
         long now = System.currentTimeMillis();
         if (now - commandInboxCheckedAt < 2000) return;
         commandInboxCheckedAt = now;
         java.nio.file.Path file = commandInbox;
-        if (file == null || client.getConnection() == null) return;
+        if (file == null) return;
         try {
             if (!java.nio.file.Files.exists(file)) return;
             java.util.List<String> lines = java.nio.file.Files.readAllLines(file);
+            if (CommandInbox.asksToQuit(lines)) {
+                java.nio.file.Files.delete(file);
+                LOGGER.warn("DoughBay: closing the game, asked for from outside it ({} in {})",
+                        CommandInbox.QUIT, file.getFileName());
+                client.stop();
+                return;
+            }
+            // Commands for the server wait in the file until there is a server to send them to.
+            if (client.getConnection() == null) return;
             java.nio.file.Files.delete(file);
             for (String raw : lines) {
                 String command = raw.strip();
