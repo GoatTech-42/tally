@@ -14,6 +14,9 @@ final class Figures {
         if (!Double.isFinite(value)) return "$—";
         String sign = value < 0 ? "-" : "";
         double absolute = Math.abs(value);
+        if (absolute >= 1_000_000_000) {
+            return sign + "$" + String.format(Locale.ROOT, "%.2fb", absolute / 1e9);
+        }
         if (absolute >= 1_000_000) {
             return sign + "$" + String.format(Locale.ROOT, "%.2fm", absolute / 1e6);
         }

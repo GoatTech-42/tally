@@ -383,6 +383,7 @@ public final class StatusWebhook {
     }
 
     private static String money(long value) {
+        if (value >= 1_000_000_000L) return String.format(Locale.ROOT, "$%.2fb", value / 1_000_000_000.0);
         if (value >= 1_000_000) return String.format(Locale.ROOT, "$%.2fm", value / 1_000_000.0);
         if (value >= 1_000) return String.format(Locale.ROOT, "$%.1fk", value / 1_000.0);
         return "$" + value;

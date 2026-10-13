@@ -159,7 +159,8 @@ public final class StatsImage {
     /** 7.3M, 612K, 950 - the way the figures read on the panel. */
     private static String compact(long v) {
         long a = Math.abs(v);
-        String s = a >= 1_000_000 ? String.format(java.util.Locale.ROOT, "%.1fM", a / 1_000_000.0)
+        String s = a >= 1_000_000_000L ? String.format(java.util.Locale.ROOT, "%.2fB", a / 1_000_000_000.0)
+                : a >= 1_000_000 ? String.format(java.util.Locale.ROOT, "%.1fM", a / 1_000_000.0)
                 : a >= 1_000 ? String.format(java.util.Locale.ROOT, "%.0fK", a / 1_000.0)
                 : Long.toString(a);
         return (v < 0 ? "-$" : "$") + s;

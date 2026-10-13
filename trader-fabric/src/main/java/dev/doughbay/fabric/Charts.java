@@ -555,6 +555,7 @@ final class Charts {
 
     private static String money(double value) {
         if (!Double.isFinite(value)) return "$--";
+        if (Math.abs(value) >= 1_000_000_000) return String.format(Locale.ROOT, "$%.2fb", value / 1e9);
         if (Math.abs(value) >= 1_000_000) return String.format(Locale.ROOT, "$%.2fm", value / 1e6);
         if (Math.abs(value) >= 1_000) return String.format(Locale.ROOT, "$%.1fk", value / 1e3);
         return String.format(Locale.ROOT, "$%.0f", value);

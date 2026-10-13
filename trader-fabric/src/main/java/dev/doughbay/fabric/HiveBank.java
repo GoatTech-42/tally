@@ -289,6 +289,7 @@ public final class HiveBank {
     }
 
     private static String money(long v) {
+        if (v >= 1_000_000_000L) return String.format(java.util.Locale.ROOT, "$%.2fb", v / 1_000_000_000.0);
         if (v >= 1_000_000) return String.format(java.util.Locale.ROOT, "$%.1fm", v / 1_000_000.0);
         if (v >= 1_000) return String.format(java.util.Locale.ROOT, "$%.0fk", v / 1_000.0);
         return "$" + v;

@@ -1846,7 +1846,9 @@ public final class DiscordBridge {
     static String money(long v) {
         long a = Math.abs(v);
         String s;
-        if (a >= 1_000_000) s = String.format(Locale.ROOT, "$%.2fM", a / 1_000_000.0);
+        // A bank of 1014.00M is a billion, and reads as one.
+        if (a >= 1_000_000_000L) s = String.format(Locale.ROOT, "$%.2fB", a / 1_000_000_000.0);
+        else if (a >= 1_000_000) s = String.format(Locale.ROOT, "$%.2fM", a / 1_000_000.0);
         else if (a >= 10_000) s = String.format(Locale.ROOT, "$%.1fK", a / 1_000.0);
         else s = String.format(Locale.ROOT, "$%,d", a);
         return v < 0 ? "-" + s : s;

@@ -4,6 +4,9 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 23:39 UTC
+- Fixed: amounts of a billion or more were still written in millions, so a bank of 1.01 billion showed as $1014.00M. They now read $1.01B on the Discord panel and its pictures, the GoNuts screen, the web panel, the charts and the webhook reports.
+
 ## 2026-10-13 23:32 UTC
 - New: "Run from hostile mobs within" (Settings, Evasion). Off (0) unless you set a distance. A hostile mob that close sends the bot away before it can be hit, the same way a player coming close does. A random teleport lands an unarmoured, standing-still account in the open, and one bot died three times in a day to whatever walked up.
 - Only mobs that attack unprovoked count (not endermen or zombified piglins), and a mob the bot cannot see, such as one in a cave underneath, only counts once it is within ten blocks.
