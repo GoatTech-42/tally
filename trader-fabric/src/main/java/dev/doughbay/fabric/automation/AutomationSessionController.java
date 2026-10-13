@@ -4605,6 +4605,9 @@ public final class AutomationSessionController {
      * check, or every market was checked recently.
      */
     private DeskStep nextKeylessSweep(MarketWatcher.Snapshot snapshot, long now) {
+        // The sweep prices the markets the bot chooses among. Trading only the
+        // player's list, at prices they set, there is nothing for it to price.
+        if (ownOnly()) return null;
         if (!dev.doughbay.fabric.KeylessFeed.active() || dev.doughbay.fabric.Tuning.get("keyless.sweep") < 0.5) return null;
         if (now - lastSweepPlannedAt < (long) (dev.doughbay.fabric.Tuning.get("keyless.sweep_gap_sec") * 1000)) return null;
         java.util.LinkedHashMap<String, Integer> targets = sweepTargets(snapshot);
@@ -5709,7 +5712,8 @@ public final class AutomationSessionController {
                             : " (retail batch estimated profit " + Math.round(retail.profit(unit)) + "; " + retail.tier(unit) + ")"),
                     0, retail == null ? 0 : retail.singlePrice()));
         }
-        int retailChecks = enqueueRetailQuotes(snapshot, now);
+        // Price checks on markets of the bot's own choosing are for the bot's own trading.
+        int retailChecks = onlyOwn ? 0 : enqueueRetailQuotes(snapshot, now);
         // Refresh several proven markets before returning to the long auction
         // watch. Read our orders again afterwards so fills/placements that arrived
         // during the checks are accounted for before planning the next bids.
