@@ -19,8 +19,10 @@ import java.util.Set;
  * order house writes them.
  *
  * <p>Written as {@code item buy sell}, entries apart by commas:
- * {@code diamond 80 120, golden apple 4k 5.2k x3}. The optional last part is
- * how many stacks to order at a time.
+ * {@code diamond 80 120, golden apple 4k 5.2k x3}. The optional {@code x3} is
+ * how many stacks to order at a time. The word {@code singles} after an entry
+ * sells what arrives one item at a time at the sell price, never as a stack:
+ * {@code observer 500 900 x15 singles}.
  */
 public final class OwnPrices {
     /** The setting the list is typed into. */
@@ -28,12 +30,17 @@ public final class OwnPrices {
     /** An order for more than this many stacks is not what a slip of the finger should be able to ask for. */
     static final int MAX_STACKS = 15;
     private static final Set<String> FILLER = Set.of("buy", "sell", "at", "each", "for", "to", "stack", "stacks", "x");
+    private static final Set<String> SINGLES = Set.of("singles", "single", "peel", "individually");
 
     /**
      * @param itemId the item without its namespace, as the lists in settings write it
      * @param stacks stacks to order at a time; 0 leaves it to the ordinary setting
+     * @param singles sold one item at a time at the sell price, and never as a stack
      */
-    public record Entry(String itemId, long buy, long sell, int stacks) {
+    public record Entry(String itemId, long buy, long sell, int stacks, boolean singles) {
+        public Entry(String itemId, long buy, long sell, int stacks) {
+            this(itemId, buy, sell, stacks, false);
+        }
     }
 
     /** @param problems what could not be read, each in words that can be shown to the player */
@@ -55,10 +62,15 @@ public final class OwnPrices {
             List<String> name = new ArrayList<>();
             List<Long> prices = new ArrayList<>();
             int stacks = 0;
+            boolean singles = false;
             boolean bad = false;
             for (String token : entry.split("->|[\\s:=>@|\u2192]+")) {
                 String t = token.strip().toLowerCase(Locale.ROOT);
                 if (t.isEmpty() || FILLER.contains(t)) continue;
+                if (SINGLES.contains(t) && !name.isEmpty()) {
+                    singles = true;
+                    continue;
+                }
                 long money = MoneyInput.parse(t);
                 if (prices.size() >= 2 || (t.startsWith("x") && t.length() > 1 && t.substring(1).matches("[0-9]+"))) {
                     // Past the two prices, or written x3: how many stacks.
@@ -92,7 +104,7 @@ public final class OwnPrices {
                 problems.add(item + " is on the list twice; the first is used");
                 continue;
             }
-            entries.put(item, new Entry(item, prices.get(0), prices.get(1), stacks));
+            entries.put(item, new Entry(item, prices.get(0), prices.get(1), stacks, singles));
         }
         return new Parsed(java.util.Collections.unmodifiableMap(entries), List.copyOf(problems));
     }

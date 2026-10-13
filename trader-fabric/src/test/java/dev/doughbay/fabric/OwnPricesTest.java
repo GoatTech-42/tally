@@ -44,6 +44,18 @@ class OwnPricesTest {
     }
 
     @Test
+    void theWordSinglesSellsAnItemOneAtATime() {
+        OwnPrices.Parsed list = OwnPrices.parse("observer 500 900 x15 singles, diamond 80 120, hopper 2k 3k peel");
+        assertEquals(List.of(), list.problems());
+        assertEquals(new OwnPrices.Entry("observer", 500, 900, 15, true), list.entries().get("observer"));
+        assertEquals(false, list.entries().get("diamond").singles());
+        assertEquals(new OwnPrices.Entry("hopper", 2_000, 3_000, 0, true), list.entries().get("hopper"));
+        // Only as a word after the item. First in an entry it is taken for a name, and no item has it:
+        // the order desk says so when it comes to order it.
+        assertEquals(false, OwnPrices.parse("singles 5 9").entries().get("singles").singles());
+    }
+
+    @Test
     void anEmptyListPricesNothing() {
         assertTrue(OwnPrices.parse("").entries().isEmpty());
         assertTrue(OwnPrices.parse(null).entries().isEmpty());

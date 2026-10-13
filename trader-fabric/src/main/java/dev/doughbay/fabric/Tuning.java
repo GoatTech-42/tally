@@ -895,6 +895,8 @@ public final class Tuning {
             new ListSetting("prices.own", "Your own prices",
                     "Items to order at a price you set and sell at a price you set, as item, buy price, sell price: "
                     + "\"diamond 80 120, golden apple 4k 5.2k x3\". Prices are per item; x3 orders three stacks at a time. "
+                    + "Add the word singles to sell an item one at a time and never as a stack: \"observer 500 900 x15 "
+                    + "singles\"; Singles up per market at once, under Selling, says how many are listed together. "
                     + "The bot keeps a buy order up at your buy price, lists what it delivers at your sell price in the "
                     + "stacks it arrives in, and leaves that listing at your price until it sells. It stops buying these "
                     + "on the auction, and stops re-ordering while a full set of listings of the item is still up. "

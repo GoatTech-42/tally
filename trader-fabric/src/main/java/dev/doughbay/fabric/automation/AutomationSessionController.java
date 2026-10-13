@@ -5173,7 +5173,11 @@ public final class AutomationSessionController {
             boolean listablePart = worthCollecting(pending, stackSizeOf(r.itemId()), completeByKey.getOrDefault(k, false)
                     || r.remaining() == 0, r.requested(), sizeBySale(), wholeOnly)
                     && now - partStackAt.getOrDefault(k, 0L) > PART_STACK_REST_MILLIS;
-            if (pending > 0 && listablePart && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
+            // Sold one at a time, what has not been collected is better left in
+            // the order, which keeps it for months, than carried in the pack.
+            boolean lotStillSelling = ownSingles(r.itemId()) && hasRetailStock(r.itemId()) && !windingDown();
+            if (pending > 0 && listablePart && !lotStillSelling
+                    && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         "collecting " + pending + " " + r.itemId(), collectAttempts.getOrDefault(k, 0)));
             }
@@ -6044,6 +6048,18 @@ public final class AutomationSessionController {
                 : ownListTarget(position.itemKey(), position.quantity(), position.purchasePrice());
     }
 
+    /**
+     * Whether the player asked for this item to be sold one at a time. Such a
+     * lot is peeled a single at a time at their price and nothing else is done
+     * with it: the rest is not put up as a stack when the single slots are
+     * full, and no more of it is collected or ordered until the lot is gone,
+     * since stock that cannot be listed yet only fills the pack.
+     */
+    private static boolean ownSingles(String itemKey) {
+        dev.doughbay.fabric.OwnPrices.Entry own = ownPrice(itemKey);
+        return own != null && own.singles();
+    }
+
     /** Whether the game knows an item by this id; a name typed wrong is not ordered. */
     private static boolean knownItem(String itemId) {
         try {
@@ -6115,10 +6131,14 @@ public final class AutomationSessionController {
                 ownPriceNote(id, "it is not among the items the bot may trade", now);
                 continue;
             }
+            if (own.singles() && hasRetailStock(id)) {
+                ownPriceNote(id, "the last lot of it is still being sold one at a time", now);
+                continue;
+            }
             // Stock that is not selling is not a reason to buy more of it.
             int up = 0;
             for (Position p : openListings) if (baseItemId(p.itemKey()).equals(id)) up++;
-            if (up >= MAX_OPEN_PER_MARKET()) {
+            if (!own.singles() && up >= MAX_OPEN_PER_MARKET()) {
                 ownPriceNote(id, up + " listing(s) of it are still up at your sell price", now);
                 continue;
             }
@@ -6405,7 +6425,8 @@ public final class AutomationSessionController {
 
     private boolean retailWaiting(Position p, long now) {
         if (!retailLots.containsKey(p.positionId())) return false;
-        return !singlesListingEnabled() || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
+        return !(singlesListingEnabled() || ownSingles(p.itemKey()))
+                || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
                 || openSinglesOf(p.itemKey()) >= (int) dev.doughbay.fabric.Tuning.get("list.singles_max");
     }
 
@@ -6541,6 +6562,9 @@ public final class AutomationSessionController {
         if (position == null || position.quantity() != 1) return 0;
         RetailLot lot = retailLots.get(position.positionId());
         if (lot == null) return 0;
+        // The player's price for one is the price of one; no quote of ours moves it.
+        long own = ownListTarget(position);
+        if (own > 0) return own;
         long target = lot.unitTarget();
         var quote = bidQuotes.get(baseItemId(position.itemKey()) + "x1");
         double live = quote == null ? 0 : quote.conservativePrice(baseItemId(position.itemKey()), 1, System.currentTimeMillis());
@@ -6612,7 +6636,9 @@ public final class AutomationSessionController {
                 singlePeelFailedPositionId = 0;
                 return deferRetail(now, "retrying an interrupted split later");
             }
-            if (!singlesListingEnabled()) return deferRetail(now, "individual listing is disabled");
+            if (!singlesListingEnabled() && !ownSingles(trackedPosition.itemKey())) {
+                return deferRetail(now, "individual listing is disabled");
+            }
             if (retailStackDue(client, trackedPosition, now)) return listRetailStack(client, now);
             if (retailWaiting(trackedPosition, now)) return deferRetail(now, "waiting for a single to sell");
             if (!safeInventoryContext(client)) {
@@ -6727,6 +6753,8 @@ public final class AutomationSessionController {
      * repriced or bought, and a seven-million-an-hour session made 36K.
      */
     private boolean retailStackDue(Minecraft client, Position p, long now) {
+        // One at a time means one at a time: the rest waits for a single slot.
+        if (p != null && ownSingles(p.itemKey())) return false;
         if (p == null || p.quantity() < 2 || !retailLots.containsKey(p.positionId())
                 || !singlesListingEnabled() || p.itemKey().indexOf('#') >= 0
                 || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
@@ -6982,8 +7010,17 @@ public final class AutomationSessionController {
         }
         // An item on the player's list is sold as it arrives, at their price;
         // it is not pieced out into singles at one of ours.
-        boolean ownPriced = ownPrice(itemId) != null;
+        dev.doughbay.fabric.OwnPrices.Entry ownEntry = ownPrice(itemId);
+        boolean ownPriced = ownEntry != null;
         if (ownPriced) retailTarget = 0;
+        // Unless they asked for it one at a time: then it is a lot of singles
+        // at their price, as long as that price is over what each one cost.
+        if (ownPriced && ownEntry.singles() && count > 1 && ownEntry.sell() > unitPrice) {
+            retailTarget = ownEntry.sell();
+            ownPriced = false;
+            LOGGER.info("DoughBay your prices: {} x{} is sold one at a time at {} each, the price you set",
+                    itemId, count, retailTarget);
+        }
         dev.doughbay.fabric.DoughBayClient.alertOrderFilled(
                 baseItemId(itemId).replace("minecraft:", "").replace('_', ' '), count, unitPrice);
         // Account for every unit in the physical stack, including units whose
@@ -9118,6 +9155,7 @@ public final class AutomationSessionController {
         // row first, so one search reads the cheapest live ask from other
         // sellers and the listing goes just under it, never below cost plus
         // the minimum profit.
+        if (probePending && !probeStarted && ownListTarget(trackedPosition) > 0) probePending = false;
         if (probePending) {
             if (!probeStarted) {
                 awaitedTerminalSequence = driver.lastTerminalEvent().sequence();

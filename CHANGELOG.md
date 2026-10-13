@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 02:44 UTC
+- New: sell one at a time. In "Your own prices", add the word singles to an entry, like `observer 500 900 x15 singles`. The bot orders the stacks at your buy price and sells them one item at a time at your sell price, never as a stack.
+- "Singles up per market at once", under Selling, sets how many are listed together (5 unless you change it, up to 30). While a lot is still being sold, the bot does not collect or order more of that item; what is not collected yet stays in the order.
+- Fixed: a listing at a price you set could be undercut to match the cheapest live listing when it was pulled back and listed again. It now goes back up at your price.
+
 ## 2026-10-13 02:40 UTC
 - New: wind down, a soft stop. In Settings, under Session, turn on "Wind down (soft stop)". The bot stops buying: no new orders, no auction buys. It cancels its open orders (the money comes back) and collects what they already delivered. It keeps listing, repricing and selling what it holds on the auction, and ends the session by itself when nothing is left.
 - Pressing Start switches it back off. It is off unless you turn it on, and it does not travel in a settings code. Accounts sharing one settings file wind down together.
