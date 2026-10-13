@@ -9800,9 +9800,15 @@ public final class AutomationSessionController {
         // joke asks of 43M and 44M for 64 experience bottles got into the
         // keyless price evidence, and a 239K stack went up at 42.68M - a
         // listing nobody will ever buy, holding a slot for days.
+        //
+        // A price the player set themselves is not a valuation, bad or good.
+        // The cap took it for one: obsidian ordered at 250 to sell at the
+        // player's price went up at 750 instead, under what the market paid,
+        // and anything on their list marked up more than three times was sold
+        // at three times and no more.
         long costBasis = trackedPosition.purchasePrice();
-        if (costBasis > 0 && trackedPosition.targetPrice() > costBasis * MAX_LIST_COST_MULTIPLE) {
-            long capped = costBasis * MAX_LIST_COST_MULTIPLE;
+        long capped = cappedListTarget(trackedPosition.targetPrice(), costBasis, ownListTarget(trackedPosition) > 0);
+        if (capped != trackedPosition.targetPrice()) {
             LOGGER.warn("DoughBay automation: {} x{} was about to list at {} against a cost of {}; capped at {}",
                     trackedPosition.itemKey(), trackedPosition.quantity(), trackedPosition.targetPrice(), costBasis, capped);
             trackedPosition = withTargetPrice(trackedPosition, capped);
@@ -10502,6 +10508,16 @@ public final class AutomationSessionController {
 
     /** A listing is never priced above this many times its cost; see the LIST intent. */
     private static final long MAX_LIST_COST_MULTIPLE = 3;
+
+    /**
+     * The price a stack goes up at once the last check has seen it: never
+     * more than three times its cost when the bot worked the price out, and
+     * exactly what the player set when they set it.
+     */
+    static long cappedListTarget(long target, long cost, boolean playersOwnPrice) {
+        if (playersOwnPrice || cost <= 0 || target <= cost * MAX_LIST_COST_MULTIPLE) return target;
+        return cost * MAX_LIST_COST_MULTIPLE;
+    }
 
     private enum ReservedSlot { EMPTY, CLEARING, STUCK }
 

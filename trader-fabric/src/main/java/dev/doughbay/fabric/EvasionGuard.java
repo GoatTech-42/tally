@@ -279,6 +279,23 @@ public final class EvasionGuard {
     private volatile String warnedOf = "";
     private volatile long warnedAt;
     private volatile float lastHealth = -1;
+    /** The player the health was last read from, and when that player first appeared. */
+    private Object healthOf;
+    private long healthSince;
+    /** How long after joining or respawning a fall in health is the server reporting it, not somebody hitting. */
+    static final long HEALTH_SETTLE_MILLIS = 5_000L;
+
+    /**
+     * Whether a fall in health is damage. A client joins believing it has
+     * full health and is told the truth a moment later; an account that
+     * logged off hurt reads that as a blow of exactly the difference, every
+     * time it joins. One at 4.5 hearts was "hit for 15.5" on each login,
+     * fled, was refused the teleport, left the server, joined again and was
+     * "hit for 15.5" again, three times round.
+     */
+    static boolean tookDamage(float lastHealth, float health, long sinceJoinedMillis) {
+        return lastHealth >= 0 && health < lastHealth - 0.01f && sinceJoinedMillis >= HEALTH_SETTLE_MILLIS;
+    }
     private volatile double lastFallDistance;
     private volatile long lastPlayerInputAt;
     private volatile double lastLookYaw = Double.NaN;
@@ -500,7 +517,13 @@ public final class EvasionGuard {
         // the damage lands.
         boolean fell = lastFallDistance > 3.0 && client.player.onGround();
         lastFallDistance = client.player.fallDistance;
-        if (lastHealth >= 0 && health < lastHealth - 0.01f && !fell && !driving) {
+        if (client.player != healthOf) {
+            // A new login or a respawn: what the old body's health was says nothing about this one.
+            healthOf = client.player;
+            healthSince = now;
+            lastHealth = -1;
+        }
+        if (tookDamage(lastHealth, health, now - healthSince) && !fell && !driving) {
             java.util.List<String> near = new java.util.ArrayList<>();
             boolean strangerAbout = false;
             boolean anyoneAbout = false;
