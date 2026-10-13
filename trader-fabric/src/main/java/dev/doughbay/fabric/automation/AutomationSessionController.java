@@ -3930,6 +3930,16 @@ public final class AutomationSessionController {
      * stacks only: a whole stack, or an order that is completely filled.
      * Otherwise the older rule, a quarter stack or half of a small order.
      */
+    /**
+     * When what an order has delivered is worth a trip for, for an item the
+     * player sells one at a time: at once while none of it is on sale yet, and
+     * eight at a time after that, or whatever is left when the order is done.
+     */
+    static boolean ownSinglesWorthCollecting(int pending, boolean complete, boolean someOnSale) {
+        if (pending <= 0) return false;
+        return complete || !someOnSale || pending >= 8;
+    }
+
     static boolean worthCollecting(int pending, int stackSize, boolean complete, int requested, boolean sizeBySale,
                                    boolean wholeStacksOnly) {
         if (pending <= 0) return false;
@@ -4838,7 +4848,8 @@ public final class AutomationSessionController {
         ExecutionResult result = switch (step.action()) {
             case READ -> driver.readOwnOrders();
             case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.ordinal(),
-                    dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why()));
+                    dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why())
+                            && !ownSingles(step.itemId()));
             case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
             case PLACE -> driver.placeOrder(step.itemId(), step.count(), step.unitPrice());
             case SWEEP -> driver.probeCheapest(step.itemId(), step.count(), dev.doughbay.fabric.DoughBayClient.account());
@@ -5181,8 +5192,17 @@ public final class AutomationSessionController {
             int collected = collectedByKey.getOrDefault(k, 0);
             int pending = deliveredByKey.getOrDefault(k, 0) - collected;
             boolean wholeOnly = dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5;
-            boolean listablePart = worthCollecting(pending, stackSizeOf(r.itemId()), completeByKey.getOrDefault(k, false)
-                    || r.remaining() == 0, r.requested(), sizeBySale(), wholeOnly)
+            // Sold one at a time, there is nothing to wait for: a part stack
+            // is as good as a whole one when every item is its own listing.
+            // The first of them is fetched as soon as it is there, so selling
+            // starts while the order is still filling; after that a handful
+            // at a time, since each trip to the order house is a slow one.
+            boolean oneAtATime = ownSingles(r.itemId());
+            boolean listablePart = (oneAtATime
+                    ? ownSinglesWorthCollecting(pending, completeByKey.getOrDefault(k, false) || r.remaining() == 0,
+                            openSinglesOf(r.itemId()) > 0 || hasRetailStock(r.itemId()))
+                    : worthCollecting(pending, stackSizeOf(r.itemId()), completeByKey.getOrDefault(k, false)
+                    || r.remaining() == 0, r.requested(), sizeBySale(), wholeOnly))
                     && now - partStackAt.getOrDefault(k, 0L) > PART_STACK_REST_MILLIS;
             // Sold one at a time, what has not been collected is better left in
             // the order, which keeps it for months, than carried in the pack.

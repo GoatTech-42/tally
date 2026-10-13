@@ -4,6 +4,9 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 03:56 UTC
+- Fixed: an item you sell one at a time (Flips, "One at a time") waited for a whole stack to be delivered before the bot collected anything, so selling started late. It now collects the first items as soon as they arrive and starts selling while the order is still filling. After that it collects eight or more at a time, or whatever is left once the order is done.
+
 ## 2026-10-13 03:36 UTC
 - New: a Flips tab in the sidebar, under Items. It is "Your own prices" with boxes to fill in, so nothing has to be typed as a list. Pick the item, the most to pay for one, the price to sell one at, how many an order asks for, whether it bids a fixed price or just over the top order (and by how much), whether it sells whole stacks or one at a time, and an optional total and budget. Press Add. Click a row to change it, or Remove to take it off.
 - The tab shows each item's open order, how many were bought, what each cost, how many are held, and what the market pays.

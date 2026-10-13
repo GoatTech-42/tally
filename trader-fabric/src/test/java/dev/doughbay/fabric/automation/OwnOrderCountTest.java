@@ -50,6 +50,19 @@ class OwnOrderCountTest {
     }
 
     @Test
+    void soldOneAtATimeTheFirstDeliveryIsFetchedAtOnce() {
+        // Three observers have arrived on an order for 960 and none is on sale yet: go and get them.
+        assertEquals(true, AutomationSessionController.ownSinglesWorthCollecting(3, false, false));
+        assertEquals(true, AutomationSessionController.ownSinglesWorthCollecting(1, false, false));
+        // Some are already selling: wait for a handful rather than make the trip for one.
+        assertEquals(false, AutomationSessionController.ownSinglesWorthCollecting(3, false, true));
+        assertEquals(true, AutomationSessionController.ownSinglesWorthCollecting(8, false, true));
+        // The order is finished: whatever is left is all there will be.
+        assertEquals(true, AutomationSessionController.ownSinglesWorthCollecting(2, true, true));
+        assertEquals(false, AutomationSessionController.ownSinglesWorthCollecting(0, true, false));
+    }
+
+    @Test
     void somethingThatDoesNotStackIsOrderedByTheOne() {
         assertEquals(4, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 10_000_000));
         assertEquals(2, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 2_500_000));
