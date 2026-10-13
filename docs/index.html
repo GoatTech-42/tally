@@ -188,6 +188,7 @@
     <a href="#top" aria-label="GoNuts, top of page"><img src="assets/logo.png" alt="GoNuts"></a>
     <nav aria-label="Sections">
       <a class="optional" href="#install">Install</a>
+      <a class="optional" href="#discord">Discord</a>
       <a class="optional" href="#does">What it does</a>
       <a class="optional" href="#new">What's new</a>
       <a href="https://github.com/cody-raves/Gonuts">GitHub</a>
@@ -261,6 +262,40 @@
           <li><button type="button" data-at="57"><span class="n">6</span><span><span class="what">Enable live trading, then Start</span><div class="how">Click the button, click again within 8 seconds to confirm, press Start.</div></span><span class="at">0:57</span></button></li>
         </ol>
         <p class="after">After that, leave the game window open and visible with no menu left open. The End key stops it at once.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="discord">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">Discord</div>
+      <h2>Run it from Discord in six steps</h2>
+      <p class="lede">A bot inside the mod posts one message in a channel of yours and keeps it up to date. You start, stop and tune the trader from the buttons under it. New to Discord bots? Watch it through: every click is spelled out.</p>
+    </div>
+    <div class="install-grid">
+      <div class="player">
+        <video id="film-discord" controls preload="metadata" poster="assets/site/discord-setup-poster.jpg">
+          <source src="assets/site/discord-setup.mp4" type="video/mp4">
+          <track kind="captions" src="assets/site/discord-setup.vtt" srclang="en" label="English" default>
+          Your browser cannot play this video. <a href="assets/site/discord-setup.mp4">Download it</a> instead.
+        </video>
+        <div class="under">
+          <span>Setting up the Discord panel, with captions</span>
+          <a href="https://github.com/cody-raves/Gonuts/blob/main/docs/discord.md">Prefer to read? The written guide</a>
+        </div>
+      </div>
+      <div>
+        <ol class="steps" id="steps-discord">
+          <li><button type="button" data-at="6"><span class="n">1</span><span><span class="what">Get what you need</span><div class="how">A Discord account, a server you own, and GoNuts already trading.</div></span><span class="at">0:06</span></button></li>
+          <li><button type="button" data-at="16"><span class="n">2</span><span><span class="what">Create the bot and copy its token</span><div class="how">On <span class="mono">discord.com/developers/applications</span>: New Application, then Bot, then Reset Token.</div></span><span class="at">0:16</span></button></li>
+          <li><button type="button" data-at="37"><span class="n">3</span><span><span class="what">Invite it to your server</span><div class="how">OAuth2, URL Generator: tick <span class="mono">bot</span>, then View Channels, Send Messages and Attach Files.</div></span><span class="at">0:37</span></button></li>
+          <li><button type="button" data-at="50"><span class="n">4</span><span><span class="what">Copy two ids</span><div class="how">Turn on Developer Mode, right-click the channel, then right-click your own name.</div></span><span class="at">0:50</span></button></li>
+          <li><button type="button" data-at="69"><span class="n">5</span><span><span class="what">Paste them into GoNuts</span><div class="how">Press B, open Autopilot, click the top right button twice, paste, Save.</div></span><span class="at">1:09</span></button></li>
+          <li><button type="button" data-at="90"><span class="n">6</span><span><span class="what">Use the panel</span><div class="how">Pick a page from the dropdown. Start and Stop work like the buttons in game.</div></span><span class="at">1:30</span></button></li>
+        </ol>
+        <p class="after">The bot token is a password. Never post it or share it. If it gets out, press Reset Token on the developer page and paste the new one into GoNuts.</p>
       </div>
     </div>
   </div>
@@ -361,27 +396,38 @@
 (function () {
   "use strict";
 
-  // ---- the install video and its steps -------------------------------------
-  var film = document.getElementById("film");
-  var steps = Array.prototype.slice.call(document.querySelectorAll("#steps li"));
-  var starts = steps.map(function (li) { return Number(li.querySelector("button").dataset.at); });
+  // ---- a video and the steps beside it: the install one and the Discord one ----
+  function wire(filmId, stepsId) {
+    var film = document.getElementById(filmId);
+    var steps = Array.prototype.slice.call(document.querySelectorAll("#" + stepsId + " li"));
+    if (!film || !steps.length) return;
+    var starts = steps.map(function (li) { return Number(li.querySelector("button").dataset.at); });
 
-  function mark(seconds) {
-    var current = -1;
-    for (var i = 0; i < starts.length; i++) if (seconds >= starts[i]) current = i;
-    steps.forEach(function (li, i) { li.classList.toggle("now", i === current); });
-  }
+    function mark(seconds) {
+      var current = -1;
+      for (var i = 0; i < starts.length; i++) if (seconds >= starts[i]) current = i;
+      steps.forEach(function (li, i) { li.classList.toggle("now", i === current); });
+    }
 
-  steps.forEach(function (li, i) {
-    li.querySelector("button").addEventListener("click", function () {
-      film.currentTime = starts[i];
-      mark(starts[i]);
-      var playing = film.play();
-      if (playing && playing.catch) playing.catch(function () { /* the browser wants a click on the video itself */ });
-      if (window.matchMedia("(max-width: 860px)").matches) film.scrollIntoView({ block: "center" });
+    steps.forEach(function (li, i) {
+      li.querySelector("button").addEventListener("click", function () {
+        film.currentTime = starts[i];
+        mark(starts[i]);
+        var playing = film.play();
+        if (playing && playing.catch) playing.catch(function () { /* the browser wants a click on the video itself */ });
+        if (window.matchMedia("(max-width: 860px)").matches) film.scrollIntoView({ block: "center" });
+      });
     });
-  });
-  film.addEventListener("timeupdate", function () { mark(film.currentTime); });
+    film.addEventListener("timeupdate", function () { mark(film.currentTime); });
+    // One at a time: starting one stops the other.
+    film.addEventListener("play", function () {
+      Array.prototype.forEach.call(document.querySelectorAll("video"), function (other) {
+        if (other !== film) other.pause();
+      });
+    });
+  }
+  wire("film", "steps");
+  wire("film-discord", "steps-discord");
 
   // ---- the build that the download button fetches ---------------------------
   var when = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });

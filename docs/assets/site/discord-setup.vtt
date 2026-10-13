@@ -1,0 +1,34 @@
+WEBVTT
+
+00:00.000 --> 00:06.000
+Run your trader from Discord. About five minutes, and you only do it once.
+
+00:06.000 --> 00:16.000
+A Discord account, a server of your own, and GoNuts already working in game.
+
+00:16.000 --> 00:26.000
+Open the Discord developer page and make a new application. The name is up to you.
+
+00:26.000 --> 00:37.000
+The token is the bot's password. Copy it now: Discord only shows it once.
+
+00:37.000 --> 00:50.000
+Make an invite link with three permissions, open it, and pick your server.
+
+00:50.000 --> 00:59.000
+Developer Mode lets you copy the ids that GoNuts asks for.
+
+00:59.000 --> 01:09.000
+Right-click the channel for its id, then right-click your own name for yours.
+
+01:09.000 --> 01:19.000
+In game press B, open Autopilot, and click the top right button twice.
+
+01:19.000 --> 01:30.000
+Paste the token, the channel id and your user id, then press Save.
+
+01:30.000 --> 01:42.000
+The panel shows up in your channel. Pick a page from the dropdown, and Start or Stop from the buttons.
+
+01:42.000 --> 01:51.000
+Check the three permissions, both ids, and the token. Then Save again.
