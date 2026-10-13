@@ -176,6 +176,15 @@ public final class Tuning {
             new Setting("api.own_key", "Multi client", "This client has its own key",
                     "When each client of a hive holds a separate token, none needs to split the request budget with "
                     + "the others; each keeps the whole allowance (1 own key, 0 shared key)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("hive.split_markets", "Multi client", "Split the markets between accounts",
+                    "Two accounts trading the same markets sell to the same buyers and bid against each other. On, "
+                    + "every market has one account buying in it: the accounts take the markets between them, and "
+                    + "each pulls the orders it had up in the other's. What an account already holds it still sells. "
+                    + "An account that goes away keeps its markets for ten minutes, then the others take them over "
+                    + "(1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("hive.split_seed", "Multi client", "Reshuffle the split",
+                    "Which account gets which market is worked out from the item's name. If it has come out lopsided, "
+                    + "any other number here deals the markets out again, differently", 0, 0, 99, Kind.COUNT),
             new Setting("hive.share_deals", "Multi client", "Hand deals to the hive",
                     "When a client is full or short of cash and finds a good buy it cannot take, it posts the deal "
                     + "for a sibling with a free slot to grab. Only ever offers what it will not take itself, so the "

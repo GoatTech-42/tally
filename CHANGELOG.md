@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 06:40 UTC
+- New, for two or more accounts sharing one ledger: "Split the markets between accounts" (Settings, Multi client). Off unless you turn it on. Two accounts in the same markets sell to the same buyers and bid against each other. With the split on, each market has one account buying in it. The accounts divide the markets between them by themselves, and each pulls the orders it had up in the other's markets.
+- Only buying is split. An account still lists, reprices and sells everything it already holds. Items on the Flips list are not split.
+- If an account goes offline it keeps its markets for ten minutes, so a restart changes nothing. After that the others take them over until it is back.
+- "Reshuffle the split" deals the markets out differently if one account ended up with the better half. The log says every ten minutes how many markets each account has and what share of the sales they carry.
+
 ## 2026-10-13 05:03 UTC
 - Fixed: an order from your Flips list at a price of 1,000 or more was cancelled and placed again every couple of minutes. The order house shows prices rounded (1,150 reads as 1.1K), and the bot took the rounded figure for a different price from the one you set. It now knows the order is its own and leaves it up.
 - Changed: "Over top order" bids at least 100 over the best order when prices are in the thousands (100,000 over in the millions). The order house rounds what it shows, so a smaller step could land under the order it was meant to beat.

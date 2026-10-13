@@ -651,7 +651,7 @@ public final class AutomationSessionController {
                 continue;
             }
             if (itemId.indexOf('#') >= 0 || !dev.doughbay.fabric.Tuning.itemAllowed(itemId)) continue;
-            if (ownPrice(itemId) != null) continue;
+            if (ownPrice(itemId) != null || siblingsMarket(itemId)) continue;
             if (openOfMarket(itemId, count) >= MAX_OPEN_PER_MARKET()) continue;
             StackBucket bucket = StackBucket.of(count);
             MarketStats stats = null;
@@ -764,7 +764,7 @@ public final class AutomationSessionController {
         List<Opportunity> out = new ArrayList<>();
         for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : r.shadows()) {
             if (out.size() >= max) break;
-            if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null) continue;
+            if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null || siblingsMarket(m.itemId())) continue;
             if (openOfMarket(m.itemId(), m.count()) > 0) continue;
             long sell = (long) Math.floor(m.medianSale() * (1.0 - undercut));
             long buy = Math.min(m.medianBuy(), Math.min(effectivePurchaseCap(), effectiveSpendCap() - committedSpend));
@@ -3242,7 +3242,9 @@ public final class AutomationSessionController {
                         || marketRestUntil.getOrDefault(o.listing().itemId(), 0L) > nowForRest
                         || !dev.doughbay.fabric.Tuning.itemAllowed(o.listing().itemId())
                         // Bought through the player's own order and nowhere else.
-                        || ownPrice(o.listing().itemId()) != null) {
+                        || ownPrice(o.listing().itemId()) != null
+                        // And through whichever account of the hive the market belongs to.
+                        || siblingsMarket(o.listing().itemId())) {
                     continue;
                 }
                 // Market signals are shared with the tab and the alerts; the
@@ -3274,6 +3276,7 @@ public final class AutomationSessionController {
                                 || o.listing().itemCount() != tip.itemCount()) continue;
                         if (dev.doughbay.fabric.Tuning.itemAllowed(o.listing().itemId())
                                 && ownPrice(o.listing().itemId()) == null
+                                && !siblingsMarket(o.listing().itemId())
                                 && tips.claim(tip.tipId())) {
                             Opportunity capped = isMarketCandidate(o) ? cappedForSession(o) : o;
                             if (capped != null) offered.add(capped);
@@ -3827,7 +3830,7 @@ public final class AutomationSessionController {
         for (dev.doughbay.fabric.OrderBook.Order o : book.orders()) {
             if (out.size() >= max) break;
             if (!o.parts().isEmpty() || !dev.doughbay.fabric.Tuning.itemAllowed(o.itemId())) continue;
-            if (o.itemId().indexOf('#') >= 0 || ownPrice(o.itemId()) != null) continue;
+            if (o.itemId().indexOf('#') >= 0 || ownPrice(o.itemId()) != null || siblingsMarket(o.itemId())) continue;
             // The size to deliver is bounded by what one trade can afford, not
             // only by what the order still wants. A high-unit-price item -
             // ancient debris at over a million each - fits just one at a time
@@ -5278,6 +5281,12 @@ public final class AutomationSessionController {
             if (listOnly && priced == null && !denied && r.remaining() > 0 && why == null) {
                 why = "not on your price list, and only that is traded";
             }
+            // The hive has split the markets and this one fell to another
+            // account: two orders in it are the two accounts bidding against
+            // each other, which is what the split is for.
+            if (priced == null && !denied && r.remaining() > 0 && why == null && siblingsMarket(r.itemId())) {
+                why = "this market is the other account's to buy in";
+            }
             // Winding down, every open order is pulled, whoever set its price.
             if (winding && !denied && r.remaining() > 0) why = "winding down; no more buying";
             // Sellers fill the best order first, so an order someone has
@@ -5400,6 +5409,7 @@ public final class AutomationSessionController {
         double minimumSamples = dev.doughbay.fabric.Tuning.get("orders.bid_min_samples");
         java.util.Map<String, Integer> why = new java.util.LinkedHashMap<>();
         boolean onlyOwn = ownOnly();
+        noteSplit(snapshot, now);
         for (MarketStats m : snapshot.markets()) {
             if (onlyOwn) { bump(why, "only your price list is traded"); continue; }
             if (!m.hasPrices() || m.itemKey().indexOf('#') >= 0) { bump(why, "no prices"); continue; }
@@ -5408,6 +5418,7 @@ public final class AutomationSessionController {
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
             if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemKey())) { bump(why, "not allowed"); continue; }
             if (ownPrice(m.itemKey()) != null) { bump(why, "on your own price list"); continue; }
+            if (siblingsMarket(m.itemKey())) { bump(why, "the other account's market"); continue; }
             // Single-item statistics on cheap goods are polluted by "sales" that
             // are really money transfers (one dirt for $10K); bids price off
             // stack markets, and off singles only where a single is the unit.
@@ -5482,7 +5493,7 @@ public final class AutomationSessionController {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
                 for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : rs.shadows()) {
                     if (free <= 0 || underdogSlots <= 0) break;
-                    if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null) continue;
+                    if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null || siblingsMarket(m.itemId())) continue;
                     if (bidItems.contains(m.itemId()) || chosen.contains(m.itemId()) || hasRetailStock(m.itemId())) continue;
                     if (deskBadItems.contains(m.itemId())) continue;
                     // No second bid and no doubled exposure in the same item
@@ -6106,6 +6117,44 @@ public final class AutomationSessionController {
     // does not do to these.
     // ------------------------------------------------------------------
 
+    /**
+     * Whether the hive has given this market to another account to buy in.
+     * Only buying is split: what this account holds it lists, reprices and
+     * sells whoever the market belongs to.
+     */
+    private static boolean siblingsMarket(String itemKey) {
+        if (itemKey == null || dev.doughbay.fabric.Tuning.get("hive.split_markets") < 0.5
+                || !dev.doughbay.fabric.DoughBayClient.multiClient()) return false;
+        return !dev.doughbay.fabric.HiveSplit.mine(baseItemId(itemKey), dev.doughbay.fabric.DoughBayClient.account(),
+                dev.doughbay.fabric.HiveSplit.roster(dev.doughbay.fabric.DoughBayClient::hiveAccounts,
+                        System.currentTimeMillis()),
+                (int) dev.doughbay.fabric.Tuning.get("hive.split_seed"));
+    }
+
+    private long splitNotedAt;
+
+    /** Says, every ten minutes, how the markets fall out between the accounts. */
+    private void noteSplit(MarketWatcher.Snapshot snapshot, long now) {
+        if (snapshot == null || now - splitNotedAt < 10 * 60_000L) return;
+        if (dev.doughbay.fabric.Tuning.get("hive.split_markets") < 0.5
+                || !dev.doughbay.fabric.DoughBayClient.multiClient()) return;
+        splitNotedAt = now;
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        int mine = 0;
+        double mineSales = 0;
+        double allSales = 0;
+        for (MarketStats m : snapshot.markets()) {
+            boolean ours = !siblingsMarket(m.itemKey());
+            double perHour = Double.isFinite(m.salesPerHour()) ? m.salesPerHour() : 0;
+            allSales += perHour;
+            if (ours) mineSales += perHour;
+            if (seen.add(baseItemId(m.itemKey())) && ours) mine++;
+        }
+        LOGGER.info("DoughBay hive split: {} of {} markets are this account's to buy in, {}% of the sales seen in them; shared with {}",
+                mine, seen.size(), allSales > 0 ? Math.round(mineSales * 100 / allSales) : 0,
+                dev.doughbay.fabric.HiveSplit.roster(dev.doughbay.fabric.DoughBayClient::hiveAccounts, now));
+    }
+
     /** Whether the player has asked for their list to be all the bot buys, and has put something on it. */
     private static boolean ownOnly() {
         return dev.doughbay.fabric.Tuning.get("prices.only") >= 0.5 && !dev.doughbay.fabric.OwnPrices.all().isEmpty();
@@ -6574,7 +6623,7 @@ public final class AutomationSessionController {
         if (profile == null) return 0;
         List<String> items = snapshot.markets().stream().map(MarketStats::itemKey).distinct()
                 .filter(id -> id.indexOf('#') < 0 && fullStack(id) > 1 && dev.doughbay.fabric.Tuning.itemAllowed(id)
-                        && ownPrice(id) == null
+                        && ownPrice(id) == null && !siblingsMarket(id)
                         && !deskQueue.stream().anyMatch(st -> st.action() == DeskAction.PLACE && st.itemId().equals(id)) && !hasRetailStock(id)
                         && profile.shapeOf(id) != null && profile.shapeOf(id).prefersSingles())
                 .sorted(java.util.Comparator.comparingLong(id -> Math.min(sweptAt.getOrDefault(id + "x1", 0L),
