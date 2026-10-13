@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 03:36 UTC
+- New: a Flips tab in the sidebar, under Items. It is "Your own prices" with boxes to fill in, so nothing has to be typed as a list. Pick the item, the most to pay for one, the price to sell one at, how many an order asks for, whether it bids a fixed price or just over the top order (and by how much), whether it sells whole stacks or one at a time, and an optional total and budget. Press Add. Click a row to change it, or Remove to take it off.
+- The tab shows each item's open order, how many were bought, what each cost, how many are held, and what the market pays.
+- New: "Trade only these", a button on the Flips tab (also "Trade only your own price list" in Settings, Orders). On, the bot buys nothing except what is on your list: no orders of its own choosing and no auction buys. What it already holds is still sold. Off, as it starts, your list runs alongside the normal trading.
+
 ## 2026-10-13 03:03 UTC
 - New: big orders of things that do not stack. In "Your own prices" the number after the x is how many an order asks for when the item does not stack, up to 999: `totem of undying top 45k 50k x200`. The bot collects what fits in the pack, lists it, and goes back for the rest, which stays on the order until then.
 - Changed: collecting from any order now stops while four slots of the pack are still free, and leaves the rest on the order for the next trip. A pack filled to the last slot could not list, reprice or buy.

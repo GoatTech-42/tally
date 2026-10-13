@@ -96,6 +96,37 @@ class OwnPricesTest {
     }
 
     @Test
+    void anEntryIsWrittenTheWayItIsRead() {
+        String list = "observer top+100 2600 20000 x15 singles total 1000, totem_of_undying top 45000 50000 x200 budget 2000000, diamond 80 120";
+        OwnPrices.Parsed read = OwnPrices.parse(list);
+        assertEquals(List.of(), read.problems());
+        StringBuilder back = new StringBuilder();
+        for (OwnPrices.Entry e : read.entries().values()) back.append(back.length() == 0 ? "" : ", ").append(e.text());
+        assertEquals(list, back.toString());
+        // And what a form writes is read back as the same entry.
+        OwnPrices.Entry made = new OwnPrices.Entry("golden_apple", 4_000, 5_200, 3, true, 0, 500, 0);
+        assertEquals(made, OwnPrices.parse(made.text()).entries().get("golden_apple"));
+    }
+
+    @Test
+    void theFormPutsAnEntryInChangesItInPlaceAndTakesItOut() {
+        String list = "diamond 80 120, emerald 50 70";
+        OwnPrices.Entry observer = new OwnPrices.Entry("observer", 2_600, 20_000, 15, true);
+        // A new item goes on the end.
+        assertEquals("diamond 80 120, emerald 50 70, observer 2600 20000 x15 singles", OwnPrices.with(list, observer, ""));
+        // One already there is changed where it stands.
+        assertEquals("diamond 90 130, emerald 50 70",
+                OwnPrices.with(list, new OwnPrices.Entry("diamond", 90, 130, 0), "diamond"));
+        // The row being edited was given another item: the old one goes and the new one takes its place.
+        assertEquals("observer 2600 20000 x15 singles, emerald 50 70", OwnPrices.with(list, observer, "diamond"));
+        // Renamed onto an item that is already listed: one entry, not two.
+        assertEquals("emerald 60 80", OwnPrices.with(list, new OwnPrices.Entry("emerald", 60, 80, 0), "diamond"));
+        assertEquals("emerald 50 70", OwnPrices.without(list, "minecraft:diamond"));
+        assertEquals("", OwnPrices.without("diamond 80 120", "diamond"));
+        assertEquals("observer 2600 20000 x15 singles", OwnPrices.with("", observer, ""));
+    }
+
+    @Test
     void anEmptyListPricesNothing() {
         assertTrue(OwnPrices.parse("").entries().isEmpty());
         assertTrue(OwnPrices.parse(null).entries().isEmpty());

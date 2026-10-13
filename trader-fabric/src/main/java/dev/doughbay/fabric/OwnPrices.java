@@ -71,6 +71,18 @@ public final class OwnPrices {
             return over >= 0;
         }
 
+        /** The entry as it is written in the list, and as {@link #parse} reads it back. */
+        public String text() {
+            StringBuilder out = new StringBuilder(itemId);
+            if (top()) out.append(over > 0 ? " top+" + over : " top");
+            out.append(' ').append(buy).append(' ').append(sell);
+            if (stacks > 0) out.append(" x").append(stacks);
+            if (singles) out.append(" singles");
+            if (total > 0) out.append(" total ").append(total);
+            if (budget > 0) out.append(" budget ").append(budget);
+            return out.toString();
+        }
+
         /**
          * What the entry asks for, in a form that changes when the player
          * changes it: what has been bought and spent is counted against this,
@@ -189,6 +201,37 @@ public final class OwnPrices {
             entries.put(item, new Entry(item, prices.get(0), prices.get(1), stacks, singles, over, (int) total, budget));
         }
         return new Parsed(java.util.Collections.unmodifiableMap(entries), List.copyOf(problems));
+    }
+
+    /**
+     * The list with one entry put in: in place of the entry for {@code replacing}
+     * when there is one, in place of its own when the item is already listed,
+     * and at the end otherwise. What could not be read in the old text is not
+     * carried over; it was never traded.
+     */
+    public static String with(String listText, Entry entry, String replacing) {
+        Map<String, Entry> old = parse(listText).entries();
+        String gone = replacing == null ? "" : Tuning.normalizeItem(replacing);
+        List<String> out = new ArrayList<>();
+        boolean placed = false;
+        for (Entry e : old.values()) {
+            boolean here = e.itemId().equals(gone) || e.itemId().equals(entry.itemId());
+            if (!here) out.add(e.text());
+            else if (!placed) {
+                out.add(entry.text());
+                placed = true;
+            }
+        }
+        if (!placed) out.add(entry.text());
+        return String.join(", ", out);
+    }
+
+    /** The list with an item's entry taken out. */
+    public static String without(String listText, String itemId) {
+        String gone = Tuning.normalizeItem(itemId);
+        List<String> out = new ArrayList<>();
+        for (Entry e : parse(listText).entries().values()) if (!e.itemId().equals(gone)) out.add(e.text());
+        return String.join(", ", out);
     }
 
     /** The list as it stands in the settings now; read again only when the text has changed. */

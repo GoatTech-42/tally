@@ -3213,6 +3213,13 @@ public final class AutomationSessionController {
             detail = "Winding down: " + openListings.size() + " listing(s) left to sell; not buying";
             return;
         }
+        if (pendingOpportunity == null && ownOnly()) {
+            // Their list is all that is bought, and it is bought through
+            // orders. Nothing on the auction is watched for.
+            detail = "Trading only your price list: " + dev.doughbay.fabric.OwnPrices.all().size()
+                    + " item(s) on order or being sold; not watching the auction for other deals";
+            return;
+        }
         if (pendingOpportunity == null && trackedPosition == null && keylessStillLearning(snapshot)) {
             detail = "Learning prices: checking the auction house market by market before watching for deals";
             return;
@@ -5339,7 +5346,9 @@ public final class AutomationSessionController {
         double minimumConfidence = dev.doughbay.fabric.Tuning.get("orders.bid_min_confidence");
         double minimumSamples = dev.doughbay.fabric.Tuning.get("orders.bid_min_samples");
         java.util.Map<String, Integer> why = new java.util.LinkedHashMap<>();
+        boolean onlyOwn = ownOnly();
         for (MarketStats m : snapshot.markets()) {
+            if (onlyOwn) { bump(why, "only your price list is traded"); continue; }
             if (!m.hasPrices() || m.itemKey().indexOf('#') >= 0) { bump(why, "no prices"); continue; }
             if (hasRetailStock(m.itemKey())) { bump(why, "retail stock already held"); continue; }
             if (bidItems.contains(m.itemKey())) { bump(why, "bid already out"); continue; }
@@ -5414,7 +5423,7 @@ public final class AutomationSessionController {
         int underdogSlots = (int) dev.doughbay.fabric.Tuning.get("underdog.order_slots");
         int oldGround = 0;
         java.util.Set<String> chosen = new java.util.HashSet<>();
-        if (underdogSlots > 0 && dev.doughbay.fabric.Tuning.get("underdog.enabled") >= 0.5) {
+        if (underdogSlots > 0 && !onlyOwn && dev.doughbay.fabric.Tuning.get("underdog.enabled") >= 0.5) {
             dev.doughbay.fabric.RivalIntel.Snapshot rs = rivals();
             if (rs != null) {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
@@ -6042,6 +6051,11 @@ public final class AutomationSessionController {
     // market up, pull an order the market fell under, walk an ask down - it
     // does not do to these.
     // ------------------------------------------------------------------
+
+    /** Whether the player has asked for their list to be all the bot buys, and has put something on it. */
+    private static boolean ownOnly() {
+        return dev.doughbay.fabric.Tuning.get("prices.only") >= 0.5 && !dev.doughbay.fabric.OwnPrices.all().isEmpty();
+    }
 
     /** The player's prices for an item, or null when the bot prices it. */
     private static dev.doughbay.fabric.OwnPrices.Entry ownPrice(String itemKey) {

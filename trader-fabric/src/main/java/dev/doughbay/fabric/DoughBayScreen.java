@@ -50,6 +50,7 @@ public final class DoughBayScreen extends Screen {
         MARKETS("Markets"),
         SEARCH("Search"),
         ITEMS("Items"),
+        FLIPS("Flips"),
         STATS("Performance"),
         RIVALS("Rivals"),
         ORDERS("Orders"),
@@ -610,7 +611,8 @@ public final class DoughBayScreen extends Screen {
                 : (ui.innerWidth() - gap * (columns - 1)) / columns;
         int i = 0;
         for (Tab value : Tab.values()) {
-            int groupSpace = i >= 10 ? 32 : i >= 5 ? 16 : 0;
+            // Six under Trade, then five and five.
+            int groupSpace = i >= 11 ? 32 : i >= 6 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
@@ -632,6 +634,7 @@ public final class DoughBayScreen extends Screen {
                     searchSellerName = null;
                 }
                 if (value != Tab.ITEMS) itemsSelected.clear();
+                if (value != Tab.FLIPS) flipMessage = "";
                 scroll = 0;
                 pageScrollPixels = 0;
                 driverMessage = "";
@@ -777,6 +780,8 @@ public final class DoughBayScreen extends Screen {
             initSearchWidgets(ui);
         } else if (tab == Tab.ITEMS) {
             initItemsWidgets(ui);
+        } else if (tab == Tab.FLIPS) {
+            initFlipsWidgets(ui);
         } else if (tab == Tab.SETTINGS) {
             initSettingsWidgets(ui);
         } else if (tab == Tab.PAYROLL) {
@@ -921,6 +926,7 @@ public final class DoughBayScreen extends Screen {
             case MARKETS -> renderMarkets(graphics, current, ui, mouseX, mouseY);
             case SEARCH -> renderSearch(graphics, ui, mouseX, mouseY);
             case ITEMS -> renderItems(graphics, ui, mouseX, mouseY);
+            case FLIPS -> renderFlips(graphics, ui, mouseX, mouseY);
             case STATS -> renderStats(graphics, current, ui, mouseX, mouseY);
             case RIVALS -> renderRivals(graphics, ui, mouseX, mouseY);
             case SETTINGS -> renderSettings(graphics, ui, mouseX, mouseY);
@@ -973,8 +979,8 @@ public final class DoughBayScreen extends Screen {
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
         graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
-        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 173, MUTED);
-        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 294, MUTED);
+        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 194, MUTED);
+        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 315, MUTED);
         graphics.text(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
@@ -6370,6 +6376,17 @@ public final class DoughBayScreen extends Screen {
             }
         }
 
+        if (tab == Tab.FLIPS) {
+            for (int i = 0; i < flipRowBounds.size(); i++) {
+                int[] b = flipRowBounds.get(i);
+                if (event.y() >= b[0] && event.y() < b[1] && event.x() >= b[2] && event.x() < b[3]) {
+                    String item = flipRowItems.get(i);
+                    selectFlip(item.equals(flipSelected) ? "" : item);
+                    return true;
+                }
+            }
+        }
+
         if (tab == Tab.PAYROLL) {
             for (long[] b : payrollRowBounds) {
                 if (event.y() >= b[0] && event.y() < b[1]) {
@@ -6624,7 +6641,8 @@ public final class DoughBayScreen extends Screen {
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
-        int sidebar = panelWidth >= 680 && panelHeight >= 430 ? 144 : 0;
+        // Sixteen entries down the side, and the line under them.
+        int sidebar = panelWidth >= 680 && panelHeight >= 455 ? 144 : 0;
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;
@@ -7588,6 +7606,272 @@ public final class DoughBayScreen extends Screen {
             }
         }
         return "+".repeat(Math.min(3, plus));
+    }
+
+    // -------------------------------------------------------------- Flips tab
+    //
+    // The player's own price list (OwnPrices) with boxes to fill in: an item,
+    // the most to pay for it, the price to sell it at, how many an order asks
+    // for, and how it is sold. It writes the same list the setting holds, so
+    // what is set here and what is typed there are one thing.
+
+    private String flipItem = "";
+    private String flipBuy = "";
+    private String flipSell = "";
+    private String flipQty = "";
+    private String flipOver = "";
+    private String flipTotal = "";
+    private String flipBudget = "";
+    private boolean flipTop;
+    private boolean flipSingles;
+    /** The entry being changed; empty while the bar adds a new one. */
+    private String flipSelected = "";
+    private String flipMessage = "";
+    private boolean flipMessageBad;
+    private int[] flipFieldX = new int[0];
+    private final List<int[]> flipRowBounds = new ArrayList<>();
+    private final List<String> flipRowItems = new ArrayList<>();
+
+    private void flipSay(String message, boolean bad) {
+        flipMessage = message;
+        flipMessageBad = bad;
+    }
+
+    private EditBox flipField(int x, int y, int width, int most, String draft, java.util.function.Consumer<String> responder) {
+        EditBox box = new EditBox(this.font, x, y, width, 20, Component.literal(""));
+        box.setMaxLength(most);
+        box.setValue(draft);
+        box.setResponder(responder);
+        addRenderableWidget(box);
+        return box;
+    }
+
+    private static ItemEntry itemByBare(String bare) {
+        for (ItemEntry e : allItems()) if (e.bare().equals(bare)) return e;
+        return null;
+    }
+
+    private void initFlipsWidgets(UiLayout ui) {
+        int y = ui.bottom() - 27;
+        int gap = 4;
+        // item, most paid, sell at, per order, how it bids, over by, how it sells, total, budget, save
+        int[] share = {20, 9, 9, 9, 12, 7, 13, 7, 7, 7};
+        int usable = ui.innerWidth() - gap * (share.length - 1);
+        int[] w = new int[share.length];
+        flipFieldX = new int[share.length];
+        int x = ui.innerLeft();
+        for (int i = 0; i < share.length; i++) {
+            w[i] = Math.max(18, usable * share[i] / 100);
+            flipFieldX[i] = x;
+            x += w[i] + gap;
+        }
+        flipField(flipFieldX[0], y, w[0], 48, flipItem, v -> flipItem = v).setHint(Component.literal("item"));
+        flipField(flipFieldX[1], y, w[1], 14, flipBuy, v -> flipBuy = v);
+        flipField(flipFieldX[2], y, w[2], 14, flipSell, v -> flipSell = v);
+        flipField(flipFieldX[3], y, w[3], 6, flipQty, v -> flipQty = v);
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipTop ? "Over top order" : "Fixed price"), b -> {
+            flipTop = !flipTop;
+            b.setMessage(Component.literal(flipTop ? "Over top order" : "Fixed price"));
+        }).bounds(flipFieldX[4], y, w[4], 20).build());
+        flipField(flipFieldX[5], y, w[5], 10, flipOver, v -> flipOver = v);
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipSingles ? "One at a time" : "Whole stacks"), b -> {
+            flipSingles = !flipSingles;
+            b.setMessage(Component.literal(flipSingles ? "One at a time" : "Whole stacks"));
+        }).bounds(flipFieldX[6], y, w[6], 20).build());
+        flipField(flipFieldX[7], y, w[7], 8, flipTotal, v -> flipTotal = v);
+        flipField(flipFieldX[8], y, w[8], 12, flipBudget, v -> flipBudget = v);
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipSelected.isEmpty() ? "Add" : "Save"), ignored -> saveFlip())
+                .bounds(flipFieldX[9], y, w[9], 20).build());
+
+        // On the title line, right-aligned: whether the list is all that is traded, and the row's own actions.
+        int ty = ui.contentTop() + 3;
+        int rx = ui.innerRight();
+        boolean only = Tuning.get("prices.only") >= 0.5;
+        rx -= 150;
+        addRenderableWidget(CockpitButton.builder(Component.literal(only ? "Trade only these: on" : "Trade only these: off"), ignored -> {
+            Tuning.set("prices.only", only ? 0 : 1);
+            flipSay(only ? "The bot trades your list alongside everything else again."
+                    : "The bot now buys only what is on this list. What it already holds is still sold.", false);
+            rebuildWidgets();
+        }).bounds(rx, ty, 150, 18).build());
+        if (!flipSelected.isEmpty()) {
+            rx -= 62;
+            addRenderableWidget(CockpitButton.builder(Component.literal("Remove"), ignored -> {
+                String gone = flipSelected;
+                Tuning.setText(OwnPrices.KEY, OwnPrices.without(Tuning.text(OwnPrices.KEY), gone));
+                selectFlip("");
+                flipSay("Removed " + MarketQueryClient.displayName(gone) + ". Its open order is now the bot's to manage or pull.", false);
+                rebuildWidgets();
+            }).bounds(rx, ty, 58, 18).build());
+            rx -= 50;
+            addRenderableWidget(CockpitButton.builder(Component.literal("New"), ignored -> selectFlip(""))
+                    .bounds(rx, ty, 46, 18).build());
+        }
+    }
+
+    /** Loads an entry into the bar to be changed, or empties the bar for a new one. */
+    private void selectFlip(String item) {
+        OwnPrices.Entry e = item == null || item.isEmpty() ? null : OwnPrices.of(item);
+        flipSelected = e == null ? "" : e.itemId();
+        flipMessage = "";
+        if (e == null) {
+            flipItem = flipBuy = flipSell = flipQty = flipOver = flipTotal = flipBudget = "";
+            flipTop = false;
+            flipSingles = false;
+        } else {
+            ItemEntry known = itemByBare(e.itemId());
+            int full = known == null ? 64 : Math.max(1, known.stack().getMaxStackSize());
+            flipItem = e.itemId();
+            flipBuy = MoneyInput.compact(e.buy());
+            flipSell = MoneyInput.compact(e.sell());
+            flipQty = e.stacks() > 0 ? String.valueOf(e.stacks() * full) : "";
+            flipTop = e.top();
+            flipOver = e.over() > 0 ? MoneyInput.compact(e.over()) : "";
+            flipSingles = e.singles();
+            flipTotal = e.total() > 0 ? String.valueOf(e.total()) : "";
+            flipBudget = e.budget() > 0 ? MoneyInput.compact(e.budget()) : "";
+        }
+        rebuildWidgets();
+    }
+
+    private void saveFlip() {
+        String bare = Tuning.normalizeItem(flipItem);
+        ItemEntry known = bare.isEmpty() ? null : itemByBare(bare);
+        if (known == null) {
+            flipSay(flipItem.isBlank() ? "Type the item first, as the Items tab names it: observer, golden apple."
+                    : "The game has no item called \"" + flipItem.strip() + "\". Type it as the Items tab names it.", true);
+            return;
+        }
+        long buy = MoneyInput.parse(flipBuy);
+        long sell = MoneyInput.parse(flipSell);
+        if (buy <= 0 || sell <= 0) {
+            flipSay("Fill in the most to pay and the price to sell at, both for one item: 2.6k and 20k.", true);
+            return;
+        }
+        if (sell <= buy) {
+            flipSay("The sell price has to be above what you pay, or every sale is a loss.", true);
+            return;
+        }
+        int full = Math.max(1, known.stack().getMaxStackSize());
+        int most = full > 1 ? Math.max(1, 999 / full) : 999;
+        int stacks = 0;
+        String sized = "";
+        if (!flipQty.isBlank()) {
+            long asked = MoneyInput.parse(flipQty);
+            if (asked <= 0) {
+                flipSay("Per order is how many items one order asks for: 1000.", true);
+                return;
+            }
+            stacks = (int) Math.max(1, Math.min(most, (asked + full - 1) / full));
+            long got = (long) stacks * full;
+            sized = got == asked ? "" : "  An order asks for " + got + (got < asked
+                    ? ", the most one order can show exactly; it re-orders by itself." : ", whole stacks.");
+        }
+        long over = -1;
+        if (flipTop) {
+            over = flipOver.isBlank() ? 0 : MoneyInput.parse(flipOver);
+            if (over < 0) {
+                flipSay("Over by is how much above the best order to bid: 100. Leave it empty for one small step.", true);
+                return;
+            }
+        }
+        long total = flipTotal.isBlank() ? 0 : MoneyInput.parse(flipTotal);
+        long budget = flipBudget.isBlank() ? 0 : MoneyInput.parse(flipBudget);
+        if (total < 0 || total > 1_000_000 || budget < 0) {
+            flipSay("Total is how many to buy before stopping, budget how much to spend; both can be left empty.", true);
+            return;
+        }
+        OwnPrices.Entry entry = new OwnPrices.Entry(bare, buy, sell, stacks, flipSingles && full > 1, over, (int) total, budget);
+        Tuning.setText(OwnPrices.KEY, OwnPrices.with(Tuning.text(OwnPrices.KEY), entry, flipSelected));
+        selectFlip(bare);
+        flipSay("Saved " + known.name() + ": " + (entry.top() ? "bids over the best order, at most " : "orders at ")
+                + money(buy) + " each, sells at " + money(sell) + (entry.singles() ? " one at a time." : " each.") + sized, false);
+    }
+
+    private void renderFlips(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+        resetListGeometry();
+        flipRowBounds.clear();
+        flipRowItems.clear();
+        int x = ui.innerLeft();
+        int width = ui.innerWidth();
+        int top = ui.contentTop() + 7;
+        graphics.text(this.font, truncate("FLIPS  ·  order at your price, sell at your price",
+                Math.max(40, width - (flipSelected.isEmpty() ? 160 : 280))), x, top, GOLD);
+        List<AutomationSessionController.OwnPriceView> views = AUTOMATION_SESSION.ownPriceViews();
+        boolean only = Tuning.get("prices.only") >= 0.5;
+        int barY = ui.bottom() - 27;
+        int y = top + 22;
+        int rowHeight = 13;
+        int room = Math.max(1, (barY - 62 - (y + 27 + 12 + 6)) / rowHeight);
+        int shown = Math.min(views.size(), room);
+        int cardHeight = 27 + 12 + Math.max(1, shown) * rowHeight + 6;
+        card(graphics, x, y, width, cardHeight, CARD);
+        sectionTitle(graphics, "YOUR LIST  ·  " + views.size() + " item(s)  ·  "
+                + (only ? "the bot buys only these" : "traded alongside everything else")
+                + (shown < views.size() ? "  ·  " + (views.size() - shown) + " more not shown" : ""), x, y, width);
+        int innerX = x + 9;
+        int innerWidth = width - 18;
+        int c1 = (int) (innerWidth * 0.22), c2 = (int) (innerWidth * 0.38), c3 = (int) (innerWidth * 0.51),
+                c4 = (int) (innerWidth * 0.66), c5 = (int) (innerWidth * 0.78), c6 = (int) (innerWidth * 0.88);
+        int hy = y + 27;
+        graphics.text(this.font, "ITEM", innerX, hy, MUTED);
+        graphics.text(this.font, "BUY (EACH)", innerX + c1, hy, MUTED);
+        graphics.text(this.font, "SELL (EACH)", innerX + c2, hy, MUTED);
+        graphics.text(this.font, "ORDER UP", innerX + c3, hy, MUTED);
+        graphics.text(this.font, "BOUGHT", innerX + c4, hy, MUTED);
+        graphics.text(this.font, "PAID EACH", innerX + c5, hy, MUTED);
+        graphics.text(this.font, "HELD", innerX + c6, hy, MUTED);
+        cell(graphics, "MARKET", innerX, innerWidth, hy, MUTED, true);
+        int yy = hy + 12;
+        if (views.isEmpty()) {
+            graphics.text(this.font, truncate("Nothing here yet. Fill in the bar below and press Add: the item, the most to pay for one, the price to sell one at.",
+                    innerWidth), innerX, yy + 1, MUTED);
+        }
+        for (int i = 0; i < shown; i++) {
+            AutomationSessionController.OwnPriceView v = views.get(i);
+            OwnPrices.Entry e = v.entry();
+            boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
+            boolean chosen = e.itemId().equals(flipSelected);
+            if (hover || chosen) {
+                graphics.fill(innerX - 3, yy - 1, innerX + innerWidth + 3, yy + rowHeight - 1, chosen ? 0xFF2A3140 : ROW_HOVER);
+            }
+            flipRowBounds.add(new int[] {yy, yy + rowHeight, innerX, innerX + innerWidth});
+            flipRowItems.add(e.itemId());
+            int held = v.listedUnits() + v.inHandUnits();
+            graphics.text(this.font, truncate(MarketQueryClient.displayName(e.itemId()), c1 - 6), innerX, yy + 2, TEXT);
+            graphics.text(this.font, truncate((e.top() ? "top" + (e.over() > 0 ? "+" + MoneyInput.compact(e.over()) : "") + ", max " : "")
+                    + money(e.buy()), c2 - c1 - 6), innerX + c1, yy + 2, SECONDARY);
+            graphics.text(this.font, truncate(money(e.sell()) + (e.singles() ? "  x1" : ""), c3 - c2 - 6), innerX + c2, yy + 2, GOLD);
+            graphics.text(this.font, truncate(v.onOrder() > 0 ? grouped(v.onOrder()) + " at " + money(v.orderUnit()) : "none",
+                    c4 - c3 - 6), innerX + c3, yy + 2, v.onOrder() > 0 ? TEXT : MUTED);
+            graphics.text(this.font, truncate(grouped(v.bought()) + (e.total() > 0 ? " of " + grouped(e.total()) : ""), c5 - c4 - 6),
+                    innerX + c4, yy + 2, SECONDARY);
+            graphics.text(this.font, v.bought() > 0 ? money(v.spent() / (double) v.bought()) : "-", innerX + c5, yy + 2, SECONDARY);
+            graphics.text(this.font, held > 0 ? grouped(held) : "none", innerX + c6, yy + 2, held > 0 ? TEXT : MUTED);
+            // What one sells for by our own figures: at or over the price asked, it will sell.
+            cell(graphics, v.marketUnit() > 0 ? money(v.marketUnit()) : "?", innerX, innerWidth, yy + 2,
+                    v.marketUnit() <= 0 ? MUTED : v.marketUnit() >= e.sell() ? GOOD : WARN, true);
+            yy += rowHeight;
+        }
+        int noteY = y + cardHeight + 6;
+        if (noteY + 22 < barY - 36) {
+            noteY = statusLine(graphics, x, noteY, width,
+                    "The bot keeps a buy order up for each item, lists what the order delivers at your sell price, and leaves it there until it sells.", MUTED);
+            statusLine(graphics, x, noteY, width,
+                    "Over top order: it bids just over the best order anyone else has up, never above your most paid. Click a row to change it.", MUTED);
+        }
+
+        // The bar: labels above the boxes, what was last said above the labels.
+        if (flipFieldX.length == 10) {
+            String[] labels = {"item", "most paid", "sell at", "per order", "bidding", "over by", "selling", "total", "budget"};
+            for (int i = 0; i < labels.length; i++) graphics.text(this.font, labels[i], flipFieldX[i] + 1, barY - 10, MUTED);
+        }
+        List<String> problems = OwnPrices.current().problems();
+        if (!flipMessage.isBlank()) {
+            graphics.text(this.font, truncate(flipMessage, width), x, barY - 23, flipMessageBad ? BAD : GOOD);
+        } else if (!problems.isEmpty()) {
+            graphics.text(this.font, truncate("Not understood in the list: " + String.join("; ", problems), width), x, barY - 23, BAD);
+        }
     }
 
     // ------------------------------------------------------------ Payroll tab

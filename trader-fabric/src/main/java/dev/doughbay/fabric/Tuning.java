@@ -776,6 +776,11 @@ public final class Tuning {
                     + "selling what it holds on the auction, and ends the session by itself once nothing is left. "
                     + "Pressing Start switches it back off. Accounts that share one settings file wind down "
                     + "together (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("prices.only", "Orders", "Trade only your own price list",
+                    "On, and with something on Your own prices (the Flips tab), the bot buys nothing else: no orders "
+                    + "of its own choosing and no auction buys, only the orders on your list. What it already holds "
+                    + "is still listed, repriced and sold as before. Off, your list is traded alongside everything "
+                    + "else (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid", "Orders", "Place bids",
                     "Post your own buy orders on liquid markets under the quick-sale price and relist the fills (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid_slots", "Orders", "Bid slots used",
