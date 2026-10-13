@@ -4821,6 +4821,21 @@ public final class AutomationSessionController {
             return true;
         }
         DeskStep step = deskQueue.pollFirst();
+        // The desk plans a run of steps and then works through it. A run
+        // planned before the player wound the session down, or asked for their
+        // own list alone, still had its orders in it, and they went out
+        // minutes after the switch was thrown. What the mode now forbids is
+        // dropped here, at the last moment before it would be done.
+        boolean buysOrPrices = step.action() == DeskAction.PLACE || step.action() == DeskAction.SWEEP
+                || step.action() == DeskAction.QUOTE;
+        if (buysOrPrices && (step.action() == DeskAction.PLACE && windingDown()
+                || ownOnly() && ownPrice(step.itemId()) == null)) {
+            LOGGER.info("DoughBay bid desk: dropped a planned {} for {}: {}", step.action(), step.itemId(),
+                    windingDown() ? "the session is winding down" : "only your price list is traded");
+            deskReadDue = true;
+            detail = "Bid desk: dropped a step planned before the mode changed";
+            return true;
+        }
         if (step.action() == DeskAction.PLACE && step.retailTarget() > 0) {
             double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
             double minimumRoi = Math.max(Math.max(policy.minimumRoiPercent(), riskConfig.minimumRoiPercent()),
@@ -5114,6 +5129,7 @@ public final class AutomationSessionController {
     private void planDesk(MarketWatcher.Snapshot snapshot, long now) {
         deskQueue.clear();
         boolean winding = windingDown();
+        boolean listOnly = ownOnly();
         boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding;
         if (bidding) enqueueProbe(now);
         double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
@@ -5247,6 +5263,11 @@ public final class AutomationSessionController {
                             ? "outbid at " + over + " each; placing again above it" : null;
                     if (why != null && again > 0 && r.unitPrice() <= priced.buy()) chasedAt.put(r.itemId(), now);
                 }
+            }
+            // Their list is all that is bought: an order the bot chose for
+            // itself goes on buying for as long as it is up, so it is pulled.
+            if (listOnly && priced == null && !denied && r.remaining() > 0 && why == null) {
+                why = "not on your price list, and only that is traded";
             }
             // Winding down, every open order is pulled, whoever set its price.
             if (winding && !denied && r.remaining() > 0) why = "winding down; no more buying";

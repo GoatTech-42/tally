@@ -778,7 +778,8 @@ public final class Tuning {
                     + "together (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("prices.only", "Orders", "Trade only your own price list",
                     "On, and with something on Your own prices (the Flips tab), the bot buys nothing else: no orders "
-                    + "of its own choosing and no auction buys, only the orders on your list. What it already holds "
+                    + "of its own choosing and no auction buys, only the orders on your list, and the orders it had "
+                    + "up for anything else are cancelled. What it already holds "
                     + "is still listed, repriced and sold as before. Off, your list is traded alongside everything "
                     + "else (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid", "Orders", "Place bids",

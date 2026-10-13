@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 04:58 UTC
+- Fixed: after "Trade only these" or "Wind down" was switched on, the bot still placed the orders it had already planned, for a few minutes. Steps the new mode does not allow are now dropped the moment they come up.
+- Changed: with "Trade only these" on, the orders the bot had placed for other items are cancelled (the money comes back), so they stop buying. Turning it off lets the bot place its own orders again.
+
 ## 2026-10-13 04:27 UTC
 - Changed: with "Trade only these" on, the bot no longer price-checks markets of its own choosing on the auction either. The only pages it opens are your orders, your listings, and a look-up of your own items. The background price sweep, which checked every market one at a time, is off in that mode too.
 

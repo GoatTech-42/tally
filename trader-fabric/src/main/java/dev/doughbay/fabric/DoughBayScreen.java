@@ -7751,7 +7751,7 @@ public final class DoughBayScreen extends Screen {
         addRenderableWidget(CockpitButton.builder(Component.literal(only ? "Trade only these: on" : "Trade only these: off"), ignored -> {
             Tuning.set("prices.only", only ? 0 : 1);
             flipSay(only ? "The bot trades your list alongside everything else again."
-                    : "The bot now buys only what is on this list. What it already holds is still sold.", false);
+                    : "The bot now buys only what is on this list: its other orders are cancelled. What it holds is still sold.", false);
             rebuildWidgets();
         }).bounds(rx, ty, 150, 18).build());
         if (!flipSelected.isEmpty()) {
