@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 21:08 UTC
+- Fixed: "Skip the restart waiting room" could disconnect a bot that was already trading again. At the first real restart the server parked the bot and put it back by itself four seconds later, just before the bot sent /leave. The bot then waited ninety seconds for a move that had already happened, decided /leave had failed, and left and rejoined the server for nothing.
+- It now tells "still parked" from "let go" by whether the client is still in the waiting room world, not by timing. If the server has already put it back, no /leave is sent. And it never disconnects on its own: if /leave does not work it simply waits the restart out.
+- The bot also resumes sooner after a short restart: being put back within a few seconds is now recognised.
+
 ## 2026-10-13 20:05 UTC
 - Fixed: the bot could drown. Players flood the server and a random teleport can land in water. The evasion guard only reacted once damage started, and then waited for the trade in flight before escaping, so the bot lost two health a second while it finished a listing and died as its teleport went out.
 - New: "Get out of water" (Settings, Evasion), on whenever the evasion guard is on. When the bot's head is under water and its air is going down, the session stops and it teleports away at once. That is about thirteen seconds before the first damage, and nothing is waited for. With teleports switched off it leaves the server instead.

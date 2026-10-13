@@ -43,32 +43,27 @@ class RestartPlanTest {
     }
 
     @Test
-    void beingPutBackIsAMoveToAWorldWithTheSidebarUpThatHoldsStill() {
-        long parked = 1_000_000L;
-        long back = parked + 4 * 60_000L;
-        // The move into the waiting room is not the move out of it.
-        assertFalse(RestartPlan.backFromLimbo(parked, parked + 800, true, parked + 60_000L));
-        // Moved, but only just: it has to stay.
-        assertFalse(RestartPlan.backFromLimbo(parked, back, true, back + 3_000L));
-        // Moved and settled, but nothing a world would show.
-        assertFalse(RestartPlan.backFromLimbo(parked, back, false, back + 60_000L));
-        assertTrue(RestartPlan.backFromLimbo(parked, back, true, back + RestartPlan.SETTLE_MILLIS));
-        // Never parked: nothing to come back from.
-        assertFalse(RestartPlan.backFromLimbo(0, back, true, back + 60_000L));
+    void beingPutBackIsBeingOutOfTheWaitingRoomWithTheSidebarUpAndStayingThere() {
+        long moved = 1_000_000L;
+        // Still in the world it was parked in, however long ago and whatever shows.
+        assertFalse(RestartPlan.backFromLimbo(false, moved, true, moved + 60_000L));
+        // Out of it, but only just: it has to stay.
+        assertFalse(RestartPlan.backFromLimbo(true, moved, true, moved + 3_000L));
+        // Out and settled, but nothing a world would show.
+        assertFalse(RestartPlan.backFromLimbo(true, moved, false, moved + 60_000L));
+        assertTrue(RestartPlan.backFromLimbo(true, moved, true, moved + RestartPlan.SETTLE_MILLIS));
     }
 
     @Test
     void leaveHasWorkedWhenItPutsUsInAWorldWithABalance() {
-        long sent = 2_000_000L;
-        long moved = sent + 1_500L;
-        assertTrue(RestartPlan.worldAfterLeave(sent, moved, true, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
-        // Not moved since the command went out: still in the waiting room.
-        assertFalse(RestartPlan.worldAfterLeave(sent, sent - 10_000L, true, sent + 60_000L));
+        long moved = 2_000_000L;
+        assertTrue(RestartPlan.worldAfterLeave(true, moved, true, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
+        // Not moved: still in the waiting room, whenever the command went out.
+        assertFalse(RestartPlan.worldAfterLeave(false, moved, true, moved + 60_000L));
         // Moved to somewhere with no balance on its sidebar: a lobby, not a world to trade in.
-        assertFalse(RestartPlan.worldAfterLeave(sent, moved, false, moved + 60_000L));
+        assertFalse(RestartPlan.worldAfterLeave(true, moved, false, moved + 60_000L));
         // Only just arrived.
-        assertFalse(RestartPlan.worldAfterLeave(sent, moved, true, moved + 500L));
-        assertFalse(RestartPlan.worldAfterLeave(0, moved, true, moved + 60_000L));
+        assertFalse(RestartPlan.worldAfterLeave(true, moved, true, moved + 500L));
     }
 
     @Test

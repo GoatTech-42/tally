@@ -56,6 +56,16 @@ final class RestartRecovery {
     private boolean resumeOwed;
     private int resumeTries;
     private volatile long limboSeenAt;
+    /**
+     * The world the client was in a moment after being told it was parked:
+     * the waiting room itself. Being parked, and being let go, are told by
+     * whether the client is still in it. Times cannot tell them apart: on
+     * 2026-10-13 the server put the bot back four seconds after parking it,
+     * a blink before /leave went out, and "moved since the command" then
+     * never came true. Ninety seconds on, a session trading normally was
+     * disconnected to be rescued from a waiting room it had long left.
+     */
+    private volatile Object limboLevel;
     private long leaveSentAt;
     private net.minecraft.world.phys.Vec3 rtpFrom;
     private Object lastLevel;
@@ -67,7 +77,10 @@ final class RestartRecovery {
     }
 
     void observeChat(String line) {
-        if (RestartPlan.saysLimbo(line)) limboSeenAt = System.currentTimeMillis();
+        if (RestartPlan.saysLimbo(line)) {
+            limboSeenAt = System.currentTimeMillis();
+            limboLevel = null;
+        }
     }
 
     void tick(Minecraft client, AutomationSessionController session) {
@@ -77,15 +90,27 @@ final class RestartRecovery {
             lastLevel = client.level;
             if (client.level != null) levelChangedAt = now;
         }
+        if (limboSeenAt > 0 && limboLevel == null && client.level != null
+                && now - limboSeenAt >= RestartPlan.PARKED_MILLIS) {
+            limboLevel = client.level;
+        }
+        boolean parked = limboLevel != null && client.level == limboLevel;
+        boolean movedOn = limboLevel != null && client.level != null && client.level != limboLevel;
         boolean inWorld = client.player != null && client.level != null && client.getConnection() != null;
         ServerData current = client.getCurrentServer();
         String on = inWorld && current != null ? RestartPlan.host(current.ip) : "";
         boolean balance = SidebarBalance.current() >= 0;
         switch (step) {
-            case IDLE -> idle(client, session, now, inWorld, current, on, balance);
+            case IDLE -> idle(client, session, now, inWorld, current, on, balance, parked, movedOn);
             case LEAVE_ARMED -> {
-                if (now - stepAt < RestartPlan.ARM_MILLIS) return;
+                if (now - stepAt < RestartPlan.LEAVE_ARM_MILLIS) return;
                 if (!inWorld) {
+                    go(Step.IDLE, now);
+                    return;
+                }
+                if (!parked) {
+                    // Let go already: there is nothing to leave, and /leave sent into a world is not ours to guess at.
+                    DoughBayClient.LOGGER.info("DoughBay restart: the server put us back before /leave was needed");
                     go(Step.IDLE, now);
                     return;
                 }
@@ -97,8 +122,12 @@ final class RestartRecovery {
             }
             case LEFT -> {
                 if (!inWorld) {
-                    // Dropped on the way: the ordinary join and the ordinary hold take it from here.
-                    go(Step.IDLE, now);
+                    // Between two servers there is no world for a moment, and
+                    // that is the move itself, not a drop. Only a screen a
+                    // player could join from is a real drop.
+                    if (joinableFrom(client.gui.screen()) || now - stepAt > RestartPlan.LEAVE_TIMEOUT_MILLIS) {
+                        go(Step.IDLE, now);
+                    }
                     return;
                 }
                 if (limboSeenAt > leaveSentAt + 2_000L) {
@@ -106,7 +135,7 @@ final class RestartRecovery {
                     go(Step.IDLE, now);
                     return;
                 }
-                if (RestartPlan.worldAfterLeave(leaveSentAt, levelChangedAt, balance, now)) {
+                if (RestartPlan.worldAfterLeave(movedOn, levelChangedAt, balance, now)) {
                     if (DoughBayClient.executionDriver().refusesTeleports()) {
                         finish(session, now, "in a world again after /leave (teleports are switched off, so staying where it put us)");
                         return;
@@ -119,20 +148,21 @@ final class RestartRecovery {
                     return;
                 }
                 if (now - stepAt > RestartPlan.LEAVE_TIMEOUT_MILLIS) {
-                    // Somewhere that is neither the waiting room nor a world to
-                    // trade in. From the waiting room the server puts a player
-                    // back by itself; from here it may not, so go round to the
-                    // front door, which leads to one or the other.
-                    DoughBayClient.LOGGER.info("DoughBay restart: /leave has not put us in a world; rejoining {}", home);
-                    hops = List.of();
-                    hopIndex = 0;
-                    leave(client);
-                    go(Step.TO_HOME, now);
+                    // Nothing is torn down over it. The first version left the
+                    // server here and joined again, and what it tore down was a
+                    // session that was working.
+                    DoughBayClient.LOGGER.info(movedOn
+                            ? "DoughBay restart: out of the waiting room but no balance shows; the hold runs its time"
+                            : "DoughBay restart: /leave did not take us out of the waiting room; waiting the restart out");
+                    go(Step.IDLE, now);
                 }
             }
             case RTP_WAIT -> {
                 if (!inWorld) {
-                    go(Step.IDLE, now);
+                    // A teleport can cross to another server too; see LEFT.
+                    if (joinableFrom(client.gui.screen()) || now - stepAt > RestartPlan.LEAVE_TIMEOUT_MILLIS) {
+                        go(Step.IDLE, now);
+                    }
                     return;
                 }
                 boolean moved = rtpFrom != null && client.player.position().distanceTo(rtpFrom) > 64;
@@ -220,6 +250,7 @@ final class RestartRecovery {
                             home, (now - hoppedUntil + 15 * 60_000L) / 1000);
                     session.observeServerAnswered();
                     limboSeenAt = 0;
+                    limboLevel = null;
                     resumeTries = 0;
                     go(resumeOwed ? Step.RESUMING : Step.IDLE, now);
                 } else if (now - homeJoinedAt > 60_000L) {
@@ -237,6 +268,7 @@ final class RestartRecovery {
                 how, limboSeenAt > 0 ? (now - limboSeenAt) / 1000 : 0);
         session.observeServerAnswered();
         limboSeenAt = 0;
+        limboLevel = null;
         resumeTries = 0;
         go(resumeOwed ? Step.RESUMING : Step.IDLE, now);
     }
@@ -270,19 +302,20 @@ final class RestartRecovery {
     }
 
     private void idle(Minecraft client, AutomationSessionController session, long now, boolean inWorld,
-                      ServerData current, String on, boolean balance) {
+                      ServerData current, String on, boolean balance, boolean parked, boolean movedOn) {
         if (!session.serverRestarting() || !inWorld) return;
-        if (RestartPlan.backFromLimbo(limboSeenAt, levelChangedAt, balance, now)) {
+        if (RestartPlan.backFromLimbo(movedOn, levelChangedAt, balance, now)) {
             DoughBayClient.LOGGER.info("DoughBay restart: put back in the world {} s after being parked; the hold is lifted",
                     (now - limboSeenAt) / 1000);
             limboSeenAt = 0;
+            limboLevel = null;
             session.observeServerAnswered();
             return;
         }
         if (Tuning.get("restart.hop") < 0.5 || now < hoppedUntil) return;
         // Only out of the waiting room itself. A warning alone is a restart
         // that may be of some other part of the network.
-        if (limboSeenAt == 0 || now - limboSeenAt > 60_000L || current == null) return;
+        if (limboSeenAt == 0 || now - limboSeenAt > 60_000L || current == null || !parked) return;
         hoppedUntil = now + 15 * 60_000L;
         var snapshot = session.snapshot();
         resumeOwed = snapshot.state() == AutomationSessionController.State.PAUSED && snapshot.detail() != null

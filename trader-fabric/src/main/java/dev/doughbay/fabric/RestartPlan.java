@@ -18,8 +18,10 @@ final class RestartPlan {
     static final long SETTLE_MILLIS = 12_000L;
     static final long CONNECT_TIMEOUT_MILLIS = 45_000L;
     static final long HOME_RETRY_MILLIS = 20_000L;
-    /** A world change this soon after the parking notice is the move into the waiting room, not out of it. */
-    static final long PARKING_MILLIS = 5_000L;
+    /** How long after the parking notice the world the client is in is taken to be the waiting room. */
+    static final long PARKED_MILLIS = 1_500L;
+    /** After that, before /leave: the stop the session made has to land first. */
+    static final long LEAVE_ARM_MILLIS = 2_000L;
 
     private RestartPlan() {
     }
@@ -84,13 +86,12 @@ final class RestartPlan {
     /**
      * Whether a player parked for a restart has been put back. The proxy says
      * when it parks someone and never says when it lets them go, so the proof
-     * is what a world has and the waiting room has not: the client was moved
-     * to another world well after the parking notice, the money sidebar is
+     * is what a world has and the waiting room has not: the client is no longer
+     * in the world it was parked in, the money sidebar is
      * showing, and it has stayed that way.
      */
-    static boolean backFromLimbo(long limboSeenAt, long levelChangedAt, boolean balanceShown, long now) {
-        return limboSeenAt > 0 && levelChangedAt > limboSeenAt + PARKING_MILLIS && balanceShown
-                && now - levelChangedAt >= SETTLE_MILLIS;
+    static boolean backFromLimbo(boolean movedOn, long levelChangedAt, boolean balanceShown, long now) {
+        return movedOn && balanceShown && now - levelChangedAt >= SETTLE_MILLIS;
     }
 
     /** How long a world reached with /leave has to hold before it is acted in. */
@@ -100,13 +101,12 @@ final class RestartPlan {
 
     /**
      * Whether /leave has put the client in a world it can trade from: moved
-     * to another world after the command went out, with the money sidebar
+     * out of the waiting room to another world, with the money sidebar
      * showing, and still there a few seconds on. A lobby has no balance on
      * its sidebar, and is not one.
      */
-    static boolean worldAfterLeave(long leaveSentAt, long levelChangedAt, boolean balanceShown, long now) {
-        return leaveSentAt > 0 && levelChangedAt > leaveSentAt && balanceShown
-                && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
+    static boolean worldAfterLeave(boolean movedOn, long levelChangedAt, boolean balanceShown, long now) {
+        return movedOn && balanceShown && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
     }
 
     /** Whether a fresh join of the home address found the world there: nothing said about a restart since, and the sidebar up. */
