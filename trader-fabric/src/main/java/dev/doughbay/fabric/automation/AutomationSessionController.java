@@ -4613,28 +4613,71 @@ public final class AutomationSessionController {
         if (ownOnly()) return null;
         if (!dev.doughbay.fabric.KeylessFeed.active() || dev.doughbay.fabric.Tuning.get("keyless.sweep") < 0.5) return null;
         if (now - lastSweepPlannedAt < (long) (dev.doughbay.fabric.Tuning.get("keyless.sweep_gap_sec") * 1000)) return null;
-        java.util.LinkedHashMap<String, Integer> targets = sweepTargets(snapshot);
+        java.util.Set<String> core = new java.util.HashSet<>();
+        java.util.LinkedHashMap<String, Integer> targets = sweepTargets(snapshot, core);
         long every = (long) (dev.doughbay.fabric.Tuning.get("keyless.sweep_every_min") * 60_000L);
-        String pick = null;
-        long oldest = Long.MAX_VALUE;
+        java.util.List<String> allowed = new ArrayList<>();
         for (String key : targets.keySet()) {
-            long at = sweptAt.getOrDefault(key, 0L);
-            if (now - at < every) continue;
-            if (!dev.doughbay.fabric.Tuning.itemAllowed(key.substring(0, key.lastIndexOf('x')))) continue;
-            if (at < oldest) {
-                oldest = at;
-                pick = key;
-            }
+            if (dev.doughbay.fabric.Tuning.itemAllowed(key.substring(0, key.lastIndexOf('x')))) allowed.add(key);
         }
+        String pick = sweepPick(allowed, core, sweptAt, now, every, sweepTurn);
         if (pick == null) return null;
+        sweepTurn++;
         lastSweepPlannedAt = now;
         String item = pick.substring(0, pick.lastIndexOf('x'));
         int count = targets.get(pick);
         return new DeskStep(DeskAction.SWEEP, item, count, 0, "checking live " + shortId(item) + " x" + count + " prices");
     }
 
+    /** How many turns the sweep has taken, so the watch list gets its share of them and no more. */
+    private long sweepTurn;
+
+    /**
+     * Which market the price sweep checks next: the one checked longest ago,
+     * among those due.
+     *
+     * <p>The markets the bot is in or is choosing among come first, and the
+     * rest of the watch list gets one turn in four. Checked in one line, a
+     * long watch list starved everything else: a player tracked all 1,544
+     * items, every one of them "never checked", and the sweep went through
+     * dragon heads and spawn eggs at one a minute, twenty hours a lap, while
+     * the fifty markets it could actually trade were not priced again.
+     *
+     * @param core the markets held, bid on, valued, or sold one at a time
+     * @param turn how many sweeps have gone before
+     */
+    static String sweepPick(java.util.Collection<String> keys, java.util.Set<String> core,
+                            java.util.Map<String, Long> sweptAt, long now, long every, long turn) {
+        String corePick = null;
+        String otherPick = null;
+        long coreOldest = Long.MAX_VALUE;
+        long otherOldest = Long.MAX_VALUE;
+        for (String key : keys) {
+            long at = sweptAt.getOrDefault(key, 0L);
+            if (now - at < every) continue;
+            if (core.contains(key)) {
+                if (at < coreOldest) {
+                    coreOldest = at;
+                    corePick = key;
+                }
+            } else if (at < otherOldest) {
+                otherOldest = at;
+                otherPick = key;
+            }
+        }
+        boolean othersTurn = turn % 4 == 3;
+        if (othersTurn) return otherPick != null ? otherPick : corePick;
+        return corePick != null ? corePick : otherPick;
+    }
+
     /** Every market and stack size the keyless sweep prices, keyed "item" + "x" + count. */
     private java.util.LinkedHashMap<String, Integer> sweepTargets(MarketWatcher.Snapshot snapshot) {
+        return sweepTargets(snapshot, new java.util.HashSet<>());
+    }
+
+    /** The same, also saying which of them are the markets the bot is in or is choosing among. */
+    private java.util.LinkedHashMap<String, Integer> sweepTargets(MarketWatcher.Snapshot snapshot,
+                                                                  java.util.Set<String> core) {
         java.util.LinkedHashMap<String, Integer> targets = new java.util.LinkedHashMap<>();
         for (Position p : openListings) {
             if (p.itemKey().indexOf('#') < 0) targets.putIfAbsent(baseItemId(p.itemKey()) + "x" + p.quantity(), p.quantity());
@@ -4649,6 +4692,7 @@ public final class AutomationSessionController {
                 targets.putIfAbsent(m.itemKey() + "x" + count, count);
             }
         }
+        core.addAll(targets.keySet());
         for (String b : dev.doughbay.fabric.Tuning.itemSet("watch.tracked")) {
             String item = b.indexOf(':') >= 0 ? b : "minecraft:" + b;
             targets.putIfAbsent(item + "x" + fullStack(item), fullStack(item));
@@ -4657,7 +4701,10 @@ public final class AutomationSessionController {
         // the stack profile sees both sizes again and the peel has a reason
         // to run. Without the API it only ever saw stacks.
         for (String item : dev.doughbay.fabric.KeylessFeed.singlesMarkets()) {
-            if (dev.doughbay.fabric.Tuning.itemAllowed(item)) targets.putIfAbsent(item + "x1", 1);
+            if (dev.doughbay.fabric.Tuning.itemAllowed(item)) {
+                targets.putIfAbsent(item + "x1", 1);
+                core.add(item + "x1");
+            }
         }
         // A fresh install has no valued markets and no holdings yet; its
         // starting market list is what gets priced first.

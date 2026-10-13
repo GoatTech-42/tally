@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 15:47 UTC
+- Fixed: tracking a very long list of items stopped the bot pricing the markets it could actually trade. The keyless price sweep checks one market at a time, the one checked longest ago first, and every tracked item counted as never checked. With all 1,544 items ticked it worked through spawn eggs and dragon heads for about twenty hours a lap, and the markets with real sales were not priced again.
+- Now the markets the bot holds, bids on or has valued come first, and the rest of the tracked list gets one sweep turn in four. Tracking everything is still slow to cover, so track the items you care about rather than all of them.
+
 ## 2026-10-13 15:18 UTC
 - New: "Skip the restart waiting room" now gets out the way the waiting room itself offers. It sends /leave, which puts you in another region of the network, then /rtp to get away from where that set you down, and starts the session again there. The auction is the same in every region.
 - "Way out of the waiting room" (Settings, Session) picks between that (1, the default) and the earlier way of rejoining through another address (2). If /leave ends up somewhere that is not a world to trade in, the client rejoins the usual address by itself.
