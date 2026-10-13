@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 16:52 UTC
+- New: a Flips page on the Discord panel. It shows your Flips list with what each item is bought and sold at, the market price, and how much is on order and listed. Pick an item, then press "Sell price" or "Buy price" and type the new figure (20k and 1.5m work). "Add item" takes an entry typed out, like `obsidian 250 900`, and "Remove" takes the selected one off.
+- A price that cannot be right is refused with the reason, and the list is left as it was. On the web panel the same list is edited on the Your prices page.
+
 ## 2026-10-13 16:42 UTC
 - New: "Run from withers" (Settings, Evasion), on whenever the evasion guard is on. Players spawn withers where random teleports land, and the guard only ever looked for players, so a wither next to the bot went unseen until it killed it. When a wither's boss bar shows at the top of the screen the session now stops and the bot teleports away at once, without waiting for a trade in flight. With teleports switched off it leaves the server instead.
 - A bar that is still showing after three escapes in five minutes is taken for one of the server's own and left alone for half an hour, so a server notice can never send the bot teleporting for ever.

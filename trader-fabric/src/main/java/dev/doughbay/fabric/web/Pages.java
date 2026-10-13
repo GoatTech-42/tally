@@ -370,6 +370,8 @@ final class Pages {
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
+                // The Flips picture is the Your prices page here, which edits the whole list.
+                if (o.value === 'FLIPS') continue;
                 if (o.value === 'TUNE') { mine('items'); mine('prices'); mine('settings'); continue; }
                 add(o.value === 'ITEMS' ? 'Item profit' : o.label, !view && o.default, () => {
                   if (view) show('');

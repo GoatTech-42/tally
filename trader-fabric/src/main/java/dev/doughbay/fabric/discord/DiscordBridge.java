@@ -45,7 +45,7 @@ public final class DiscordBridge {
     private static final long REFRESH_MILLIS = 15_000;
     private static final long FEED_MILLIS = 5_000;
 
-    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, RIVALS, EVASION, PAYROLL, TUNE, SEARCH }
+    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, FLIPS, RIVALS, EVASION, PAYROLL, TUNE, SEARCH }
 
     private final Logger log;
     private final Path configDir;
@@ -87,6 +87,8 @@ public final class DiscordBridge {
     private volatile long controlRepliesSeenAt = System.currentTimeMillis();
     private volatile String tuneGroup = "";
     private volatile String tuneKey = "";
+    /** The entry of the player's own price list the Flips page is working on. */
+    private volatile String flipKey = "";
     private volatile String searchTerm = "";
     private volatile String notice = "";
     private volatile long noticeAt;
@@ -482,6 +484,15 @@ public final class DiscordBridge {
         }
         ArrayNode r2 = row(rows);
         button(r2, "ctl:search", "Search", 2, false);
+        if (page == Page.FLIPS) {
+            // On the Search row, which has room: the page's own row goes to
+            // the list to pick from, and Discord takes five rows and no more.
+            boolean none = flip() == null;
+            button(r2, "flips:sell", "Sell price", 1, none);
+            button(r2, "flips:buy", "Buy price", 1, none);
+            button(r2, "flips:add", "Add item", 3, false);
+            button(r2, "flips:remove", "Remove", 4, none);
+        }
         // Discord allows five buttons to a row and silently rejects the whole
         // message with "Invalid Form Body" at six, so Start and Stop get their
         // own row rather than being crammed onto the end of the pages.
@@ -529,6 +540,17 @@ public final class DiscordBridge {
             button(ri, "items:range", "Range: " + itemsRange.label, 2, false);
             button(ri, "items:sort", "Sort: " + itemsSort.label, 2, false);
             button(ri, "items:flip", itemsBest ? "Best first" : "Worst first", 2, false);
+        }
+        if (page == Page.FLIPS && !dev.doughbay.fabric.OwnPrices.all().isEmpty()) {
+            dev.doughbay.fabric.OwnPrices.Entry chosen = flip();
+            ObjectNode fsel = select(row(rows), "flips:key", "Item on your list");
+            ArrayNode fopts = fsel.putArray("options");
+            int n = 0;
+            for (dev.doughbay.fabric.OwnPrices.Entry e : dev.doughbay.fabric.OwnPrices.all()) {
+                if (n++ >= 25) break;
+                option(fopts, item(e.itemId()) + " · buy " + money(e.buy()) + " · sell " + money(e.sell()),
+                        e.itemId(), chosen != null && chosen.itemId().equals(e.itemId()));
+            }
         }
         if (page == Page.TUNE) {
             List<String> groups = new ArrayList<>(Tuning.groups());
@@ -609,6 +631,7 @@ public final class DiscordBridge {
             case EVASION -> "Evasion";
             case PAYROLL -> "Payroll";
             case TUNE -> "Tune";
+            case FLIPS -> "Flips";
             case SEARCH -> "Search";
         };
     }
@@ -635,6 +658,24 @@ public final class DiscordBridge {
             if (type != 3) return;
             if (customId.equals("ctl:search")) {
                 rest.respond(id, token, modal("modal:search", "Search the markets", "item", "Item, for example golden apple", ""));
+                return;
+            }
+            if (customId.equals("flips:sell") || customId.equals("flips:buy")) {
+                dev.doughbay.fabric.OwnPrices.Entry e = flip();
+                if (e == null) {
+                    rest.respond(id, token, ephemeral("Put an item on your Flips list first."));
+                    return;
+                }
+                boolean sell = customId.equals("flips:sell");
+                rest.respond(id, token, modal("modal:flips:" + (sell ? "sell:" : "buy:") + e.itemId(),
+                        (sell ? "Sell price: " : "Buy price: ") + item(e.itemId()), "value",
+                        sell ? "What one sells for on the auction house" : "The most to pay for one in an order",
+                        String.valueOf(sell ? e.sell() : e.buy())));
+                return;
+            }
+            if (customId.equals("flips:add")) {
+                rest.respond(id, token, modal("modal:flips:add", "Add to your Flips list", "value",
+                        "Item, buy price, sell price (each)", ""));
                 return;
             }
             if (customId.equals("tune:set")) {
@@ -683,6 +724,11 @@ public final class DiscordBridge {
                 tuneKey = "";
             }
             case "tune:key" -> tuneKey = value;
+            case "flips:key" -> flipKey = value;
+            case "flips:remove" -> {
+                dev.doughbay.fabric.OwnPrices.Entry e = flip();
+                if (e != null) flipEdit(list -> dev.doughbay.fabric.FlipEdits.remove(list, e.itemId()));
+            }
             case "tune:preset" -> onClient(() -> {
                 int changed = Tuning.applyPreset(value);
                 note("Preset " + value + " applied: " + changed + " setting(s) changed");
@@ -715,6 +761,20 @@ public final class DiscordBridge {
             page = Page.SEARCH;
             return;
         }
+        if (customId.startsWith("modal:flips:sell:")) {
+            String which = customId.substring("modal:flips:sell:".length());
+            flipEdit(list -> dev.doughbay.fabric.FlipEdits.sell(list, which, text));
+            return;
+        }
+        if (customId.startsWith("modal:flips:buy:")) {
+            String which = customId.substring("modal:flips:buy:".length());
+            flipEdit(list -> dev.doughbay.fabric.FlipEdits.buy(list, which, text));
+            return;
+        }
+        if (customId.equals("modal:flips:add")) {
+            flipEdit(list -> dev.doughbay.fabric.FlipEdits.add(list, text));
+            return;
+        }
         if (customId.startsWith("modal:set:")) {
             Tuning.Setting st = setting(customId.substring("modal:set:".length()));
             if (st == null) return;
@@ -732,6 +792,24 @@ public final class DiscordBridge {
 
     private interface Adjuster {
         double apply(Tuning.Setting st);
+    }
+
+    /** The entry the Flips page is working on: the one picked, or the first when none has been. */
+    private dev.doughbay.fabric.OwnPrices.Entry flip() {
+        dev.doughbay.fabric.OwnPrices.Entry picked = flipKey.isBlank() ? null : dev.doughbay.fabric.OwnPrices.of(flipKey);
+        if (picked != null) return picked;
+        for (dev.doughbay.fabric.OwnPrices.Entry first : dev.doughbay.fabric.OwnPrices.all()) return first;
+        return null;
+    }
+
+    /** One change to the player's price list, made on the game thread and answered on the page. */
+    private void flipEdit(java.util.function.Function<String, dev.doughbay.fabric.FlipEdits.Result> edit) {
+        onClient(() -> {
+            dev.doughbay.fabric.FlipEdits.Result r = edit.apply(Tuning.text(dev.doughbay.fabric.OwnPrices.KEY));
+            if (r.ok()) Tuning.setText(dev.doughbay.fabric.OwnPrices.KEY, r.listText());
+            note(r.message());
+            refreshNow = true;
+        });
     }
 
     private void adjust(Adjuster f) {
@@ -943,6 +1021,7 @@ public final class DiscordBridge {
             case EVASION -> evasionPage(stateColor, subtitle, footer);
             case PAYROLL -> payrollPage(stateColor, subtitle, footer);
             case TUNE -> tunePage(stateColor, subtitle, footer);
+            case FLIPS -> flipsPage(stateColor, subtitle, footer);
             case SEARCH -> searchPage(m, stateColor, subtitle, footer);
         };
     }
@@ -1683,6 +1762,33 @@ public final class DiscordBridge {
         }
         return new StatsImage.Page("Payroll", subtitle, color, head, 0, 0,
                 new String[] {"Time", "To", "Amount", "Status"}, new boolean[] {false, false, true, false}, rows, footer);
+    }
+
+    /** The player's own price list: what each item is bought and sold at, and how it stands. */
+    private StatsImage.Page flipsPage(String color, String subtitle, String footer) {
+        List<String[]> rows = new ArrayList<>();
+        List<String[]> head = new ArrayList<>();
+        List<String> icons = new ArrayList<>();
+        dev.doughbay.fabric.OwnPrices.Entry chosen = flip();
+        List<AutomationSessionController.OwnPriceView> views = session.ownPriceViews();
+        head.add(new String[] {"On your list", views.isEmpty() ? "nothing yet: press Add item" : views.size() + " item(s)", "gold"});
+        head.add(new String[] {"Trading", Tuning.get("prices.only") >= 0.5 ? "only these" : "these, and the markets the bot picks"});
+        if (chosen != null) {
+            head.add(new String[] {"Selected", item(chosen.itemId()) + ": buy " + money(chosen.buy()) + ", sell " + money(chosen.sell())});
+        }
+        for (AutomationSessionController.OwnPriceView v : views) {
+            dev.doughbay.fabric.OwnPrices.Entry e = v.entry();
+            if (rows.size() >= 14) break;
+            rows.add(new String[] {(chosen != null && chosen.itemId().equals(e.itemId()) ? "▶ " : "") + item(e.itemId()),
+                    (e.top() ? "top " : "") + money(e.buy()), money(e.sell()),
+                    e.singles() ? "singles" : e.stacks() > 0 ? "x" + e.stacks() : "",
+                    v.marketUnit() > 0 ? money(Math.round(v.marketUnit())) : "-",
+                    String.valueOf(v.onOrder()), String.valueOf(v.listedUnits())});
+            icons.add("minecraft:" + e.itemId());
+        }
+        return new StatsImage.Page("Flips", subtitle, color, head, 0, 0,
+                new String[] {"Item", "Buy", "Sell", "Size", "Market", "Order", "Listed"},
+                new boolean[] {false, true, true, false, true, true, true}, rows, icons, footer);
     }
 
     private StatsImage.Page tunePage(String color, String subtitle, String footer) {
