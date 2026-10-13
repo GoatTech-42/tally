@@ -5284,7 +5284,7 @@ public final class AutomationSessionController {
             // The hive has split the markets and this one fell to another
             // account: two orders in it are the two accounts bidding against
             // each other, which is what the split is for.
-            if (priced == null && !denied && r.remaining() > 0 && why == null && siblingsMarket(r.itemId())) {
+            if (!denied && r.remaining() > 0 && (why == null || priced != null) && siblingsMarket(r.itemId())) {
                 why = "this market is the other account's to buy in";
             }
             // Winding down, every open order is pulled, whoever set its price.
@@ -6362,6 +6362,10 @@ public final class AutomationSessionController {
             if (free <= 0) break;
             String id = "minecraft:" + own.itemId();
             if (bidItems.contains(id) || chosen.contains(id)) continue;
+            // In a hive with the markets split, a list is one account's to
+            // order from like any other market. Two accounts each bidding
+            // just over the best order would be bidding over each other.
+            if (siblingsMarket(id)) continue;
             if (!knownItem(id)) { ownPriceNote(id, "the game has no item by that name", now); continue; }
             if (deskBadItems.contains(id)) { ownPriceNote(id, "the server refuses an order for it", now); continue; }
             if (!dev.doughbay.fabric.Tuning.itemAllowed(id)) {

@@ -38,6 +38,14 @@ class ItemListsTest {
         assertFalse(ItemLists.listMatches(list, "diamond_block"));
         assertFalse(ItemLists.listMatches(list, "reboots"));
         assertFalse(ItemLists.listMatches(Set.of(), "diamond"));
+        // With an equals sign the entry is that one item: plain glass, and not the stained glass that ends in it.
+        Set<String> exact = Set.of("=glass", "boots");
+        assertTrue(ItemLists.listMatches(exact, "glass"));
+        assertFalse(ItemLists.listMatches(exact, "white_stained_glass"));
+        assertFalse(ItemLists.listMatches(exact, "glass_bottle"));
+        assertTrue(ItemLists.listMatches(exact, "iron_boots"));
+        assertTrue(Tuning.tokenCovers("glass", "white_stained_glass"));
+        assertFalse(Tuning.tokenCovers("=glass", "white_stained_glass"));
     }
 
     @Test

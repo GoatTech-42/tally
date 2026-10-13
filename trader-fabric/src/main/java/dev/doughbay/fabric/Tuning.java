@@ -906,7 +906,8 @@ public final class Tuning {
             new ListSetting("items.allow", "Only trade these items",
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
             new ListSetting("items.deny", "Never trade these items",
-                    "Comma-separated item names or ids that are always skipped."),
+                    "Comma-separated item names or ids that are always skipped. A name covers everything ending in it "
+                    + "(glass is every stained glass too); =glass is that one item alone."),
             new ListSetting("prices.own", "Your own prices",
                     "Items to order at a price you set and sell at a price you set, as item, buy price, sell price: "
                     + "\"diamond 80 120, golden apple 4k 5.2k x3\". Prices are per item; x3 orders three stacks at a time. "
@@ -1069,9 +1070,21 @@ public final class Tuning {
     public static boolean setMatches(String key, String itemId) {
         String id = normalizeItem(itemId);
         for (String token : itemSet(key)) {
-            if (id.equals(token) || id.endsWith("_" + token)) return true;
+            if (tokenCovers(token, id)) return true;
         }
         return false;
+    }
+
+    /**
+     * Whether one entry of a list names an item. An entry is the item itself
+     * or a category of everything ending in it, so "glass" is glass and every
+     * stained glass too. Written with an equals sign in front, "=glass", it is
+     * that one item and nothing else: the only way to say plain glass without
+     * saying all the rest.
+     */
+    public static boolean tokenCovers(String token, String bare) {
+        if (token.startsWith("=")) return bare.equals(token.substring(1));
+        return bare.equals(token) || bare.endsWith("_" + token);
     }
 
     /** Adds one item id to a comma-separated list setting (normalized); no-op if already present. */

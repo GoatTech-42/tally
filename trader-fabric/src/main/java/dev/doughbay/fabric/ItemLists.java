@@ -23,7 +23,7 @@ final class ItemLists {
      */
     static boolean listMatches(Set<String> tokens, String bare) {
         if (tokens.contains(bare)) return true;
-        for (String t : tokens) if (bare.endsWith("_" + t)) return true;
+        for (String t : tokens) if (Tuning.tokenCovers(t, bare)) return true;
         return false;
     }
 

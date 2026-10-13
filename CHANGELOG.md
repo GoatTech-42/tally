@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 06:54 UTC
+- New: an exact name in the item lists. An entry like `glass` covers everything ending in it, so it also means every stained glass. Written `=glass` it means plain glass and nothing else. Works in "Only trade these", "Never trade these" and "Sell off and stop buying these".
+- Changed: with the markets split between accounts, an item on the Flips list is ordered by one account only, the one the market belongs to. Two accounts each bidding just over the top order would have been bidding over each other.
+
 ## 2026-10-13 06:40 UTC
 - New, for two or more accounts sharing one ledger: "Split the markets between accounts" (Settings, Multi client). Off unless you turn it on. Two accounts in the same markets sell to the same buyers and bid against each other. With the split on, each market has one account buying in it. The accounts divide the markets between them by themselves, and each pulls the orders it had up in the other's markets.
 - Only buying is split. An account still lists, reprices and sells everything it already holds. Items on the Flips list are not split.

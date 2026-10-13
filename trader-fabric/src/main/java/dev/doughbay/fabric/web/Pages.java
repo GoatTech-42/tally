@@ -634,8 +634,8 @@ final class Pages {
             function bare(id) { const c = id.indexOf(':'); return c >= 0 ? id.slice(c + 1) : id; }
             // The trader's own rule: the name itself, or the end of it (boots covers netherite_boots).
             function covers(set, b) {
-              if (set.has(b)) return true;
-              for (const t of set) if (b.endsWith('_' + t)) return true;
+              if (set.has(b) || set.has('=' + b)) return true;
+              for (const t of set) if (!t.startsWith('=') && b.endsWith('_' + t)) return true;
               return false;
             }
             function takeLists(j) {
