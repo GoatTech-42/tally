@@ -361,6 +361,7 @@ public final class EvasionGuard {
 
         if (client.player == null || client.level == null) return;
         if (client.getCurrentServer() != null) lastServer = client.getCurrentServer();
+        witherWatch(client, session, now);
         wander(client, session, now);
 
         // Asked to leave and waiting for the trade in flight to finish.
@@ -818,6 +819,69 @@ public final class EvasionGuard {
             return session != null && session.serverRestarting();
         } catch (Throwable t) {
             return false;
+        }
+    }
+
+    private long witherEscapedAt;
+    private long witherWindowAt;
+    private int witherEscapes;
+    private long witherIgnoreUntil;
+
+    /** The boss bars on screen now; empty when they cannot be read. */
+    private static java.util.List<BossWatch.Bar> bossBars(Minecraft client) {
+        java.util.List<BossWatch.Bar> out = new java.util.ArrayList<>();
+        try {
+            Object overlay = client.gui.hud.getBossOverlay();
+            for (net.minecraft.client.gui.components.LerpingBossEvent bar
+                    : ((dev.doughbay.fabric.mixin.BossHealthOverlayAccessor) overlay).doughbay$events().values()) {
+                out.add(new BossWatch.Bar(bar.getName() == null ? "" : bar.getName().getString(), bar.shouldDarkenScreen()));
+            }
+        } catch (Throwable ignored) {
+            // A screen laid out some other way is simply not read.
+        }
+        return out;
+    }
+
+    /**
+     * Leaves the moment a wither's bar is on the screen. No waiting for the
+     * trade in flight: an order left half placed costs a retry, and a wither
+     * costs everything being carried.
+     */
+    private void witherWatch(Minecraft client, AutomationSessionController session, long now) {
+        if (Tuning.get("evasion.wither") < 0.5 || now < witherIgnoreUntil) return;
+        String bar = BossWatch.wither(bossBars(client));
+        if (bar == null || now - witherEscapedAt < BossWatch.RETRY_MILLIS) return;
+        if (now - witherWindowAt > BossWatch.WINDOW_MILLIS) {
+            witherWindowAt = now;
+            witherEscapes = 0;
+        }
+        if (BossWatch.givesUp(witherEscapes)) {
+            witherIgnoreUntil = now + BossWatch.IGNORE_MILLIS;
+            DoughBayClient.LOGGER.warn("DoughBay evasion: the bar \"{}\" is still showing after {} escapes; it is not a wither "
+                    + "that is here, so it is left alone for {} min", bar, witherEscapes, BossWatch.IGNORE_MILLIS / 60_000L);
+            return;
+        }
+        witherEscapes++;
+        witherEscapedAt = now;
+        String message = "Evasion: a wither's bar is on the screen (" + bar + "); getting out";
+        DoughBayClient.LOGGER.warn("DoughBay {}", message);
+        client.player.sendSystemMessage(Component.literal("[GoNuts]" + message));
+        AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
+        if (snapshot.state() != AutomationSessionController.State.STOPPED
+                && snapshot.state() != AutomationSessionController.State.PAUSED) {
+            session.pause("Evasion: a wither is near");
+        }
+        closeAnyScreen(client);
+        triggered = true;
+        lastIntruder = "a wither";
+        note(lastIntruder, 0, "wither bar on screen");
+        clearSinceMillis = 0;
+        leaveWanted = false;
+        if (DoughBayClient.executionDriver().refusesTeleports()) {
+            // No teleport to use. Logging off beside a mob is not a combat log, and it is not a death.
+            leave(client, "Evasion: a wither is near and teleports are off; leaving the server");
+        } else {
+            teleportAway(client);
         }
     }
 

@@ -4,6 +4,7 @@
   "client": [
     "CommandSendMixin",
     "ClientPacketListenerMixin",
+    "BossHealthOverlayAccessor",
     "DialogScreenAccessor",
     "FramerateLimitTrackerMixin",
     "KeyMappingAccessor",

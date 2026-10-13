@@ -564,6 +564,12 @@ public final class Tuning {
             new Setting("evasion.player_idle_sec", "Evasion", "Evasion waits while you play",
                     "Evasion does nothing until you have been away from the keyboard this long; moving, looking around or attacking counts as playing",
                     20, 0, 300, Kind.SECONDS),
+            new Setting("evasion.wither", "Evasion", "Run from withers",
+                    "Players spawn withers where random teleports land, and one kills an unarmoured account in "
+                    + "seconds. When a wither's boss bar shows at the top of the screen the session stops and the "
+                    + "bot teleports away at once, without waiting for a trade to finish; with teleports switched "
+                    + "off it leaves the server instead. Needs the evasion guard on (1 on, 0 off)",
+                    1, 0, 1, Kind.TOGGLE),
             new Setting("evasion.on_damage", "Evasion", "Stop when damaged",
                     "Any drop in health stops the session at once, and leaves the server too when the inner ring is set (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
