@@ -622,6 +622,8 @@ public final class MarketWatcher {
     }
 
     private static final long KEYLESS_POLL_MILLIS = 60_000;
+    /** No requests are sent without the API; the roll call only wants a number to divide. */
+    private static final int KEYLESS_ROLL_CALL_BUDGET = 60;
     private static final long KEYLESS_API_RETRY_MILLIS = 30 * 60_000L;
 
     /**
@@ -656,10 +658,22 @@ public final class MarketWatcher {
                 DoughBayClient.LOGGER.info("DoughBay keyless: running without the Donut API ({} price ratios)",
                         feed.ratioCount());
                 long until = retryApi ? System.currentTimeMillis() + KEYLESS_API_RETRY_MILLIS : Long.MAX_VALUE;
+                // The hive's roll call. It rode on the API loop and nowhere
+                // else, so with no API nobody answered it: each client took
+                // itself for the only one, each published the Discord panel
+                // over the other's, and the panel had one account to show.
+                ApiBudget hive = DoughBayClient.apiBudget();
+                if (hive == null) {
+                    hive = new ApiBudget(config.databasePath(), KEYLESS_ROLL_CALL_BUDGET);
+                    DoughBayClient.setApiBudget(hive);
+                }
                 while (running && System.currentTimeMillis() < until) {
                     int mode = (int) Math.round(Tuning.get("feed.keyless"));
                     if (mode == 0) return;
                     long now = System.currentTimeMillis();
+                    if (DoughBayClient.multiClient()) {
+                        hive.refresh(KEYLESS_ROLL_CALL_BUDGET, signedInPlayerName(), DoughBayClient.clientMode());
+                    }
                     feed.ingest(db, now);
                     List<MarketStats> markets = service.marketStatsFromHistory(now, MARKET_DISPLAY_MINIMUM_SALES);
                     long balance = SidebarBalance.current();

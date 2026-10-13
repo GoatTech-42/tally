@@ -150,10 +150,19 @@ public class DoughBayClient implements ClientModInitializer {
         activeConfig = config;
         applyPermissions(config);
         AUTOMATION_SESSION.setRestStore(config.directory().resolve("market-rests.txt"));
-        AUTOMATION_SESSION.setAuditStore(config.directory().resolve("audit-balance.txt"));
-        AUTOMATION_SESSION.setCollectedStore(config.directory().resolve("orders-collected.txt"));
         AUTOMATION_SESSION.setLedgerPath(config.databasePath());
         Tuning.load(config.directory());
+        // What one account has ordered, collected and last counted is that
+        // account's own. Clients sharing this folder each keep theirs under
+        // their own name; in one file, each start read what the other wrote.
+        // After the settings are read, which say whether this is a hive.
+        String me = multiClient() ? account() : "";
+        java.nio.file.Path own = AccountRecords.directory(config.directory(), multiClient(), me, LOGGER);
+        AUTOMATION_SESSION.setAuditStore(own.resolve("audit-balance.txt"));
+        AUTOMATION_SESSION.setCollectedStore(own.resolve("orders-collected.txt"));
+        // And in the ledger, where every position carries its owner: only this
+        // account's buying and selling moves this account's balance.
+        String mine = me.isEmpty() ? "" : " AND (client = ? OR client = '')";
         Probe.load(config.directory());
         EVASION = new EvasionGuard(config.directory().resolve("evasion.txt"));
         EvasionGuard.setLedger(config.databasePath());
@@ -163,7 +172,7 @@ public class DoughBayClient implements ClientModInitializer {
         // lately booked as returned come along so the check can take back any
         // that are still on the page.
         try (dev.doughbay.storage.Database db = new dev.doughbay.storage.Database(config.databasePath())) {
-            java.nio.file.Path store = config.directory().resolve("audit-balance.txt");
+            java.nio.file.Path store = own.resolve("audit-balance.txt");
             if (java.nio.file.Files.exists(store)) {
                 String[] parts = java.nio.file.Files.readString(store).strip().split("=");
                 long auditAt = Long.parseLong(parts[0].trim());
@@ -171,8 +180,9 @@ public class DoughBayClient implements ClientModInitializer {
                 long spent = 0;
                 long sales = 0;
                 try (var ps = db.connection().prepareStatement(
-                        "SELECT COALESCE(SUM(purchase_price), 0) FROM positions WHERE mode = 'REAL' AND purchased_at > ?")) {
+                        "SELECT COALESCE(SUM(purchase_price), 0) FROM positions WHERE mode = 'REAL' AND purchased_at > ?" + mine)) {
                     ps.setLong(1, auditAt);
+                    if (!me.isEmpty()) ps.setString(2, me);
                     try (var rs = ps.executeQuery()) {
                         if (rs.next()) spent += rs.getLong(1);
                     }
@@ -186,8 +196,9 @@ public class DoughBayClient implements ClientModInitializer {
                 }
                 try (var ps = db.connection().prepareStatement(
                         "SELECT COALESCE(SUM(sale_price), 0) FROM positions WHERE mode = 'REAL' AND status = 'SOLD' AND closed_at > ? "
-                                + "AND position_id IN (SELECT position_id FROM sale_buyers)")) {
+                                + "AND position_id IN (SELECT position_id FROM sale_buyers)" + mine)) {
                     ps.setLong(1, auditAt);
+                    if (!me.isEmpty()) ps.setString(2, me);
                     try (var rs = ps.executeQuery()) {
                         if (rs.next()) sales += rs.getLong(1);
                     }
@@ -199,8 +210,9 @@ public class DoughBayClient implements ClientModInitializer {
             java.util.List<dev.doughbay.core.model.Position> returned = new java.util.ArrayList<>();
             try (var ps = db.connection().prepareStatement(
                     "SELECT position_id, mode, item_key, stack_bucket, quantity, purchase_price, target_price, purchased_at, listed_at, closed_at "
-                            + "FROM positions WHERE mode = 'REAL' AND status = 'CANCELLED' AND closed_at > ?")) {
+                            + "FROM positions WHERE mode = 'REAL' AND status = 'CANCELLED' AND closed_at > ?" + mine)) {
                 ps.setLong(1, System.currentTimeMillis() - 48 * 3_600_000L);
+                if (!me.isEmpty()) ps.setString(2, me);
                 try (var rs = ps.executeQuery()) {
                     while (rs.next()) {
                         returned.add(new dev.doughbay.core.model.Position(rs.getLong(1), rs.getString(2), rs.getString(3),
@@ -1020,6 +1032,10 @@ public class DoughBayClient implements ClientModInitializer {
 
     static void setApiBudget(ApiBudget budget) {
         API_BUDGET = budget;
+    }
+
+    static ApiBudget apiBudget() {
+        return API_BUDGET;
     }
 
     private static java.nio.file.Path commandInbox;

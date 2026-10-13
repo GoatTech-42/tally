@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 01:05 UTC
+- Fixed: two accounts sharing one folder (multi mode) with no API key each thought it was running alone. The Discord panel showed one account, and both clients posted over each other. The clients now find each other without the API: one of them hosts the panel, both accounts are on it, and the account picker (everyone, or either one) is back.
+- Fixed: in multi mode each account now keeps its own order and balance records, in a folder under its own name. They were single shared files, so after a restart one account could load the other's open orders and bank balance. An account running alone keeps its files where they were.
+
 ## 2026-10-13 00:26 UTC
 - New: the web panel has real pages for Settings, Items and Rivals, laid out like the screen in game. They replace the Tune and Rivals pictures. The other pages are still pictures for now and come next.
 - Settings: every setting in its group, with search. Tap a row to read what it does and change it; switches flip in place. Presets, reset to default, the item lists, and copying or pasting a settings code all work from the browser. Changes apply at once, with no restart.
