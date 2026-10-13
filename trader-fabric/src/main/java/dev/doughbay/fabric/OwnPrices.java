@@ -19,27 +19,60 @@ import java.util.Set;
  * order house writes them.
  *
  * <p>Written as {@code item buy sell}, entries apart by commas:
- * {@code diamond 80 120, golden apple 4k 5.2k x3}. The optional {@code x3} is
- * how many stacks to order at a time. The word {@code singles} after an entry
- * sells what arrives one item at a time at the sell price, never as a stack:
- * {@code observer 500 900 x15 singles}.
+ * {@code diamond 80 120, golden apple 4k 5.2k x3}. After the two prices, in
+ * any order:
+ * <ul>
+ * <li>{@code x3}: how many stacks to order at a time;</li>
+ * <li>{@code singles}: sell what arrives one item at a time, never as a stack;</li>
+ * <li>{@code total 1000}: stop ordering once this many have been bought;</li>
+ * <li>{@code budget 2m}: stop ordering once this much has been spent on it.</li>
+ * </ul>
+ * And before the prices, {@code top} or {@code top+100}: do not bid the buy
+ * price itself but just over the best order anybody else has up, by one step
+ * or by the amount written, and never more than the buy price:
+ * {@code observer top+100 600 900 x15 singles total 1000}.
  */
 public final class OwnPrices {
     /** The setting the list is typed into. */
     public static final String KEY = "prices.own";
     /** An order for more than this many stacks is not what a slip of the finger should be able to ask for. */
     static final int MAX_STACKS = 15;
-    private static final Set<String> FILLER = Set.of("buy", "sell", "at", "each", "for", "to", "stack", "stacks", "x");
+    private static final Set<String> FILLER = Set.of("buy", "sell", "at", "each", "for", "to", "stack", "stacks", "x",
+            "max");
     private static final Set<String> SINGLES = Set.of("singles", "single", "peel", "individually");
 
     /**
-     * @param itemId the item without its namespace, as the lists in settings write it
-     * @param stacks stacks to order at a time; 0 leaves it to the ordinary setting
+     * @param itemId  the item without its namespace, as the lists in settings write it
+     * @param buy     the price of an order, each; bidding over the top order, the most it may come to
+     * @param stacks  stacks to order at a time; 0 leaves it to the ordinary setting
      * @param singles sold one item at a time at the sell price, and never as a stack
+     * @param over    -1 to bid the buy price as written; otherwise bid this much over the best order
+     *                anybody else has up, 0 meaning one step
+     * @param total   stop ordering once this many have been bought; 0 for no such limit
+     * @param budget  stop ordering once this much has been spent; 0 for no such limit
      */
-    public record Entry(String itemId, long buy, long sell, int stacks, boolean singles) {
+    public record Entry(String itemId, long buy, long sell, int stacks, boolean singles, long over, int total,
+                        long budget) {
         public Entry(String itemId, long buy, long sell, int stacks) {
-            this(itemId, buy, sell, stacks, false);
+            this(itemId, buy, sell, stacks, false, -1, 0, 0);
+        }
+
+        public Entry(String itemId, long buy, long sell, int stacks, boolean singles) {
+            this(itemId, buy, sell, stacks, singles, -1, 0, 0);
+        }
+
+        /** Whether the order follows the top of the book instead of standing at the buy price. */
+        public boolean top() {
+            return over >= 0;
+        }
+
+        /**
+         * What the entry asks for, in a form that changes when the player
+         * changes it: what has been bought and spent is counted against this,
+         * so a new price or a new total starts a new count.
+         */
+        public String signature() {
+            return buy + "/" + sell + "/" + over + "/" + total + "/" + budget;
         }
     }
 
@@ -53,6 +86,22 @@ public final class OwnPrices {
     private OwnPrices() {
     }
 
+    /**
+     * The price of an order that follows the top of the book: over the best
+     * order standing by {@code over}, or by one step (a hundredth, at least
+     * one) when {@code over} is 0. With nobody else ordering there is nothing
+     * to be over and the most is bid. 0 when being top would cost more than
+     * {@code most}: an order under the best one is not filled, so none is
+     * placed.
+     */
+    public static long topBid(long standing, long over, long most) {
+        if (most <= 0) return 0;
+        if (standing <= 0) return most;
+        long step = over > 0 ? over : Math.max(1L, (long) Math.ceil(standing * 0.01));
+        long bid = standing + step;
+        return bid <= most ? bid : 0;
+    }
+
     public static Parsed parse(String text) {
         Map<String, Entry> entries = new LinkedHashMap<>();
         List<String> problems = new ArrayList<>();
@@ -63,12 +112,36 @@ public final class OwnPrices {
             List<Long> prices = new ArrayList<>();
             int stacks = 0;
             boolean singles = false;
+            long over = -1;
+            long total = 0;
+            long budget = 0;
+            String expecting = "";
             boolean bad = false;
-            for (String token : entry.split("->|[\\s:=>@|\u2192]+")) {
+            for (String token : entry.split("->|[\\s:=>@|→]+")) {
                 String t = token.strip().toLowerCase(Locale.ROOT);
-                if (t.isEmpty() || FILLER.contains(t)) continue;
-                if (SINGLES.contains(t) && !name.isEmpty()) {
+                if (t.isEmpty()) continue;
+                if (!expecting.isEmpty()) {
+                    // The number that "total" or "budget" was waiting for.
+                    long value = MoneyInput.parse(t);
+                    if (value <= 0) bad = true;
+                    else if (expecting.equals("total")) total = value;
+                    else budget = value;
+                    expecting = "";
+                    continue;
+                }
+                if (FILLER.contains(t)) continue;
+                if (!name.isEmpty() && SINGLES.contains(t)) {
                     singles = true;
+                    continue;
+                }
+                if (!name.isEmpty() && (t.equals("total") || t.equals("budget"))) {
+                    expecting = t;
+                    continue;
+                }
+                if (!name.isEmpty() && prices.isEmpty() && (t.equals("top") || t.startsWith("top+"))) {
+                    long by = t.equals("top") ? 0 : MoneyInput.parse(t.substring(4));
+                    if (by < 0 || over >= 0) bad = true;
+                    else over = by;
                     continue;
                 }
                 long money = MoneyInput.parse(t);
@@ -79,7 +152,7 @@ public final class OwnPrices {
                     else stacks = Integer.parseInt(n);
                 } else if (money >= 0 && !name.isEmpty()) {
                     prices.add(money);
-                } else if (prices.isEmpty()) {
+                } else if (prices.isEmpty() && over < 0) {
                     name.add(t);
                 } else {
                     bad = true;
@@ -88,7 +161,7 @@ public final class OwnPrices {
             // "minecraft:diamond" has come apart at its colon; the namespace is not part of the name.
             if (name.size() > 1 && name.get(0).equals("minecraft")) name.remove(0);
             String item = Tuning.normalizeItem(String.join("_", name));
-            if (bad || item.isEmpty() || prices.size() != 2) {
+            if (bad || !expecting.isEmpty() || item.isEmpty() || prices.size() != 2) {
                 problems.add("\"" + entry + "\" is not an item, a buy price and a sell price");
                 continue;
             }
@@ -100,11 +173,15 @@ public final class OwnPrices {
                 problems.add(item + ": at most " + MAX_STACKS + " stacks an order");
                 continue;
             }
+            if (total > 1_000_000) {
+                problems.add(item + ": a total of at most 1,000,000");
+                continue;
+            }
             if (entries.containsKey(item)) {
                 problems.add(item + " is on the list twice; the first is used");
                 continue;
             }
-            entries.put(item, new Entry(item, prices.get(0), prices.get(1), stacks, singles));
+            entries.put(item, new Entry(item, prices.get(0), prices.get(1), stacks, singles, over, (int) total, budget));
         }
         return new Parsed(java.util.Collections.unmodifiableMap(entries), List.copyOf(problems));
     }

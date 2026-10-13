@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-13 02:54 UTC
+- New in "Your own prices": bid just over the top order. Write `top` or `top+100` before the prices, like `observer top+100 600 900`. The bot asks the order house what the best order for that item pays, bids one step or that amount over it, and never more than your buy price (600 here). If someone outbids it, it moves the order up again, at most once every ten minutes. If being top would cost more than your buy price, it places no order and says so in the log.
+- New: `total 1000` stops ordering once that many have been bought, and `budget 2m` once that much has been spent on the item. Changing the entry starts the count again.
+- All of it together: `observer top+100 600 900 x15 singles total 1000`.
+
 ## 2026-10-13 02:44 UTC
 - New: sell one at a time. In "Your own prices", add the word singles to an entry, like `observer 500 900 x15 singles`. The bot orders the stacks at your buy price and sells them one item at a time at your sell price, never as a stack.
 - "Singles up per market at once", under Selling, sets how many are listed together (5 unless you change it, up to 30). While a lot is still being sold, the bot does not collect or order more of that item; what is not collected yet stays in the order.

@@ -23,6 +23,21 @@ class OwnOrderCountTest {
     }
 
     @Test
+    void aTotalAndABudgetEachSayHowManyMoreMayBeOrdered() {
+        // Neither set: no limit of the entry's own.
+        assertEquals(Long.MAX_VALUE, AutomationSessionController.ownAllowance(0, 0, 500, 40_000, 80));
+        // 1,000 wanted and 640 bought: 360 to go, and none once they are all in.
+        assertEquals(360, AutomationSessionController.ownAllowance(1_000, 0, 640, 51_200, 80));
+        assertEquals(0, AutomationSessionController.ownAllowance(1_000, 0, 1_000, 80_000, 80));
+        assertEquals(0, AutomationSessionController.ownAllowance(1_000, 0, 1_024, 81_920, 80));
+        // A budget of 100,000 with 60,000 spent buys 500 more at 80 each.
+        assertEquals(500, AutomationSessionController.ownAllowance(0, 100_000, 750, 60_000, 80));
+        // Both: whichever runs out first.
+        assertEquals(360, AutomationSessionController.ownAllowance(1_000, 100_000, 640, 51_200, 80));
+        assertEquals(125, AutomationSessionController.ownAllowance(1_000, 61_200, 640, 51_200, 80));
+    }
+
+    @Test
     void somethingThatDoesNotStackIsOrderedByTheOne() {
         assertEquals(4, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 10_000_000));
         assertEquals(2, AutomationSessionController.ownOrderCount(1, 4, 1_000_000, 2_500_000));

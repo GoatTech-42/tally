@@ -56,6 +56,44 @@ class OwnPricesTest {
     }
 
     @Test
+    void anOrderCanFollowTheTopOfTheBookAndStopAtATotalOrABudget() {
+        OwnPrices.Parsed list = OwnPrices.parse(
+                "observer top+100 600 900 x15 singles total 1000, totem of undying top max 45k 50k budget 2m, diamond 80 120");
+        assertEquals(List.of(), list.problems());
+        OwnPrices.Entry observer = list.entries().get("observer");
+        assertEquals(new OwnPrices.Entry("observer", 600, 900, 15, true, 100, 1000, 0), observer);
+        assertTrue(observer.top());
+        OwnPrices.Entry totem = list.entries().get("totem_of_undying");
+        assertEquals(new OwnPrices.Entry("totem_of_undying", 45_000, 50_000, 0, false, 0, 0, 2_000_000), totem);
+        // An entry with none of it is an order at the price written, with no limit of its own.
+        OwnPrices.Entry diamond = list.entries().get("diamond");
+        assertEquals(false, diamond.top());
+        assertEquals(0, diamond.total());
+        // A changed price or total is a new entry as far as counting what was bought goes.
+        assertEquals(false, observer.signature().equals(OwnPrices.parse("observer top+100 600 900 total 2000")
+                .entries().get("observer").signature()));
+
+        // "total" and "budget" each want a number after them, and top goes before the prices.
+        assertEquals(1, OwnPrices.parse("observer 600 900 total").problems().size());
+        assertEquals(1, OwnPrices.parse("observer 600 900 budget lots").problems().size());
+        assertEquals(1, OwnPrices.parse("observer 600 900 top").problems().size());
+    }
+
+    @Test
+    void aBidOverTheTopOrderNeverPassesTheMostThePlayerWillPay() {
+        // 100 over the best order, as asked.
+        assertEquals(550, OwnPrices.topBid(450, 100, 600));
+        // One step, a hundredth and at least one, when no amount was given.
+        assertEquals(455, OwnPrices.topBid(450, 0, 600));
+        assertEquals(11, OwnPrices.topBid(10, 0, 600));
+        // Being top would cost more than the most: an order under the best one is not filled, so none.
+        assertEquals(0, OwnPrices.topBid(550, 100, 600));
+        assertEquals(600, OwnPrices.topBid(500, 100, 600));
+        // Nobody else is ordering it: there is nothing to be over.
+        assertEquals(600, OwnPrices.topBid(0, 100, 600));
+    }
+
+    @Test
     void anEmptyListPricesNothing() {
         assertTrue(OwnPrices.parse("").entries().isEmpty());
         assertTrue(OwnPrices.parse(null).entries().isEmpty());

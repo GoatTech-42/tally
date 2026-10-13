@@ -4490,6 +4490,7 @@ public final class AutomationSessionController {
     public synchronized void setCollectedStore(java.nio.file.Path path) {
         collectedStore = path;
         loadBidsAndFills();
+        loadOwnBought();
         try {
             retailOrders.load(path == null ? null : path.resolveSibling("orders-retail.txt"));
         } catch (java.io.IOException e) {
@@ -5011,7 +5012,10 @@ public final class AutomationSessionController {
             case QUOTE -> {
                 long best = event.price();
                 orderQuotes.put(step.itemId(), new long[]{best, now});
-                if (best > step.unitPrice()) {
+                if (step.why().startsWith(OWN_QUOTE)) {
+                    LOGGER.info("DoughBay your prices: the best order for {} pays {} each", step.itemId(), best);
+                    deskReadDue = true;
+                } else if (best > step.unitPrice()) {
                     LOGGER.info("DoughBay bid desk: no deliveries for {}; orders pay up to {} each against our {}; replanning",
                             step.itemId(), best, step.unitPrice());
                     deskReadDue = true;
@@ -5198,7 +5202,21 @@ public final class AutomationSessionController {
             // ours: it is pulled only when it is no longer the price they set.
             dev.doughbay.fabric.OwnPrices.Entry priced = ownPrice(r.itemId());
             if (priced != null && !denied) {
-                why = r.unitPrice() != priced.buy() ? "your buy price for it is now " + priced.buy() + " each" : null;
+                if (!priced.top()) {
+                    why = r.unitPrice() != priced.buy() ? "your buy price for it is now " + priced.buy() + " each" : null;
+                } else {
+                    if (r.remaining() > 0) ownTopOrderSeenAt.put(r.itemId(), now);
+                    // Following the top of the book: pulled when the most it may
+                    // pay has come down under it, and moved up when somebody has
+                    // bid over it and being over them is still within that most.
+                    long over = bestOrder.getOrDefault(r.itemId(), 0L);
+                    long again = over > r.unitPrice()
+                            ? dev.doughbay.fabric.OwnPrices.topBid(over, priced.over(), priced.buy()) : 0;
+                    why = r.unitPrice() > priced.buy() ? "the most you pay for it is now " + priced.buy() + " each"
+                            : again > 0 && now - chasedAt.getOrDefault(r.itemId(), 0L) > 10 * 60_000L
+                            ? "outbid at " + over + " each; placing again above it" : null;
+                    if (why != null && again > 0 && r.unitPrice() <= priced.buy()) chasedAt.put(r.itemId(), now);
+                }
             }
             // Winding down, every open order is pulled, whoever set its price.
             if (winding && !denied && r.remaining() > 0) why = "winding down; no more buying";
@@ -5263,7 +5281,7 @@ public final class AutomationSessionController {
             // searched for the item, and the follow-the-market rule above
             // acts on what it shows. Nothing is raised on a guess.
             ordersSeen.add(k);
-            if (bidding && nofill > 0 && why == null && priced == null) {
+            if (bidding && nofill > 0 && why == null && (priced == null || priced.top())) {
                 long[] seen = orderProgress.get(k);
                 if (seen == null || seen[0] != r.delivered()) {
                     orderProgress.put(k, new long[]{r.delivered(), seen == null ? bidPlacedAt.getOrDefault(key, now) : now});
@@ -5466,7 +5484,7 @@ public final class AutomationSessionController {
         }
         // The player's own list goes before the desk's own choices: it is the
         // one thing here somebody asked for by name.
-        long[] left = planOwnPriceOrders(snapshot, now, bidItems, chosen, stacks, room, free);
+        long[] left = planOwnPriceOrders(snapshot, now, bidItems, chosen, stacks, room, free, topBid);
         room = left[0];
         free = (int) left[1];
         int placed = 0;
@@ -6087,8 +6105,71 @@ public final class AutomationSessionController {
         return perUnit;
     }
 
+    /**
+     * What has been bought, and what it cost, under each entry of the list as
+     * it is written now: {bought, spent}, by item and the entry's signature.
+     * This is what "total" and "budget" are held against. Kept beside the
+     * account's order records, so a restart does not start the count again.
+     */
+    private final java.util.Map<String, long[]> ownBought = new java.util.HashMap<>();
+
+    private static String ownBoughtKey(dev.doughbay.fabric.OwnPrices.Entry own) {
+        return own.itemId() + "|" + own.signature();
+    }
+
+    private void loadOwnBought() {
+        ownBought.clear();
+        if (collectedStore == null) return;
+        try {
+            java.nio.file.Path file = collectedStore.resolveSibling("own-prices-bought.txt");
+            if (!java.nio.file.Files.exists(file)) return;
+            for (String line : java.nio.file.Files.readAllLines(file)) {
+                int eq = line.lastIndexOf('=');
+                String[] n = eq <= 0 ? new String[0] : line.substring(eq + 1).strip().split("[|]");
+                if (n.length < 2) continue;
+                ownBought.put(line.substring(0, eq).strip(), new long[]{Long.parseLong(n[0]), Long.parseLong(n[1])});
+            }
+        } catch (Exception e) {
+            LOGGER.warn("DoughBay your prices: the record of what has been bought could not be read: {}", e.toString());
+        }
+    }
+
+    private void noteOwnBought(dev.doughbay.fabric.OwnPrices.Entry own, int count, long cost) {
+        long[] had = ownBought.computeIfAbsent(ownBoughtKey(own), k -> new long[2]);
+        had[0] += Math.max(0, count);
+        had[1] += Math.max(0, cost);
+        // Only the entries that are still on the list as written are kept.
+        java.util.Set<String> live = new java.util.HashSet<>();
+        for (dev.doughbay.fabric.OwnPrices.Entry e : dev.doughbay.fabric.OwnPrices.all()) live.add(ownBoughtKey(e));
+        ownBought.keySet().retainAll(live);
+        if (collectedStore == null) return;
+        try {
+            List<String> lines = new ArrayList<>();
+            for (var e : ownBought.entrySet()) lines.add(e.getKey() + "=" + e.getValue()[0] + "|" + e.getValue()[1]);
+            java.nio.file.Files.write(collectedStore.resolveSibling("own-prices-bought.txt"), lines);
+        } catch (Exception e) {
+            LOGGER.warn("DoughBay your prices: the record of what has been bought could not be saved: {}", e.toString());
+        }
+    }
+
+    /**
+     * How many more of an item an entry still allows, given what it has
+     * bought and spent: the smaller of what is left of its total and what its
+     * budget still buys at this price. Long.MAX_VALUE with neither set.
+     */
+    static long ownAllowance(int total, long budget, long bought, long spent, long unit) {
+        long left = Long.MAX_VALUE;
+        if (total > 0) left = Math.max(0, total - bought);
+        if (budget > 0 && unit > 0) left = Math.min(left, Math.max(0, budget - spent) / unit);
+        return left;
+    }
+
     private final java.util.Map<String, Long> ownPriceNotedAt = new java.util.HashMap<>();
     private List<String> ownPriceProblems = List.of();
+    /** When an order of ours that follows the top of the book was last seen open, by item. */
+    private final java.util.Map<String, Long> ownTopOrderSeenAt = new java.util.HashMap<>();
+    /** How a look at what orders pay, made for the player's list, is described; the answer is told apart by it. */
+    private static final String OWN_QUOTE = "your price: checking what orders pay for ";
 
     /** Why an item on the player's list is not being ordered just now, said once every five minutes. */
     private void ownPriceNote(String itemId, String reason, long now) {
@@ -6115,7 +6196,8 @@ public final class AutomationSessionController {
      * Returns the room and the free slots left, as {room, free}.
      */
     private long[] planOwnPriceOrders(MarketWatcher.Snapshot snapshot, long now, java.util.Set<String> bidItems,
-                                      java.util.Set<String> chosen, int defaultStacks, long room, int free) {
+                                      java.util.Set<String> chosen, int defaultStacks, long room, int free,
+                                      java.util.Map<String, Long> topBid) {
         List<String> problems = dev.doughbay.fabric.OwnPrices.current().problems();
         if (!problems.equals(ownPriceProblems)) {
             ownPriceProblems = problems;
@@ -6150,18 +6232,55 @@ public final class AutomationSessionController {
                         + Math.round(market) + " it sells for; check it", now);
                 continue;
             }
+            long unit = own.buy();
+            if (own.top()) {
+                // Just over the best order anyone else has up. The pages read
+                // on the way past show only the newest orders, so the order
+                // house is asked for this item by name, and nothing is bid
+                // until it has answered.
+                // And asked after our own last order for it was gone: an
+                // answer that counts our own order as the one to beat has us
+                // outbidding ourselves, a step higher every time it fills.
+                long[] quoted = orderQuotes.get(id);
+                if (quoted == null || now - quoted[1] > ORDER_QUOTE_TTL
+                        || quoted[1] <= ownTopOrderSeenAt.getOrDefault(id, 0L)) {
+                    if (now - orderQuotedAt.getOrDefault(id, 0L) > 60_000L
+                            && deskQueue.stream().noneMatch(st -> st.action() == DeskAction.QUOTE && st.itemId().equals(id))) {
+                        deskQueue.addLast(new DeskStep(DeskAction.QUOTE, id, 0, 0,
+                                OWN_QUOTE + shortId(id)));
+                    }
+                    continue;
+                }
+                long standing = quoted[0];
+                unit = dev.doughbay.fabric.OwnPrices.topBid(standing, own.over(), own.buy());
+                if (unit <= 0) {
+                    ownPriceNote(id, "the best order for it pays " + standing + " each, and being over that would pass your "
+                            + own.buy(), now);
+                    continue;
+                }
+            }
+            long[] had = ownBought.getOrDefault(ownBoughtKey(own), new long[2]);
+            long allowed = ownAllowance(own.total(), own.budget(), had[0], had[1], unit);
+            if (allowed <= 0) {
+                ownPriceNote(id, "the " + (own.total() > 0 && had[0] >= own.total() ? own.total() + " you asked for are bought"
+                        : "budget you gave it is spent") + " (" + had[0] + " bought for " + had[1] + ")", now);
+                continue;
+            }
             int full = fullStack(id);
             int count = ownOrderCount(full, own.stacks() > 0 ? own.stacks() : Math.max(1, defaultStacks),
-                    own.buy(), Math.min(effectivePurchaseCap(), room));
+                    unit, Math.min(effectivePurchaseCap(), room));
+            // The last order of a total is whatever is left of it, a part stack if need be.
+            if (allowed < count) count = (int) allowed;
             if (count <= 0) {
-                ownPriceNote(id, "one stack at " + own.buy() + " each is more than the buy cap or the money left", now);
+                ownPriceNote(id, "one stack at " + unit + " each is more than the buy cap or the money left", now);
                 continue;
             }
             chosen.add(id);
-            room -= own.buy() * count;
+            room -= unit * count;
             free--;
-            deskQueue.addLast(new DeskStep(DeskAction.PLACE, id, count, own.buy(),
-                    "your price: bidding " + own.buy() + " each for " + count + " " + id
+            deskQueue.addLast(new DeskStep(DeskAction.PLACE, id, count, unit,
+                    "your price: bidding " + unit + " each for " + count + " " + id
+                            + (own.top() ? " (just over the best order, at most " + own.buy() + ")" : "")
                             + ", to sell at " + own.sell() + " each"));
         }
         return new long[] {room, free};
@@ -7011,6 +7130,7 @@ public final class AutomationSessionController {
         // An item on the player's list is sold as it arrives, at their price;
         // it is not pieced out into singles at one of ours.
         dev.doughbay.fabric.OwnPrices.Entry ownEntry = ownPrice(itemId);
+        if (ownEntry != null) noteOwnBought(ownEntry, count, cost);
         boolean ownPriced = ownEntry != null;
         if (ownPriced) retailTarget = 0;
         // Unless they asked for it one at a time: then it is a lot of singles
