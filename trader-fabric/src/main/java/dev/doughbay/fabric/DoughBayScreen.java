@@ -6376,6 +6376,16 @@ public final class DoughBayScreen extends Screen {
             }
         }
 
+        if (tab == Tab.FLIPS && flipPickCols > 0 && event.x() >= flipPickLeft && event.y() >= flipPickTop
+                && event.x() < flipPickLeft + flipPickCols * FLIP_CELL
+                && event.y() < flipPickTop + flipPickRows * FLIP_CELL) {
+            int index = flipPickFirst + (int) ((event.y() - flipPickTop) / FLIP_CELL) * flipPickCols
+                    + (int) ((event.x() - flipPickLeft) / FLIP_CELL);
+            if (index >= 0 && index < flipPickFrame.size()) {
+                flipFrom(flipPickFrame.get(index).bare());
+                return true;
+            }
+        }
         if (tab == Tab.FLIPS) {
             for (int i = 0; i < flipRowBounds.size(); i++) {
                 int[] b = flipRowBounds.get(i);
@@ -6499,6 +6509,11 @@ public final class DoughBayScreen extends Screen {
         if (tab == Tab.ITEMS) {
             int hit = itemsGridIndexAt(event.x(), event.y());
             if (hit >= 0 && hit < itemsFrame.size()) {
+                if (event.button() == 1) {
+                    // The right button: set this item up to be flipped.
+                    flipFrom(itemsFrame.get(hit).bare());
+                    return true;
+                }
                 String id = itemsFrame.get(hit).id();
                 if (!itemsSelected.remove(id)) itemsSelected.add(id);
                 rebuildWidgets();   // refresh the action-row counts
@@ -6549,6 +6564,10 @@ public final class DoughBayScreen extends Screen {
         }
         if (tab == Tab.ITEMS) {
             itemsScrollRow = Math.max(0, itemsScrollRow - (int) Math.signum(deltaY));
+            return true;
+        }
+        if (tab == Tab.FLIPS) {
+            flipPickScroll = Math.max(0, flipPickScroll - (int) Math.signum(deltaY));
             return true;
         }
         if (tab == Tab.STATS && statsBoard) {
@@ -7295,7 +7314,7 @@ public final class DoughBayScreen extends Screen {
         String counts = items.size() + " item(s)  ·  " + denySet.size() + " excluded  ·  "
                 + allowSet.size() + " included  ·  " + trackedSet.size() + " tracked";
         counts += itemsSelected.isEmpty()
-                ? "  ·  tick icons, then use the buttons below"
+                ? "  ·  tick icons, then use the buttons below  ·  right-click one to flip it"
                 : "  ·  " + itemsSelected.size() + " selected";
         graphics.text(this.font, counts, x, ui.contentTop() + 28, SECONDARY);
 
@@ -7632,6 +7651,44 @@ public final class DoughBayScreen extends Screen {
     private final List<int[]> flipRowBounds = new ArrayList<>();
     private final List<String> flipRowItems = new ArrayList<>();
 
+    private static final int FLIP_CELL = 20;
+    /** The picker under the list: the items that match what is typed, as the Items tab draws them. */
+    private List<ItemEntry> flipPickFrame = List.of();
+    private int flipPickLeft;
+    private int flipPickTop;
+    private int flipPickCols;
+    private int flipPickRows;
+    private int flipPickFirst;
+    private int flipPickScroll;
+
+    /**
+     * Sets an item up on the Flips tab: its own entry when it is already on
+     * the list, a fresh bar with the item filled in when it is not. From a
+     * click on the picker, or a right-click on the Items tab.
+     */
+    private void flipFrom(String bare) {
+        tab = Tab.FLIPS;
+        itemsSelected.clear();
+        if (OwnPrices.of(bare) != null) {
+            selectFlip(bare);
+            return;
+        }
+        boolean keep = flipSelected.isEmpty();   // a new entry half filled in keeps its prices
+        if (!keep) selectFlip("");
+        flipItem = bare;
+        flipPickScroll = 0;
+        flipSay("", false);
+        rebuildWidgets();
+    }
+
+    private List<ItemEntry> flipMatches() {
+        String needle = MarketQueryClient.normalizeQuery(flipItem);
+        if (needle.isEmpty()) return allItems();
+        List<ItemEntry> out = new ArrayList<>();
+        for (ItemEntry e : allItems()) if (e.bare().contains(needle)) out.add(e);
+        return out;
+    }
+
     private void flipSay(String message, boolean bad) {
         flipMessage = message;
         flipMessageBad = bad;
@@ -7665,7 +7722,10 @@ public final class DoughBayScreen extends Screen {
             flipFieldX[i] = x;
             x += w[i] + gap;
         }
-        flipField(flipFieldX[0], y, w[0], 48, flipItem, v -> flipItem = v).setHint(Component.literal("item"));
+        flipField(flipFieldX[0], y, w[0], 48, flipItem, v -> {
+            flipItem = v;
+            flipPickScroll = 0;
+        }).setHint(Component.literal("search..."));
         flipField(flipFieldX[1], y, w[1], 14, flipBuy, v -> flipBuy = v);
         flipField(flipFieldX[2], y, w[2], 14, flipSell, v -> flipSell = v);
         flipField(flipFieldX[3], y, w[3], 6, flipQty, v -> flipQty = v);
@@ -7801,8 +7861,9 @@ public final class DoughBayScreen extends Screen {
         boolean only = Tuning.get("prices.only") >= 0.5;
         int barY = ui.bottom() - 27;
         int y = top + 22;
-        int rowHeight = 13;
-        int room = Math.max(1, (barY - 62 - (y + 27 + 12 + 6)) / rowHeight);
+        int rowHeight = 18;
+        // The list has what three rows of the picker and its caption leave it.
+        int room = Math.max(1, (barY - 38 - (12 + 3 * FLIP_CELL + 8) - (y + 27 + 12 + 6)) / rowHeight);
         int shown = Math.min(views.size(), room);
         int cardHeight = 27 + 12 + Math.max(1, shown) * rowHeight + 6;
         card(graphics, x, y, width, cardHeight, CARD);
@@ -7824,8 +7885,8 @@ public final class DoughBayScreen extends Screen {
         cell(graphics, "MARKET", innerX, innerWidth, hy, MUTED, true);
         int yy = hy + 12;
         if (views.isEmpty()) {
-            graphics.text(this.font, truncate("Nothing here yet. Fill in the bar below and press Add: the item, the most to pay for one, the price to sell one at.",
-                    innerWidth), innerX, yy + 1, MUTED);
+            graphics.text(this.font, truncate("Nothing here yet. Click an item below, fill in the most to pay for one and the price to sell one at, and press Add.",
+                    innerWidth), innerX, yy + 5, MUTED);
         }
         for (int i = 0; i < shown; i++) {
             AutomationSessionController.OwnPriceView v = views.get(i);
@@ -7838,32 +7899,70 @@ public final class DoughBayScreen extends Screen {
             flipRowBounds.add(new int[] {yy, yy + rowHeight, innerX, innerX + innerWidth});
             flipRowItems.add(e.itemId());
             int held = v.listedUnits() + v.inHandUnits();
-            graphics.text(this.font, truncate(MarketQueryClient.displayName(e.itemId()), c1 - 6), innerX, yy + 2, TEXT);
+            ItemEntry pictured = itemByBare(e.itemId());
+            if (pictured != null) graphics.item(pictured.stack(), innerX, yy);
+            graphics.text(this.font, truncate(MarketQueryClient.displayName(e.itemId()), c1 - 26), innerX + 20, yy + 5, TEXT);
             graphics.text(this.font, truncate((e.top() ? "top" + (e.over() > 0 ? "+" + MoneyInput.compact(e.over()) : "") + ", max " : "")
-                    + money(e.buy()), c2 - c1 - 6), innerX + c1, yy + 2, SECONDARY);
-            graphics.text(this.font, truncate(money(e.sell()) + (e.singles() ? "  x1" : ""), c3 - c2 - 6), innerX + c2, yy + 2, GOLD);
+                    + money(e.buy()), c2 - c1 - 6), innerX + c1, yy + 5, SECONDARY);
+            graphics.text(this.font, truncate(money(e.sell()) + (e.singles() ? "  x1" : ""), c3 - c2 - 6), innerX + c2, yy + 5, GOLD);
             graphics.text(this.font, truncate(v.onOrder() > 0 ? grouped(v.onOrder()) + " at " + money(v.orderUnit()) : "none",
-                    c4 - c3 - 6), innerX + c3, yy + 2, v.onOrder() > 0 ? TEXT : MUTED);
+                    c4 - c3 - 6), innerX + c3, yy + 5, v.onOrder() > 0 ? TEXT : MUTED);
             graphics.text(this.font, truncate(grouped(v.bought()) + (e.total() > 0 ? " of " + grouped(e.total()) : ""), c5 - c4 - 6),
-                    innerX + c4, yy + 2, SECONDARY);
-            graphics.text(this.font, v.bought() > 0 ? money(v.spent() / (double) v.bought()) : "-", innerX + c5, yy + 2, SECONDARY);
-            graphics.text(this.font, held > 0 ? grouped(held) : "none", innerX + c6, yy + 2, held > 0 ? TEXT : MUTED);
+                    innerX + c4, yy + 5, SECONDARY);
+            graphics.text(this.font, v.bought() > 0 ? money(v.spent() / (double) v.bought()) : "-", innerX + c5, yy + 5, SECONDARY);
+            graphics.text(this.font, held > 0 ? grouped(held) : "none", innerX + c6, yy + 5, held > 0 ? TEXT : MUTED);
             // What one sells for by our own figures: at or over the price asked, it will sell.
-            cell(graphics, v.marketUnit() > 0 ? money(v.marketUnit()) : "?", innerX, innerWidth, yy + 2,
+            cell(graphics, v.marketUnit() > 0 ? money(v.marketUnit()) : "?", innerX, innerWidth, yy + 5,
                     v.marketUnit() <= 0 ? MUTED : v.marketUnit() >= e.sell() ? GOOD : WARN, true);
             yy += rowHeight;
         }
-        int noteY = y + cardHeight + 6;
-        if (noteY + 22 < barY - 36) {
-            noteY = statusLine(graphics, x, noteY, width,
-                    "The bot keeps a buy order up for each item, lists what the order delivers at your sell price, and leaves it there until it sells.", MUTED);
-            statusLine(graphics, x, noteY, width,
-                    "Over top order: it bids just over the best order anyone else has up, never above your most paid. Click a row to change it.", MUTED);
+        // The picker: every item that matches what is typed in the item box,
+        // drawn as the Items tab draws them. Clicking one chooses it.
+        int captionY = y + cardHeight + 6;
+        int gridTop = captionY + 12;
+        int rows = (barY - 38 - gridTop) / FLIP_CELL;
+        flipPickCols = 0;
+        flipPickRows = 0;
+        if (rows >= 1) {
+            List<ItemEntry> matches = flipMatches();
+            int cols = Math.max(1, width / FLIP_CELL);
+            int totalRows = (matches.size() + cols - 1) / cols;
+            flipPickScroll = clamp(flipPickScroll, 0, Math.max(0, totalRows - rows));
+            flipPickFrame = matches;
+            flipPickLeft = x;
+            flipPickTop = gridTop;
+            flipPickCols = cols;
+            flipPickRows = rows;
+            flipPickFirst = flipPickScroll * cols;
+            String chosen = Tuning.normalizeItem(flipItem);
+            ItemEntry under = null;
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    int index = flipPickFirst + r * cols + c;
+                    if (index >= matches.size()) break;
+                    ItemEntry e = matches.get(index);
+                    int cx = x + c * FLIP_CELL;
+                    int cy = gridTop + r * FLIP_CELL;
+                    boolean hover = mouseX >= cx && mouseX < cx + FLIP_CELL && mouseY >= cy && mouseY < cy + FLIP_CELL;
+                    boolean picked = e.bare().equals(chosen);
+                    graphics.fill(cx, cy, cx + FLIP_CELL - 1, cy + FLIP_CELL - 1, picked ? 0xFF2F4A6B : hover ? CARD : CARD_DARK);
+                    // Gold round the one in the bar; green round those already on the list.
+                    if (picked) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOLD);
+                    else if (OwnPrices.of(e.bare()) != null) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOOD);
+                    graphics.item(e.stack(), cx + 2, cy + 2);
+                    if (hover) under = e;
+                }
+            }
+            String caption = under != null ? under.name() + (OwnPrices.of(under.bare()) != null ? "  ·  on your list; click to change it" : "  ·  click to choose it")
+                    : matches.isEmpty() ? "No item matches \"" + flipItem.strip() + "\"."
+                    : "PICK THE ITEM  ·  " + matches.size() + " match" + (matches.size() == 1 ? "" : "es")
+                    + "  ·  type in the item box to search, scroll for more, click one to choose it";
+            graphics.text(this.font, truncate(caption, width), x, captionY, under != null ? TEXT : MUTED);
         }
 
         // The bar: labels above the boxes, what was last said above the labels.
         if (flipFieldX.length == 10) {
-            String[] labels = {"item", "most paid", "sell at", "per order", "bidding", "over by", "selling", "total", "budget"};
+            String[] labels = {"item (search)", "most paid", "sell at", "per order", "bidding", "over by", "selling", "total", "budget"};
             for (int i = 0; i < labels.length; i++) graphics.text(this.font, labels[i], flipFieldX[i] + 1, barY - 10, MUTED);
         }
         List<String> problems = OwnPrices.current().problems();
