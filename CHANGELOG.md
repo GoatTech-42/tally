@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 04:16 UTC
+- Fixed: paced auction filters no longer consume click attempts before a click is sent. Auction page turns now keep waiting for their click gap instead of closing the watch early or advancing page counters for unsent clicks. Each sent navigation click receives its configured settle delay.
+- Fixed: public order-house scans retry deferred Next Page clicks on the next tick. They no longer mistake an unsent click for a server response that failed to arrive, which could add the full response timeout to every page and stall scans for many minutes. Retry limits count sent clicks only.
+- Fixed: order-house navigation settles its page title and controls independently of continuously changing public delivery counters. Transaction screens retain their full verification. Safer click pacing and click-spam recovery remain enabled.
+
 ## 2026-10-14 03:18 UTC
 - New: unexpected Donut SMP disconnects now appear in Evasion history and send a dedicated Discord bot notification with the account, server reason, recovery action and reconnect policy. Enabled alert webhooks receive the same event. Pending bot notifications survive restarts in a separate queue created by schema migration 18.
 - New: an explicit Click-Spam kick enables slower pacing, disables fast listing, and progressively increases click, command, step and reaction delays for the affected account only. Recovery is enabled by default, bounded, persistent, and can be disabled under Pacing. It never automatically speeds the account back up.

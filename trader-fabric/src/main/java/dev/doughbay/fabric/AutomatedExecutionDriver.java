@@ -2281,6 +2281,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ordersLastPage = 0;
         ordersFilterClicks = 0;
         ordersTurnRetries = 0;
+        ordersTurnPending = false;
         lastOrdersSweepComplete = false;
         ordersSettleUntilTick = 0;
         try {
@@ -2327,7 +2328,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         if (ticksInPhase < ordersSettleUntilTick) return;
         Matcher pageMatch = ORDER_PAGE.matcher(title);
-        int page = pageMatch.find() ? Integer.parseInt(pageMatch.group(1)) : ordersLastPage + 1;
+        boolean numberedPage = pageMatch.find();
+        int page = numberedPage ? Integer.parseInt(pageMatch.group(1)) : ordersLastPage + 1;
+        if (ordersTurnPending) {
+            if (numberedPage && page > ordersLastPage) ordersTurnPending = false;
+            else {
+                int next = findControl(container, inventory, "next page", 45, Math.min(54, container.getMenu().slots.size()));
+                if (next < 0) { finishOrders(client, "next-page arrow disappeared"); return; }
+                if (!tryOrdersPageTurn(() -> clickSlot(client, container, next)) && !clickDeferred)
+                    finishOrders(client, "next-page arrow could not be clicked");
+                return;
+            }
+        }
         if (page <= ordersLastPage) {
             // The next page has not replaced this one yet.
             if (ticksInPhase < OPEN_TIMEOUT_TICKS) return;
@@ -2339,7 +2351,6 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 finishOrders(client, "next page did not open");
                 return;
             }
-            ordersTurnRetries++;
             int again = -1;
             for (int menuSlot = 45; menuSlot < Math.min(54, container.getMenu().slots.size()); menuSlot++) {
                 Slot slot = container.getMenu().slots.get(menuSlot);
@@ -2350,12 +2361,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 finishOrders(client, "next page did not open");
                 return;
             }
-            lastMessage = "Order house page " + ordersLastPage + " did not turn; pressing Next again (" + ordersTurnRetries + ")";
+            lastMessage = "Order house page " + ordersLastPage + " did not turn; pressing Next again (" + (ordersTurnRetries + 1) + ")";
             if (!clickSlot(client, container, again)) {
                 if (clickDeferred) return;
                 finishOrders(client, "next-page arrow could not be clicked");
                 return;
             }
+            ordersTurnRetries++;
             resetPhaseObservation();
             ordersSettleUntilTick = 12;
             return;
@@ -2382,9 +2394,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // recently listed gives a spread of live orders, and repeated reads
         // build the book up over the hour.
         if (ordersPagesRead == 0 && filterSlot >= 0 && !RECENTLY_LISTED.equals(selection) && ordersFilterClicks < 3) {
-            ordersFilterClicks++;
-            lastMessage = "Sorting the order house by recently listed (click " + ordersFilterClicks + ")";
-            if (!clickSlot(client, container, filterSlot)) {
+            lastMessage = "Sorting the order house by recently listed (click " + (ordersFilterClicks + 1) + ")";
+            final int filter = filterSlot;
+            if (!tryFilterClick(true, () -> clickSlot(client, container, filter))) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
                 abort(client, "The order house sort button could not be clicked");
                 return;
@@ -2439,13 +2451,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         if (ordersPagesRead < ordersPagesWanted && nextSlot >= 0) {
             lastMessage = "Order house page " + page + " read; turning the page";
-            if (!clickSlot(client, container, nextSlot)) {
+            ordersTurnPending = true;
+            final int next = nextSlot;
+            if (!tryOrdersPageTurn(() -> clickSlot(client, container, next))) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
                 finishOrders(client, "next-page arrow could not be clicked");
                 return;
             }
-            resetPhaseObservation();
-            ordersSettleUntilTick = 12;
             return;
         }
         finishOrders(client, "");
@@ -2453,6 +2465,32 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     /** How many times the current page turn has been pressed again after not taking. */
     private int ordersTurnRetries;
+    private boolean ordersTurnPending;
+
+    /** A paced page turn is still unsent; retry it before waiting for a new page. */
+    boolean tryOrdersPageTurn(java.util.function.BooleanSupplier click) {
+        if (!click.getAsBoolean()) return false;
+        ordersTurnPending = false;
+        resetPhaseObservation();
+        ordersSettleUntilTick = 12;
+        return true;
+    }
+
+    boolean tryWatchPageTurn(int page, java.util.function.BooleanSupplier click) {
+        if (!click.getAsBoolean()) return false;
+        watchPagesRead++;
+        watchLastPage = page;
+        resetPhaseObservation();
+        ownSettleUntilTick = humanStep(6);
+        return true;
+    }
+
+    boolean tryFilterClick(boolean orders, java.util.function.BooleanSupplier click) {
+        if (!click.getAsBoolean()) return false;
+        if (orders) ordersFilterClicks++;
+        else filterClicks++;
+        return true;
+    }
     /** Whether the last full sweep really reached the end of the book. */
     private boolean lastOrdersSweepComplete;
 
@@ -3710,6 +3748,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * filter says Recently Listed, then take the best row under a ceiling.
      */
     private void tickWatchPage(Minecraft client, AbstractContainerScreen<?> container) {
+        if (ticksInPhase < ownSettleUntilTick) return;
         Inventory inventory = client.player.getInventory();
         int filterSlot = -1;
         String selection = "";
@@ -3732,15 +3771,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         int clicksAllowed = selection.isBlank() ? 2 : MAX_FILTER_CLICKS;
         if (filterSlot >= 0 && !wanted.equalsIgnoreCase(selection)) {
             if (filterClicks < clicksAllowed) {
-                filterClicks++;
-                lastMessage = "Switching the auction filter to " + wanted + " (click " + filterClicks
+                lastMessage = "Switching the auction filter to " + wanted + " (click " + (filterClicks + 1)
                         + ", currently " + (selection.isBlank() ? "unknown" : selection) + ")";
-                if (!clickSlot(client, container, filterSlot)) {
+                final int filter = filterSlot;
+                if (!tryFilterClick(false, () -> clickSlot(client, container, filter))) {
                     if (clickDeferred) return;   // paced, not impossible: try again next tick
                     abort(client, "The auction filter button could not be clicked");
                     return;
                 }
                 resetPhaseObservation();
+                ownSettleUntilTick = humanStep(6);
                 return;
             }
         }
@@ -3756,7 +3796,6 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
         }
-        watchLastPage = thisPage;
         // The bottom row carries the page arrows beside the filter.
         int watchNextSlot = -1;
         for (int menuSlot = 45; menuSlot < Math.min(54, container.getMenu().slots.size()); menuSlot++) {
@@ -3881,17 +3920,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // Nothing here worth buying. Page one is where a mispriced item first
         // lands, but it is not the only place one sits: the look walks deeper
         // before closing the page, the same way the order house is read.
-        watchPagesRead++;
-        if (watchPagesRead < watchPagesWanted() && watchNextSlot >= 0) {
+        if (watchPagesRead + 1 < watchPagesWanted() && watchNextSlot >= 0) {
             lastMessage = String.format(Locale.ROOT,
                     "Watching %s: page %d had nothing under a ceiling; turning the page",
                     watchFilter().toLowerCase(Locale.ROOT), thisPage);
-            if (clickSlot(client, container, watchNextSlot)) {
-                resetPhaseObservation();
-                ownSettleUntilTick = humanStep(6);
-                return;
-            }
+            final int next = watchNextSlot;
+            if (tryWatchPageTurn(thisPage, () -> clickSlot(client, container, next))) return;
+            if (clickDeferred) return;
         }
+        watchPagesRead++;
+        watchLastPage = thisPage;
         lastMessage = String.format(Locale.ROOT,
                 "Watching recent listings: %d row(s) of watched markets, none under a ceiling; %d look(s) left",
                 seen, huntLooksRemaining);
@@ -3901,7 +3939,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         nextWatchDelayTicks = drawWatchDelayTicks();
         DoughBayClient.LOGGER.info(
                 "DoughBay watch look: filter={} clicks={} pages={} rows={} page open {} ms; next look in {} ms",
-                selection.isBlank() ? "unknown" : selection, filterClicks, watchPagesRead + 1, seen,
+                selection.isBlank() ? "unknown" : selection, filterClicks, watchPagesRead, seen,
                 watchOpenedAtMillis > 0 ? System.currentTimeMillis() - watchOpenedAtMillis : -1,
                 nextWatchDelayTicks * 50);
         closeAuctionScreen(client);
@@ -5864,6 +5902,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private boolean listingPageStable(Minecraft client, AbstractContainerScreen<?> container) {
         String title = container.getTitle().getString();
+        if (operation == Operation.ORDERS) {
+            // Public delivery counters change continuously. Read their current values,
+            // but settle the navigation controls independently before turning a page.
+            Inventory inventory = client.player.getInventory();
+            int next = findControl(container, inventory, "next page", 45, Math.min(54, container.getMenu().slots.size()));
+            int filter = findControl(container, inventory, "filter", 45, Math.min(54, container.getMenu().slots.size()));
+            return observeStableSignature(orderNavigationSignature(container.getMenu().containerId, title,
+                    controlSignature(client, container, next), controlSignature(client, container, filter)));
+        }
         if (!navigationOnly(title)) return containerStable(client, container);
         Inventory inventory = client.player.getInventory();
         int slot;
@@ -5882,6 +5929,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                                       int count, List<String> tooltip) {
         return "navigation|" + menuId + "|" + title + "|" + slot + "|" + itemId + "|" + count
                 + "|" + String.join("\n", tooltip);
+    }
+
+    static String orderNavigationSignature(int menuId, String title, String next, String filter) {
+        return "order-navigation|" + menuId + "|" + title + "|" + next + "|" + filter;
+    }
+
+    private static String controlSignature(Minecraft client, AbstractContainerScreen<?> container, int slot) {
+        if (slot < 0) return "missing";
+        ItemStack stack = container.getMenu().slots.get(slot).getItem();
+        return slot + "|" + itemId(stack) + "|" + stack.getCount() + "|" + String.join("\n", tooltipLines(client, stack));
     }
 
     private boolean containerStable(Minecraft client, AbstractContainerScreen<?> container) {
