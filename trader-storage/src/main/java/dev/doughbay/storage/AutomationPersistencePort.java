@@ -29,21 +29,64 @@ public interface AutomationPersistencePort extends AutoCloseable {
         return java.util.List.of();
     }
 
+    /**
+     * The account this port writes as, or "" when the ledger has one owner.
+     * Position ids are the ledger's global primary key, so a client sharing a
+     * ledger has to know which account it mints them for.
+     */
+    default String client() {
+        return "";
+    }
+
+    /** In-memory ports use process-unique IDs; the SQLite worker overrides this with durable leases. */
+    default long allocatePositionId() {
+        return InMemoryIds.NEXT.getAndIncrement();
+    }
+
+    default boolean positionIdsAvailable() { return true; }
+
+    final class InMemoryIds {
+        private InMemoryIds() { }
+        private static final java.util.concurrent.atomic.AtomicLong NEXT =
+                new java.util.concurrent.atomic.AtomicLong(1L << 49);
+    }
+
     enum LoadState { NOT_STARTED, LOADING, READY, FAILED, CLOSED }
 
     record Status(LoadState loadState,
                   AutomationSessionRecovery recovery,
                   long lastAcceptedGeneration,
                   long lastDurableGeneration,
-                  String detail) {
+                  String detail,
+                  long lastRefusedGeneration,
+                  java.util.Set<Long> refusedGenerations) {
         public Status {
             loadState = loadState == null ? LoadState.FAILED : loadState;
             recovery = recovery == null ? AutomationSessionRecovery.empty() : recovery;
             detail = detail == null ? "" : detail;
+            lastRefusedGeneration = Math.max(0, lastRefusedGeneration);
+            refusedGenerations = refusedGenerations == null ? java.util.Set.of() : java.util.Set.copyOf(refusedGenerations);
             if (lastAcceptedGeneration < 0 || lastDurableGeneration < 0
                     || lastDurableGeneration > lastAcceptedGeneration) {
                 throw new IllegalArgumentException("invalid persistence generations");
             }
+        }
+
+        public Status(LoadState loadState, AutomationSessionRecovery recovery,
+                      long lastAcceptedGeneration, long lastDurableGeneration,
+                      String detail, long lastRefusedGeneration) {
+            this(loadState, recovery, lastAcceptedGeneration, lastDurableGeneration, detail,
+                    lastRefusedGeneration, lastRefusedGeneration > 0
+                            ? java.util.Set.of(lastRefusedGeneration) : java.util.Set.of());
+        }
+
+        /** Source-compatible constructor for callers that report no refusal. */
+        public Status(LoadState loadState,
+                      AutomationSessionRecovery recovery,
+                      long lastAcceptedGeneration,
+                      long lastDurableGeneration,
+                      String detail) {
+            this(loadState, recovery, lastAcceptedGeneration, lastDurableGeneration, detail, 0);
         }
 
         public boolean ready() {
@@ -51,7 +94,25 @@ public interface AutomationPersistencePort extends AutoCloseable {
         }
 
         public boolean durable(long generation) {
-            return generation > 0 && ready() && lastDurableGeneration >= generation;
+            return generation > 0 && ready() && lastDurableGeneration >= generation
+                    && !refusedGenerations.contains(generation);
+        }
+
+        /**
+         * The ledger rejected this write: the row was refused, the transaction
+         * rolled back, and nothing it described was recorded. It will never
+         * become durable, so a caller waiting on it must stop waiting.
+         */
+        public boolean refused(long generation) {
+            return generation > 0 && refusedGenerations.contains(generation);
+        }
+
+        /**
+         * A refusal stays latched until explicit audited reconciliation or worker restart.
+         * An unrelated queued success cannot clear it.
+         */
+        public boolean refusalOutstanding() {
+            return lastRefusedGeneration > 0;
         }
     }
 

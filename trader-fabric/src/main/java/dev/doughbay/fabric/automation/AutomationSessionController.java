@@ -1246,7 +1246,7 @@ public final class AutomationSessionController {
     private String detail = "Automation session is stopped";
     private static final Logger LOGGER = LoggerFactory.getLogger("doughbay-automation");
     private String lastLoggedDetail = "";
-    private long nextPositionId = Math.max(1, System.currentTimeMillis());
+
     private long candidateCoverageBoundaryMillis;
 
     private String firstCoveragePhase = "";
@@ -2739,9 +2739,6 @@ public final class AutomationSessionController {
         trackedPosition = recoveredOpenPositions.size() == 1
                 ? recoveredOpenPositions.getFirst() : null;
         boundListingKey = recovery.boundListingKey();
-        nextPositionId = Math.max(nextPositionId,
-                recovery.openPositions().stream().mapToLong(Position::positionId)
-                        .max().orElse(0) + 1);
         pendingOpportunity = null;
         positionValuation = null;
         pausedFromState = parseState(recovery.controllerState());
@@ -6831,7 +6828,7 @@ public final class AutomationSessionController {
         }
         int missing = retailShortfall.due(parent.positionId(), parent.quantity(), carried - others, now);
         if (missing <= 0) return false;
-        RetailSplit split = RetailSplit.of(parent, nextPositionId++, nextPositionId++, lot.unitTarget(), missing);
+        RetailSplit split = RetailSplit.of(parent, allocatePositionId(), allocatePositionId(), lot.unitTarget(), missing);
         long generation = persistence.submitRetail(checkpoint(sessionOpen, state.name(), split.single(),
                 AutomationUncertainExposure.none(), "Wrote off " + missing + " of a retail lot that the inventory does not hold"),
                 lot.child(split.single().positionId()), parent, split.remainder());
@@ -6945,6 +6942,12 @@ public final class AutomationSessionController {
         return bookCollected(client, now, itemId, count, unitPrice, unitPrice * (long) count);
     }
 
+    /** Consumes an ID leased durably off-thread from the shared ledger. */
+    private long allocatePositionId() {
+        if (persistence == null) throw new IllegalStateException("Automation persistence is unavailable");
+        return persistence.allocatePositionId();
+    }
+
     /**
      * A position's quantity is part of its stored identity, so a purchase
      * that now sits as a different-sized stack is closed and re-opened as a
@@ -6958,7 +6961,7 @@ public final class AutomationSessionController {
                 "Superseded by a stack of " + quantity));
         Position fresh = withQuantity(position, quantity);
         // The same purchase, re-sized: it has held its slot since it was bought.
-        return new Position(nextPositionId++, fresh.mode(), fresh.itemKey(), fresh.bucket(), fresh.quantity(),
+        return new Position(allocatePositionId(), fresh.mode(), fresh.itemKey(), fresh.bucket(), fresh.quantity(),
                 fresh.purchasePrice(), fresh.targetPrice(), fresh.purchasedAt() > 0 ? fresh.purchasedAt() : now,
                 0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
     }
@@ -7252,7 +7255,7 @@ public final class AutomationSessionController {
             retailLots.remove(parent.positionId());
             stack = parent;
         } else {
-            RetailSplit split = RetailSplit.of(parent, nextPositionId++, nextPositionId++, lot.unitTarget(), count);
+            RetailSplit split = RetailSplit.of(parent, allocatePositionId(), allocatePositionId(), lot.unitTarget(), count);
             long generation = persistence.submitRetail(checkpoint(sessionOpen, State.PREPARING_LIST.name(), split.single(),
                     AutomationUncertainExposure.none(), "Split a stack off retail stock; original cost preserved"),
                     lot.child(split.single().positionId()), parent, split.remainder());
@@ -7304,7 +7307,7 @@ public final class AutomationSessionController {
         if (trackedPosition.quantity() == 1) return false;
         Position parent = trackedPosition;
         RetailLot lot = retailLots.get(parent.positionId());
-        RetailSplit split = RetailSplit.of(parent, nextPositionId++, nextPositionId++, lot.unitTarget());
+        RetailSplit split = RetailSplit.of(parent, allocatePositionId(), allocatePositionId(), lot.unitTarget());
         long generation = persistence.submitRetail(checkpoint(sessionOpen, State.PREPARING_LIST.name(), split.single(),
                 AutomationUncertainExposure.none(), "Split retail stock; original cost preserved"),
                 lot.child(split.single().positionId()), parent, split.remainder());
@@ -7546,7 +7549,7 @@ public final class AutomationSessionController {
         }
         tradesStarted++;
         committedSpend = Math.addExact(committedSpend, cost);
-        trackedPosition = new Position(nextPositionId++, "REAL", itemId, StackBucket.of(count), count,
+        trackedPosition = new Position(allocatePositionId(), "REAL", itemId, StackBucket.of(count), count,
                 cost, target, now, 0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
         LOGGER.info("DoughBay bid desk: collected {} x{} at {} each ({} total); listing it", itemId, count, unitPrice, cost);
         if (retailTarget > 0) retailLots.put(trackedPosition.positionId(),
@@ -7885,7 +7888,7 @@ public final class AutomationSessionController {
                 Position closed = was.closed(PositionStatus.CANCELLED, now, 0, Double.NaN);
                 persistence.submit(checkpoint(sessionOpen, state.name(), closed, uncertainExposure,
                         "Superseded: the page shows x" + row.count() + " at " + row.displayedPrice()));
-                Position fixed = new Position(nextPositionId++, was.mode(), was.itemKey(),
+                Position fixed = new Position(allocatePositionId(), was.mode(), was.itemKey(),
                         StackBucket.of(row.count()), row.count(), was.purchasePrice(), row.displayedPrice(),
                         was.purchasedAt(), was.listedAt() > 0 ? was.listedAt() : now, 0, 0,
                         Double.NaN, PositionStatus.LISTED);
@@ -8149,7 +8152,7 @@ public final class AutomationSessionController {
                 // its clock and make the one thing most in need of a pull-back
                 // wait longest for one.
                 long longAgo = now - 6 * 3600_000L;
-                Position adopted = new Position(nextPositionId++, "REAL", row.itemKey(),
+                Position adopted = new Position(allocatePositionId(), "REAL", row.itemKey(),
                         StackBucket.of(row.count()), row.count(), breakEven, row.displayedPrice(),
                         longAgo, longAgo, 0, 0, Double.NaN, PositionStatus.LISTED);
                 openListings.add(adopted);
@@ -8290,7 +8293,7 @@ public final class AutomationSessionController {
             Position closedListing = listed.closed(PositionStatus.CANCELLED, now, 0, Double.NaN);
             persistence.submit(checkpoint(sessionOpen, state.name(), closedListing, uncertainExposure,
                     "Pulled-back listing superseded by the stack in hand"));
-            trackedPosition = new Position(nextPositionId++, listed.mode(), listed.itemKey(), listed.bucket(),
+            trackedPosition = new Position(allocatePositionId(), listed.mode(), listed.itemKey(), listed.bucket(),
                     listed.quantity(), listed.purchasePrice(), listed.targetPrice(), listed.purchasedAt(),
                     0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
             LOGGER.info("DoughBay automation: listed position #{} ({} x{}) is in the inventory; superseding it as #{} and relisting at {}",
@@ -8352,7 +8355,7 @@ public final class AutomationSessionController {
             driver.consumeReceipt(receipt);
             tradesStarted++;
             committedSpend = Math.addExact(committedSpend, receipt.price());
-            trackedPosition = new Position(nextPositionId++, "REAL", foundId, bucket, receipt.count(),
+            trackedPosition = new Position(allocatePositionId(), "REAL", foundId, bucket, receipt.count(),
                     receipt.price(), target, receipt.atMillis(), 0, 0, 0, Double.NaN,
                     PositionStatus.PURCHASED);
             purchasedInventorySlot = slot;
@@ -9440,7 +9443,7 @@ public final class AutomationSessionController {
         huntNotes.put(pendingOpportunity.listing().itemId(),
                 "bought at " + paid + " at " + java.time.LocalTime.now().withNano(0));
         committedSpend = Math.addExact(committedSpend, paid);
-        trackedPosition = new Position(nextPositionId++, "REAL",
+        trackedPosition = new Position(allocatePositionId(), "REAL",
                 arrivedItemKey != null ? arrivedItemKey : pendingOpportunity.listing().itemKey(),
                 StackBucket.of(pendingOpportunity.listing().itemCount()),
                 pendingOpportunity.listing().itemCount(),
@@ -10998,7 +11001,7 @@ public final class AutomationSessionController {
         long target = uncertainExposure.targetPrice();
         tradesStarted++;
         committedSpend = Math.addExact(committedSpend, paid);
-        trackedPosition = new Position(nextPositionId++, "REAL", itemKey, StackBucket.of(count), count,
+        trackedPosition = new Position(allocatePositionId(), "REAL", itemKey, StackBucket.of(count), count,
                 paid, target, now, 0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
         recoveredOpenPositions = List.of();
         LOGGER.info("DoughBay automation: BUY intent for {} found in the inventory; booked at {} and listing at {}",
@@ -11256,6 +11259,14 @@ public final class AutomationSessionController {
         // Resume; only pauses raised while running are resumed here.
         if (!armed) return;
         if (state != State.PAUSED || pausedByPlayer || !sessionOpen || policy == null) return;
+        // A write the ledger refused is not retried on a timer. Listing again
+        // would hand it the identical refused row, and that is what spent two
+        // hours bouncing between PAUSED and PREPARING_LIST with nothing sold.
+        if (persistence != null && persistence.status().refusalOutstanding()) {
+            detail = "PAUSED: a durable automation write was refused ("
+                    + persistence.status().detail() + "); it is not retried automatically";
+            return;
+        }
         // Evasion owns the timing of its own resume: never while somebody is
         // still near, however long the internal-pause clock says it has been.
         dev.doughbay.fabric.EvasionGuard evasion = dev.doughbay.fabric.DoughBayClient.evasionGuard();
@@ -11729,6 +11740,8 @@ public final class AutomationSessionController {
     private String persistenceHealthBlocker() {
         if (persistence == null) return "Automation persistence is unavailable";
         AutomationPersistencePort.Status status = persistence.status();
+        if (status.refusalOutstanding()) return "A durable automation write was refused; reconcile or restart before resuming";
+        if (status.ready() && !persistence.positionIdsAvailable()) return "Waiting for durable position ID lease";
         return status.ready() ? null
                 : "Automation persistence is " + status.loadState()
                 + (status.detail().isBlank() ? "" : ": " + status.detail());
@@ -11912,7 +11925,22 @@ public final class AutomationSessionController {
     private void checkStuckPersistence(long now) {
         if (persistence == null) return;
         AutomationPersistencePort.Status status = persistence.status();
-        if (!status.ready() || status.lastAcceptedGeneration() <= status.lastDurableGeneration()) {
+        if (!status.ready()) {
+            pendingPersistenceSince = 0;
+            return;
+        }
+        if (status.refusalOutstanding()) {
+            // A refused write is not a slow write: the ledger rolled that row
+            // back and it will never become durable. Waiting out the stall
+            // budget only delays the same pause by two minutes, and nothing
+            // may act on a row that was never written.
+            pendingPersistenceSince = 0;
+            if (isRunning()) {
+                pauseInternal("A durable automation write was refused: " + status.detail());
+            }
+            return;
+        }
+        if (status.lastAcceptedGeneration() <= status.lastDurableGeneration()) {
             pendingPersistenceSince = 0;
             return;
         }
