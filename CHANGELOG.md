@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 16:51 UTC
+- Added direct reviewed bug-report submission over HTTPS to gonuts.at/v1/bugs, matching the receiver's exact six-field schema, fixed state enum and five counters. The client reuses only a GoNuts token configured for gonuts.at; official DonutSMP keys and unrelated proxy keys are never sent to this receiver. GitHub fallback remains available.
+- Added explicit public-report confirmation and a scrollable local preview. No raw logs or attachments are uploaded. Reports include the mod build timestamp where supported so builds sharing the same JAR name can be distinguished. Private chat is excluded from diagnostic counting as well as report output.
+- Success and duplicate replies provide an Open issue button. Retries reuse the unchanged report's idempotency key; rate limits honor Retry-After, and receiver/GitHub outages leave the report available for a manual retry. HTTP requests run off the game thread, do not follow redirects and bound response size/time. Tokens and response bodies are never logged or shown.
+- Added a separate feature-request form stating requests are considered, not guaranteed. Direct reporting needs the VPS GitHub Issues credential to be installed; a 503 is shown as temporary unavailability, never a successful submission. Sanitized log attachments and automated draft-patch generation still require their own receiver/worker implementation.
+
 ## 2026-10-14 16:22 UTC
 - Added About → Report bug: describe the problem and expected behavior, prepare a report locally, review it, and copy it into GitHub's issue form. GitHub submission is explicit and public; no credentials are bundled into the mod and no report is uploaded in the background.
 - Privacy: raw logs are never attached. Only a bounded current-log sample is reduced to fixed diagnostic counters and a recognized automation state. Chat, player names, log messages, settings, databases and process arguments are excluded. Typed fields are filtered for common credentials, URLs, addresses, UUIDs and paths and still require user review. Failed preparation blocks sharing instead of falling back to raw logs.

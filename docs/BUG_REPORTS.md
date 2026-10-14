@@ -1,8 +1,26 @@
 # Bug reports and VPS handoff
 
-The first client version is in **About → Report bug**. It prepares a report locally,
-copies it after user review and opens GitHub's issue form. GitHub sign-in and an
-explicit submission are required. Nothing is silently uploaded. The issue is public.
+The client now sends reviewed reports directly to **https://gonuts.at/v1/bugs**
+using the configured gonuts.at install token. It never reuses an official DonutSMP
+key or a token configured for another server. Legacy numeric-address/custom-proxy
+setups should use the GitHub fallback or configure the canonical gonuts.at origin
+with their existing valid GoNuts install token. Transport always uses HTTPS,
+never follows redirects, bounds reply sizes and times out failed requests.
+
+In **About → Report bug**, enter a description and expected behavior, choose
+**Prepare**, scroll through the filtered preview, confirm **I reviewed this public
+report**, then **Send reviewed**. Authentication-free GitHub submission remains a
+fallback (GitHub sign-in required). No report is sent in the background.
+
+Success and duplicate replies offer **Open issue**. Retrying an unchanged report
+uses the same idempotency key. A 429 holds the send button for Retry-After; failed
+GitHub/receiver availability holds it briefly. There is no automatic retry loop.
+Report preparation failure disables sending and never falls back to raw logs.
+A 503 means reporting is temporarily unavailable, not that the report was filed.
+The VPS operator must install its GitHub Issues token before filing can succeed.
+
+**Feature request** opens a separate GitHub form, without diagnostics; requests
+are considered, not guaranteed. It is not a bug-report receiver submission.
 
 Raw logs are never attached. A bounded 256 KiB tail of the current log is reduced to
 fixed event counters and a recognized automation state. This is a sample, not a
@@ -18,25 +36,17 @@ The GitHub daily digest runs at 16:00 UTC (09:00 PDT / 08:00 PST), linking new
 to a patch agent. GitHub schedules are best-effort; manually rerunning the workflow
 updates that date's existing digest. Empty days produce only a workflow summary.
 
-## VPS agent contract (direct delivery is not deployed yet)
+## VPS receiver contract
 
-Propose an HTTPS endpoint on the owner's domain, accepting JSON fields:
-`schemaVersion` (1), `build`, `minecraftVersion`, `description`, `expected`, and
-`diagnostics` (fixed named counters and an enum state, no arbitrary log text).
-Maximum body 16 KiB, each description/expected 1500 characters. Reject unknown
-fields, invalid counters and oversized input. Respond with `reportId` and `issueUrl`
-on acceptance. Use an idempotency key so retrying does not create duplicate issues.
-Do not permit client-provided GitHub destinations or labels.
+The verified receiver schema is in [BUG_REPORTS_RECEIVER_CONTRACT.md](BUG_REPORTS_RECEIVER_CONTRACT.md).
+Exactly six top-level fields are sent; diagnostics contain the fixed enum state
+and five integer counters. UNKNOWN is uppercase. The mod build timestamp is
+appended to its version when it fits the receiver's 40-character build limit,
+so reports distinguish releases sharing the same mod version and JAR filename.
 
-Keep GitHub credentials server-side with issues-only permission for cody-raves/Gonuts.
-Mint no secret shared credential into the mod. Use per-install quotas, request limits
-and abuse protection; provide a plan before enabling an anonymous public endpoint.
-Do not log request bodies, auth headers or reporter IPs. Minimize retention and
-sanitize again on the receiver. Create `bug-report` issues and return their links.
-Public GitHub reports require explicit disclosure and consent in the final client flow.
-
-Return endpoint, JSON contract, deployment/access requirements and abuse protection
-to the client developer. Direct HTTP transport will be connected after these are ready.
+This schema rejects attachments and raw-log-shaped description text. Sanitized
+log attachments require a receiver schema extension first; they are not sent by
+this client. The receiver's GitHub token stays on the VPS and is never in the JAR.
 
 ## Patch automation boundary
 

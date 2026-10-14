@@ -9,69 +9,130 @@ import net.minecraft.util.Util;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
-/** Review-first reporting. No network request happens before the user opens GitHub. */
+/** Local preview and explicit consent precede every direct submission. */
 public final class BugReportScreen extends Screen {
     private final Screen parent;
+    private final BugReportTransport transport = new BugReportTransport();
     private EditBox happened, expected;
-    private String happenedDraft = "", expectedDraft = "", report = "", status = "";
-    private boolean collecting;
+    private String happenedDraft = "", expectedDraft = "", report = "", status = "", retryKey = "", issueUrl = "";
+    private BugReportPayload payload;
+    private boolean collecting, sending, reviewed;
+    private long retryAt;
+    private int scroll;
     private net.minecraft.client.gui.components.Button sendButton;
     public BugReportScreen(Screen parent) { super(Component.literal("Report a GoNuts bug")); this.parent = parent; }
     private int left() { return (width - panelWidth()) / 2; }
     private int panelWidth() { return Math.min(580, width - 24); }
     @Override protected void init() {
         DoughBayClient.automationSessionController().setPanelOpen(true);
-        int x = left() + 12, w = panelWidth() - 24;
+        int x = left() + 12, w = panelWidth() - 24, gap = 5, each = (w - 3 * gap) / 4;
+        addRenderableWidget(CockpitButton.builder(Component.literal("Feature request"), b ->
+            Util.getPlatform().openUri(URI.create("https://github.com/cody-raves/Gonuts/issues/new?template=feature-request.yml")))
+            .bounds(x + w - 95, 8, 95, 16).build());
         happened = new EditBox(font, x, 46, w, 20, Component.literal("What happened?"));
-        happened.setMaxLength(1000); happened.setValue(happenedDraft); happened.setResponder(v -> { happenedDraft = v; invalidate(); });
+        happened.setMaxLength(1500); happened.setValue(happenedDraft); happened.setResponder(v -> { happenedDraft = v; invalidate(); });
         expected = new EditBox(font, x, 83, w, 20, Component.literal("What should happen?"));
-        expected.setMaxLength(1000); expected.setValue(expectedDraft); expected.setResponder(v -> { expectedDraft = v; invalidate(); });
-        happened.active = !collecting; expected.active = !collecting;
+        expected.setMaxLength(1500); expected.setValue(expectedDraft); expected.setResponder(v -> { expectedDraft = v; invalidate(); });
+        happened.active = !collecting && !sending; expected.active = !collecting && !sending;
         addRenderableWidget(happened); addRenderableWidget(expected);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Prepare filtered report"), b -> prepare()).bounds(x, 111, 158, 20).build());
-        sendButton = CockpitButton.builder(Component.literal("Copy + open GitHub"), b -> {
-            if (report.isEmpty() || collecting) return;
+        var prepare = CockpitButton.builder(Component.literal("Prepare"), b -> prepare()).bounds(x, 111, each, 20).build();
+        prepare.active = !collecting && !sending; addRenderableWidget(prepare);
+        sendButton = CockpitButton.builder(Component.literal("Send reviewed"), b -> send()).bounds(x + each + gap, 111, each, 20).build();
+        addRenderableWidget(sendButton);
+        var github = CockpitButton.builder(Component.literal("GitHub fallback"), b -> {
+            if (report.isEmpty() || sending) return;
             minecraft.keyboardHandler.setClipboard(report);
             Util.getPlatform().openUri(URI.create("https://github.com/cody-raves/Gonuts/issues/new?template=bug-report.yml"));
-            status = "Paste the reviewed report into GitHub, then submit there.";
-        }).bounds(x + 164, 111, 145, 20).build();
-        sendButton.active = !report.isEmpty() && !collecting; addRenderableWidget(sendButton);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back"), b -> onClose()).bounds(x + w - 60, 111, 60, 20).build());
+            status = "Paste the filtered report into GitHub and review it before submitting.";
+        }).bounds(x + 2 * (each + gap), 111, each, 20).build();
+        github.active = !report.isEmpty() && !sending; addRenderableWidget(github);
+        var back = CockpitButton.builder(Component.literal("Back"), b -> onClose()).bounds(x + 3 * (each + gap), 111, each, 20).build();
+        back.active = !sending; addRenderableWidget(back);
+        var consent = CockpitButton.builder(Component.literal(reviewed ? "Reviewed; OK to publish" : "I reviewed this public report"), b -> {
+            reviewed = !reviewed; rebuildWidgets();
+        }).bounds(x, 138, Math.min(210, w), 20).build();
+        consent.active = payload != null && !sending; addRenderableWidget(consent);
+        if (!issueUrl.isEmpty()) addRenderableWidget(CockpitButton.builder(Component.literal("Open issue"), b ->
+            Util.getPlatform().openUri(URI.create(issueUrl))).bounds(x + w - 85, 138, 85, 20).build());
+        refreshSend();
     }
-    private void invalidate() { report = ""; if (sendButton != null) sendButton.active = false; }
+    private void refreshSend() {
+        var config = DoughBayClient.activeConfig();
+        sendButton.active = payload != null && reviewed && !collecting && !sending && issueUrl.isEmpty()
+            && System.currentTimeMillis() >= retryAt && config != null && BugReportTransport.mayUseToken(config.apiBaseUrl(), config.apiKey());
+    }
+    private void invalidate() {
+        payload = null; report = ""; reviewed = false; retryKey = ""; issueUrl = ""; scroll = 0;
+        if (sendButton != null) sendButton.active = false;
+    }
+    private static String filtered(String input) {
+        var config = DoughBayClient.activeConfig();
+        if (config != null && !config.apiKey().isBlank()) input = input.replace(config.apiKey(), "[credential removed]");
+        return BugReportPrivacy.clean(input);
+    }
     private void prepare() {
-        if (collecting) return;
-        if (happenedDraft.isBlank() || expectedDraft.isBlank()) { status = "Describe the problem and expected behavior first."; return; }
-        collecting = true; report = ""; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
-        String description = BugReportPrivacy.clean(happenedDraft), expectation = BugReportPrivacy.clean(expectedDraft);
+        if (collecting || sending) return;
+        invalidate(); collecting = true; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
+        String description = filtered(happenedDraft), expectation = filtered(expectedDraft);
         CompletableFuture.supplyAsync(() -> {
             try {
                 String version = FabricLoader.getInstance().getModContainer("doughbay").orElseThrow().getMetadata().getVersion().getFriendlyString();
-                return "GoNuts bug report\nBuild: " + BugReportPrivacy.clean(version) + "\nMinecraft: 26.2\n\nWhat happened:\n" + description
-                    + "\n\nExpected:\n" + expectation + "\n\n" + BugReportDiagnostics.read(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log"));
-            } catch (Exception e) { return ""; }
+                try (var input = BugReportScreen.class.getResourceAsStream("/doughbay-build.properties")) {
+                    if (input != null) {
+                        var properties = new java.util.Properties(); properties.load(input);
+                        String stamp = properties.getProperty("built_at", "");
+                        if (stamp.matches("[0-9]{13}") && version.length() + 14 <= 40) version += "-" + stamp;
+                    }
+                }
+                var next = new BugReportPayload(version, "26.2", description, expectation,
+                    BugReportDiagnostics.readCounters(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")));
+                next.json(); return next;
+            } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
-            collecting = false; report = result;
-            status = result.isEmpty() ? "Report preparation failed. Sending is blocked; no raw-log fallback." : "Review below. Remove any private details you typed before sharing.";
-            rebuildWidgets();
+            collecting = false; payload = result; report = result == null ? "" : result.preview();
+            var config = DoughBayClient.activeConfig();
+            status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
+                : config == null || !BugReportTransport.mayUseToken(config.apiBaseUrl(), config.apiKey())
+                    ? "Direct reporting needs a gonuts.at install token. GitHub fallback is available."
+                    : "Review the full report below (scroll), then confirm it may be published.";
+            if (minecraft.gui.screen() == this) rebuildWidgets();
         }));
     }
-    @Override public void onClose() { minecraft.gui.setScreen(parent); }
+    private void send() {
+        var config = DoughBayClient.activeConfig();
+        if (payload == null || !reviewed || collecting || sending || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt || config == null) return;
+        if (retryKey.isEmpty()) retryKey = java.util.UUID.randomUUID().toString();
+        sending = true; status = "Sending reviewed report over HTTPS…"; rebuildWidgets();
+        transport.send(payload, retryKey, config.apiBaseUrl(), config.apiKey()).thenAccept(result -> minecraft.execute(() -> {
+            sending = false; status = result.message(); issueUrl = result.issueUrl(); retryAt = result.retryAtMillis();
+            if (minecraft.gui.screen() == this) rebuildWidgets();
+        }));
+    }
+    @Override public boolean mouseScrolled(double x, double y, double dx, double dy) {
+        if (y >= 182 && !report.isEmpty()) {
+            int count = font.split(Component.literal(report), panelWidth() - 24).size();
+            scroll = Math.max(0, Math.min(Math.max(0, count - Math.max(1, (height - 200) / 10)), scroll - (int)Math.signum(dy) * 3));
+            return true;
+        }
+        return super.mouseScrolled(x, y, dx, dy);
+    }
+    @Override public void onClose() { if (!sending) minecraft.gui.setScreen(parent); }
     @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); }
     @Override public boolean isPauseScreen() { return false; }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
+        refreshSend();
         g.fill(0, 0, width, height, 0xE0050910);
         int x = left() + 12, w = panelWidth() - 24;
         g.text(font, "REPORT A BUG", x, 12, UiTheme.GOLD);
         g.text(font, "GitHub issues are public. Raw logs are never included.", x, 23, UiTheme.MUTED);
         g.text(font, "What happened? (Do not include names or private chat)", x, 33, UiTheme.TEXT);
         g.text(font, "What did you expect?", x, 70, UiTheme.TEXT);
-        g.text(font, UiTheme.fit(font, status, w), x, 139, UiTheme.SECONDARY);
-        int y = 157;
-        for (var line : font.split(Component.literal(report), w)) {
-            if (y > height - 16) { g.text(font, "Full report can be reviewed in GitHub before submission.", x, height - 12, UiTheme.MUTED); break; }
-            g.text(font, line, x, y, UiTheme.TEXT); y += 10;
-        }
+        int statusY = 163;
+        for (var line : font.split(Component.literal(status), w)) { if (statusY > 173) break; g.text(font, line, x, statusY, UiTheme.SECONDARY); statusY += 10; }
+        var lines = font.split(Component.literal(report), w);
+        int y = 187;
+        for (int i = scroll; i < lines.size() && y <= height - 22; i++, y += 10) g.text(font, lines.get(i), x, y, UiTheme.TEXT);
+        if (!lines.isEmpty()) g.text(font, "Scroll to review all details before sending.", x, height - 12, UiTheme.MUTED);
         super.extractRenderState(g, mx, my, delta);
     }
 }
