@@ -12,16 +12,12 @@ import java.util.Locale;
 final class RestartPlan {
     /** After being parked, before leaving: the stop the session made has to land first. */
     static final long ARM_MILLIS = 4_000L;
-    /** How long to stand on the side door before going back to the front one. */
-    static final long DWELL_MILLIS = 5_000L;
     /** How long the world has to hold still before it is believed. */
     static final long SETTLE_MILLIS = 12_000L;
     static final long CONNECT_TIMEOUT_MILLIS = 45_000L;
-    static final long HOME_RETRY_MILLIS = 20_000L;
+    static final long RETRY_MILLIS = 20_000L;
     /** How long after the parking notice the world the client is in is taken to be the waiting room. */
     static final long PARKED_MILLIS = 1_500L;
-    /** After that, before /leave: the stop the session made has to land first. */
-    static final long LEAVE_ARM_MILLIS = 2_000L;
 
     private RestartPlan() {
     }
@@ -56,7 +52,7 @@ final class RestartPlan {
     /**
      * The side doors to try, in order. What the player listed, or east and
      * west of the home address when they listed nothing. Only ever another
-     * door of the same network, and never the home address itself: a typing
+     * door of the same network. A current regional address remains a valid retry: a typing
      * mistake must not send an account to some other server.
      */
     static List<String> hops(String configured, String home) {
@@ -75,7 +71,8 @@ final class RestartPlan {
         }
         for (String w : wanted) {
             if (out.size() >= 4) break;
-            if (host(w).equals(h) || !sameSite(w, h)) continue;
+            boolean regionalHome = h.equals("east." + site(h)) || h.equals("west." + site(h));
+            if ((host(w).equals(h) && !regionalHome) || !sameSite(w, h)) continue;
             boolean seen = false;
             for (String o : out) if (host(o).equals(host(w))) seen = true;
             if (!seen) out.add(w);
@@ -94,25 +91,4 @@ final class RestartPlan {
         return movedOn && balanceShown && now - levelChangedAt >= SETTLE_MILLIS;
     }
 
-    /** How long a world reached with /leave has to hold before it is acted in. */
-    static final long LEAVE_SETTLE_MILLIS = 4_000L;
-    /** How long /leave is given to put the client in a world. */
-    static final long LEAVE_TIMEOUT_MILLIS = 90_000L;
-
-    /**
-     * Whether /leave has taken the client out of the waiting room: it is in
-     * another world, and still there a few seconds on. The balance on the
-     * sidebar is not asked for here. The one time this ran for real the
-     * client was put in another region within a second, with a sidebar and a
-     * tab list full of players, and the step sat for ninety seconds waiting
-     * on a balance it did not read. What /leave leads to is a world.
-     */
-    static boolean worldAfterLeave(boolean movedOn, long levelChangedAt, long now) {
-        return movedOn && now - levelChangedAt >= LEAVE_SETTLE_MILLIS;
-    }
-
-    /** Whether a fresh join of the home address found the world there: nothing said about a restart since, and the sidebar up. */
-    static boolean homeProven(long joinedAt, long lastNoticeAt, boolean balanceShown, long now) {
-        return joinedAt > 0 && lastNoticeAt < joinedAt && balanceShown && now - joinedAt >= SETTLE_MILLIS;
-    }
 }

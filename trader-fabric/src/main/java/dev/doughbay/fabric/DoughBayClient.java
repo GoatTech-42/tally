@@ -566,7 +566,7 @@ public class DoughBayClient implements ClientModInitializer {
 
             // The execution state machine must keep advancing while Minecraft's
             // auction and confirmation screens replace DoughBay's own screen.
-            if (!stoppedThisTick) {
+            if (!stoppedThisTick && !RESTART.active()) {
                 // A bug in the trader must pause the trader, never take the
                 // game down with it: the caps crash of 2026-09-02 did exactly that.
                 try {
@@ -890,6 +890,9 @@ public class DoughBayClient implements ClientModInitializer {
     public static Follows follows() {
         return FOLLOWS;
     }
+
+    /** Regional restart recovery temporarily owns connecting and world verification. */
+    public static boolean restartOwnsConnection() { return RESTART.active(); }
 
     /** The player's rank as the API reports it; "" until read or when there is none. */
     public static String rank() {

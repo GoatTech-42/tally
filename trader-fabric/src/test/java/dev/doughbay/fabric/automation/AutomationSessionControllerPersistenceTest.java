@@ -197,6 +197,54 @@ final class AutomationSessionControllerPersistenceTest {
                 12, 80, 10, 8, 120, 1);
     }
 
+    @Test void restartCannotRearmAStoppedOrOperatorPausedSession() throws Exception {
+        var controller=new AutomationSessionController(new AutomatedExecutionDriver());
+        setField(controller,"state",AutomationSessionController.State.PAUSED);
+        setField(controller,"sessionOpen",true);
+        setField(controller,"policy",policy());
+        setField(controller,"armed",false);
+        assertFalse(controller.resumeAfterRestart().ok());
+        assertFalse((boolean)field(controller,"armed"));
+        setField(controller,"armed",true);
+        setField(controller,"pausedByPlayer",true);
+        assertFalse(controller.restartRecoveryMayResume());
+        assertFalse(controller.resumeAfterRestart().ok());
+        assertTrue((boolean)field(controller,"pausedByPlayer"));
+    }
+
+    @Test void restartResumeDoesNotForceResetUncertainExposureOrSpendCaps() throws Exception {
+        var controller=new AutomationSessionController(new AutomatedExecutionDriver());
+        var persistence=new FakePersistence();controller.setPersistence(persistence);
+        setField(controller,"recoveryApplied",true);
+        setField(controller,"state",AutomationSessionController.State.PAUSED);
+        setField(controller,"sessionOpen",true);
+        setField(controller,"policy",policy());
+        setField(controller,"armed",true);
+        setField(controller,"committedSpend",4100L);
+        setField(controller,"tradesStarted",1);
+        var exposure=new dev.doughbay.storage.AutomationUncertainExposure(true,"BUYING","listing",
+                "minecraft:diamond","minecraft:diamond",1,4100,6000,"seller",1000);
+        setField(controller,"uncertainExposure",exposure);
+        assertFalse(controller.resumeAfterRestart().ok());
+        assertEquals(exposure,field(controller,"uncertainExposure"));
+        assertEquals(4100L,field(controller,"committedSpend"));
+        assertEquals(1,field(controller,"tradesStarted"));
+        assertEquals(0,persistence.submissions.get());
+    }
+
+    @Test void restartResumeWaitsForVerifiedWorld() throws Exception {
+        var controller=new AutomationSessionController(new AutomatedExecutionDriver());
+        setField(controller,"state",AutomationSessionController.State.PAUSED);
+        setField(controller,"sessionOpen",true);
+        setField(controller,"policy",policy());
+        setField(controller,"armed",true);
+        setField(controller,"limboUntil",System.currentTimeMillis()+60_000L);
+        assertTrue(controller.restartRecoveryMayResume());
+        var result=controller.resumeAfterRestart();
+        assertFalse(result.ok());
+        assertTrue(result.detail().contains("not verified"));
+    }
+
     private static void setField(Object target, String name, Object value)
             throws ReflectiveOperationException {
         Field field = target.getClass().getDeclaredField(name);

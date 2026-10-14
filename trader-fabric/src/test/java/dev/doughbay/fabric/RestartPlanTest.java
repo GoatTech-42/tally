@@ -15,6 +15,7 @@ class RestartPlanTest {
         assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops(null, "DonutSMP.net:25565"));
         // Joined through a name of its own: the doors are still the network's, not that name's.
         assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops("  ", "play.donutsmp.net"));
+        assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops("", "west.donutsmp.net"));
         // The player's own list, in the player's order.
         assertEquals(List.of("west.donutsmp.net", "east.donutsmp.net"),
                 RestartPlan.hops("West.donutsmp.net; east.donutsmp.net, west.donutsmp.net", "donutsmp.net"));
@@ -54,24 +55,4 @@ class RestartPlanTest {
         assertTrue(RestartPlan.backFromLimbo(true, moved, true, moved + RestartPlan.SETTLE_MILLIS));
     }
 
-    @Test
-    void leaveHasWorkedWhenWeAreOutOfTheWaitingRoomAndStayOut() {
-        long moved = 2_000_000L;
-        assertTrue(RestartPlan.worldAfterLeave(true, moved, moved + RestartPlan.LEAVE_SETTLE_MILLIS));
-        // Not moved: still in the waiting room, whenever the command went out.
-        assertFalse(RestartPlan.worldAfterLeave(false, moved, moved + 60_000L));
-        // Only just arrived.
-        assertFalse(RestartPlan.worldAfterLeave(true, moved, moved + 500L));
-    }
-
-    @Test
-    void aFreshJoinIsOnlyBelievedWhenNothingHasSaidRestartSince() {
-        long joined = 5_000_000L;
-        assertTrue(RestartPlan.homeProven(joined, joined - 30_000L, true, joined + RestartPlan.SETTLE_MILLIS));
-        // Told about the restart again after joining: parked again.
-        assertFalse(RestartPlan.homeProven(joined, joined + 1_000L, true, joined + 60_000L));
-        assertFalse(RestartPlan.homeProven(joined, joined - 30_000L, false, joined + 60_000L));
-        assertFalse(RestartPlan.homeProven(joined, joined - 30_000L, true, joined + 2_000L));
-        assertFalse(RestartPlan.homeProven(0, 0, true, 60_000L));
-    }
 }

@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 15:59 UTC
+- Fixed: Skip the restart waiting room now disconnects and joins directly through East or West instead of sending /leave. It stays on the working regional address; it no longer reconnects to the main address after a short regional visit. Failed or limbo joins alternate through the configured same-network addresses with a retry delay.
+- Recovery starts only after the server reports actual proxy limbo. If the server releases the waiting room while recovery is arming, the existing connection is kept. Disconnects wait for an idle driver and an empty cursor, and a regional world must remain stable with a newly read balance sidebar before trading continues; the old connection's cached balance is not accepted as proof.
+- Fixed: ordinary two-minute reconnects no longer capture an intentional restart hop. Staff Watch's actual alert disconnect and 5-10 minute cooldown retain priority. Trading stays parked while restart recovery owns the connection. Restart departures remain intentional, so they do not trigger kick alerts or click-spam pacing recovery.
+- Restart resume retains the existing session's trade/spend caps and uses safe inventory/exposure reconciliation. It cannot rearm an operator-paused or stopped session, and it does not invoke the operator-only force-reset paths. Updated Session help and removed the obsolete /leave-versus-address selector; existing Skip setting and regional-address list remain available.
+- Verified regional addresses remain authorized when donutsmp.net is on the bot's server allowlists. This does not change market selection, buy limits or trade pacing.
+
 ## 2026-10-14 09:26 UTC
 - Fixed: clicking Follow known bots again restarts a stopped queue even when its names are already on the list. An explicit known-bot request takes priority over automatic counterparties, retries unavailable/unanswered bundled names and preserves confirmed or in-flight follows. The client cap accounts for existing confirmed names without double-counting overlaps; normal command pacing, menu safety and server refusal handling remain in force.
 - Fixed: English item names in DonutSMP follow notices now resolve against Minecraft's default English translations as well as the client's localized/resource-pack names. Previously, a non-English item-name table could leave notices unresolved and prevent rival profiles.
@@ -52,7 +59,7 @@ About tab.
 
 ## 2026-10-14 02:10 UTC
 - New: Staff Watch is part of the main GoNuts GUI. Open its Operations tab or use /staffwatch for detection settings, live staff rows, and the reconnect server selector.
-- New: choose Donut SMP Main (donutsmp.net), East (east.donutsmp.net), or West (west.donutsmp.net). Staff alerts close the connection immediately, then wait 5–10 minutes before reconnecting. Other disconnects and failed connections retry every two minutes.
+- New: choose Donut SMP Main (donutsmp.net), East (east.donutsmp.net), or West (west.donutsmp.net). Staff alerts close the connection immediately, then wait 5â€“10 minutes before reconnecting. Other disconnects and failed connections retry every two minutes.
 - New: staff and vanish panels sit at the top center, with the special watcher warning directly below. The warning remains visible over menus after leaving. Sounds are off by default.
 - New: staff escapes appear in the shared web/Discord Evasion history. The Discord bot sends a dedicated notification with the client, watcher, time, destination, and reconnect delay; unsent notifications remain queued.
 - Changed: a staff disconnect pauses trading and takes priority over other reconnect helpers. Cancel stops its reconnect chain. Single-player worlds are never disconnected by Staff Watch.

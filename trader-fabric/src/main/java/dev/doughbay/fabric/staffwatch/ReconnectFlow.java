@@ -45,6 +45,11 @@ public final class ReconnectFlow {
   client.showCountdown();
  }
  public void tick(boolean enabled, String configured) {
+  tick(enabled,configured,false);
+ }
+ /** An intentional restart hop owns ordinary reconnects, while staff delays retain priority. */
+ public void tick(boolean enabled, String configured, boolean externalRecovery) {
+  if(externalRecovery&&schedule.watcher()==null){cancel();return;}
   if (!enabled) { cancel(); return; }
   switch (phase) {
    case IDLE -> {

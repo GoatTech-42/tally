@@ -11228,7 +11228,30 @@ public final class AutomationSessionController {
         }
     }
 
+    /** Restart recovery may only continue a session that was already armed, never an operator pause. */
+    public synchronized boolean restartRecoveryMayResume() {
+        return state == State.PAUSED && !pausedByPlayer && armed && sessionOpen && policy != null;
+    }
+
+    /** Uses internal reconciliation without the operator-only force-reset paths or new spend caps. */
+    public synchronized ExecutionResult resumeAfterRestart() {
+        if (!restartRecoveryMayResume()) {
+            return ExecutionResult.refused("No internally paused running session is available");
+        }
+        if (serverRestarting()) return ExecutionResult.refused("The restart world is not verified yet");
+        String blocked = persistenceStartBlocker();
+        if (blocked != null) return ExecutionResult.refused("Restart resume is waiting for persistence: " + blocked);
+        autoResumeInternalPause(Minecraft.getInstance(), System.currentTimeMillis(), true);
+        return state == State.PAUSED
+                ? ExecutionResult.refused("Waiting for safe inventory, exposure and server reconciliation")
+                : ExecutionResult.awaitingPlayer(detail);
+    }
+
     private void autoResumeInternalPause(Minecraft client, long now) {
+        autoResumeInternalPause(client, now, false);
+    }
+
+    private void autoResumeInternalPause(Minecraft client, long now, boolean restartOwned) {
         // A session recovered from disk has no policy until the player presses
         // Resume; only pauses raised while running are resumed here.
         if (!armed) return;
@@ -11244,7 +11267,7 @@ public final class AutomationSessionController {
             return;
         }
         if (recoveredExposureRemains()) return;
-        if (detail != null && detail.contains("Join a server")
+        if (!restartOwned && detail != null && detail.contains("Join a server")
                 && dev.doughbay.fabric.Tuning.get("session.resume_after_leave") < 0.5) {
             // Leaving the server is the player's doing; the session waits for Resume.
             pauseResumable = true;

@@ -77,6 +77,11 @@ public final class SidebarBalance {
         return s >= 0 && System.currentTimeMillis() - readAt <= FRESH_MILLIS ? s : -1;
     }
 
+    /** A regional join must not reuse the previous connection's cached balance. */
+    static boolean freshSince(long since) {
+        return since > 0 && readAt >= since && current() >= 0;
+    }
+
     /** {shown, band} for the first "$ amount" in a line, or null. Package-visible for tests. */
     static long[] parse(String text) {
         if (text == null) return null;

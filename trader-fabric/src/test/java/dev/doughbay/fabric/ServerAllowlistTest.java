@@ -15,6 +15,7 @@ class ServerAllowlistTest {
     void aRegionOfAListedServerIsThatServer() {
         assertTrue(ServerAllowlist.allows(LISTED, "donutsmp.net"));
         assertTrue(ServerAllowlist.allows(LISTED, "west.donutsmp.net"));
+        assertTrue(ServerAllowlist.allows(LISTED, "east.donutsmp.net"));
         assertTrue(ServerAllowlist.allows(LISTED, "asia.donutsmp.net"));
         assertTrue(ServerAllowlist.allows(LISTED, "singleplayer"));
     }
