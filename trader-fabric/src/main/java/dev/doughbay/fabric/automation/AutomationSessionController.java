@@ -4426,11 +4426,15 @@ public final class AutomationSessionController {
 
     /**
      * Lists the next sellable stack in the pack, past the gates {@link #bookStrayStack}
-     * respects: it lists an item even if an order still claims to cover it, even
-     * if it was blacklisted after it was bought (you own it now, so sell it), and
-     * even if a set-aside once gave up on it. It still leaves the reserved slots
-     * (tools, the chest) alone and still needs a real price, so nothing lists at a
-     * guess. One stack a tick, until the pack is clear or the window closes.
+     * respects: it lists an item even if an order still claims to cover it. It
+     * still leaves the reserved slots (tools, the chest) alone and still needs a
+     * real price, so nothing lists at a guess. One stack a tick, until the pack
+     * is clear or the window closes.
+     *
+     * <p>A stack the booking would refuse (set aside, or an item the bot may
+     * not trade) is passed over here. Picking it only to be refused meant the
+     * sweep chose the same four granite every tick for a minute, wrote a line
+     * each time, and never reached the stacks behind it.
      */
     private boolean forceListNextStack(Minecraft client, long now) {
         if (trackedPosition != null || client == null || client.player == null) return false;
@@ -4446,6 +4450,8 @@ public final class AutomationSessionController {
             if (hasRetailStock(id)) continue;
             if (!AutomatedExecutionDriver.listableWithParts(st)) continue;
             if (dev.doughbay.fabric.ItemDescriptor.of(st).hasParts()) continue;
+            if (bookingRefuses(setAsideItems.contains(id), dev.doughbay.fabric.Tuning.itemAllowed(id),
+                    dev.doughbay.fabric.Tuning.liquidating(id))) continue;
             Long unit = strayUnitCost(id);
             if (unit == null) continue;   // no price anywhere; will not guess
             LOGGER.info("DoughBay automation: pack sweep listing {} x{} in slot {} at {} each",
@@ -7401,15 +7407,23 @@ public final class AutomationSessionController {
         return best;
     }
 
+    /**
+     * Whether a stack found in the inventory is one the bot will not take on:
+     * one it gave up on, or an item it may not trade and has not been told to
+     * sell off.
+     */
+    static boolean bookingRefuses(boolean setAside, boolean allowed, boolean liquidating) {
+        return setAside || (!allowed && !liquidating);
+    }
+
     private boolean bookCollected(Minecraft client, long now, String itemId, int count, long unitPrice, long cost) {
         // Every route that adopts a stack from the inventory ends here - the
         // bid desk's own reconciliation, the owed-order sweep, the stray-stack
         // rescue - so this is the one place worth guarding. Without it, giving
         // up on a stack meant nothing: the next sweep found the same trident
         // unaccounted for, booked it again, and the preparation failed again.
-        if (setAsideItems.contains(itemId)
-                || (!dev.doughbay.fabric.Tuning.itemAllowed(itemId)
-                        && !dev.doughbay.fabric.Tuning.liquidating(itemId))) {
+        if (bookingRefuses(setAsideItems.contains(itemId), dev.doughbay.fabric.Tuning.itemAllowed(itemId),
+                dev.doughbay.fabric.Tuning.liquidating(itemId))) {
             if (bookRefusedAt.getOrDefault(itemId, 0L) + 300_000L < now) {
                 bookRefusedAt.put(itemId, now);
                 LOGGER.info("DoughBay automation: not booking {} x{} - it has been set aside or denied; "

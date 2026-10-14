@@ -4,6 +4,9 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 02:00 UTC
+- Fixed: the pack cleanup could stick on an item it was never going to sell. With something in your inventory that the bot may not trade (a few granite, say, while you trade only your own price list), it chose that stack again every tick for a minute, wrote "pack sweep listing" to the log each time (thousands of lines), and never reached the stacks behind it. It looked as if the bot had wandered off to a random market. Nothing was listed or sold by it, and trading carried on underneath. Such stacks are now passed over.
+
 ## 2026-10-14 01:55 UTC
 - New: an Appearance tab on the GoNuts screen. Pick one of four colour themes (Classic, Midnight, Mint, Rose) and one of three mascots (Original, Mochi, Sprout), each on its own. There is a live preview of every mascot mood, and the choice is saved in appearance.json and kept across restarts.
 - The Discord and web panel pictures show the mascot you picked.
