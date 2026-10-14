@@ -212,6 +212,7 @@ class WebPagesTest {
         long now = 1_760_000_000_000L;
         JsonNode page = json(WebPages.rivals(field(now, false), now, ZoneOffset.UTC));
         assertEquals("updated 3m ago", page.path("stamp").asText());
+        assertEquals(field(now, false).status(), page.path("followStatus").asText());
         assertEquals("flippers seen in the sales feed, last 24 h", page.path("title").asText());
         assertEquals(5, page.path("cards").size());
         assertEquals("25%", page.path("cards").get(0).path("value").asText());

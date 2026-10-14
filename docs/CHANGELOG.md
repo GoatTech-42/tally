@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 09:26 UTC
+- Fixed: clicking Follow known bots again restarts a stopped queue even when its names are already on the list. An explicit known-bot request takes priority over automatic counterparties, retries unavailable/unanswered bundled names and preserves confirmed or in-flight follows. The client cap accounts for existing confirmed names without double-counting overlaps; normal command pacing, menu safety and server refusal handling remain in force.
+- Fixed: English item names in DonutSMP follow notices now resolve against Minecraft's default English translations as well as the client's localized/resource-pack names. Previously, a non-English item-name table could leave notices unresolved and prevent rival profiles.
+- Fixed: clients sharing a hive folder now keep follow confirmations per account. Shared legacy confirmations are preserved but are not imported as proof that every account follows the same players; the existing toggle-recovery path restores follows that the server reports were already present.
+- Changed: in-game and web follow buttons report queued intent rather than claiming server confirmation, and remain available for retry. The Rivals page and minute-by-minute diagnostic logs distinguish confirmed follows, queued commands, unavailable/unanswered names, received chat notices and unresolved item names. Empty profiles explain the requirement for eight orders/listings per player; purchases, payments and logins alone do not qualify. A follow count is not proof of active trade data, and asking prices remain distinct from completed sales.
+
 ## 2026-10-14 08:28 UTC
 - Fixed: recent-auction watches and live cheapest-listing buys now skip listings whose recognized seller field belongs to another account in the same hive, as well as the local account. This also covers filled-container watch rows. Accounts can share item markets without buying each other's listed stock through these paths.
 - Seller checks use recognized ownership fields and exact account names; arbitrary username mentions in item lore do not block unrelated sellers. Normal non-hive listings remain eligible, and no spending or confirmation checks are relaxed.

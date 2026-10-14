@@ -432,8 +432,8 @@ public final class DoughBayScreen extends Screen {
         Follows follows = DoughBayClient.follows();
         if (follows == null) return;
         try {
-            int added = follows.followKnownBots();
-            knownBotsNote = added == 0 ? "Known bots: already listed" : "Following " + added + " more";
+            follows.followKnownBots();
+            knownBotsNote = "Queued; close GUI to follow";
         } catch (java.io.IOException e) {
             knownBotsNote = "Could not write the list";
             DoughBayClient.LOGGER.warn("DoughBay follows: the known bots could not be added: {}", e.toString());
@@ -717,7 +717,7 @@ public final class DoughBayScreen extends Screen {
                 Button bots = CockpitButton.builder(Component.literal(knownBotsNote.isEmpty()
                                 ? "Follow known bots (" + count + ")" : knownBotsNote), ignored -> followKnownBots())
                         .bounds(ui.innerRight() - 58 - 4 - KNOWN_BOTS_WIDTH, ui.contentTop() + 3, KNOWN_BOTS_WIDTH, 18).build();
-                bots.active = knownBotsNote.isEmpty() && count > 0 && DoughBayClient.follows() != null;
+                bots.active = count > 0 && DoughBayClient.follows() != null;
                 addRenderableWidget(bots);
             }
         }
@@ -2280,7 +2280,12 @@ public final class DoughBayScreen extends Screen {
             selectedRival = null;
         }
 
-        int cardsTop = top + 16;
+        Follows followQueue = DoughBayClient.follows();
+        if (followQueue != null) {
+            graphics.text(this.font, truncate((Tuning.get("follow.enabled") < 0.5 ? "Recording off. " : "")
+                    + followQueue.status(), width), x, top + 16, MUTED);
+        }
+        int cardsTop = top + (followQueue == null ? 16 : 30);
         int gap = 6;
         int columns = width >= 700 ? 5 : 2;
         int cardWidth = (width - gap * (columns - 1)) / columns;
@@ -2688,9 +2693,7 @@ public final class DoughBayScreen extends Screen {
         int innerWidth = width - 18;
         int yy = y + 27;
         if (s.rivals().isEmpty()) {
-            drawWrapped(graphics, s.refreshedAt() > 0
-                    ? "No seller in the last 24 hours has " + "60+ sales across 6+ items yet."
-                    : s.status(), innerX, yy, innerWidth, y + height - 8, MUTED);
+            drawWrapped(graphics, s.status(), innerX, yy, innerWidth, y + height - 8, MUTED);
             return;
         }
         // Column lefts as shares of the width: name, sales, items, shared, revenue, seen, status, bot, strip.

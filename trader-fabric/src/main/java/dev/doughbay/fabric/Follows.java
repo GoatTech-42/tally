@@ -105,6 +105,8 @@ public final class Follows {
     /** Lower-cased name to what the server answered: FOLLOWED, NOT_FOUND, NO_REPLY. */
     private final Map<String, String> state = new LinkedHashMap<>();
     private final ArrayDeque<String> retries = new ArrayDeque<>();
+    /** An explicit button request takes precedence over automatic counterparties. */
+    private final java.util.LinkedHashSet<String> requestedBots = new java.util.LinkedHashSet<>();
     /** People who bought from us or delivered to our orders, waiting their turn to be followed. */
     private final java.util.LinkedHashSet<String> traders = new java.util.LinkedHashSet<>();
     /** Lower-cased name to when it was followed, for readers on other threads. */
@@ -125,8 +127,12 @@ public final class Follows {
     private boolean capAnnounced;
 
     Follows(Path directory, AutomatedExecutionDriver driver) {
+        this(directory, directory, driver);
+    }
+
+    Follows(Path directory, Path accountRecords, AutomatedExecutionDriver driver) {
         this.listFile = directory.resolve("follow-list.txt");
-        this.stateFile = directory.resolve("follow-state.tsv");
+        this.stateFile = accountRecords.resolve("follow-state.tsv");
         this.eventsFile = directory.resolve("follow-events.tsv");
         this.driver = driver;
         loadState();
@@ -219,7 +225,7 @@ public final class Follows {
         return Reply.UNRELATED;
     }
 
-    void observeChat(String text) {
+    synchronized void observeChat(String text) {
         if (text == null || Tuning.get("follow.enabled") < 0.5) return;
         long now = System.currentTimeMillis();
         Event event = parse(text);
@@ -285,7 +291,7 @@ public final class Follows {
         }
     }
 
-    void tick(Minecraft client) {
+    synchronized void tick(Minecraft client) {
         if (Tuning.get("follow.enabled") < 0.5) return;
         if (client == null || client.player == null || client.getConnection() == null) return;
         long now = System.currentTimeMillis();
@@ -300,6 +306,7 @@ public final class Follows {
             if (driver.externalQueued(command)) {
                 if (now - pendingSince > QUEUE_MILLIS && driver.withdrawExternal(command)) {
                     // Never got a turn; try again later rather than hold the queue.
+                    if (knownBots().contains(pending)) requestedBots.add(pending);
                     pending = null;
                     nextSendAt = now + 60_000L;
                 }
@@ -323,7 +330,23 @@ public final class Follows {
             return;
         }
         capAnnounced = false;
+        String next = nextRequestedName();
+        if (next == null) return;
+        pending = next;
+        pendingSince = now;
+        pendingSentAt = 0;
+        driver.sendWhenClear(client, "follow " + next);
+    }
+
+    /** Select intent independently of transport; menus and trade safety still gate sending. */
+    synchronized String nextRequestedName() {
         String next = retries.pollFirst();
+        while (next == null && !requestedBots.isEmpty()) {
+            String name = requestedBots.iterator().next();
+            requestedBots.remove(name);
+            if (!state.containsKey(name.toLowerCase(Locale.ROOT))
+                    && !name.equalsIgnoreCase(pending)) next = name;
+        }
         // People trading with us right now come before a list drawn from old records.
         while (next == null && !traders.isEmpty()) {
             String trader = traders.iterator().next();
@@ -338,11 +361,7 @@ public final class Follows {
                 }
             }
         }
-        if (next == null) return;
-        pending = next;
-        pendingSince = now;
-        pendingSentAt = 0;
-        driver.sendWhenClear(client, "follow " + next);
+        return next;
     }
 
     /** Every notice since {@code since}, oldest first. Safe from any thread. */
@@ -368,7 +387,7 @@ public final class Follows {
      * Puts {@code names} ahead of the list to be followed, skipping anyone
      * already asked about. Returns how many were added.
      */
-    public int request(java.util.Collection<String> names) {
+    public synchronized int request(java.util.Collection<String> names) {
         int added = 0;
         for (String name : names) {
             if (name == null || !name.matches(NAME) || state.containsKey(name.toLowerCase(Locale.ROOT))) continue;
@@ -379,9 +398,13 @@ public final class Follows {
     }
 
     private static Seen seen(long at, Event event) {
+        return seen(at, event, ItemNames::resolve);
+    }
+
+    static Seen seen(long at, Event event, java.util.function.Function<String, String> resolve) {
         // A payment has no item: the other party is carried where its id would be.
         if (money(event.kind())) return new Seen(at, event.player(), event.kind(), 0, event.item(), event.price());
-        String id = event.quantity() > 0 ? ItemNames.resolve(event.item()) : null;
+        String id = event.quantity() > 0 ? resolve.apply(event.item()) : null;
         return new Seen(at, event.player(), event.kind(), event.quantity(), id == null ? "" : id, event.price());
     }
 
@@ -503,20 +526,46 @@ public final class Follows {
     /**
      * Adds the bundled accounts to the follow list and sees to it that they
      * will actually be followed: following on, and the cap on how many raised
-     * to hold them if it was lower. Never past the server's own limit. Returns
+     * to hold them if it was lower. Never past the configured maximum. Returns
      * how many names were added.
      */
-    public int followKnownBots() throws IOException {
+    public synchronized int followKnownBots() throws IOException {
         int added = addKnownBots();
-        int listed = knownBots().size();
+        listModified = -1;
+        readList(System.currentTimeMillis());
+        stopped = null;
+        silent = 0;
+        capAnnounced = false;
+        if (pending == null) nextSendAt = 0;
+        for (String name : knownBots()) {
+            String key = name.toLowerCase(Locale.ROOT);
+            String outcome = state.get(key);
+            if ("NO_REPLY".equals(outcome) || "NOT_FOUND".equals(outcome)) state.remove(key);
+            if (!state.containsKey(key) && !name.equalsIgnoreCase(pending)) requestedBots.add(name);
+        }
+        java.util.Set<String> required = new java.util.HashSet<>();
+        state.forEach((name, outcome) -> { if ("FOLLOWED".equals(outcome)) required.add(name); });
+        for (String name : wanted) required.add(name.toLowerCase(Locale.ROOT));
+        if (pending != null) required.add(pending.toLowerCase(Locale.ROOT));
         if (Tuning.get("follow.enabled") < 0.5) Tuning.set("follow.enabled", 1);
-        if (Tuning.get("follow.max") < listed) Tuning.set("follow.max", Math.min(1000, listed));
+        if (Tuning.get("follow.max") < required.size()) Tuning.set("follow.max", Math.min(1000, required.size()));
+        DoughBayClient.LOGGER.info("DoughBay follows: known bots requested; {}. Close menus to allow queued commands", status());
         return added;
     }
 
-    public String status() {
+    public synchronized String status() {
         long followed = state.values().stream().filter("FOLLOWED"::equals).count();
-        return followed + " followed of " + wanted.size() + " listed" + (stopped == null ? "" : "; stopped: " + stopped);
+        long queued = wanted.stream().map(n -> n.toLowerCase(Locale.ROOT)).distinct()
+                .filter(n -> !state.containsKey(n) && !n.equalsIgnoreCase(pending)).count();
+        long unavailable = state.values().stream().filter("NOT_FOUND"::equals).count();
+        long unanswered = state.values().stream().filter("NO_REPLY"::equals).count();
+        return followed + " confirmed here; " + queued + " list names waiting"
+                + (unavailable == 0 ? "" : "; " + unavailable + " unavailable")
+                + (unanswered == 0 ? "" : "; " + unanswered + " unanswered")
+                + (pending == null ? "" : "; /follow " + pending
+                + (driver.externalQueued("follow " + pending) ? " waiting for a safe command gap" : " awaiting reply"))
+                + (followed >= Tuning.get("follow.max") ? "; at configured follow cap" : "")
+                + (stopped == null ? "" : "; stopped: " + stopped);
     }
 
     private long gapMillis() {

@@ -884,7 +884,8 @@ final class Pages {
               const bots = button('', 'Follow known bots (' + d.knownBots + ')', async () => {
                 bots.disabled = true;
                 const j = await change('knownbots', {});
-                if (j && j.ok) bots.textContent = j.note; else bots.disabled = false;
+                if (j && j.ok) bots.textContent = 'Known bots queued; click to retry';
+                bots.disabled = !d.knownBots;
               });
               bots.disabled = !d.knownBots;
               head.appendChild(bots);
@@ -922,7 +923,7 @@ final class Pages {
               const left = el('div');
               left.appendChild(wide);
               const total = (d.rivals || []).length;
-              if (!total) left.appendChild(el('p', 'desc', 'Nobody on the list yet. ' + d.stamp));
+              if (!total) left.appendChild(el('p', 'desc', d.followStatus || ('Nobody on the list yet. ' + d.stamp)));
               if (total > R.limit) left.appendChild(button('more', 'Show ' + Math.min(60, total - R.limit) + ' more of ' + total,
                 () => { R.limit += 60; drawRivals(); }));
               else if (d.more > 0) left.appendChild(el('p', 'range', d.more + ' more are not shown.'));

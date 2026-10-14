@@ -268,7 +268,8 @@ public class DoughBayClient implements ClientModInitializer {
         AUTOMATION_SESSION.noteLedgerHistory(config.databasePath());
         ComponentObserver.init(config.databasePath());
         PAYROLL = new Payroll(config.databasePath(), EXECUTION_DRIVER, AUTOMATION_SESSION);
-        FOLLOWS = new Follows(config.directory(), EXECUTION_DRIVER);
+        // Follow confirmations belong to an account, even when intent and market notices are shared.
+        FOLLOWS = new Follows(config.directory(), own, EXECUTION_DRIVER);
         AutomationSessionController.setSaleObserver((sold, buyer) -> {
             SALES_COMPLETED.incrementAndGet();
             RIVALS.recordBuyer(sold, buyer);

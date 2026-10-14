@@ -642,7 +642,8 @@ public final class Tuning {
                     + "Whatever else that player pays or is paid then shows up, and the Money view on the Rivals "
                     + "tab fills in around them (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("follow.max", "Follows", "Most players to follow",
-                    "Following stops at this many. The server allows 1,000 and says so past that. It also stops by "
+                    "Following stops at this many client-confirmed accounts. This is the client's cap, not a count "
+                    + "read from the server's follow menu. It also stops by "
                     + "itself the moment the server answers a follow with something other than yes or no such player",
                     200, 1, 1000, Kind.COUNT),
             new Setting("follow.gap_sec", "Follows", "Gap between follow commands",

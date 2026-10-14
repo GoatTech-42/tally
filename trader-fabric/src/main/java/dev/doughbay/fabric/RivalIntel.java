@@ -325,7 +325,8 @@ public final class RivalIntel {
             FollowBuild followed = fromFollows(notices, ours, own, now,
                     commodities, (int) Tuning.get("underdog.min_flips"), Tuning.get("underdog.min_rival_margin_pct"),
                     (int) Tuning.get("rival.bot_score_threshold"));
-            boolean usingFollows = !followed.rivals().isEmpty();
+            boolean usingFollows = !followed.rivals().isEmpty()
+                    || (rivals.isEmpty() && Tuning.get("follow.enabled") >= 0.5);
             if (usingFollows) {
                 Set<String> named = new HashSet<>();
                 for (Rival r : followed.rivals()) named.add(lower(r.name()));
@@ -352,13 +353,15 @@ public final class RivalIntel {
                     if (taken.add(marketKey(m.itemId(), m.count()))) shadows.add(m);
                 }
             }
-            if (usingFollows) {
-                DoughBayClient.LOGGER.info("DoughBay rivals: {} followed player(s) profiled, {} market(s) they order and list "
-                                + "at a margin ({})", followed.rivals().size(), followed.askShadows().size(),
+            String followStatus = followDataStatus(notices);
+            if (follows != null && Tuning.get("follow.enabled") >= 0.5) {
+                DoughBayClient.LOGGER.info("DoughBay rivals: {}; {}; {} followed player(s) profiled, {} ask market(s) ({})",
+                        follows.status(), followStatus, followed.rivals().size(), followed.askShadows().size(),
                         Tuning.get("underdog.from_follows") >= 0.5 ? "shadowed" : "shown only; underdog.from_follows is off");
             }
             snapshot = new Snapshot(now, rivals.size() + " rival(s), " + active + " active"
-                    + (usingFollows ? ", from the players you follow" : ""),
+                    + (usingFollows ? ". " + followStatus + ". " + (follows == null ? "" : follows.status())
+                    : rivals.isEmpty() ? ". Follow recording is off; enable Follows to read server trade notices." : ""),
                     List.copyOf(rivals), active, Set.copyOf(crowded), Map.copyOf(proven), buyers,
                     traders, likelyBots, List.copyOf(shadows), usingFollows, followed.askShadows(),
                     realPrices(c, notices, since));
@@ -404,6 +407,20 @@ public final class RivalIntel {
     private static final int FOLLOW_MIN_EVENTS = 8;
     private static final int FOLLOW_RIVALS = 40;
     private static final long RESTOCK_GAP_MILLIS = 10 * 60_000L;
+
+    /** Expose missing evidence instead of claiming that a follow count is a rival profile. */
+    static String followDataStatus(List<Follows.Seen> notices) {
+        int trades = 0, unresolved = 0;
+        for (Follows.Seen s : notices) {
+            if (s.quantity() <= 0) continue;
+            if (s.kind().equals("listed") || s.kind().equals("ordered") || s.kind().equals("bought")) {
+                if (s.itemId().isEmpty()) unresolved++;
+                else trades++;
+            }
+        }
+        return notices.size() + " chat notices; " + trades + " resolved trades; " + unresolved
+                + " unresolved item names (last 24h). Profiles need 8 orders/listings per player; purchases and logins alone do not qualify";
+    }
 
     /**
      * Rivals read from follow notices: a player's listings are what they sell,

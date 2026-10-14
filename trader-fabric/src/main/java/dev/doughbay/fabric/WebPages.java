@@ -439,6 +439,7 @@ public final class WebPages {
         root.put("stamp", s.refreshedAt() > 0 ? "updated " + Figures.relativeAge(now - s.refreshedAt()) : s.status());
         root.put("nowHour", Instant.ofEpochMilli(now).atZone(zone).getHour());
         root.put("knownBots", Follows.knownBots().size());
+        root.put("followStatus", s.status());
 
         int repeat = 0;
         for (RivalIntel.Buyer b : s.buyers()) if (b.purchases() >= 2) repeat++;
@@ -696,7 +697,8 @@ public final class WebPages {
         if (follows == null) return answer(false, "Following is not running yet. Join the server first.").toString();
         try {
             int added = follows.followKnownBots();
-            return answer(true, added == 0 ? "Known bots: already listed" : "Following " + added + " more").toString();
+            return answer(true, "Known bots queued (" + added + " new list entries). " + follows.status()
+                    + ". Close in-game menus to allow commands; this is not a server confirmation.").toString();
         } catch (java.io.IOException e) {
             LOG.warn("DoughBay follows: the known bots could not be added: {}", e.toString());
             return answer(false, "Could not write the follow list.").toString();

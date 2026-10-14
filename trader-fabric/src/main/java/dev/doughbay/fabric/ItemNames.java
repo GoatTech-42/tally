@@ -32,7 +32,11 @@ final class ItemNames {
     /** The item id for a shown name, singular or plural; null when no item is called that. */
     static String resolve(String shown) {
         if (shown == null || shown.isBlank()) return null;
-        Map<String, String> names = names();
+        return resolve(shown, names());
+    }
+
+    static String resolve(String shown, Map<String, String> names) {
+        if (shown == null || shown.isBlank()) return null;
         for (String candidate : candidates(shown.strip())) {
             String id = names.get(candidate.toLowerCase(Locale.ROOT));
             if (id != null) return id;
@@ -86,14 +90,22 @@ final class ItemNames {
             } catch (RuntimeException e) {
                 continue;
             }
-            // A missing translation renders as its own key; that is not a name.
-            if (name.isEmpty() || name.contains("item.") || name.contains("block.")) continue;
-            built.putIfAbsent(name.toLowerCase(Locale.ROOT), id.toString());
+            indexNames(built, id.toString(), item.getDescriptionId(), name);
         }
         // Before the language has loaded every name is a key and the table is
         // empty: leave it unbuilt so the next call tries again.
         if (built.size() < 100) return built;
         byName = built;
         return built;
+    }
+
+    /** Donut sends English names even when the client uses another language or a resource pack. */
+    static void indexNames(Map<String, String> names, String id, String translationKey, String localizedName) {
+        String english = net.minecraft.locale.Language.DEFAULT_INSTANCE.getOrDefault(translationKey, "");
+        if (!english.isBlank()) names.putIfAbsent(english.strip().toLowerCase(Locale.ROOT), id);
+        if (localizedName != null && !localizedName.isBlank()
+                && !localizedName.contains("item.") && !localizedName.contains("block.")) {
+            names.putIfAbsent(localizedName.strip().toLowerCase(Locale.ROOT), id);
+        }
     }
 }
