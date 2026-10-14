@@ -570,13 +570,6 @@ public final class Tuning {
             new Setting("evasion.player_idle_sec", "Evasion", "Evasion waits while you play",
                     "Evasion does nothing until you have been away from the keyboard this long; moving, looking around or attacking counts as playing",
                     20, 0, 300, Kind.SECONDS),
-            new Setting("evasion.mob_blocks", "Evasion", "Run from hostile mobs within",
-                    "A hostile mob this close sends the bot away before it can be hit. Only mobs that attack "
-                    + "unprovoked count, and one the bot has no line of sight to (in a cave under it, say) only "
-                    + "once it is within ten blocks. After five such escapes in ten minutes the distance is "
-                    + "ignored for ten more, so a night full of mobs does not become nothing but teleporting; a "
-                    + "hit still sends it away. Needs the evasion guard on with an escape set. 0 for off",
-                    0, 0, 64, Kind.BLOCKS),
             new Setting("evasion.air", "Evasion", "Get out of water",
                     "Players flood this server and a random teleport can land in the sea. When the bot's head is "
                     + "under water and its air is going down, the session stops and it teleports away at once, "
@@ -678,9 +671,13 @@ public final class Tuning {
             new Setting("evasion.use_homes", "Evasion", "Escape to a home",
                     "Run to one of the homes in homes.json rather than a random teleport, never the same one twice running (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
-            new Setting("evasion.mob_blocks", "Evasion", "Escape from hostile mobs within",
-                    "A hostile mob this close triggers the same escape as a player; keep it short, or a wandering spawn will teleport you all night. 0 ignores mobs, and taking damage always reacts",
-                    0, 0, 24, Kind.BLOCKS),
+            new Setting("evasion.mob_blocks", "Evasion", "Run from hostile mobs within",
+                    "A hostile mob this close sends the bot away before it can be hit. Only mobs that attack "
+                    + "unprovoked count, and one the bot has no line of sight to (in a cave under it, say) only "
+                    + "once it is within ten blocks. After five such escapes in ten minutes the distance is "
+                    + "ignored for ten more, so a night full of mobs does not become nothing but teleporting; a "
+                    + "hit still sends it away. Needs the evasion guard on with an escape set. 0 for off",
+                    0, 0, 64, Kind.BLOCKS),
             new Setting("evasion.contact_sec", "Evasion", "React when someone is this close in time",
                     "Anyone who would reach you within this many seconds at their current closing speed is handled at once, whatever ring they are in. An elytra crosses fifty blocks in about a second",
                     6, 1, 30, Kind.SECONDS),

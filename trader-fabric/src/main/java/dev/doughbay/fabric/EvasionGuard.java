@@ -625,10 +625,11 @@ public final class EvasionGuard {
             return;
         }
 
-        // Hostile mobs. A wandering spawn is ignored; what matters is one
-        // close enough to swing, one that is aiming at us from range, or a
-        // projectile already in the air. Six points of damage from nothing
-        // visible is a skeleton arrow, and the arrow is the thing to see.
+        // Hostile mobs at range. One within the player's distance is
+        // mobWatch's, above; what is left for here is one aiming at us from
+        // further off, or a projectile already in the air. Six points of
+        // damage from nothing visible is a skeleton arrow, and the arrow is
+        // the thing to see.
         int mobBlocks = (int) Tuning.get("evasion.mob_blocks");
         if (mobBlocks > 0 && escapeMode() > 0 && teleportedAt == 0 && !leaveWanted) {
             net.minecraft.world.entity.Entity hostile = null;
@@ -649,12 +650,6 @@ public final class EvasionGuard {
                     break;
                 }
                 if (!(entity instanceof net.minecraft.world.entity.monster.Enemy)) continue;
-                if (d <= mobBlocks && d < hostileDistance && canSeeUs(entity, client)) {
-                    hostileDistance = d;
-                    hostile = entity;
-                    why = "within";
-                    continue;
-                }
                 // Ranged attackers do not need to be next to us, and one that
                 // is facing us is about to shoot.
                 if (rangedBlocks > 0 && d <= rangedBlocks && d < hostileDistance
@@ -677,6 +672,9 @@ public final class EvasionGuard {
                 clearSinceMillis = 0;
                 leaveWanted = true;
                 waitingLogged = false;
+                // An arrow does not wait a minute for a trade to finish.
+                leaveWantedAt = now;
+                leavePatienceMillis = HURT_PATIENCE_MILLIS;
                 return;
             }
         }
