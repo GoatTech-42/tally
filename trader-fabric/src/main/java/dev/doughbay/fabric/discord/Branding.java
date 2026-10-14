@@ -46,6 +46,11 @@ final class Branding {
      *             paused, sleep, alert
      */
     static BufferedImage mascot(String face) {
+        var character = dev.doughbay.fabric.Appearance.mascot();
+        if (character != dev.doughbay.fabric.Appearance.Character.ORIGINAL) {
+            return SHEETS.computeIfAbsent(character.name() + ":" + face,
+                    key -> dev.doughbay.fabric.MascotPortrait.render(character, face));
+        }
         BufferedImage sheet = sheet("mascot_" + face.toLowerCase(Locale.ROOT));
         if (sheet == MISSING || sheet.getHeight() < FRAME_HEIGHT) return null;
         return sheet.getSubimage(0, 0, Math.min(FRAME_WIDTH, sheet.getWidth()), FRAME_HEIGHT);

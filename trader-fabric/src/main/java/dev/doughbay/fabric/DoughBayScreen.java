@@ -60,6 +60,7 @@ public final class DoughBayScreen extends Screen {
         LOGS("Logs"),
         PAYROLL("Payroll"),
         SETTINGS("Settings"),
+        APPEARANCE("Appearance"),
         ABOUT("About");
 
         final String label;
@@ -95,24 +96,41 @@ public final class DoughBayScreen extends Screen {
         }
     }
 
-    private static final int GOLD = UiTheme.GOLD;
-    private static final int TEXT = UiTheme.TEXT;
-    private static final int SECONDARY = UiTheme.SECONDARY;
-    private static final int MUTED = UiTheme.MUTED;
-    private static final int GOOD = UiTheme.GOOD;
-    private static final int WARN = UiTheme.WARN;
-    private static final int BAD = UiTheme.BAD;
+
+    private static int GOLD = UiTheme.GOLD;
+    private static int TEXT = UiTheme.TEXT;
+    private static int SECONDARY = UiTheme.SECONDARY;
+    private static int MUTED = UiTheme.MUTED;
+    private static int GOOD = UiTheme.GOOD;
+    private static int WARN = UiTheme.WARN;
+    private static int BAD = UiTheme.BAD;
+    private static int PANEL = UiTheme.BACKGROUND;
+    private static int PANEL_EDGE = UiTheme.EDGE;
+    private static int PANEL_INNER_EDGE = UiTheme.INSET;
+    private static int CARD = UiTheme.SURFACE;
+    private static int CARD_DARK = UiTheme.INSET;
+    private static int ROW_HOVER = UiTheme.HOVER;
+
+    private static void refreshPalette() {
+        GOLD = UiTheme.GOLD;
+        TEXT = UiTheme.TEXT;
+        SECONDARY = UiTheme.SECONDARY;
+        MUTED = UiTheme.MUTED;
+        GOOD = UiTheme.GOOD;
+        WARN = UiTheme.WARN;
+        BAD = UiTheme.BAD;
+        PANEL = UiTheme.BACKGROUND;
+        PANEL_EDGE = UiTheme.EDGE;
+        PANEL_INNER_EDGE = UiTheme.INSET;
+        CARD = UiTheme.SURFACE;
+        CARD_DARK = UiTheme.INSET;
+        ROW_HOVER = UiTheme.HOVER;
+    }
 
     private static final int SHADOW = 0x90000000;
-    private static final int PANEL = UiTheme.BACKGROUND;
-    private static final int PANEL_EDGE = UiTheme.EDGE;
-    private static final int PANEL_INNER_EDGE = UiTheme.INSET;
-    private static final int CARD = UiTheme.SURFACE;
-    private static final int CARD_DARK = UiTheme.INSET;
     private static final int TABLE_HEADER = 0xFF101A27;
     private static final int ROW_EVEN = 0xF2131D2A;
     private static final int ROW_ODD = 0xF2182432;
-    private static final int ROW_HOVER = UiTheme.HOVER;
     private static final int TRACK = 0xFF292D39;
     private static final int RANGE = 0xFF315B93;
 
@@ -357,6 +375,8 @@ public final class DoughBayScreen extends Screen {
     private boolean draggingScrollBar;
 
     private Tab tab = Tab.OVERVIEW;
+    private final AppearancePanel appearancePanel = new AppearancePanel();
+    public void selectAppearance(){ tab=Tab.APPEARANCE; }
     private Opportunity selected;
     /**
      * A deliberate, sticky Automation-tab candidate. It is only a display
@@ -611,7 +631,7 @@ public final class DoughBayScreen extends Screen {
                 : (ui.innerWidth() - gap * (columns - 1)) / columns;
         int i = 0;
         for (Tab value : Tab.values()) {
-            // Six under Trade, then five and five.
+            // Six under Trade, five under Operations, then six.
             int groupSpace = i >= 11 ? 32 : i >= 6 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
@@ -772,6 +792,8 @@ public final class DoughBayScreen extends Screen {
         } else if (tab == Tab.AUTOMATION) {
             initAutomationWidgets(ui, snapshot());
             widgetStateKey = automationStateKey(snapshot());
+        } else if (tab == Tab.APPEARANCE) {
+            appearancePanel.init(ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
         } else if (tab == Tab.STATS) {
             initStatsWidgets(ui);
         } else if (tab == Tab.MARKETS) {
@@ -904,6 +926,7 @@ public final class DoughBayScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        refreshPalette();
         MarketWatcher.Snapshot current = snapshot();
         UiLayout ui = layout();
         pendingTooltip.clear();
@@ -916,6 +939,7 @@ public final class DoughBayScreen extends Screen {
         switch (tab) {
             case OVERVIEW -> renderOverview(graphics, current, ui, mouseX, mouseY);
             case ACTIVITY -> renderActivity(graphics, ui);
+            case APPEARANCE -> appearancePanel.render(graphics,font);
             case OPPORTUNITIES -> {
                 if (selected == null) {
                     renderOpportunities(graphics, current, ui, mouseX, mouseY);
@@ -975,7 +999,7 @@ public final class DoughBayScreen extends Screen {
 
     private void renderSidebar(GuiGraphicsExtractor graphics, UiLayout ui) {
         int x = ui.left();
-        graphics.fill(x + 1, ui.top() + 1, x + ui.sidebar(), ui.bottom() - 1, UiTheme.INSET);
+        graphics.fill(x + 1, ui.top() + 1, x + ui.sidebar(), ui.bottom() - 1, CARD_DARK);
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
         graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
@@ -3492,7 +3516,7 @@ public final class DoughBayScreen extends Screen {
             yy += 15;
         }
 
-        graphics.fill(x + 7, yy, x + width - 7, yy + 1, PANEL_INNER_EDGE);
+        graphics.fill(x + 7, yy, x + width - 7, yy + 1, CARD_DARK);
         yy += 5;
         graphics.text(this.font, "EXACT MARKET", x + 8, yy, MUTED);
         String header = "SALES     P/L";
@@ -6018,7 +6042,7 @@ public final class DoughBayScreen extends Screen {
 
         if (!framed) {
             int dividerX = x + cardWidth + gap / 2;
-            graphics.fill(dividerX, y + 4, dividerX + 1, bottom - 4, PANEL_INNER_EDGE);
+            graphics.fill(dividerX, y + 4, dividerX + 1, bottom - 4, CARD_DARK);
         }
 
         graphics.fill(x, statusY, ui.innerRight(), ui.bottom() - 8, CARD_DARK);
@@ -6551,6 +6575,7 @@ public final class DoughBayScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        if(tab==Tab.APPEARANCE&&appearancePanel.scroll(mouseX,mouseY,deltaY))return true;
         AUTOMATION_SESSION.notePanelActivity();
         if (selected != null || tab == Tab.OVERVIEW || tab == Tab.ACTIVITY) {
             int step = Math.max(16, this.font.lineHeight * 2);
@@ -6660,8 +6685,8 @@ public final class DoughBayScreen extends Screen {
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
-        // Sixteen entries down the side, and the line under them.
-        int sidebar = panelWidth >= 680 && panelHeight >= 455 ? 144 : 0;
+        // Seventeen entries down the side, and the line under them.
+        int sidebar = panelWidth >= 680 && panelHeight >= 477 ? 144 : 0;
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;
@@ -7403,7 +7428,7 @@ public final class DoughBayScreen extends Screen {
         String guidance = AUTOMATION_SESSION.pauseGuidance();
         int headerBottom = drawWrapped(graphics, guidance, x, top + 26, width, top + 62,
                 st == AutomationSessionController.State.PAUSED ? WARN : SECONDARY);
-        graphics.fill(x, headerBottom + 2, x + width, headerBottom + 3, PANEL_INNER_EDGE);
+        graphics.fill(x, headerBottom + 2, x + width, headerBottom + 3, CARD_DARK);
 
         int listTop = headerBottom + 8;
         int bottom = ui.bottom() - 10;
@@ -8376,7 +8401,7 @@ public final class DoughBayScreen extends Screen {
     private void sectionTitle(GuiGraphicsExtractor graphics, String title,
                               int x, int y, int width) {
         graphics.text(this.font, truncate(title, width - 16), x + 8, y + 7, GOLD);
-        graphics.fill(x + 8, y + 19, x + width - 8, y + 20, PANEL_INNER_EDGE);
+        graphics.fill(x + 8, y + 19, x + width - 8, y + 20, CARD_DARK);
     }
 
     private void cell(GuiGraphicsExtractor graphics, String value, int left, int column,

@@ -164,6 +164,7 @@ public class DoughBayClient implements ClientModInitializer {
         // account's buying and selling moves this account's balance.
         String mine = me.isEmpty() ? "" : " AND (client = ? OR client = '')";
         Probe.load(config.directory());
+        Appearance.load(config.directory());
         EVASION = new EvasionGuard(config.directory().resolve("evasion.txt"));
         EvasionGuard.setLedger(config.databasePath());
         LEDGER_STATS = new LedgerStatsProvider(config.databasePath());

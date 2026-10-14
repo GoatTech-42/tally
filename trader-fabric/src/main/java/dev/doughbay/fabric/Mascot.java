@@ -100,19 +100,24 @@ public final class Mascot {
 
     /** The shell stays still. Pupils, lids, eyebrows, mouth and reels move inside it. */
     public static int draw(GuiGraphicsExtractor graphics, Face face, int x, int y, int width) {
+        return drawCharacter(graphics,face,x,y,width,Appearance.mascot());
+    }
+    static int drawCharacter(GuiGraphicsExtractor graphics, Face face, int x, int y, int width, Appearance.Character character) {
         var facialPose = ANIMATION.frame(MascotAnimation.Mood.valueOf(face.name()),
                 motionMillis(), lastSaleAt, UiTheme.reducedMotion());
         var pose = graphics.pose();
         pose.pushMatrix();
         pose.translate(x, y);
         pose.scale(width / 256f, width / 256f);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, SHELL, 0, 0, 0f, 0f,
+        if(character == Appearance.Character.ORIGINAL) graphics.blit(RenderPipelines.GUI_TEXTURED, SHELL, 0, 0, 0f, 0f,
                 256, 256, TEXTURE_WIDTH, TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
-        MascotFace.draw(new MascotFace.Canvas() {
+        MascotFace.Canvas canvas = new MascotFace.Canvas() {
             public void fill(int l, int t, int r, int b, int color) { graphics.fill(l, t, r, b, color); }
             public void clip(int l, int t, int r, int b) { graphics.enableScissor(l, t, r, b); }
             public void unclip() { graphics.disableScissor(); }
-        }, facialPose);
+        };
+        if(character != Appearance.Character.ORIGINAL) MascotCharacters.draw(canvas,character,motionMillis(),UiTheme.reducedMotion());
+        MascotFace.draw(canvas, facialPose);
         pose.popMatrix();
         return width;
     }

@@ -33,7 +33,7 @@ final class CockpitButton extends Button {
         var font = Minecraft.getInstance().font;
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         boolean highlight = active && (isHovered() || isFocused());
-        int background = selected ? 0xFF354034 : highlight ? UiTheme.HOVER : UiTheme.SURFACE;
+        int background = selected ? UiTheme.HOVER : highlight ? UiTheme.HOVER : UiTheme.SURFACE;
         boolean border = !navigation || highlight;
         UiTheme.rounded(g, x, y, w, h, 4, border ? (isFocused() ? UiTheme.GOLD : UiTheme.EDGE)
                 : active ? background : UiTheme.INSET);

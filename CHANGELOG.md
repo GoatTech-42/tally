@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 01:55 UTC
+- New: an Appearance tab on the GoNuts screen. Pick one of four colour themes (Classic, Midnight, Mint, Rose) and one of three mascots (Original, Mochi, Sprout), each on its own. There is a live preview of every mascot mood, and the choice is saved in appearance.json and kept across restarts.
+- The Discord and web panel pictures show the mascot you picked.
+- Nothing about trading changes: these are looks only. Classic with the Original mascot is what you had before, and it stays the default.
+
 ## 2026-10-14 00:54 UTC
 - Fixed: "Run from hostile mobs within" could not be set above 24 blocks. An older setting of the same name, with that limit, was still in the list, and it won. A larger number was quietly cut to 24. There is one setting now and it goes to 64.
 - Fixed: with that setting on, an older check ran beside the new one and ignored its rules. It ran from endermen, it waited up to a minute for a trade before leaving, and it had no limit on escapes in a night full of mobs. Mobs within the distance now go through the one set of rules. Archers and arrows keep their own settings, and no longer wait a minute for a trade either.
