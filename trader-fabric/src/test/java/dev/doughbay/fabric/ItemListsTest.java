@@ -18,6 +18,8 @@ class ItemListsTest {
         String allow = Tuning.text("items.allow");
         String deny = Tuning.text("items.deny");
         String tracked = Tuning.text("watch.tracked");
+        String focus = Tuning.text("items.buy_focus");
+        String liquidate = Tuning.text("items.liquidate");
         double managed = Tuning.get("watch.tracked_managed");
         try {
             body.run();
@@ -25,8 +27,46 @@ class ItemListsTest {
             Tuning.setText("items.allow", allow);
             Tuning.setText("items.deny", deny);
             Tuning.setText("watch.tracked", tracked);
+            Tuning.setText("items.buy_focus", focus);
+            Tuning.setText("items.liquidate", liquidate);
             Tuning.set("watch.tracked_managed", managed);
         }
+    }
+
+    @Test
+    void buyFocusStopsNewExposureWithoutStrandingExistingStock() {
+        keeping(() -> {
+            Tuning.setText("items.allow", "emerald_block, moss_block, beacon");
+            Tuning.setText("items.deny", "");
+            Tuning.setText("items.liquidate", "");
+            Tuning.setText("items.buy_focus", "=emerald_block, =beacon");
+            assertTrue(Tuning.buyingAllowed("minecraft:emerald_block"));
+            assertFalse(Tuning.buyingAllowed("minecraft:moss_block"));
+            assertTrue(Tuning.itemAllowed("minecraft:moss_block"));
+            assertFalse(Tuning.priceCheckAllowed("minecraft:moss_block", false));
+            assertTrue(Tuning.priceCheckAllowed("minecraft:moss_block", true));
+            assertTrue(Tuning.priceCheckAllowed("minecraft:beacon", false));
+            assertFalse(Tuning.buyingAllowed("minecraft:diamond_block"));
+            Tuning.setText("items.deny", "beacon");
+            assertFalse(Tuning.buyingAllowed("minecraft:beacon"));
+            assertFalse(Tuning.priceCheckAllowed("minecraft:beacon", true));
+            Tuning.setText("items.liquidate", "emerald_block");
+            assertFalse(Tuning.buyingAllowed("minecraft:emerald_block"));
+        });
+    }
+
+    @Test
+    void blankBuyFocusKeepsNormalSelectionAndExactTokensStayExact() {
+        keeping(() -> {
+            Tuning.setText("items.allow", "");
+            Tuning.setText("items.deny", "");
+            Tuning.setText("items.liquidate", "");
+            Tuning.setText("items.buy_focus", "");
+            assertTrue(Tuning.buyingAllowed("minecraft:moss_block"));
+            Tuning.setText("items.buy_focus", "=golden_apple");
+            assertTrue(Tuning.buyingAllowed("minecraft:golden_apple"));
+            assertFalse(Tuning.buyingAllowed("minecraft:enchanted_golden_apple"));
+        });
     }
 
     @Test

@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 05:58 UTC
+- New: Buying settings have a separate new-purchase market focus. A focused item list limits auction purchases and new buy orders without disabling collection, listing or repricing of stock already owned. Blank keeps normal selection.
+- Changed: buy-order candidates rank by expected profit per resale lot, weighted by diminishing market volume, rather than percentage margin multiplied by volume. A cheap, busy market no longer wins solely because it has a large percentage spread.
+- Changed: changing the buy focus cancels unfilled orders outside it and drops queued new bids before they are sent. Already-delivered materials continue through existing inventory and sale handling. Live price checks stay focused on buying candidates and stock still held. Normal item restrictions, price evidence and capital limits still apply.
+
 ## 2026-10-14 04:58 UTC
 - Fixed: auction slot audits no longer add a balance-rounding allowance to sale income. An unchanged balance and no auction earnings can no longer book missing listings as sold. Missing balance measurements supply zero sale budget instead of an unlimited allowance.
 - Fixed: inferred sales use the larger of unexplained cash movement and server auction earnings, consume that budget once, and require a positive sale value. Buy-order spending, refunds and already-recorded sales remain accounted for separately. The audit log now shows the evidence and budget used.

@@ -943,6 +943,10 @@ public final class Tuning {
                     + "restart. Empty falls back to the tracked commodities set in config.json."),
             new ListSetting("items.allow", "Only trade these items",
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
+            new ListSetting("items.buy_focus", "Focus new purchases on these markets",
+                    "Only buy or place new orders for these items. Existing purchases, deliveries and listings are still "
+                    + "collected, sold and repriced under the normal allow/deny rules. Unfilled orders outside the focus "
+                    + "are cancelled. Empty keeps normal market selection. Use =item for one exact item."),
             new ListSetting("items.deny", "Never trade these items",
                     "Comma-separated item names or ids that are always skipped. A name covers everything ending in it "
                     + "(glass is every stained glass too); =glass is that one item alone."),
@@ -1160,6 +1164,17 @@ public final class Tuning {
         if (setMatches("items.deny", id)) return false;
         if (setMatches("items.liquidate", id)) return false;
         return itemSet("items.allow").isEmpty() || setMatches("items.allow", id);
+    }
+
+    /** Buying focus never prevents selling stock already owned. */
+    public static boolean buyingAllowed(String itemId) {
+        return itemAllowed(itemId)
+                && (itemSet("items.buy_focus").isEmpty() || setMatches("items.buy_focus", normalizeItem(itemId)));
+    }
+
+    /** Keep prices fresh for owned stock even after its market leaves the buy focus. */
+    public static boolean priceCheckAllowed(String itemId, boolean stockHeld) {
+        return buyingAllowed(itemId) || stockHeld && itemAllowed(itemId);
     }
 
     static {

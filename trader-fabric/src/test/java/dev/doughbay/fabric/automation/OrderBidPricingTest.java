@@ -8,6 +8,19 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OrderBidPricingTest {
+    @Test void aLargeProfitableLotBeatsCheapHighVolumeChurn() {
+        double moss = OrderBidPricing.rankScore(3072, 29, 64, 100);
+        double beacons = OrderBidPricing.rankScore(11_446_000, 168_000, 64, 0.5);
+        assertTrue(beacons > moss);
+    }
+
+    @Test void rankingStillRequiresProfitAndFiniteDemand() {
+        assertEquals(0, OrderBidPricing.rankScore(3072, 50, 64, 100));
+        assertEquals(0, OrderBidPricing.rankScore(Double.NaN, 1, 64, 100));
+        assertEquals(0, OrderBidPricing.rankScore(3072, 29, 64, Double.POSITIVE_INFINITY));
+        assertEquals(0, OrderBidPricing.rankScore(3072, 29, 64, 0));
+    }
+
     private static final String ITEM = "minecraft:sea_lantern";
 
     private MarketStats market(StackBucket bucket, double price) {

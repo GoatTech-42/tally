@@ -8,6 +8,14 @@ import java.util.function.ToDoubleFunction;
 
 /** Prices a buy order by its resale stack, independently of the total order quantity. */
 final class OrderBidPricing {
+    /** Expected dollars per resale lot, with diminishing weight on market volume. */
+    static double rankScore(double netResale, long standingUnit, int count, double salesPerHour) {
+        if (!Double.isFinite(netResale) || netResale <= 0 || standingUnit < 0 || count <= 0
+                || !Double.isFinite(salesPerHour) || salesPerHour < 0) return 0;
+        double profit = Math.max(0, netResale - standingUnit * (double) count);
+        return profit * Math.log1p(salesPerHour);
+    }
+
     static long ceilingUnit(List<MarketStats> markets, String itemId, int requested, int maxStack,
                             ToDoubleFunction<MarketStats> resalePrice, FeeConfig fees,
                             double minimumProfit, double minimumRoi) {

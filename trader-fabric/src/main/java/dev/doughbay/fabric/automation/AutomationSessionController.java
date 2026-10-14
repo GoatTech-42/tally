@@ -3297,6 +3297,10 @@ public final class AutomationSessionController {
             java.util.Map<String, Opportunity> byRow = new java.util.LinkedHashMap<>();
             String lastGateDetail = "";
             for (Opportunity o : offered) {
+                if (o.listing() == null || !dev.doughbay.fabric.Tuning.buyingAllowed(o.listing().itemId())) {
+                    lastGateDetail = "Outside the new-purchase market focus";
+                    continue;
+                }
                 ContinuousOpportunitySelector.SelectionResult one = selector.select(
                         List.of(o), selectorPolicy(), context);
                 if (one.opportunity().isEmpty()) {
@@ -4629,7 +4633,12 @@ public final class AutomationSessionController {
         long every = (long) (dev.doughbay.fabric.Tuning.get("keyless.sweep_every_min") * 60_000L);
         java.util.List<String> allowed = new ArrayList<>();
         for (String key : targets.keySet()) {
-            if (dev.doughbay.fabric.Tuning.itemAllowed(key.substring(0, key.lastIndexOf('x')))) allowed.add(key);
+            String item = key.substring(0, key.lastIndexOf('x'));
+            boolean held = hasRetailStock(item)
+                    || openListings.stream().anyMatch(p -> baseItemId(p.itemKey()).equals(item))
+                    || trackedPosition != null && trackedPosition.status() == PositionStatus.PURCHASED
+                    && baseItemId(trackedPosition.itemKey()).equals(item);
+            if (dev.doughbay.fabric.Tuning.priceCheckAllowed(item, held)) allowed.add(key);
         }
         String pick = sweepPick(allowed, core, sweptAt, now, every, sweepTurn);
         if (pick == null) return null;
@@ -4895,6 +4904,12 @@ public final class AutomationSessionController {
                     windingDown() ? "the session is winding down" : "only your price list is traded");
             deskReadDue = true;
             detail = "Bid desk: dropped a step planned before the mode changed";
+            return true;
+        }
+        if (step.action() == DeskAction.PLACE && !dev.doughbay.fabric.Tuning.buyingAllowed(step.itemId())) {
+            LOGGER.info("DoughBay bid desk: dropped planned bid for {}: outside buy focus or no longer allowed", step.itemId());
+            deskReadDue = true;
+            detail = "Bid desk: dropped a bid outside the current market focus";
             return true;
         }
         if (step.action() == DeskAction.PLACE && step.retailTarget() > 0) {
@@ -5300,7 +5315,9 @@ public final class AutomationSessionController {
             // its order went out kept its bid open until it filled or aged off,
             // so a freshly blacklisted item like a trident still traded. Pull it.
             boolean denied = !dev.doughbay.fabric.Tuning.itemAllowed(r.itemId());
+            boolean outsideFocus = !denied && !dev.doughbay.fabric.Tuning.buyingAllowed(r.itemId());
             String why = denied ? "no longer allowed (blacklisted)"
+                    : outsideFocus ? "outside the new-purchase market focus"
                     : r.remaining() == 0 ? "filled"
                     : now - placedAt > maxAge ? "unfilled for " + ((now - placedAt) / 3_600_000L) + " h"
                     : ceilingUnit > 0 && r.unitPrice() > ceilingUnit ? "market moved under the bid (" + ceilingUnit + " each now)"
@@ -5308,7 +5325,7 @@ public final class AutomationSessionController {
             // An order at a price the player set is theirs to change, not
             // ours: it is pulled only when it is no longer the price they set.
             dev.doughbay.fabric.OwnPrices.Entry priced = ownPrice(r.itemId());
-            if (priced != null && !denied) {
+            if (priced != null && !denied && !outsideFocus) {
                 // The page abbreviates the price, so it cannot be compared
                 // to the last coin. Where we placed the order ourselves we
                 // know what it is really at; otherwise the page is believed
@@ -5474,7 +5491,7 @@ public final class AutomationSessionController {
             if (hasRetailStock(m.itemKey())) { bump(why, "retail stock already held"); continue; }
             if (bidItems.contains(m.itemKey())) { bump(why, "bid already out"); continue; }
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
-            if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemKey())) { bump(why, "not allowed"); continue; }
+            if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemKey())) { bump(why, "not allowed or outside buy focus"); continue; }
             if (ownPrice(m.itemKey()) != null) { bump(why, "on your own price list"); continue; }
             if (siblingsMarket(m.itemKey())) { bump(why, "the other account's market"); continue; }
             // Single-item statistics on cheap goods are polluted by "sales" that
@@ -5517,9 +5534,9 @@ public final class AutomationSessionController {
             }
             candidates.add(m);
         }
-        // Sellers deliver to the highest bid first, so a bid only goes out where
-        // ours would be the top bid; the widest gap between that top bid and
-        // the auction's ask is the biggest margin, so those markets come first.
+        // Rank by dollars a resale lot can earn, with diminishing weight on
+        // current market volume. Percentage margin alone favoured cheap churn.
+        // Competitive bid pricing, evidence and capital gates still run below.
         java.util.Map<String, Long> topBid = new java.util.HashMap<>();
         dev.doughbay.fabric.OrderBook book = dev.doughbay.fabric.DoughBayClient.orderBook();
         if (book != null) {
@@ -5533,9 +5550,11 @@ public final class AutomationSessionController {
             }
         }
         candidates.sort((a, b) -> {
-            double gapA = 1.0 - topBid.getOrDefault(a.itemKey(), 0L) / Math.max(1.0, a.quickSalePrice() / Math.max(1, a.bucket().exactCount()));
-            double gapB = 1.0 - topBid.getOrDefault(b.itemKey(), 0L) / Math.max(1.0, b.quickSalePrice() / Math.max(1, b.bucket().exactCount()));
-            return Double.compare(gapB * b.salesPerHour(), gapA * a.salesPerHour());
+            double scoreA = OrderBidPricing.rankScore(auctionFees.netSale(bidResalePrice(a, now)),
+                    topBid.getOrDefault(a.itemKey(), 0L), Math.max(1, a.bucket().exactCount()), a.salesPerHour());
+            double scoreB = OrderBidPricing.rankScore(auctionFees.netSale(bidResalePrice(b, now)),
+                    topBid.getOrDefault(b.itemKey(), 0L), Math.max(1, b.bucket().exactCount()), b.salesPerHour());
+            return Double.compare(scoreB, scoreA);
         });
         // The underdog's own slots. Our statistics say nothing about a market
         // we have never traded, so it can never pass the gates above; the
@@ -5551,7 +5570,7 @@ public final class AutomationSessionController {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
                 for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : rs.shadows()) {
                     if (free <= 0 || underdogSlots <= 0) break;
-                    if (!dev.doughbay.fabric.Tuning.itemAllowed(m.itemId()) || ownPrice(m.itemId()) != null || siblingsMarket(m.itemId())) continue;
+                    if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemId()) || ownPrice(m.itemId()) != null || siblingsMarket(m.itemId())) continue;
                     if (bidItems.contains(m.itemId()) || chosen.contains(m.itemId()) || hasRetailStock(m.itemId())) continue;
                     if (deskBadItems.contains(m.itemId())) continue;
                     // No second bid and no doubled exposure in the same item
@@ -6434,8 +6453,8 @@ public final class AutomationSessionController {
             if (siblingsMarket(id)) continue;
             if (!knownItem(id)) { ownPriceNote(id, "the game has no item by that name", now); continue; }
             if (deskBadItems.contains(id)) { ownPriceNote(id, "the server refuses an order for it", now); continue; }
-            if (!dev.doughbay.fabric.Tuning.itemAllowed(id)) {
-                ownPriceNote(id, "it is not among the items the bot may trade", now);
+            if (!dev.doughbay.fabric.Tuning.buyingAllowed(id)) {
+                ownPriceNote(id, "it is not among the markets in the new-purchase focus", now);
                 continue;
             }
             if (own.singles() && hasRetailStock(id)) {
@@ -6692,7 +6711,7 @@ public final class AutomationSessionController {
         var profile = dev.doughbay.fabric.DoughBayClient.stackProfile();
         if (profile == null) return 0;
         List<String> items = snapshot.markets().stream().map(MarketStats::itemKey).distinct()
-                .filter(id -> id.indexOf('#') < 0 && fullStack(id) > 1 && dev.doughbay.fabric.Tuning.itemAllowed(id)
+                .filter(id -> id.indexOf('#') < 0 && fullStack(id) > 1 && dev.doughbay.fabric.Tuning.buyingAllowed(id)
                         && ownPrice(id) == null && !siblingsMarket(id)
                         && !deskQueue.stream().anyMatch(st -> st.action() == DeskAction.PLACE && st.itemId().equals(id)) && !hasRetailStock(id)
                         && profile.shapeOf(id) != null && profile.shapeOf(id).prefersSingles())
