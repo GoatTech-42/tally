@@ -3825,6 +3825,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             ItemStack stack = slot.getItem();
             if (stack.isEmpty()) continue;
             String id = itemId(stack);
+            List<String> rowTooltip = tooltipLines(client, stack);
+            if (managedAuctionSeller(rowTooltip,
+                    client.player == null ? "" : client.player.getGameProfile().name(),
+                    DoughBayClient::hiveMember)) continue;
             for (WatchTarget target : watchTargets) {
                 if (!target.itemId().equals(id)) continue;
                 if (target.count() > 0 && stack.getCount() != target.count()) continue;
@@ -3834,9 +3838,6 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // Page rows carry the plugin's own components (lore, custom data), so
                 // only value-bearing parts disqualify: potion, enchantments, trim, contents.
                 if (ItemDescriptor.of(stack).hasParts()) continue;
-                List<String> rowTooltip = tooltipLines(client, stack);
-                // Never buy back an own listing: the fee would be the whole trade.
-                if (client.player != null && tooltipContainsSeller(rowTooltip, client.player.getGameProfile().name())) continue;
                 seen++;
                 PriceEvidence price = authoritativePriceEvidence(rowTooltip);
                 if (!price.sawAuthoritativeField() || price.unclear()) continue;
@@ -5610,6 +5611,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 continue;
             }
             List<String> tooltip = tooltipLines(client, stack);
+            if (operation == Operation.BUY && managedAuctionSeller(tooltip,
+                    client.player.getGameProfile().name(), DoughBayClient::hiveMember)) continue;
             PriceEvidence price = authoritativePriceEvidence(tooltip);
             boolean sellerMatch = !targetSeller.isBlank()
                     && tooltipContainsSeller(tooltip, targetSeller);
@@ -6918,6 +6921,20 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         } catch (ArithmeticException | NumberFormatException ignored) {
             return null;
         }
+    }
+
+    /** Use authoritative seller fields, not arbitrary username mentions in item lore. */
+    static boolean managedAuctionSeller(List<String> tooltip, String localName,
+                                        java.util.function.Predicate<String> hiveMember) {
+        if (tooltip == null) return false;
+        for (String line : tooltip) {
+            if (line == null) continue;
+            Matcher field = SELLER_FIELD.matcher(line);
+            if (!field.matches()) continue;
+            String seller = field.group(1);
+            if (seller.equalsIgnoreCase(localName) || hiveMember.test(seller)) return true;
+        }
+        return false;
     }
 
     private static boolean tooltipContainsSeller(List<String> tooltip, String expected) {

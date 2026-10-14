@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 08:28 UTC
+- Fixed: recent-auction watches and live cheapest-listing buys now skip listings whose recognized seller field belongs to another account in the same hive, as well as the local account. This also covers filled-container watch rows. Accounts can share item markets without buying each other's listed stock through these paths.
+- Seller checks use recognized ownership fields and exact account names; arbitrary username mentions in item lore do not block unrelated sellers. Normal non-hive listings remain eligible, and no spending or confirmation checks are relaxed.
+
 ## 2026-10-14 07:36 UTC
 - Fixed: auction watches previously reserved the automation controller for 24 looks, often several minutes with no purchase, delaying order collection, inventory listing and stale-stock maintenance. Pacing now includes a maximum time per auction watch, defaulting to 45 seconds. The limit ends only an unselected watch; a selected purchase keeps its normal confirmation and inventory verification. Deep box sweeps receive at least 150 seconds, and 0 disables the limit.
 - Fixed: a watch ending without a qualifying offer is treated as a normal market outcome rather than an unanswered server operation. Repeated empty watches no longer trigger artificial server-strain backoff.
