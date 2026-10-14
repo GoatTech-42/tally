@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 16:22 UTC
+- Added About → Report bug: describe the problem and expected behavior, prepare a report locally, review it, and copy it into GitHub's issue form. GitHub submission is explicit and public; no credentials are bundled into the mod and no report is uploaded in the background.
+- Privacy: raw logs are never attached. Only a bounded current-log sample is reduced to fixed diagnostic counters and a recognized automation state. Chat, player names, log messages, settings, databases and process arguments are excluded. Typed fields are filtered for common credentials, URLs, addresses, UUIDs and paths and still require user review. Failed preparation blocks sharing instead of falling back to raw logs.
+- Added a daily GitHub bug-report digest at 16:00 UTC, with links to new reports and an issue template requiring a privacy check. Reports are treated as untrusted input. VPS direct delivery and automatic draft-patch generation are not deployed; documented the receiver contract and review requirements for the VPS agent.
+
 ## 2026-10-14 15:59 UTC
 - Fixed: Skip the restart waiting room now disconnects and joins directly through East or West instead of sending /leave. It stays on the working regional address; it no longer reconnects to the main address after a short regional visit. Failed or limbo joins alternate through the configured same-network addresses with a retry delay.
 - Recovery starts only after the server reports actual proxy limbo. If the server releases the waiting room while recovery is arming, the existing connection is kept. Disconnects wait for an idle driver and an empty cursor, and a regional world must remain stable with a newly read balance sidebar before trading continues; the old connection's cached balance is not accepted as proof.
