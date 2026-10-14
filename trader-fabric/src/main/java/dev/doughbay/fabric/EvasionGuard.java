@@ -75,6 +75,29 @@ public final class EvasionGuard {
         note("", 0, what);
     }
 
+    /** Called after Staff Watch has closed the connection; reporting never delays leaving. */
+    public void noteStaffEscape(String who, String server, long waitMillis) {
+        long seconds = (waitMillis + 999) / 1000;
+        String action = String.format(java.util.Locale.ROOT,
+                "Staff Watch: watcher detected; disconnected; reconnect %s in %d:%02d",
+                server, seconds / 60, seconds % 60);
+        long at = System.currentTimeMillis();
+        synchronized (events) {
+            events.addFirst(new Event(at, who, 0, action));
+            while (events.size() > 40) events.removeLast();
+        }
+        Path path = ledger;
+        if (path == null) return;
+        String client = DoughBayClient.account();
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try (var db = new dev.doughbay.storage.Database(path)) {
+                dev.doughbay.storage.StaffWatchAlerts.record(db.connection(), at, client, who, action);
+            } catch (Exception e) {
+                DoughBayClient.LOGGER.warn("GoNuts could not record a staff escape: {}", e.toString());
+            }
+        });
+    }
+
     private void note(String who, double distance, String action) {
         long at = System.currentTimeMillis();
         String name = who == null ? "" : who;

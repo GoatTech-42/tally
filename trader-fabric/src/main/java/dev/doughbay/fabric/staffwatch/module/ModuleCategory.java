@@ -1,0 +1,1 @@
+package dev.doughbay.fabric.staffwatch.module; public enum ModuleCategory { DONUT }

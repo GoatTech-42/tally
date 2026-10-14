@@ -4,6 +4,14 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 02:10 UTC
+- New: Staff Watch is part of the main GoNuts GUI. Open its Operations tab or use /staffwatch for detection settings, live staff rows, and the reconnect server selector.
+- New: choose Donut SMP Main (donutsmp.net), East (east.donutsmp.net), or West (west.donutsmp.net). Staff alerts close the connection immediately, then wait 5–10 minutes before reconnecting. Other disconnects and failed connections retry every two minutes.
+- New: staff and vanish panels sit at the top center, with the special watcher warning directly below. The warning remains visible over menus after leaving. Sounds are off by default.
+- New: staff escapes appear in the shared web/Discord Evasion history. The Discord bot sends a dedicated notification with the client, watcher, time, destination, and reconnect delay; unsent notifications remain queued.
+- Changed: a staff disconnect pauses trading and takes priority over other reconnect helpers. Cancel stops its reconnect chain. Single-player worlds are never disconnected by Staff Watch.
+- Appearance choices remain available: Classic, Midnight, Mint and Rose themes, plus Original, Mochi and Sprout animated mascots. Themes and characters can be selected independently.
+
 ## 2026-10-14 02:00 UTC
 - Fixed: the pack cleanup could stick on an item it was never going to sell. With something in your inventory that the bot may not trade (a few granite, say, while you trade only your own price list), it chose that stack again every tick for a minute, wrote "pack sweep listing" to the log each time (thousands of lines), and never reached the stacks behind it. It looked as if the bot had wandered off to a random market. Nothing was listed or sold by it, and trading carried on underneath. Such stacks are now passed over.
 

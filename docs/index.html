@@ -356,6 +356,23 @@
   </div>
 </section>
 
+<section id="staff-watch">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="label">Staff Watch</div>
+      <h2>One alert, across your client and panels</h2>
+      <p class="lede">Open Staff Watch in the GoNuts GUI. Choose Donut SMP Main, East or West, see staff and vanish signals at the top center, and read the warning directly below them.</p>
+      <p>With disconnect enabled, a watcher alert leaves immediately and waits 5–10 minutes to reconnect. Other connection failures retry every two minutes. Staff escapes appear in the web panel's Evasion history and in dedicated Discord notifications.</p>
+      <p>Watcher signals are indicators from the original detector, not proof of whose camera is watching you. Sounds are muted by default.</p>
+      <p><a href="staff-watch.txt">Staff Watch settings and installation notes</a></p>
+    </div>
+    <figure class="shot">
+      <img src="assets/site/staff-watch.png" alt="Staff Watch panels at top center, with the watcher alert directly beneath them" width="1920" height="1080" loading="lazy">
+      <figcaption>A simulated staff alert in a local test world.</figcaption>
+    </figure>
+    <p>Make it yours in Appearance: four themes and three animated mascots, with independent choices and live previews.</p>
+  </div>
+</section>
 <section id="new">
   <div class="wrap">
     <div class="section-head">
@@ -496,7 +513,7 @@
     more.hidden = all || entries.length <= FIRST;
   }
 
-  fetch("https://raw.githubusercontent.com/cody-raves/Gonuts/main/CHANGELOG.md")
+  fetch("CHANGELOG.md", { cache: "no-store" })
     .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
     .then(function (text) {
       var entries = parse(text);

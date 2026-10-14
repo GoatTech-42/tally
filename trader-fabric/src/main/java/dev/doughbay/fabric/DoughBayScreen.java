@@ -56,6 +56,7 @@ public final class DoughBayScreen extends Screen {
         ORDERS("Orders"),
         AUTOMATION("Autopilot"),
         ACTIVITY("Activity"),
+        STAFF_WATCH("Staff Watch"),
         DIAGNOSTICS("Diagnostics"),
         LOGS("Logs"),
         PAYROLL("Payroll"),
@@ -375,8 +376,10 @@ public final class DoughBayScreen extends Screen {
     private boolean draggingScrollBar;
 
     private Tab tab = Tab.OVERVIEW;
+    private final StaffWatchPanel staffWatchPanel = new StaffWatchPanel();
     private final AppearancePanel appearancePanel = new AppearancePanel();
     public void selectAppearance(){ tab=Tab.APPEARANCE; }
+    public void selectStaffWatch(){ tab=Tab.STAFF_WATCH; }
     private Opportunity selected;
     /**
      * A deliberate, sticky Automation-tab candidate. It is only a display
@@ -631,8 +634,8 @@ public final class DoughBayScreen extends Screen {
                 : (ui.innerWidth() - gap * (columns - 1)) / columns;
         int i = 0;
         for (Tab value : Tab.values()) {
-            // Six under Trade, five under Operations, then six.
-            int groupSpace = i >= 11 ? 32 : i >= 6 ? 16 : 0;
+            // Six Trade entries, six Operations entries, then six Workspace entries.
+            int groupSpace = i >= 12 ? 32 : i >= 6 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
@@ -794,6 +797,8 @@ public final class DoughBayScreen extends Screen {
             widgetStateKey = automationStateKey(snapshot());
         } else if (tab == Tab.APPEARANCE) {
             appearancePanel.init(ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
+        } else if (tab == Tab.STAFF_WATCH) {
+            staffWatchPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
         } else if (tab == Tab.STATS) {
             initStatsWidgets(ui);
         } else if (tab == Tab.MARKETS) {
@@ -940,6 +945,7 @@ public final class DoughBayScreen extends Screen {
             case OVERVIEW -> renderOverview(graphics, current, ui, mouseX, mouseY);
             case ACTIVITY -> renderActivity(graphics, ui);
             case APPEARANCE -> appearancePanel.render(graphics,font);
+            case STAFF_WATCH -> staffWatchPanel.render(graphics,font);
             case OPPORTUNITIES -> {
                 if (selected == null) {
                     renderOpportunities(graphics, current, ui, mouseX, mouseY);
@@ -1004,7 +1010,7 @@ public final class DoughBayScreen extends Screen {
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
         graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
         graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 194, MUTED);
-        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 315, MUTED);
+        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 336, MUTED);
         graphics.text(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
@@ -6576,6 +6582,7 @@ public final class DoughBayScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         if(tab==Tab.APPEARANCE&&appearancePanel.scroll(mouseX,mouseY,deltaY))return true;
+        if(tab==Tab.STAFF_WATCH&&staffWatchPanel.scroll(mouseX,mouseY,deltaY))return true;
         AUTOMATION_SESSION.notePanelActivity();
         if (selected != null || tab == Tab.OVERVIEW || tab == Tab.ACTIVITY) {
             int step = Math.max(16, this.font.lineHeight * 2);
@@ -6686,7 +6693,7 @@ public final class DoughBayScreen extends Screen {
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
         // Seventeen entries down the side, and the line under them.
-        int sidebar = panelWidth >= 680 && panelHeight >= 477 ? 144 : 0;
+        int sidebar = panelWidth >= 680 && panelHeight >= 499 ? 144 : 0;
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;

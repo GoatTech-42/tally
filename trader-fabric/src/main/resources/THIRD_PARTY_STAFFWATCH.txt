@@ -1,0 +1,7 @@
+GoNuts Staff Watch integration
+
+Staff List, Anti Vanish, their event infrastructure, and alert/HUD renderer derive
+from the supplied Spectre/Anubis 1.21.11 source attributed to 4ldenz. These
+portions retain GPL-3.0-only licensing; see LICENSE_staffwatch. The surrounding
+GoNuts code retains its existing notices. Source is in dev/doughbay/fabric/staffwatch.
+Geist font licensing is preserved under assets/gonuts_staffwatch/fonts/OFL.txt.

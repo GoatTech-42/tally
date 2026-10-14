@@ -1,0 +1,62 @@
+GoNuts Staff Watch — Minecraft 26.2
+
+Install the integrated GoNuts JAR in place of your previous GoNuts JAR.
+Do not also install the standalone staffwatch mod: the integrated build
+already contains it, and Fabric explicitly reports this conflicting pair.
+Requires the existing GoNuts Fabric / Fabric API / Java 25 environment.
+
+Open GoNuts with its usual panel key (B by default), then choose Staff Watch
+under Operations. /staffwatch opens the same tab directly. Settings are part
+of the main cockpit, not another screen. Small layouts scroll within the tab.
+
+The module, Staff List, Anti Vanish, Region alerts, Show HUD, Alert sounds,
+and Disconnect / reconnect are independently controllable. Toggle changes
+save immediately. This integration is for Donut SMP only. The reconnect
+selector cycles between donutsmp.net, east.donutsmp.net, and west.donutsmp.net.
+Reconnects use the selected address. There is no arbitrary server address editor.
+Reconnect ownership only applies to Donut SMP connections. Settings persist in
+config/doughbay/staffwatch.json, separate from the standalone mod.
+
+The original detector criteria, fixed staff names, and HUD statuses are preserved. Staff and vanish panels form a stack at the top center; they respect hidden HUD and do not cover the GoNuts cockpit.
+The tab retains the last watcher name for the current session.
+
+With automatic disconnect enabled, a watcher alert immediately closes the
+connection and pauses GoNuts' trading session. There is no pre-disconnect
+animation. The first reconnect waits a random 5–10 minutes. Ordinary errors
+and unsuccessful reconnect attempts wait two minutes and continue retrying.
+Cancel stops the retry chain and prevents GoNuts' other reconnect helpers
+from immediately joining instead. A new manual connection clears that hold.
+Disabling the module returns connection handling to GoNuts' existing helpers.
+The trading session is not automatically armed by Staff Watch after a join.
+
+Sounds default to off. The special watcher warning is a themed top-center
+banner directly beneath that stack, separate from normal right-side trade alerts. It remains visible for
+ten seconds across menus and disconnects, without delaying connection closure.
+Disable Disconnect / reconnect to show the warning while staying connected. Single-player worlds
+are never disconnected by detector alerts. The WATCHING YOU label retains
+the original heuristic meaning; it is not direct knowledge of a spectator's
+camera target.
+
+Staff escapes appear in the shared Evasion history used by the web panel and
+Discord. A dedicated Discord notification includes the client, staff name,
+time, escape action, destination and delay. The bot host checks the shared
+queue every two seconds; the web panel refreshes every five seconds.
+Notifications go to the configured feed channel, or the bot panel channel
+when no feed channel is set. Failed sends remain queued for a later attempt.
+These reports are written after the connection closes and never delay fleeing.
+
+Appearance: B > Appearance. Choose Classic, Midnight, Mint or Rose independently
+of Original, Mochi (cat), or Sprout. All characters share seven animated states;
+ears and leaves also move. Reduced motion is respected. Selections save to
+appearance.json. The web/Discord images use still portraits of the chosen mascot.
+
+Build: JDK 25, then gradlew.bat build. Isolated integration verification:
+gradlew.bat :trader-fabric:runClient -PstaffWatchSmoke
+This uses LOCALAPPDATA/GoNuts/staffwatch-smoke, creates a disposable world,
+replays staff packets, captures the cockpit and HUD, and exits its own client.
+The smoke initializer is excluded from normal builds. Run a normal build
+again before distributing the mod. Reconnect timing tests use virtual time.
+
+The imported Staff Watch portions preserve GPL-3.0-only and original 4ldenz
+attribution. See trader-fabric/src/main/resources/LICENSE_staffwatch and
+THIRD_PARTY_STAFFWATCH.txt. Existing GoNuts notices remain in place.

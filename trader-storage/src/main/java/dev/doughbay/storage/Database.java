@@ -641,6 +641,16 @@ public final class Database implements AutoCloseable {
                         action   TEXT    NOT NULL
                     )""");
             st.execute("CREATE INDEX IF NOT EXISTS idx_evasion_events_at ON evasion_events(at)");
+            st.execute("""
+                    CREATE TABLE IF NOT EXISTS staff_watch_alerts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        at INTEGER NOT NULL,
+                        client TEXT NOT NULL,
+                        who TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        delivered_at INTEGER NOT NULL DEFAULT 0
+                    )""");
+            st.execute("CREATE INDEX IF NOT EXISTS idx_staff_watch_pending ON staff_watch_alerts(delivered_at, id)");
         }
     }
 

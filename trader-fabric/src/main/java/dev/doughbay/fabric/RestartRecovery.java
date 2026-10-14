@@ -77,6 +77,14 @@ final class RestartRecovery {
         return step != Step.IDLE && step != Step.RESUMING;
     }
 
+    /** A staff disconnect supersedes this recovery and its permission to resume trading. */
+    void yieldToStaffWatch() {
+        step = Step.IDLE;
+        resumeOwed = false;
+        limboSeenAt = 0;
+        limboLevel = null;
+    }
+
     void observeChat(String line) {
         if (RestartPlan.saysLimbo(line)) {
             limboSeenAt = System.currentTimeMillis();

@@ -146,6 +146,12 @@ public class DoughBayClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        dev.doughbay.fabric.staffwatch.StaffWatchClient.initialize(DoughBayClient::openStaffWatch, name -> {
+            RESTART.yieldToStaffWatch();
+            AUTOMATION_SESSION.pause("Staff Watch alert: " + name);
+            var reconnect = dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.schedule;
+            if (EVASION != null) EVASION.noteStaffEscape(name, reconnect.address(), reconnect.remainingMillis());
+        });
         DoughBayConfig config = DoughBayConfig.load();
         activeConfig = config;
         applyPermissions(config);
@@ -593,11 +599,12 @@ public class DoughBayClient implements ClientModInitializer {
             // A restart being stepped around owns the connection while it
             // does: nothing else joins, and nothing flees a server the client
             // is only passing through.
-            RESTART.tick(client, AUTOMATION_SESSION);
+            boolean staffOwnsConnection = dev.doughbay.fabric.staffwatch.StaffWatchClient.controlsConnection();
+            if (!staffOwnsConnection) RESTART.tick(client, AUTOMATION_SESSION);
             if (AUTO_JOIN == null) AUTO_JOIN = new AutoJoin(client);
-            if (!RESTART.active()) AUTO_JOIN.tick();
+            if (!staffOwnsConnection && !RESTART.active()) AUTO_JOIN.tick();
             autoRespawn(client);
-            if (EVASION != null && !RESTART.active()) EVASION.tick(client, AUTOMATION_SESSION);
+            if (!staffOwnsConnection && EVASION != null && !RESTART.active()) EVASION.tick(client, AUTOMATION_SESSION);
             pollCommandInbox(client);
             SafeHomes.poll();
             CONSIGNMENT.tick(client);
@@ -847,6 +854,12 @@ public class DoughBayClient implements ClientModInitializer {
     /** The real ledger's figures, or null before the config is read. */
     public static LedgerStatsProvider ledgerStats() {
         return LEDGER_STATS;
+    }
+
+    public static void openStaffWatch() {
+        DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
+        screen.selectStaffWatch();
+        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
     }
 
     /** Opens the mod's screen, with the update notice in front of it when there is one to answer. */

@@ -68,7 +68,7 @@ public final class Mascot {
     public static Face faceFor(AutomationSessionController.SessionSnapshot session, EvasionGuard evasion) {
         long now = System.currentTimeMillis();
         Face face;
-        if (evasion != null && evasion.triggered()) {
+        if (StaffWatchAlert.active() || (evasion != null && evasion.triggered())) {
             face = Face.ALERT;
         } else if (now - lastSaleAt < SALE_FACE_MILLIS) {
             face = Face.SALE;

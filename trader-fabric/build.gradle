@@ -2,7 +2,7 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-version = "0.1.0+${project.minecraft_version}"
+version = "0.1.1-staffwatch+${project.minecraft_version}"
 group = 'dev.doughbay'
 
 base {
@@ -16,6 +16,11 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // Staff Watch preserves its original HUD/head-alert renderer.
+    for (artifact in ['imgui-java-binding','imgui-java-lwjgl3','imgui-java-natives-windows','imgui-java-natives-linux','imgui-java-natives-macos']) {
+        implementation(include("io.github.spair:${artifact}:1.90.0")) { exclude group: 'org.lwjgl' }
+    }
 
     // The market engine is plain Java with no Minecraft dependency. Bundle it
     // and its runtime deps into the mod jar (jar-in-jar) so the mod is a
@@ -70,3 +75,19 @@ java {
 
 // Policy/config tests are pure JVM tests. Keep them enabled so malformed
 // execution permissions and fee settings are exercised by every full build.
+
+// Disposable integration verification; excluded from all normal release builds.
+if (project.hasProperty('staffWatchSmoke')) {
+    sourceSets.main.java.srcDir 'src/staffWatchSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.staffwatch.IntegrationSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/staffwatch-smoke'
+        vmArg '-Dgonuts.staffwatch.smoke=true'
+        programArgs '--width', '1920', '--height', '1080'
+    }
+}

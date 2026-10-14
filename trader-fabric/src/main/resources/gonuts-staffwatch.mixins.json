@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "dev.doughbay.fabric.staffwatch.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ConnectionMixin",
+    "WindowMixin",
+    "MinecraftMixin",
+    "ConnectScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

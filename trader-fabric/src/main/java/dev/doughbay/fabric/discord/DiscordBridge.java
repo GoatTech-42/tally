@@ -257,6 +257,38 @@ public final class DiscordBridge {
     }
 
     private long feedPostedAt;
+    private long staffCheckedAt;
+
+    /** The elected bot host delivers staff escapes from every client's shared ledger. */
+    private void postStaffAlerts(long now) {
+        if (now - staffCheckedAt < 2_000L) return;
+        staffCheckedAt = now;
+        DiscordConfig c = config;
+        if (c == null || !c.complete()) return;
+        try (Database db = new Database(ledgerPath)) {
+            var pending = dev.doughbay.storage.StaffWatchAlerts.pending(db.connection());
+            for (var alert : pending) {
+                var body = MAPPER.createObjectNode();
+                body.putObject("allowed_mentions").putArray("parse");
+                var embed = body.putArray("embeds").addObject();
+                embed.put("title", "STAFF WATCH — DISCONNECTED");
+                embed.put("color", 0xFF858C);
+                embed.put("timestamp", Instant.ofEpochMilli(alert.at()).toString());
+                embed.put("description", DiscordFeed.clean("Client: " + alert.client()) + "\n"
+                        + DiscordFeed.clean("Staff: " + alert.who()) + "\n" + DiscordFeed.clean(alert.action()));
+                String posted = rest.createMessage(c.hasFeed() ? c.feedChannelId() : c.channelId(),
+                        MAPPER.writeValueAsString(body), null);
+                if (posted == null || posted.isBlank()) break;
+                dev.doughbay.storage.StaffWatchAlerts.delivered(db.connection(), alert.id(), now);
+                refreshNow = true;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            // Leave the record pending so a later attempt or another host can deliver it.
+            log.warn("GoNuts staff notification pending: {}", e.toString());
+        }
+    }
 
     /** One message of queued activity lines to the feed channel, at most every five seconds. */
     private void postFeed(long now) {
@@ -288,6 +320,7 @@ public final class DiscordBridge {
                 if (!hostCheck()) continue;
                 if (gateway == null || applicationId.isEmpty()) continue;
                 updatePresence(now);
+                postStaffAlerts(now);
                 postFeed(now);
                 if (refreshNow || now - last >= REFRESH_MILLIS) {
                     refreshNow = false;
@@ -1669,8 +1702,12 @@ public final class DiscordBridge {
                     while (rs.next()) {
                         String when = Instant.ofEpochMilli(rs.getLong(1)).atZone(ZoneId.systemDefault()).format(tf);
                         double blocks = rs.getDouble(4);
+                        String action = rs.getString(5);
+                        // Keep the outcome readable in the narrow history column. The full
+                        // destination and cooldown remain in the dedicated notification.
+                        if (action.startsWith("Staff Watch:")) action = "STAFF — DISCONNECTED";
                         rows.add(new String[] {when, rs.getString(2), rs.getString(3),
-                                blocks > 0 ? String.format(Locale.ROOT, "%.0f", blocks) : "", rs.getString(5)});
+                                blocks > 0 ? String.format(Locale.ROOT, "%.0f", blocks) : "", action});
                     }
                 }
             }

@@ -1,0 +1,1 @@
+package dev.doughbay.fabric.staffwatch.util; public final class NameFilter { public static String apply(String name){return name;} }

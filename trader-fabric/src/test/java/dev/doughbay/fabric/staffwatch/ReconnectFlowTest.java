@@ -1,0 +1,38 @@
+package dev.doughbay.fabric.staffwatch;
+import org.junit.jupiter.api.*;import static org.junit.jupiter.api.Assertions.*;import java.util.*;import java.util.concurrent.atomic.AtomicLong;
+class ReconnectFlowTest {
+ static class Client implements ReconnectFlow.Client {
+  boolean multiplayer=true,connected=true,connecting=false,disconnected=false,countdown=false;int disconnects,shows,connects;String destination;
+  public boolean multiplayer(){return multiplayer;}public boolean connected(){return connected;}public boolean connecting(){return connecting;}public boolean disconnectedScreen(){return disconnected;}public boolean countdownScreen(){return countdown;}public String currentAddress(){return "current.example:25566";}
+  public void disconnect(String s){disconnects++;}public void showCountdown(){shows++;countdown=true;disconnected=false;}public void connect(String s){destination=s;connects++;connecting=true;}
+ }
+ AtomicLong now;Client client;ReconnectSchedule timer;ReconnectFlow flow;
+ @BeforeEach void setup(){now=new AtomicLong();client=new Client();timer=new ReconnectSchedule(now::get,new Random(4));flow=new ReconnectFlow(client,timer);}
+ void start(String address){assertTrue(flow.alert("KnownStaff",address,true));assertEquals(1,client.disconnects);flow.tick(true);assertEquals(1,client.disconnects);}
+ void offline(){client.connected=false;client.disconnected=true;flow.tick(true);assertEquals(1,client.shows);}
+ @Test void reconnectsToConfiguredServerExactlyOnceAfterDelay(){start("target.example:25567");long delay=timer.remainingMillis();assertTrue(delay>=300000&&delay<=600000);offline();now.set((delay-1)*1000000);flow.tick(true);assertEquals(0,client.connects);now.addAndGet(1000000);flow.tick(true);flow.tick(true);assertEquals(1,client.connects);assertEquals("target.example:25567",client.destination);assertFalse(timer.active());}
+ @Test void blankAddressUsesOriginalServer(){start("  ");offline();now.set(601000000000L);flow.tick(true);assertEquals("current.example:25566",client.destination);}
+ @Test void duplicateAlertsDoNotRestartCountdown(){start("");long remaining=timer.remainingMillis();now.addAndGet(60000000000L);assertFalse(flow.alert("OtherStaff","different.example",true));flow.tick(true);assertEquals(remaining-60000,timer.remainingMillis());assertEquals(1,client.disconnects);}
+ @Test void cancelPreventsAnyLaterReconnect(){start("");offline();flow.cancel();now.set(900000000000L);flow.tick(true);assertEquals(0,client.connects);}
+ @Test void manualConnectionCancelsPendingReconnect(){start("");offline();client.connecting=true;flow.tick(true);now.set(900000000000L);flow.tick(true);assertFalse(timer.active());assertEquals(0,client.connects);}
+ @Test void joiningWorldCancelsPendingReconnect(){start("");offline();client.connected=true;flow.tick(true);assertFalse(timer.active());assertEquals(0,client.connects);}
+ @Test void leavingCountdownCancelsReconnect(){start("");offline();client.countdown=false;flow.tick(true);assertFalse(timer.active());}
+ @Test void disablingFeaturePreventsDisconnectAndCancelsWaiting(){assertFalse(flow.alert("Staff","",false));assertEquals(0,client.disconnects);start("");offline();flow.tick(false);assertFalse(timer.active());}
+ @Test void singleplayerNeverDisconnects(){client.multiplayer=false;assertFalse(flow.alert("Staff","",true));flow.tick(true);assertEquals(0,client.disconnects);}
+ @Test void ordinaryDisconnectDoesNotScheduleReconnect(){client.connected=false;client.disconnected=true;flow.tick(true);assertEquals(0,client.shows);assertFalse(timer.active());}
+ @Test void disconnectingWaitsForWorldToClose(){start("");for(int i=0;i<20;i++)flow.tick(true);assertEquals(0,client.shows);assertEquals(0,client.connects);offline();assertEquals(ReconnectFlow.Phase.WAITING,flow.phase());}
+ @Test void alertDisconnectsImmediatelyWithoutTickOrPresentation(){assertTrue(flow.alert("Staff","",true));assertEquals(1,client.disconnects);assertEquals(ReconnectFlow.Phase.DISCONNECTING,flow.phase());assertEquals("Staff",timer.watcher());assertEquals(0,client.shows);assertEquals(0,client.connects);}
+ @Test void randomDelaysStayInFiveToTenMinuteRange(){Set<Long> delays=new HashSet<>();for(int i=0;i<1000;i++){timer.cancel();timer.begin("server","staff");long delay=timer.remainingMillis();assertTrue(delay>=300000&&delay<=600000);delays.add(delay);}assertTrue(delays.size()>900);}
+
+ @Test void randomDisconnectWaitsExactlyTwoMinutes(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertNull(timer.watcher());now.set(119999000000L);flow.tick(true);assertEquals(0,client.connects);now.addAndGet(1000000L);flow.tick(true);assertEquals(1,client.connects);assertEquals("current.example:25566",client.destination);}
+ @Test void failedAttemptsKeepRetryingEveryTwoMinutes(){client.connected=false;client.connecting=true;flow.connectionStarted("failed.example",true);for(int i=0;i<4;i++){client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertEquals(i,client.connects);now.addAndGet(120000000000L);flow.tick(true);assertEquals(i+1,client.connects);assertEquals("failed.example",client.destination);}}
+ @Test void staffDelaySurvivesDisconnectAndThenFailuresUseTwoMinutes(){start("");long delay=timer.remainingMillis();offline();assertEquals(delay,timer.remainingMillis());now.addAndGet(delay*1000000L);flow.tick(true);assertEquals(1,client.connects);client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertNull(timer.watcher());}
+ @Test void manualDisconnectDoesNotRejoin(){flow.tick(true);client.connected=false;client.disconnected=false;flow.tick(true);now.set(900000000000L);flow.tick(true);assertEquals(0,client.connects);assertFalse(timer.active());}
+ @Test void cancellingRetryPreventsRearmingOnSameErrorScreen(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);flow.cancel();client.disconnected=true;now.set(900000000000L);flow.tick(true);assertFalse(timer.active());assertEquals(0,client.connects);}
+ @Test void cancelledConnectionAttemptDoesNotRetry(){client.connected=false;client.connecting=true;flow.connectionStarted("target.example",true);client.connecting=false;flow.tick(true);assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertFalse(timer.active());}
+ @Test void successfulReconnectRearmsForNextDrop(){client.connected=false;client.connecting=true;flow.connectionStarted("target.example",true);client.connecting=false;client.connected=true;flow.tick(true);assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());client.connected=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());}
+ @Test void configuredAddressOverridesOrdinaryDisconnectTarget(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true,"configured.example");assertEquals("configured.example",timer.address());}
+ @Test void singleplayerExitNeverRetries(){client.multiplayer=false;flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);assertFalse(timer.active());}
+ @Test void manualConnectionReplacesPendingDestination(){start("");offline();client.connecting=true;flow.connectionStarted("new.example",true);client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals("new.example",timer.address());assertEquals(120000,timer.remainingMillis());}
+ @Test void staffAlertOnFirstJoinedTickStillDisconnects(){flow.connectionStarted("target.example",true);assertTrue(flow.alert("Staff","",true));assertEquals(1,client.disconnects);assertTrue(timer.remainingMillis()>=300000);}
+}
