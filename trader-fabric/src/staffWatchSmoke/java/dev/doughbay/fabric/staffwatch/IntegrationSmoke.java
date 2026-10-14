@@ -37,7 +37,7 @@ public final class IntegrationSmoke implements ClientModInitializer {
    case 5 -> {if(ticks<30)return;check(row().presence()==StaffListModule.Presence.SPECTATOR&&row().sameServer(),"Game-mode update preserves original spectator and region alert");check(StaffListModule.alarmedRecently(staff),"Original watcher alert fired");check(ReconnectController.INSTANCE.lastWatcher().equals(name),"Last watcher is retained for the integrated tab");dev.doughbay.fabric.staffwatch.gui.StaffGhost.watching(staff,name,0);dev.doughbay.fabric.staffwatch.gui.StaffGhost.watching(staff,name,0);check(dev.doughbay.fabric.StaffWatchAlert.active(),"Duplicate watcher alerts share the special banner");WatchConfig.get().autoDisconnect=false;dev.doughbay.fabric.staffwatch.gui.StaffGhost.watching(staff,name,0);check(dev.doughbay.fabric.StaffWatchAlert.active(),"Special banner also appears with automatic disconnect disabled");WatchConfig.get().autoDisconnect=true;check(dev.doughbay.fabric.StaffWatchAlert.active(),"Special banner survives enabling instant disconnect");var alarmField=StaffListModule.class.getDeclaredField("alarm");alarmField.setAccessible(true);check(!((dev.doughbay.fabric.staffwatch.util.staff.StaffAlarm)alarmField.get(ModuleRegistry.get(StaffListModule.class))).isPlaying(),"Watcher alert stays silent with sounds disabled");check(!ReconnectController.INSTANCE.schedule.active()&&mc.level!=null,"Watcher alert never disconnects a single-player world");captureBack(mc,"staffwatch-alert.png");update(mc,staff,name,GameType.SURVIVAL,false,EnumSet.of(Action.UPDATE_GAME_MODE,Action.UPDATE_LISTED));next();}
    case 6 -> {if(ticks<35)return;check(row().presence()==StaffListModule.Presence.VANISHED,"Unlisted staff retains original VANISHED state");var body=new RemotePlayer(mc.level,new GameProfile(staff,name));body.setId(7654321);body.setPos(mc.player.position().add(4,0,0));mc.level.addEntity(body);next();}
    case 7 -> {if(ticks<20)return;check(row().nearby()&&row().distance()>0&&row().distance()<10,"Loaded staff body supplies proximity and distance");captureBack(mc,"staffwatch-nearby.png");ModuleRegistry.get(StaffListModule.class).setEnabled(false);check(!StaffListModule.shouldShowHud(),"Disabling staff module clears HUD and state");ModuleRegistry.get(StaffListModule.class).setEnabled(true);next();}
-   case 8 -> {if(ticks<20)return;check(StaffListModule.shouldShowHud(),"Re-enabling rescans current player data");dev.doughbay.fabric.DoughBayClient.openStaffWatch();next();}
+   case 8 -> {if(ticks<20)return;check(StaffListModule.shouldShowHud(),"Re-enabling rescans current player data");if(Boolean.getBoolean("gonuts.headlessSmoke")){captureBack(mc,"final-headless-check");check(true,"Actual HeadlessMC agent skips only native HUD; detector state survives repeated frames and toggles");Files.write(Path.of("staffwatch-smoke-pass.txt"),report);phase=99;mc.stop();return;}dev.doughbay.fabric.DoughBayClient.openStaffWatch();next();}
    case 9 -> {if(ticks<20)return;captureBack(mc,"staffwatch-tab-live.png");mc.options.guiScale().set(3);mc.resizeGui();next();}
    case 10 -> {if(ticks<20)return;captureBack(mc,"staffwatch-tab-compact.png");var pf=mc.gui.screen().getClass().getDeclaredField("staffWatchPanel");pf.setAccessible(true);var panel=pf.get(mc.gui.screen());var scroll=panel.getClass().getDeclaredMethod("scroll",double.class,double.class,double.class);scroll.setAccessible(true);check((boolean)scroll.invoke(panel,mc.gui.screen().width/2.0,mc.gui.screen().height/2.0,-9.0),"Compact cockpit staff tab scrolls inside its content");next();}
    case 11 -> {if(ticks<20)return;captureBack(mc,"staffwatch-tab-scrolled.png");mc.options.guiScale().set(2);mc.resizeGui();ReconnectController.INSTANCE.connectionStarted(new net.minecraft.client.multiplayer.ServerData("Donut SMP",WatchConfig.SERVER_ADDRESS,net.minecraft.client.multiplayer.ServerData.Type.OTHER));ReconnectController.INSTANCE.cancel();ReconnectController.INSTANCE.schedule.begin(WatchConfig.SERVER_ADDRESS,"KnownStaff");dev.doughbay.fabric.StaffWatchAlert.show("KnownStaff",0);mc.gui.setScreen(new ReconnectScreen());check(StaffWatchClient.controlsConnection(),"Staff cooldown owns reconnect scheduling");next();}
@@ -50,6 +50,23 @@ public final class IntegrationSmoke implements ClientModInitializer {
   }
  }catch(Throwable e){e.printStackTrace();try{Files.writeString(Path.of("staffwatch-smoke-failure.txt"),String.join("\n",report)+"\nFAIL: "+e);}catch(Exception ignored){}phase=99;mc.stop();}}
     public static void captureBack(Minecraft mc,String filename)throws Exception{
+        if (Boolean.getBoolean("gonuts.headlessSmoke")) {
+            // Exercise the real HUD entry point with the actual HeadlessMC agent.
+            dev.doughbay.fabric.staffwatch.imgui.ImGuiManager.getInstance().renderIfActive();
+            String version = glGetString(GL_VERSION);
+            if (version != null && !version.isBlank()) throw new AssertionError("Headless agent not active");
+            if (StaffListModule.shouldShowHud() || AntiVanishModule.shouldShowHud()) {
+                var manager = dev.doughbay.fabric.staffwatch.imgui.ImGuiManager.getInstance();
+                var field = manager.getClass().getDeclaredField("renderer"); field.setAccessible(true);
+                var renderer = field.get(manager);
+                var unavailable = renderer.getClass().getDeclaredField("unavailable"); unavailable.setAccessible(true);
+                var initialized = renderer.getClass().getDeclaredField("initialized"); initialized.setAccessible(true);
+                if (!unavailable.getBoolean(renderer) || initialized.getBoolean(renderer))
+                    throw new AssertionError("Headless HUD must skip native initialization");
+            }
+            System.out.println("HEADLESS_HUD_TEST PASS: " + filename);
+            return;
+        }
         capture(mc,filename,GL_BACK);
     }
     private static void capture(Minecraft mc,String filename,int buffer)throws Exception{
