@@ -161,6 +161,13 @@ public final class Database implements AutoCloseable {
             applyV17();
             setVersion(17);
         }
+        if (version < 18) {
+            try (Statement st = connection.createStatement()) {
+                st.execute("CREATE TABLE IF NOT EXISTS connection_alerts (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, client TEXT NOT NULL, who TEXT NOT NULL, action TEXT NOT NULL, delivered_at INTEGER NOT NULL DEFAULT 0)");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_connection_pending ON connection_alerts(delivered_at,id)");
+            }
+            setVersion(18);
+        }
     }
 
     /**

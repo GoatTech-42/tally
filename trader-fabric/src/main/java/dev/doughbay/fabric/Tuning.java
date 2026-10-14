@@ -102,6 +102,8 @@ public final class Tuning {
                     "How deep into the auction one look goes before closing the page. Page one is where a mispriced item "
                     + "first lands, but deeper pages hold ones nobody has taken. Costs no API requests at all",
                     4, 1, 10, Kind.COUNT),
+            new Setting("pace.recover_click_spam", "Pacing", "Slow down after click-spam kicks",
+                    "Save slower pacing for this account after an explicit click-spam kick. Never speeds up automatically.", 1, 0, 1, Kind.TOGGLE),
             new Setting("pace.human_steps", "Pacing", "Human pauses between steps",
                     "Pause a varying moment between the steps of one action: after a page opens, before a row is clicked, "
                     + "with the stack in hand, before a price is typed. Slower, and far less machine-like (1 on, 0 off)",
@@ -1203,6 +1205,40 @@ public final class Tuning {
         return clamped;
     }
 
+    /** Persist a recovery profile exclusively in this game directory, including new installations. */
+    static synchronized boolean setLocalBatch(Map<String, Double> values) throws IOException {
+        Path local = localFile;
+        if (local == null) local = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("doughbay-local.json");
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode read = Files.exists(local) ? mapper.readTree(Files.readString(local, StandardCharsets.UTF_8)) : mapper.createObjectNode();
+        if (!(read instanceof ObjectNode root)) throw new IOException("Local settings must be a JSON object");
+        Map<String, Double> clamped = new java.util.LinkedHashMap<>();
+        boolean changed = false;
+        for (var entry : values.entrySet()) {
+            double value = setting(entry.getKey()).clamp(entry.getValue());
+            changed |= Math.abs(get(entry.getKey()) - value) > 1e-9;
+            clamped.put(entry.getKey(), value);
+            root.put(entry.getKey(), value);
+        }
+        Files.createDirectories(local.toAbsolutePath().getParent());
+        Path fresh = Files.createTempFile(local.toAbsolutePath().getParent(), "doughbay-recovery-", ".tmp");
+        try {
+            Files.writeString(fresh, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root), StandardCharsets.UTF_8);
+            try {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(fresh);
+        }
+        localFile = local;
+        LOCAL_KEYS.addAll(clamped.keySet());
+        VALUES.putAll(clamped);
+        seenLocalModifiedAt = modifiedAt(local);
+        return changed;
+    }
+
     public static void reset(String key) {
         VALUES.remove(key);
         save();
@@ -1417,16 +1453,20 @@ public final class Tuning {
         if (f == null) return;
         try {
             ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
+            JsonNode existing = Files.exists(f) ? mapper.readTree(Files.readString(f, StandardCharsets.UTF_8)) : null;
+            ObjectNode root = existing instanceof ObjectNode object ? object : mapper.createObjectNode();
             // Write every registered setting, value or default, so a key can
             // never silently fall out of the file and revert on the next load.
             // Omitting the ones still at default is how settings.json kept
             // losing whole groups: a key absent from the file loads as nothing,
             // saves as nothing, and is gone for good.
             for (Setting s : SETTINGS) {
+                // Never publish a local recovery profile to another client sharing this folder.
+                if (LOCAL_KEYS.contains(s.key())) continue;
                 root.put(s.key(), get(s.key()));
             }
             for (ListSetting l : LISTS) {
+                if (LOCAL_KEYS.contains(l.key())) continue;
                 root.put(l.key(), text(l.key()));
             }
             Files.createDirectories(f.getParent());

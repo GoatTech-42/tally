@@ -21,7 +21,7 @@ class StaffWatchAlertsTest {
                 assertTrue(StaffWatchAlerts.pending(db.connection()).isEmpty());
                 try (var rows = statement.executeQuery("SELECT MAX(version) FROM schema_version")) {
                     assertTrue(rows.next());
-                    assertEquals(17, rows.getInt(1));
+                    assertEquals(18, rows.getInt(1));
                 }
                 try (var rows = statement.executeQuery("SELECT action FROM evasion_events WHERE at=50")) {
                     assertTrue(rows.next());

@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 03:18 UTC
+- New: unexpected Donut SMP disconnects now appear in Evasion history and send a dedicated Discord bot notification with the account, server reason, recovery action and reconnect policy. Enabled alert webhooks receive the same event. Pending bot notifications survive restarts in a separate queue created by schema migration 18.
+- New: an explicit Click-Spam kick enables slower pacing, disables fast listing, and progressively increases click, command, step and reaction delays for the affected account only. Recovery is enabled by default, bounded, persistent, and can be disabled under Pacing. It never automatically speeds the account back up.
+- Fixed: local pacing overrides are no longer copied into shared settings when another setting is saved. Intentional quits, Staff Watch departures, GoNuts evasion/restart departures and server transfers do not trigger kick recovery. Ordinary reconnects retain the two-minute interval; Staff Watch retains its five-to-ten-minute delay.
+
 ## 2026-10-14 02:43 UTC
 - Fixed: existing version-16 ledgers now receive the Staff Watch notification table through a new version-17 migration. This stops the repeating "staff notification pending: no such table" warning and restores staff notification storage on upgraded installations. Existing evasion history and queued/delivered notifications are preserved.
 

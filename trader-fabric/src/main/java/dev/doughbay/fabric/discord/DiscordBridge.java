@@ -282,11 +282,27 @@ public final class DiscordBridge {
                 dev.doughbay.storage.StaffWatchAlerts.delivered(db.connection(), alert.id(), now);
                 refreshNow = true;
             }
+            for (var alert : dev.doughbay.storage.ConnectionAlerts.pending(db.connection())) {
+                var body = MAPPER.createObjectNode();
+                body.putObject("allowed_mentions").putArray("parse");
+                var embed = body.putArray("embeds").addObject();
+                embed.put("title", "GoNuts — CONNECTION LOST");
+                embed.put("color", 0xFFA85C);
+                embed.put("timestamp", Instant.ofEpochMilli(alert.at()).toString());
+                String description = DiscordFeed.clean("Client: " + alert.client()) + "\n"
+                        + DiscordFeed.clean(alert.action());
+                embed.put("description", description.length() > 4000 ? description.substring(0, 4000) : description);
+                String posted = rest.createMessage(c.hasFeed() ? c.feedChannelId() : c.channelId(),
+                        MAPPER.writeValueAsString(body), null);
+                if (posted == null || posted.isBlank()) break;
+                dev.doughbay.storage.ConnectionAlerts.delivered(db.connection(), alert.id(), now);
+                refreshNow = true;
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             // Leave the record pending so a later attempt or another host can deliver it.
-            log.warn("GoNuts staff notification pending: {}", e.toString());
+            log.warn("GoNuts notification pending: {}", e.toString());
         }
     }
 

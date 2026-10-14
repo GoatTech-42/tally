@@ -98,6 +98,25 @@ public final class EvasionGuard {
         });
     }
 
+    /** Unexpected disconnects share Evasion history but have a distinct Discord queue. */
+    public void noteDisconnect(String reason, String action) {
+        long at = System.currentTimeMillis();
+        synchronized (events) {
+            events.addFirst(new Event(at, reason, 0, action));
+            while (events.size() > 40) events.removeLast();
+        }
+        Path path = ledger;
+        if (path == null) return;
+        String client = DoughBayClient.account();
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try (var db = new dev.doughbay.storage.Database(path)) {
+                dev.doughbay.storage.ConnectionAlerts.record(db.connection(), at, client, reason, action);
+            } catch (Exception e) {
+                DoughBayClient.LOGGER.warn("GoNuts could not record a disconnect: {}", e.toString());
+            }
+        });
+    }
+
     private void note(String who, double distance, String action) {
         long at = System.currentTimeMillis();
         String name = who == null ? "" : who;
