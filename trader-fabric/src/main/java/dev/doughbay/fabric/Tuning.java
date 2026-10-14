@@ -102,6 +102,10 @@ public final class Tuning {
                     "How deep into the auction one look goes before closing the page. Page one is where a mispriced item "
                     + "first lands, but deeper pages hold ones nobody has taken. Costs no API requests at all",
                     4, 1, 10, Kind.COUNT),
+            new Setting("watch.session_max_sec", "Pacing", "Maximum time per auction watch",
+                    "Return to orders and existing stock when a watch has not selected a purchase within this time. "
+                    + "Never interrupts a selected purchase. Box sweeps get at least 150 seconds; 0 disables the limit.",
+                    45, 0, 600, Kind.SECONDS),
             new Setting("pace.recover_click_spam", "Pacing", "Slow down after click-spam kicks",
                     "Save slower pacing for this account after an explicit click-spam kick. Never speeds up automatically.", 1, 0, 1, Kind.TOGGLE),
             new Setting("pace.human_steps", "Pacing", "Human pauses between steps",

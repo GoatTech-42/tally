@@ -350,6 +350,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     private int nextWatchDelayTicks = WATCH_INTERVAL_TICKS;
     private long watchOpenedAtMillis;
+    private long watchStartedAtMillis;
     /** Pages turned in this look, and the highest page number seen, so a stale page is not re-read. */
     private int watchPagesRead;
     private int watchLastPage;
@@ -2770,6 +2771,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         huntLooksRemaining = Math.max(0, looks - 1);
         watchTargets = List.copyOf(targets);
         watching = true;
+        watchStartedAtMillis = System.currentTimeMillis();
         filterClicks = 0;
         // Ghosts are kept across looks: the same sold row sits on the page for
         // seconds, and a fresh look must not click it again.
@@ -3913,7 +3915,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
         if (huntLooksRemaining <= 0) {
             if (ticksInPhase >= WATCH_INTERVAL_TICKS) {
-                abort(client, "No recent listing came in under any watched ceiling; nothing was charged");
+                finishUnclickedWatch(client,
+                        "No recent listing came in under any watched ceiling; nothing was charged");
             }
             return;
         }
@@ -4835,7 +4838,32 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
     }
 
+    /** Yield only while reading: a selected row must finish its normal verification path. */
+    boolean yieldUnclickedWatchIfDue(Minecraft client, long now) {
+        double seconds = Tuning.get("watch.session_max_sec");
+        if (!watchHasNotClicked() || watchStartedAtMillis <= 0 || seconds <= 0) return false;
+        long budget = Math.max(1, Math.round(seconds * 1000));
+        if (watchPagesOverride > 0) budget = Math.max(budget, 150_000L);
+        if (now - watchStartedAtMillis < budget) return false;
+        finishUnclickedWatch(client, "Auction watch yielded after " + budget / 1000
+                + " seconds to check orders and existing stock; nothing was charged");
+        return true;
+    }
+
+    private void finishUnclickedWatch(Minecraft client, String detail) {
+        // No qualifying offer is a normal market outcome, not an unanswered
+        // server action. Frequent short watches must not trigger ServerStrain.
+        lastMessage = detail;
+        DoughBayClient.LOGGER.info("DoughBay watch: {}", detail);
+        publishTerminal(TerminalOutcome.ABORTED, detail);
+        clearTarget();
+        phase = Phase.ABORTED;
+        resetPhaseObservation();
+        closeAuctionScreen(client);
+    }
+
     private void tickWaitingForListing(Minecraft client) {
+        if (yieldUnclickedWatchIfDue(client, System.currentTimeMillis())) return;
         Screen screen = client.gui.screen();
         if (watching && watchWaiting && !(screen instanceof AbstractContainerScreen<?>)) {
             if (ticksInPhase >= nextWatchDelayTicks) {
@@ -6263,6 +6291,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         watching = false;
         watchWaiting = false;
         watchOpenedAtMillis = 0;
+        watchStartedAtMillis = 0;
         filterClicks = 0;
         cancelStage = 0;
         cancelPagesTurned = 0;

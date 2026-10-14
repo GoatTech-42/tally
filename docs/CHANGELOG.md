@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 07:36 UTC
+- Fixed: auction watches previously reserved the automation controller for 24 looks, often several minutes with no purchase, delaying order collection, inventory listing and stale-stock maintenance. Pacing now includes a maximum time per auction watch, defaulting to 45 seconds. The limit ends only an unselected watch; a selected purchase keeps its normal confirmation and inventory verification. Deep box sweeps receive at least 150 seconds, and 0 disables the limit.
+- Fixed: a watch ending without a qualifying offer is treated as a normal market outcome rather than an unanswered server operation. Repeated empty watches no longer trigger artificial server-strain backoff.
+- Click spacing, command spacing, purchase ceilings and accounting rules are unchanged. This improves scheduling; it does not guarantee faster sales or a particular profit.
+
 ## 2026-10-14 06:47 UTC
 - Fixed: the keyless market feed could fail with SQLITE_BUSY_SNAPSHOT when another client committed to the shared ledger while its order query was open. The feed now reads and closes the order snapshot before inserting derived observations, avoiding the stale read-to-write promotion.
 - Validated with two real SQLite connections: the previous read/write pattern reproduces the error, while the new sequence allows the sibling commit and subsequent write. Historical warmup still emits no artificial sales, and the next live delivered-count increase is retained.
