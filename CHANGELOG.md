@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 06:47 UTC
+- Fixed: the keyless market feed could fail with SQLITE_BUSY_SNAPSHOT when another client committed to the shared ledger while its order query was open. The feed now reads and closes the order snapshot before inserting derived observations, avoiding the stale read-to-write promotion.
+- Validated with two real SQLite connections: the previous read/write pattern reproduces the error, while the new sequence allows the sibling commit and subsequent write. Historical warmup still emits no artificial sales, and the next live delivered-count increase is retained.
+
 ## 2026-10-14 05:58 UTC
 - New: Buying settings have a separate new-purchase market focus. A focused item list limits auction purchases and new buy orders without disabling collection, listing or repricing of stock already owned. Blank keeps normal selection.
 - Changed: buy-order candidates rank by expected profit per resale lot, weighted by diminishing market volume, rather than percentage margin multiplied by volume. A cheap, busy market no longer wins solely because it has a large percentage spread.

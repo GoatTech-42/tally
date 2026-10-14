@@ -491,7 +491,21 @@ public final class KeylessFeed {
     /** Feeds every read in (from, to] to the tracker in order; returns the newest read time seen. */
     private long foldReads(Connection c, long from, long to, boolean emit, TransactionRepository transactions)
             throws SQLException {
+        OrderReadBatch batch = readOrderFills(c, from, to, emit, tracker);
+        // End the read snapshot before inserting. A sibling can commit while
+        // the query is open; promoting that older snapshot to a writer then
+        // fails with SQLITE_BUSY_SNAPSHOT even with a busy timeout.
+        write(batch.fills(), transactions);
+        return batch.newest();
+    }
+
+    record OrderReadBatch(long newest, List<OrderFillTracker.Fill> fills) { }
+
+    /** Read and close the order query completely before the caller writes any fills. */
+    static OrderReadBatch readOrderFills(Connection c, long from, long to, boolean emit, OrderFillTracker tracker)
+            throws SQLException {
         long newest = from;
+        List<OrderFillTracker.Fill> fills = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
                 "SELECT observed_at, item_key, unit_price, total, delivered FROM orders "
                         + "WHERE observed_at > ? AND observed_at <= ? AND parts = '' ORDER BY observed_at")) {
@@ -503,17 +517,17 @@ public final class KeylessFeed {
                 while (rs.next()) {
                     long at = rs.getLong(1);
                     if (at != readAt && !read.isEmpty()) {
-                        write(tracker.read(read, readAt, emit), transactions);
+                        fills.addAll(tracker.read(read, readAt, emit));
                         read.clear();
                     }
                     readAt = at;
                     newest = Math.max(newest, at);
                     read.add(new OrderFillTracker.Row(rs.getString(2), rs.getLong(3), rs.getInt(4), rs.getInt(5)));
                 }
-                if (!read.isEmpty()) write(tracker.read(read, readAt, emit), transactions);
+                if (!read.isEmpty()) fills.addAll(tracker.read(read, readAt, emit));
             }
         }
-        return newest;
+        return new OrderReadBatch(newest, List.copyOf(fills));
     }
 
     /** Turns fills into full-stack sale rows at the auction-equivalent price. */
