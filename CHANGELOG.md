@@ -4,6 +4,9 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 02:43 UTC
+- Fixed: existing version-16 ledgers now receive the Staff Watch notification table through a new version-17 migration. This stops the repeating "staff notification pending: no such table" warning and restores staff notification storage on upgraded installations. Existing evasion history and queued/delivered notifications are preserved.
+
 ## 2026-10-14 02:29 UTC
 - Fixed: HeadlessMC clients could crash when Staff Watch first displayed a staff row. The optional HUD now skips native graphics initialization when OpenGL or GLSL is unavailable. Staff detection, disconnect/reconnect handling, and web/Discord alerts continue to run.
 - Fixed: a native HUD initialization or rendering failure disables that overlay for the session instead of closing the client or retrying every frame. Normal graphical clients retain the Staff Watch HUD.

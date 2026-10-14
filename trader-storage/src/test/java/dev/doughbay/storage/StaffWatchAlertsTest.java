@@ -8,6 +8,54 @@ import static org.junit.jupiter.api.Assertions.*;
 class StaffWatchAlertsTest {
     @TempDir Path directory;
 
+    @Test void upgradesExistingV16LedgerWithoutLosingHistory() throws Exception {
+        Path file = directory.resolve("existing-v16.db");
+        try (var db = new Database(file); var statement = db.connection().createStatement()) {
+            statement.execute("DROP TABLE staff_watch_alerts");
+            statement.execute("DELETE FROM schema_version WHERE version > 16");
+            statement.execute("INSERT INTO evasion_events(at,client,who,action) VALUES (50,'Bot','Player','existing escape')");
+        }
+        // This is the production upgrade path that fresh-database tests missed.
+        for (int reopen = 0; reopen < 2; reopen++) {
+            try (var db = new Database(file); var statement = db.connection().createStatement()) {
+                assertTrue(StaffWatchAlerts.pending(db.connection()).isEmpty());
+                try (var rows = statement.executeQuery("SELECT MAX(version) FROM schema_version")) {
+                    assertTrue(rows.next());
+                    assertEquals(17, rows.getInt(1));
+                }
+                try (var rows = statement.executeQuery("SELECT action FROM evasion_events WHERE at=50")) {
+                    assertTrue(rows.next());
+                    assertEquals("existing escape", rows.getString(1));
+                }
+                StaffWatchAlerts.record(db.connection(), 100 + reopen, "Bot", "Staff", "disconnected");
+                var pending = StaffWatchAlerts.pending(db.connection());
+                assertEquals(1, pending.size());
+                StaffWatchAlerts.delivered(db.connection(), pending.getFirst().id(), 200 + reopen);
+            }
+        }
+    }
+
+    @Test void upgradingV16ThatAlreadyHasQueuePreservesPendingAndDeliveredRows() throws Exception {
+        Path file = directory.resolve("v16-with-queue.db");
+        long deliveredId;
+        try (var db = new Database(file); var statement = db.connection().createStatement()) {
+            StaffWatchAlerts.record(db.connection(), 100, "Bot", "StaffA", "disconnected");
+            deliveredId = StaffWatchAlerts.pending(db.connection()).getFirst().id();
+            StaffWatchAlerts.delivered(db.connection(), deliveredId, 200);
+            StaffWatchAlerts.record(db.connection(), 300, "Bot", "StaffB", "disconnected");
+            statement.execute("DELETE FROM schema_version WHERE version > 16");
+        }
+        try (var db = new Database(file); var statement = db.connection().createStatement()) {
+            var pending = StaffWatchAlerts.pending(db.connection());
+            assertEquals(1, pending.size());
+            assertEquals("StaffB", pending.getFirst().who());
+            try (var rows = statement.executeQuery("SELECT delivered_at FROM staff_watch_alerts WHERE id=" + deliveredId)) {
+                assertTrue(rows.next());
+                assertEquals(200, rows.getLong(1));
+            }
+        }
+    }
+
     @Test void twoClientsReachSharedEvasionHistoryAndDurableDiscordQueue() throws Exception {
         Path file = directory.resolve("hive.db");
         try (var first = new Database(file)) {

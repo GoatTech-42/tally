@@ -155,6 +155,11 @@ public final class Database implements AutoCloseable {
                 st.execute("CREATE TABLE IF NOT EXISTS retail_positions (position_id INTEGER PRIMARY KEY REFERENCES positions(position_id), root_position_id INTEGER NOT NULL REFERENCES positions(position_id), unit_target INTEGER NOT NULL)");
             }
             setVersion(16);
+            version = 16;
+        }
+        if (version < 17) {
+            applyV17();
+            setVersion(17);
         }
     }
 
@@ -641,6 +646,12 @@ public final class Database implements AutoCloseable {
                         action   TEXT    NOT NULL
                     )""");
             st.execute("CREATE INDEX IF NOT EXISTS idx_evasion_events_at ON evasion_events(at)");
+        }
+    }
+
+    /** Staff notifications need a new step: existing ledgers have already applied v15. */
+    private void applyV17() throws SQLException {
+        try (Statement st = connection.createStatement()) {
             st.execute("""
                     CREATE TABLE IF NOT EXISTS staff_watch_alerts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
