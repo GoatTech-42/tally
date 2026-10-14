@@ -10,8 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * bot's own buy orders moving money in and out of the bank between checks.
  */
 class OfflineSaleRoomTest {
-    private static final long SLACK = 1_000_000;
-
     @Test
     void moneyPutIntoAnOrderIsNotMoneyThatWentMissing() {
         long before = 40_000_000;
@@ -19,11 +17,11 @@ class OfflineSaleRoomTest {
         long mapsSold = 2 * 306_711L;               // two listings that sold with no notice
         long now = before - order + mapsSold;
         // Not counted, the order reads as fourteen million gone: no room, and the sales are booked as returns.
-        long blind = AutomationSessionController.offlineSaleRoom(now, before, 0, 0, SLACK);
+        long blind = AutomationSessionController.offlineSaleRoom(now, before, 0, 0);
         assertTrue(blind < 0);
-        // Counted, what is left over is exactly the two sales, and the tolerance on top.
-        long room = AutomationSessionController.offlineSaleRoom(now, before, order, 0, SLACK);
-        assertEquals(mapsSold + SLACK, room);
+        // Counted, what is left over is exactly the two sales.
+        long room = AutomationSessionController.offlineSaleRoom(now, before, order, 0);
+        assertEquals(mapsSold, room);
     }
 
     @Test
@@ -33,16 +31,40 @@ class OfflineSaleRoomTest {
         assertEquals(446 * 31_084L, refund);
         long now = before + refund;
         // Not counted, 13.9M of "unexplained" money: room to book as sold anything that was only pulled back.
-        assertTrue(AutomationSessionController.offlineSaleRoom(now, before, 0, 0, SLACK) > 13_000_000);
-        // Counted, as spending in reverse, there is the tolerance and nothing more.
-        assertEquals(SLACK, AutomationSessionController.offlineSaleRoom(now, before, -refund, 0, SLACK));
+        assertTrue(AutomationSessionController.offlineSaleRoom(now, before, 0, 0) > 13_000_000);
+        // Counted as spending in reverse, the refund leaves no sale income.
+        assertEquals(0, AutomationSessionController.offlineSaleRoom(now, before, -refund, 0));
     }
 
     @Test
     void aReceiptedSaleAndABuyStillCountAsTheyAlwaysDid() {
         long before = 5_000_000;
         long now = before - 200_000 + 350_000;
-        assertEquals(SLACK, AutomationSessionController.offlineSaleRoom(now, before, 200_000, 350_000, SLACK));
+        assertEquals(0, AutomationSessionController.offlineSaleRoom(now, before, 200_000, 350_000));
+    }
+
+    @Test void zeroMovementAuditCannotSellFourteenAnchorsOnRoundingAllowanceAlone() {
+        long movement = AutomationSessionController.offlineSaleRoom(100_000_000, 100_000_000, 0, 0);
+        long room = AutomationSessionController.offlineSaleBudget(movement, 0);
+        int sold = 0;
+        for (int i = 0; i < 18 && room >= 69_000; i++) { sold++; room -= 69_000; }
+        assertEquals(0, sold);
+        // The old allowance alone booked fourteen sales and 205,800 of profit.
+    }
+
+    @Test void positiveCashAndEarningsAreNotDoubleCountedAndBudgetIsConsumedOnce() {
+        long room = AutomationSessionController.offlineSaleBudget(132_000, 132_999);
+        int sold = 0;
+        for (int i = 0; i < 8 && room >= 66_000; i++) { sold++; room -= 66_000; }
+        assertEquals(2, sold);
+        assertEquals(999, room);
+    }
+
+    @Test void missingOrNegativeBalanceCannotCreateIncomeButServerEarningsStillCount() {
+        assertEquals(0, AutomationSessionController.offlineSaleBudget(0, 0));
+        assertEquals(0, AutomationSessionController.offlineSaleBudget(-264_000, 0));
+        assertEquals(463_998, AutomationSessionController.offlineSaleBudget(-264_000, 463_998));
+        assertEquals(66_000, AutomationSessionController.offlineSaleBudget(66_000, 0));
     }
 
     @Test

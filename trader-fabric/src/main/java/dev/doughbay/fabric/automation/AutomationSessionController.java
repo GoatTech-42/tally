@@ -1067,11 +1067,16 @@ public final class AutomationSessionController {
      * How much of the bank is money nothing on record explains, and so may be
      * booked as sales nobody saw: what the bank holds now, less what it held
      * at the last check carried forward by everything spent and received
-     * since, plus the tolerance. Money put into an order counts as spent and
+     * since. Money put into an order counts as spent and
      * money a cancelled order gave back counts against it.
      */
-    static long offlineSaleRoom(long balanceNow, long balanceAtAudit, long spentSince, long salesSince, long slack) {
-        return balanceNow - (balanceAtAudit - spentSince + salesSince) + slack;
+    static long offlineSaleRoom(long balanceNow, long balanceAtAudit, long spentSince, long salesSince) {
+        return balanceNow - (balanceAtAudit - spentSince + salesSince);
+    }
+
+    /** Cash movement and earnings notices cover the same proceeds; never add them. */
+    static long offlineSaleBudget(long unexplainedCash, long auctionEarnings) {
+        return Math.max(0, Math.max(unexplainedCash, auctionEarnings));
     }
 
     /** What the order house gives back when an order is cancelled: the price of everything not yet delivered. */
@@ -7947,44 +7952,30 @@ public final class AutomationSessionController {
             it.remove();
             readopted++;
         }
-        // The tolerance is for drift in the balance arithmetic - a fee, a
-        // payroll payment, a spend that landed between reads - and it was a
-        // twentieth of the balance. That was a few tens of thousands when the
-        // account held a million, and it is nine million now. A single audit
-        // settles a handful of listings worth a few hundred thousand between
-        // them, so the allowance had grown twenty times larger than the thing
-        // it was allowing for, and every listing missing from the page was
-        // booked as sold whether the money had arrived or not. Twenty-three
-        // per cent of the profit on record was decided by this line.
-        //
-        // It scales with the balance far more slowly now, and stops. A million
-        // of unexplained movement is already a generous thing to wave through;
-        // beyond that the honest answer is that we do not know the listing
-        // sold, and a listing we cannot account for is booked as returned
-        // rather than as money.
-        long slack = Math.max(50_000, Math.min(1_000_000, lastKnownBalance / 100));
-        long room;
+        // A rounding allowance is uncertainty, not sale income. A reported
+        // audit booked fourteen 69K anchors using only the 1M allowance, with no
+        // unexplained cash rise or earnings message. Missing balance data must
+        // likewise supply no budget, rather than an effectively unlimited one.
+        long movement = 0;
+        boolean measured = false;
         if (auditBalance >= 0 && lastKnownBalance >= 0) {
-            room = offlineSaleRoom(lastKnownBalance, auditBalance, spentSinceAudit, salesSinceAudit, slack);
+            movement = offlineSaleRoom(lastKnownBalance, auditBalance, spentSinceAudit, salesSinceAudit);
+            measured = true;
         } else if (balanceBeforeStart >= 0 && lastKnownBalance >= 0) {
-            room = lastKnownBalance - balanceBeforeStart + slack;
-        } else {
-            room = Long.MAX_VALUE / 4;
+            movement = lastKnownBalance - balanceBeforeStart;
+            measured = true;
         }
         missing.sort(Comparator.comparingLong(Position::targetPrice));
         long earned = unnamedEarningsSinceAudit.getAndSet(0);
+        long room = offlineSaleBudget(movement, earned);
         if (!missing.isEmpty()) {
-            LOGGER.info("DoughBay automation: {} listing(s) missing from the page; {} of unexplained balance to "
-                            + "account for them with (tolerance {}), and the server reported {} earned with no listing named",
-                    missing.size(), room == Long.MAX_VALUE / 4 ? "no measurement" : String.valueOf(room), slack, earned);
+            LOGGER.info("DoughBay automation: {} listing(s) missing from the page; unexplained cash {}; "
+                            + "server auction earnings {}; sale budget {} (no balance tolerance counted as income)",
+                    missing.size(), measured ? String.valueOf(movement) : "unavailable", earned, room);
         }
-        // What the server said was earned is room too, and the better kind:
-        // it is not inferred from a balance. The larger of the two is used,
-        // never their sum, because the earnings are in the bank as well.
-        room = Math.max(room, earned);
         for (Position listed : missing) {
             long net = Math.round(auctionFees.netSale(listed.targetPrice()));
-            if (net <= room) {
+            if (net > 0 && net <= room) {
                 room -= net;
                 closeOpenListingSoldOffline(listed, now);
                 settled++;

@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 04:58 UTC
+- Fixed: auction slot audits no longer add a balance-rounding allowance to sale income. An unchanged balance and no auction earnings can no longer book missing listings as sold. Missing balance measurements supply zero sale budget instead of an unlimited allowance.
+- Fixed: inferred sales use the larger of unexplained cash movement and server auction earnings, consume that budget once, and require a positive sale value. Buy-order spending, refunds and already-recorded sales remain accounted for separately. The audit log now shows the evidence and budget used.
+- Existing history is preserved. This prevents new tolerance-only sale/profit entries; it does not retroactively certify or rewrite old inferred sales. Existing restart recovery and Resume controls are included in this build; older running clients must close and reopen to install a downloaded update.
+
 ## 2026-10-14 04:16 UTC
 - Fixed: paced auction filters no longer consume click attempts before a click is sent. Auction page turns now keep waiting for their click gap instead of closing the watch early or advancing page counters for unsent clicks. Each sent navigation click receives its configured settle delay.
 - Fixed: public order-house scans retry deferred Next Page clicks on the next tick. They no longer mistake an unsent click for a server response that failed to arrive, which could add the full response timeout to every page and stall scans for many minutes. Retry limits count sent clicks only.
