@@ -676,15 +676,16 @@ public final class DoughBayScreen extends Screen {
             int aboutCard = (aboutWidth - 8) / 2;
             int aboutRight = aboutWidth - aboutCard - 8;
             int aboutX = ui.innerRight() - 8;
+            addRenderableWidget(CockpitButton.builder(Component.literal("Report bug"), b ->
+                    Minecraft.getInstance().gui.setScreen(new BugReportScreen(this)))
+                    .bounds(aboutX - 86, ui.contentTop() + 10, 86, 16).build());
+            aboutX -= 90;
             if (aboutRight >= 330) {
                 aboutX -= 132;
-                addRenderableWidget(CockpitButton.builder(Component.literal("Updates"), b -> {
+                addRenderableWidget(CockpitButton.builder(Component.literal("Preview update notice"), b -> {
                     UpdateCheck.preview();
                     onClose();
-                }).bounds(aboutX, ui.contentTop() + 10, 60, 16).build());
-                addRenderableWidget(CockpitButton.builder(Component.literal("Report bug"), b ->
-                        Minecraft.getInstance().gui.setScreen(new BugReportScreen(this)))
-                        .bounds(aboutX + 64, ui.contentTop() + 10, 68, 16).build());
+                }).bounds(aboutX, ui.contentTop() + 10, 132, 16).build());
                 aboutX -= 4;
             }
             if (aboutRight >= 190) {

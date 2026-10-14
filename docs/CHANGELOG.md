@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-14 17:21 UTC
+- Bug reports can now include a locally filtered GoNuts log excerpt after an authenticated receiver-capabilities check. Include log is enabled by default when the receiver advertises schema 2; older receivers retain diagnostics-only schema 1. The attachment is shown in the preview before explicit public-report consent, and changing the attachment choice requires preparing and reviewing again.
+- Privacy: the excerpt regenerates recognized state/action/exception events and verified GoNuts source frames instead of copying log messages. Chat, usernames, identities, coordinates, credentials, addresses, personal paths and foreign stack frames are omitted. Both client and receiver enforce byte and line limits; there is no raw-log fallback.
+- Compatibility: existing numeric GoNuts API origins are accepted only after an off-thread DNS check confirms they match gonuts.at. No VPS IP is embedded in the JAR, report traffic always uses HTTPS, and unrelated proxy or official DonutSMP credentials remain blocked.
+- Fixed the Report bug button being hidden at ordinary GUI widths and widened the Feature request button so its label remains readable. Added an opt-in offline GUI integration test, excluded from production JARs, and shareable screenshots of the About entry point and report form.
+- Verified actual GUI submission creates a labeled GitHub issue with the filtered excerpt, private samples and the install token absent. Retrying the same identifier returns the same issue. Feature requests remain separate and are considered, not guaranteed.
+
 ## 2026-10-14 16:51 UTC
 - Added direct reviewed bug-report submission over HTTPS to gonuts.at/v1/bugs, matching the receiver's exact six-field schema, fixed state enum and five counters. The client reuses only a GoNuts token configured for gonuts.at; official DonutSMP keys and unrelated proxy keys are never sent to this receiver. GitHub fallback remains available.
 - Added explicit public-report confirmation and a scrollable local preview. No raw logs or attachments are uploaded. Reports include the mod build timestamp where supported so builds sharing the same JAR name can be distinguished. Private chat is excluded from diagnostic counting as well as report output.

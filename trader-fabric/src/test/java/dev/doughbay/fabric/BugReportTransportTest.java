@@ -64,4 +64,33 @@ class BugReportTransportTest {
         counters.put("sqlite_errors", 1L); counters.put("unknown", 1L);
         assertThrows(IllegalArgumentException.class, () -> new BugReportPayload("0.1.0", "26.2", "Description long enough", "yes", counters));
     }
+    @Test void logExtensionIsSeparateFromUnchangedVersionOneSchema() throws Exception {
+        var json = new ObjectMapper();
+        assertEquals(6, json.readTree(payload().json()).size());
+        String excerpt = BugReportLog.sanitize("[12:00:00] DoughBay automation [PAUSED]: private");
+        var extended = json.readTree(payload().json(excerpt));
+        assertEquals(2, extended.path("schemaVersion").asInt()); assertEquals(7, extended.size());
+        assertTrue(extended.path("diagnosticLog").asText().contains("state=PAUSED"));
+        assertFalse(extended.path("diagnosticLog").asText().contains("private"));
+        assertThrows(IllegalArgumentException.class, () -> payload().json("x".repeat(8193)));
+        assertThrows(IllegalArgumentException.class, () -> payload().json("x".repeat(501)));
+        assertThrows(IllegalArgumentException.class, () -> payload().json("x\n".repeat(201)));
+    }
+    @Test void exactAuthenticatedCapabilitiesShapeControlsAttachmentSupport() throws Exception {
+        var json = new ObjectMapper();
+        String capabilities = "{\"schemaVersions\":[1,2],\"maxBodyBytes\":32768,\"diagnosticLog\":{\"supported\":true,\"schemaVersion\":2,\"maxBytes\":8192,\"maxLines\":200,\"maxLineChars\":500}}";
+        assertTrue(BugReportTransport.advertisesLogSupport(json.readTree(capabilities)));
+        assertFalse(BugReportTransport.advertisesLogSupport(json.readTree(capabilities.replace("8192","4096"))));
+        assertFalse(BugReportTransport.advertisesLogSupport(json.readTree(capabilities.replace("[1,2]","[1]"))));
+        assertFalse(BugReportTransport.advertisesLogSupport(json.readTree("{}")));
+        assertFalse(new BugReportTransport().supportsLogAttachments("https://api.donutsmp.net", "official-key").join());
+    }
+    @Test void legacyNumericOriginsMustMatchTheTrustedDomainsResolvedAddress() {
+        var addresses = java.util.List.of("192.0.2.10");
+        assertTrue(BugReportTransport.matchesResolvedOrigin("http://192.0.2.10", addresses));
+        assertFalse(BugReportTransport.matchesResolvedOrigin("http://192.0.2.20", addresses));
+        assertFalse(BugReportTransport.matchesResolvedOrigin("http://192.0.2.10:8123", addresses));
+        assertFalse(BugReportTransport.matchesResolvedOrigin("http://user@192.0.2.10", addresses));
+        assertFalse(BugReportTransport.matchesResolvedOrigin("http://192.0.2.10?secret=1", addresses));
+    }
 }

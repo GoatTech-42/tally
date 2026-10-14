@@ -19,16 +19,27 @@ public final class BugReportScreen extends Screen {
     private boolean collecting, sending, reviewed;
     private long retryAt;
     private int scroll;
+    private boolean capabilityChecked, capabilityResolved, attachmentReady, includeLog = true;
+    private String diagnosticLog = "";
     private net.minecraft.client.gui.components.Button sendButton;
     public BugReportScreen(Screen parent) { super(Component.literal("Report a GoNuts bug")); this.parent = parent; }
     private int left() { return (width - panelWidth()) / 2; }
     private int panelWidth() { return Math.min(580, width - 24); }
     @Override protected void init() {
         DoughBayClient.automationSessionController().setPanelOpen(true);
+        if (!capabilityChecked) {
+            capabilityChecked = true;
+            var config = DoughBayClient.activeConfig();
+            transport.supportsLogAttachments(config == null ? "" : config.apiBaseUrl(), config == null ? "" : config.apiKey()).thenAccept(ready -> minecraft.execute(() -> {
+                attachmentReady = ready;
+                capabilityResolved = true;
+                if (minecraft.gui.screen() == this) rebuildWidgets();
+            }));
+        }
         int x = left() + 12, w = panelWidth() - 24, gap = 5, each = (w - 3 * gap) / 4;
         addRenderableWidget(CockpitButton.builder(Component.literal("Feature request"), b ->
             Util.getPlatform().openUri(URI.create("https://github.com/cody-raves/Gonuts/issues/new?template=feature-request.yml")))
-            .bounds(x + w - 95, 8, 95, 16).build());
+            .bounds(x + w - 130, 8, 130, 16).build());
         happened = new EditBox(font, x, 46, w, 20, Component.literal("What happened?"));
         happened.setMaxLength(1500); happened.setValue(happenedDraft); happened.setResponder(v -> { happenedDraft = v; invalidate(); });
         expected = new EditBox(font, x, 83, w, 20, Component.literal("What should happen?"));
@@ -36,7 +47,7 @@ public final class BugReportScreen extends Screen {
         happened.active = !collecting && !sending; expected.active = !collecting && !sending;
         addRenderableWidget(happened); addRenderableWidget(expected);
         var prepare = CockpitButton.builder(Component.literal("Prepare"), b -> prepare()).bounds(x, 111, each, 20).build();
-        prepare.active = !collecting && !sending; addRenderableWidget(prepare);
+        prepare.active = !collecting && !sending && capabilityResolved; addRenderableWidget(prepare);
         sendButton = CockpitButton.builder(Component.literal("Send reviewed"), b -> send()).bounds(x + each + gap, 111, each, 20).build();
         addRenderableWidget(sendButton);
         var github = CockpitButton.builder(Component.literal("GitHub fallback"), b -> {
@@ -52,6 +63,13 @@ public final class BugReportScreen extends Screen {
             reviewed = !reviewed; rebuildWidgets();
         }).bounds(x, 138, Math.min(210, w), 20).build();
         consent.active = payload != null && !sending; addRenderableWidget(consent);
+        if (issueUrl.isEmpty()) {
+            var log = CockpitButton.builder(Component.literal(attachmentReady ? "Include log: " + (includeLog ? "On" : "Off") : "Log upload pending"), b -> {
+                if (collecting || sending) return;
+                includeLog = !includeLog; invalidate(); status = "Prepare again to review the changed attachment choice."; rebuildWidgets();
+            }).bounds(x + w - 145, 138, 145, 20).build();
+            log.active = attachmentReady && !collecting && !sending; addRenderableWidget(log);
+        }
         if (!issueUrl.isEmpty()) addRenderableWidget(CockpitButton.builder(Component.literal("Open issue"), b ->
             Util.getPlatform().openUri(URI.create(issueUrl))).bounds(x + w - 85, 138, 85, 20).build());
         refreshSend();
@@ -62,7 +80,7 @@ public final class BugReportScreen extends Screen {
             && System.currentTimeMillis() >= retryAt && config != null && BugReportTransport.mayUseToken(config.apiBaseUrl(), config.apiKey());
     }
     private void invalidate() {
-        payload = null; report = ""; reviewed = false; retryKey = ""; issueUrl = ""; scroll = 0;
+        payload = null; report = ""; reviewed = false; retryKey = ""; issueUrl = ""; scroll = 0; diagnosticLog = "";
         if (sendButton != null) sendButton.active = false;
     }
     private static String filtered(String input) {
@@ -71,9 +89,10 @@ public final class BugReportScreen extends Screen {
         return BugReportPrivacy.clean(input);
     }
     private void prepare() {
-        if (collecting || sending) return;
+        if (collecting || sending || !capabilityResolved) return;
         invalidate(); collecting = true; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
         String description = filtered(happenedDraft), expectation = filtered(expectedDraft);
+        boolean withLog = attachmentReady && includeLog;
         CompletableFuture.supplyAsync(() -> {
             try {
                 String version = FabricLoader.getInstance().getModContainer("doughbay").orElseThrow().getMetadata().getVersion().getFriendlyString();
@@ -86,10 +105,12 @@ public final class BugReportScreen extends Screen {
                 }
                 var next = new BugReportPayload(version, "26.2", description, expectation,
                     BugReportDiagnostics.readCounters(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")));
-                next.json(); return next;
+                String excerpt = withLog ? BugReportLog.read(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")) : "";
+                next.json(excerpt); return new Prepared(next, excerpt);
             } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
-            collecting = false; payload = result; report = result == null ? "" : result.preview();
+            collecting = false; payload = result == null ? null : result.payload(); diagnosticLog = result == null ? "" : result.log();
+            report = result == null ? "" : payload.preview() + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
                 : config == null || !BugReportTransport.mayUseToken(config.apiBaseUrl(), config.apiKey())
@@ -103,11 +124,12 @@ public final class BugReportScreen extends Screen {
         if (payload == null || !reviewed || collecting || sending || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt || config == null) return;
         if (retryKey.isEmpty()) retryKey = java.util.UUID.randomUUID().toString();
         sending = true; status = "Sending reviewed report over HTTPS…"; rebuildWidgets();
-        transport.send(payload, retryKey, config.apiBaseUrl(), config.apiKey()).thenAccept(result -> minecraft.execute(() -> {
+        transport.send(payload, retryKey, config.apiBaseUrl(), config.apiKey(), diagnosticLog).thenAccept(result -> minecraft.execute(() -> {
             sending = false; status = result.message(); issueUrl = result.issueUrl(); retryAt = result.retryAtMillis();
             if (minecraft.gui.screen() == this) rebuildWidgets();
         }));
     }
+    private record Prepared(BugReportPayload payload, String log) { }
     @Override public boolean mouseScrolled(double x, double y, double dx, double dy) {
         if (y >= 182 && !report.isEmpty()) {
             int count = font.split(Component.literal(report), panelWidth() - 24).size();

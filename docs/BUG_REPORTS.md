@@ -2,9 +2,7 @@
 
 The client now sends reviewed reports directly to **https://gonuts.at/v1/bugs**
 using the configured gonuts.at install token. It never reuses an official DonutSMP
-key or a token configured for another server. Legacy numeric-address/custom-proxy
-setups should use the GitHub fallback or configure the canonical gonuts.at origin
-with their existing valid GoNuts install token. Transport always uses HTTPS,
+key or a token configured for another server. A legacy numeric origin is accepted only after an off-thread DNS check confirms it matches gonuts.at, with standard ports and no credential-bearing URL. No IP is baked into the JAR. Unrelated custom proxies retain the GitHub fallback. Transport always uses HTTPS,
 never follows redirects, bounds reply sizes and times out failed requests.
 
 In **About → Report bug**, enter a description and expected behavior, choose
@@ -39,14 +37,35 @@ updates that date's existing digest. Empty days produce only a workflow summary.
 ## VPS receiver contract
 
 The verified receiver schema is in [BUG_REPORTS_RECEIVER_CONTRACT.md](BUG_REPORTS_RECEIVER_CONTRACT.md).
-Exactly six top-level fields are sent; diagnostics contain the fixed enum state
+Schema 1 sends six top-level fields; schema 2 adds diagnosticLog. Diagnostics contain the fixed enum state
 and five integer counters. UNKNOWN is uppercase. The mod build timestamp is
 appended to its version when it fits the receiver's 40-character build limit,
 so reports distinguish releases sharing the same mod version and JAR filename.
 
-This schema rejects attachments and raw-log-shaped description text. Sanitized
-log attachments require a receiver schema extension first; they are not sent by
-this client. The receiver's GitHub token stays on the VPS and is never in the JAR.
+Schema 2 adds an optional filtered log excerpt. The client authenticates the
+capabilities check with the install token and verifies advertised sizes/line limits
+before enabling **Include log** (On by default when supported). Older receivers
+and unavailable capabilities retain schema 1 reporting with no attachment.
+The attachment choice is reflected in the local preview before explicit consent;
+changing that choice requires preparing and reviewing a new report.
+
+The excerpt is generated locally from recognized GoNuts state/action/exception
+lines and verified GoNuts Java frames. It does not copy message text. Chat,
+identities, coordinates, credentials, addresses, paths and foreign frames are
+omitted. Only known exception types/codes and fixed event labels are retained.
+Limits: 8 KiB, up to 100 events/frames plus two header lines, 500 characters per
+line, from the last 256 KiB of current log. It is a relevant diagnostic excerpt,
+not a full Minecraft log dump. Failed filtering blocks preparation.
+
+Schema 1 keeps its six fields; schema 2 adds diagnosticLog. The whole schema 2
+request is capped at 32 KiB. The receiver renders the excerpt as plain text inside
+a collapsed details section and scrubs it again. The GitHub token stays on the VPS.
+
+GUI-to-receiver verification created test issues #2 (schema 1) and #4 (schema 2).
+Both retries returned the same issue. Privacy samples and the install credential
+were absent from the published schema 2 issue. About-button visibility and the
+scrollable preview were tested in an isolated offline Minecraft client. Test smoke
+code is opt-in and excluded from production JARs.
 
 ## Patch automation boundary
 

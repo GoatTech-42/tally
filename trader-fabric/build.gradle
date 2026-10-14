@@ -1,6 +1,22 @@
 plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
+// Isolated GUI-to-receiver verification; excluded from production builds.
+if (project.hasProperty('bugReportSmoke')) {
+    sourceSets.main.java.srcDir 'src/bugReportSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.BugReportIntegrationSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/bug-report-smoke'
+        if (project.hasProperty('bugReportScreenshots')) vmArg '-Dgonuts.bugReport.screenshotsOnly=true'
+        programArgs '--width', '1280', '--height', '800'
+    }
+}
+tasks.named('jar') { exclude '**/BugReportIntegrationSmoke*.class' }
 
 version = "0.1.1-staffwatch+${project.minecraft_version}"
 group = 'dev.doughbay'

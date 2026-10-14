@@ -1,4 +1,4 @@
-# GoNuts bug reports — receiver contract (final, verified 2026-10-14)
+# GoNuts bug reports — receiver contract (schema 1 and 2, verified 2026-10-14)
 
 For the agent building the mod's bug-report transport, and for whoever runs the
 VPS. The receiver is live. It validates every request fully and answers 503 on
@@ -50,14 +50,14 @@ clients still on the plain address, but use HTTPS.
 
 | Field | Rule |
 |---|---|
-| `schemaVersion` | required, the integer `1` |
+| `schemaVersion` | required, `1` or `2`. Schema 2 is schema 1 plus the optional `diagnosticLog` field below. |
 | `build` | required, `[0-9A-Za-z.+_-]{1,40}` (the mod version string) |
 | `minecraftVersion` | required, same pattern (`26.2`) |
 | `description` | required, 10–1500 characters, at most 40 lines |
 | `expected` | required, 1–1500 characters, at most 30 lines |
 | `diagnostics` | required object holding exactly `state` plus the five counters below; no other keys |
 
-Exactly these six top-level fields. The issue title is taken from the first
+Exactly these six top-level fields (seven with `diagnosticLog` under schema 2). The issue title is taken from the first
 line of `description` (cut at 100 characters), so put the one-line summary
 first.
 
@@ -92,13 +92,62 @@ then an unknown key is a 400.
 - text that looks like a pasted log: three or more lines matching
   `[hh:mm:ss]`, an ISO timestamp, `at pkg.Class(`, `Caused by:`,
   `Exception in thread`, `[main/`, `[Render thread/` → 400 "looks like a raw log"
-- body over **16 KiB (16384 bytes)** → 413
+- body over **32 KiB (32768 bytes)** → 413
 - `Content-Type` other than `application/json` → 415
 - missing or revoked token → 401; non-POST → 405
 
 Control characters are stripped on arrival and the text is sanitised again
 server-side, but whatever remains is written into a public issue verbatim.
 The 400 message names the field and rule; it never echoes report content.
+
+### Schema 2: optional `diagnosticLog`
+
+```json
+{
+  "schemaVersion": 2,
+  "build": "0.1.0",
+  "minecraftVersion": "26.2",
+  "description": "…",
+  "expected": "…",
+  "diagnostics": { "state": "SCANNING", "sqlite_errors": 0, "uncompleted_desk_actions": 0, "disconnect_notices": 0, "evasion_notices": 0, "recovered_purchase_pauses": 0 },
+  "diagnosticLog": "[12:00:01] [Render thread/INFO]: DoughBay automation [SCANNING]\n[12:00:02] [Render thread/WARN]: GoNuts connection lost: timeout"
+}
+```
+
+| Rule | Value |
+|---|---|
+| `diagnosticLog` | optional string; omit, `null` or blank means no excerpt |
+| size | at most **8 KiB (8192 UTF-8 bytes)**, 200 lines, 500 characters per line |
+| content | the client's already-filtered excerpt. The receiver strips control characters and scrubs again: proxy tokens, GitHub tokens, `key=`/`token:`/`password=`/`Authorization:`/`Bearer` values, e-mail addresses, IPv4 addresses with ports, `C:\Users\<name>`, `/Users/<name>`, `/home/<name>` and UUIDs become `[redacted]` |
+| under schema 1 | `diagnosticLog` is an "unexpected field" 400, exactly as before |
+| in the issue | a collapsed `<details>` section holding the excerpt in a text code fence, so GitHub shows it verbatim with no mentions, links or markdown |
+| dedupe | the excerpt is not part of the duplicate fingerprint; the same description and expected text within 24 h still returns the existing issue |
+
+The whole request, excerpt included, must fit the 32 KiB body cap.
+
+### Capabilities
+
+Check before building an attachment:
+
+```
+GET https://gonuts.at/v1/bugs/capabilities
+Authorization: Bearer <this install's proxy token>
+```
+
+```json
+{
+  "schemaVersions": [1, 2],
+  "maxBodyBytes": 32768,
+  "maxTextChars": 1500,
+  "diagnosticLog": { "supported": true, "schemaVersion": 2, "maxBytes": 8192, "maxLines": 200, "maxLineChars": 500 },
+  "states": ["SCANNING", "BID_DESK", "PREPARING_LIST", "LISTING", "MONITORING", "COOLDOWN", "PAUSED", "STOPPED", "IDLE", "BUYING", "UNKNOWN"],
+  "counters": ["sqlite_errors", "uncompleted_desk_actions", "disconnect_notices", "evasion_notices", "recovered_purchase_pauses"],
+  "idempotencyKey": "[A-Za-z0-9_-]{8,64}",
+  "configured": true
+}
+```
+
+`configured` is false while the receiver has no GitHub token (a report would get 503). A receiver without this route (404) is the schema 1 only version: send schema 1 and no excerpt.
 
 ## 3. Responses
 
