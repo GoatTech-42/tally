@@ -231,6 +231,7 @@ final class Pages {
             + "<div class=\"tile\"><span class=\"label\">Account</span><b id=\"who\">-</b></div></section>"
             + "<section class=\"panel now\"><span class=\"label\">Now</span><div id=\"now\" role=\"status\"></div>"
             + "</section>"
+            + "<section class=\"panel\" id=\"reportalert\" role=\"status\" hidden></section>"
             + "<div class=\"work\"><nav class=\"panel\" id=\"pages\" aria-label=\"Pages\"></nav>"
             + "<section class=\"panel\"><h1 class=\"title\" id=\"page\">&nbsp;</h1><div class=\"body\">"
             + "<div id=\"pic\">"
@@ -340,7 +341,8 @@ final class Pages {
               items: { label: 'Items', open: openItems },
               prices: { label: 'Your prices', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals },
-              staff: { label: 'Staff Watch', open: openStaff }
+              staff: { label: 'Staff Watch', open: openStaff },
+              reports: { label: 'Report bug', open: openReports }
             };
             function show(name) {
               view = OWN[name] ? name : '';
@@ -368,6 +370,7 @@ final class Pages {
                 pages.appendChild(b);
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name));
+              mine('reports');
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -432,6 +435,74 @@ final class Pages {
 
             // ---- Settings: every setting the screen in game has, changed where it stands
             const S = { data: null, q: '', open: '' };
+            let reportData = {}, reportTimer;
+            async function reportNotice() {
+              try {
+                reportData = await api('reports');
+                const box = $('reportalert');
+                box.hidden = !reportData.alert;
+                box.replaceChildren();
+                if (reportData.alert) box.append(el('p', '', reportData.notice),
+                  button('', 'Review report', () => show('reports')),
+                  button('', 'Dismiss', async () => { await change('reports', {action:'dismiss', incident:reportData.incident}); await reportNotice(); }));
+              } catch (e) { /* Panel status must continue when report status is unavailable. */ }
+            }
+            async function openReports() {
+              clearTimeout(reportTimer);
+              if (view !== 'reports') return;
+              await reportNotice();
+              if (view !== 'reports') return;
+              const description = el('textarea'), expected = el('textarea');
+              description.maxLength = expected.maxLength = 1500;
+              description.rows = 5; expected.rows = 3;
+              description.style.width = expected.style.width = '100%';
+              description.style.boxSizing = expected.style.boxSizing = 'border-box';
+              description.value = reportData.description || '';
+              expected.value = reportData.expected || '';
+              const log = el('input'); log.type = 'checkbox'; log.checked = true;
+              const logLabel = el('label', '', ' Include sanitized diagnostic log'); logLabel.prepend(log);
+              const privacy = el('p', 'muted', 'Reports are public on GitHub. Diagnostics remove player names, chat and personal details. Review the preview for anything sensitive you typed. Nothing is uploaded until you send. This reports the client hosting this panel.');
+              const status = el('p', '', ''), preview = el('pre', '', '');
+              preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
+              const reviewed = el('input'); reviewed.type = 'checkbox';
+              const reviewedLabel = el('label', '', ' I reviewed this public report'); reviewedLabel.prepend(reviewed);
+              let preparedId = '', blockedId = '';
+              const send = button('', 'Send reviewed report', async () => {
+                send.disabled = true;
+                await change('reports', {action:'send', id:preparedId, reviewed:String(reviewed.checked)});
+                poll();
+              });
+              const prepare = button('', 'Prepare report', async () => {
+                reviewed.checked = false; preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
+                const result = await change('reports', {action:'prepare', description:description.value, expected:expected.value, includeLog:String(log.checked)});
+                if (!result || !result.ok) prepare.disabled = false;
+                poll();
+              });
+              const link = el('a', '', 'Open submitted issue'); link.hidden = true; link.rel = 'noopener noreferrer'; link.target = '_blank';
+              function changed() { blockedId = reportData.id || ''; reviewed.checked = false; preparedId = ''; send.disabled = true; preview.textContent = 'Text changed. Prepare again before sending.'; }
+              description.oninput = expected.oninput = log.onchange = changed;
+              reviewed.onchange = () => { send.disabled = !reviewed.checked || !preparedId || reportData.busy || !!reportData.issueUrl || Date.now() < (reportData.retryAt || 0); };
+              async function poll() {
+                clearTimeout(reportTimer);
+                if (view !== 'reports' || !status.isConnected) return;
+                try {
+                  const d = await api('reports'); reportData = d;
+                  status.textContent = d.note || '';
+                  prepare.disabled = !!d.busy;
+                  if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy) {
+                    preparedId = d.id; preview.textContent = d.preview; reviewed.checked = false;
+                  }
+                  send.disabled = !reviewed.checked || !preparedId || d.busy || !!d.issueUrl || Date.now() < (d.retryAt || 0);
+                  link.hidden = !/^https:\\/\\/github\\.com\\/cody-raves\\/Gonuts\\/issues\\/[1-9][0-9]*$/.test(d.issueUrl || '');
+                  if (!link.hidden) link.href = d.issueUrl;
+                } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
+                reportTimer = setTimeout(poll, 1500);
+              }
+              own.replaceChildren(el('h2', '', 'Report bug'), privacy, el('label', '', 'What happened?'), description,
+                el('label', '', 'What did you expect?'), expected, logLabel, prepare, status, preview, reviewedLabel, send, link);
+              poll();
+            }
+
             async function openSettings() {
               try {
                 S.data = await api('settings');
@@ -850,11 +921,11 @@ final class Pages {
                   for (const row of rows) { const line = el('tr'); for (const cell of row) line.appendChild(el('td', '', cell)); body.appendChild(line); }
                   t.appendChild(body); wide.appendChild(t); parts.push(wide);
                 }
-                table('Currently observed staff', ['Staff', 'Presence', 'Observer', 'Mapped area', 'Local evidence'],
+                table('Currently observed staff', ['Staff', 'Presence', 'Observers', 'Mapped area', 'Local evidence'],
                   d.rows.map(r => [r.name, r.presence, r.observer, r.scope, r.region]), 'No current sightings; this does not establish staff are offline.');
                 table('Observed activity history (30 days)', ['Staff', 'Intervals', 'Detected time', 'First in history', 'Last seen', 'Usual observed hours'],
                   d.summaries.map(r => [r.name, String(r.intervals), Math.floor(r.observedMillis / 60000) + ' min', new Date(r.firstSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), new Date(r.lastSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), r.usualHours]), 'History starts when the updated clients begin observing.');
-                table('Recent sightings', ['Time', 'Staff', 'Activity', 'Observer', 'Local evidence'],
+                table('Recent sightings', ['Time', 'Staff', 'Activity', 'Observers', 'Local evidence'],
                   d.history.map(r => [new Date(r.at).toLocaleString(undefined, {timeZone: d.timeZone}), r.name, r.event, r.observer, r.region]), 'No sightings recorded yet.');
                 own.replaceChildren(...parts);
               } catch (e) { failed(); }
@@ -1029,6 +1100,7 @@ final class Pages {
                 const r = await fetch('/state', { cache: 'no-store' });
                 if (r.status === 401) { location.reload(); return; }
                 draw(await r.json());
+                await reportNotice();
                 if (!view) picture();
               } catch (e) {
                 if (!view) put('notice', SILENT);
