@@ -339,7 +339,8 @@ final class Pages {
               settings: { label: 'Settings', open: openSettings },
               items: { label: 'Items', open: openItems },
               prices: { label: 'Your prices', open: openPrices },
-              rivals: { label: 'Rivals', open: openRivals }
+              rivals: { label: 'Rivals', open: openRivals },
+              staff: { label: 'Staff Watch', open: openStaff }
             };
             function show(name) {
               view = OWN[name] ? name : '';
@@ -370,6 +371,7 @@ final class Pages {
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
+                if (o.value === 'STAFF') { mine('staff'); continue; }
                 // The Flips picture is the Your prices page here, which edits the whole list.
                 if (o.value === 'FLIPS') continue;
                 if (o.value === 'TUNE') { mine('items'); mine('prices'); mine('settings'); continue; }
@@ -829,6 +831,35 @@ final class Pages {
               own.replaceChildren(...parts);
             }
             
+            async function openStaff() {
+              try {
+                const d = await api('staff');
+                if (view !== 'staff') return;
+                const parts = [el('h2', 'title', 'Shared hive Staff Watch'),
+                  el('p', 'desc', d.status + ' · Timezone shown: ' + d.timeZone), el('p', 'desc', d.note),
+                  el('p', 'desc', 'Observation coverage: ' + Math.floor(d.watchedMillis / 60000) + ' minutes (overlap merged)')];
+                if (!d.fresh) parts.push(el('p', 'bad', 'Current detection is unavailable; history is not live presence.'));
+                function table(title, headers, rows, empty) {
+                  parts.push(el('h2', 'title', title));
+                  if (!rows.length) { parts.push(el('p', 'muted', empty)); return; }
+                  const wide = el('div', 'wide');
+                  const t = el('table'); const tr = el('tr');
+                  for (const label of headers) tr.appendChild(el('th', '', label));
+                  const top = el('thead'); top.appendChild(tr); t.appendChild(top);
+                  const body = el('tbody');
+                  for (const row of rows) { const line = el('tr'); for (const cell of row) line.appendChild(el('td', '', cell)); body.appendChild(line); }
+                  t.appendChild(body); wide.appendChild(t); parts.push(wide);
+                }
+                table('Currently observed staff', ['Staff', 'Presence', 'Observer', 'Mapped area', 'Local evidence'],
+                  d.rows.map(r => [r.name, r.presence, r.observer, r.scope, r.region]), 'No current sightings; this does not establish staff are offline.');
+                table('Observed activity history (30 days)', ['Staff', 'Intervals', 'Detected time', 'First in history', 'Last seen', 'Usual observed hours'],
+                  d.summaries.map(r => [r.name, String(r.intervals), Math.floor(r.observedMillis / 60000) + ' min', new Date(r.firstSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), new Date(r.lastSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), r.usualHours]), 'History starts when the updated clients begin observing.');
+                table('Recent sightings', ['Time', 'Staff', 'Activity', 'Observer', 'Local evidence'],
+                  d.history.map(r => [new Date(r.at).toLocaleString(undefined, {timeZone: d.timeZone}), r.name, r.event, r.observer, r.region]), 'No sightings recorded yet.');
+                own.replaceChildren(...parts);
+              } catch (e) { failed(); }
+            }
+
             // ---- Rivals: who else is trading, and one of them opened up
             const R = { data: null, open: '', detail: null, limit: 60 };
             async function openRivals() {
@@ -1006,6 +1037,7 @@ final class Pages {
             if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();
             setInterval(() => {
               refresh();
+              if (view === 'staff') openStaff();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
               if (++ticks % 4 !== 0) return;
               if (view === 'rivals') openRivals();

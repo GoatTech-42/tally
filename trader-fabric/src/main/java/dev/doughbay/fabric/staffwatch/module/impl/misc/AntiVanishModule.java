@@ -697,6 +697,9 @@ public final class AntiVanishModule extends ClientModule {
       this.upsertDetection(detectionKey(uuid, name), name, reason, score, System.currentTimeMillis() + 20000L);
       AntiVanishModule.HiddenSpell spell = this.hiddenSpells.get(spellKey(name));
       if (spell == null || spell.spectator != spectator) {
+         if(StaffListModule.isStaffName(name)) dev.doughbay.fabric.StaffWatchReport.record(System.currentTimeMillis(),name,
+             spectator?dev.doughbay.fabric.StaffWatchReport.Event.SPECTATOR:dev.doughbay.fabric.StaffWatchReport.Event.HIDDEN_FROM_TAB,
+             this.regionProof(uuid)!=null);
          this.hiddenSpells.put(spellKey(name), new AntiVanishModule.HiddenSpell(uuid, name, spectator, detail, this.regionProof(uuid), this.tickCounter));
       }
    }

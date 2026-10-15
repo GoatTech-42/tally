@@ -160,6 +160,7 @@ public class DoughBayClient implements ClientModInitializer {
         AUTOMATION_SESSION.setRestStore(config.directory().resolve("market-rests.txt"));
         AUTOMATION_SESSION.setLedgerPath(config.databasePath());
         Tuning.load(config.directory());
+        StaffWatchReport.start(config.directory(), DoughBayClient::account);
         AUTOMATIC_REPORTS = new AutomaticReportService(
                 net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
         // What one account has ordered, collected and last counted is that
@@ -675,6 +676,7 @@ public class DoughBayClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> MarketWatcher.requestRankLookup());
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            StaffWatchReport.close();
             if (AUTOMATIC_REPORTS != null) AUTOMATIC_REPORTS.close();
             AUTOMATION_SESSION.emergencyStop();
             if (watcher != null && exactCoverageForwarded) {

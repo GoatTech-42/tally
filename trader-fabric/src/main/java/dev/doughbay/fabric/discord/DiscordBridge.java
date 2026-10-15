@@ -45,7 +45,7 @@ public final class DiscordBridge {
     private static final long REFRESH_MILLIS = 15_000;
     private static final long FEED_MILLIS = 5_000;
 
-    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, FLIPS, RIVALS, EVASION, PAYROLL, TUNE, SEARCH }
+    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, FLIPS, RIVALS, STAFF, EVASION, PAYROLL, TUNE, SEARCH }
 
     private final Logger log;
     private final Path configDir;
@@ -520,7 +520,7 @@ public final class DiscordBridge {
         // Which account the figures are for. Offered only when there is more
         // than one, so a single client's panel is exactly what it always was.
         List<String> accounts = DoughBayClient.hiveAccounts();
-        if (accounts.size() > 1) {
+        if (accounts.size() > 1 && page != Page.STAFF) {
             ArrayNode ra = row(rows);
             ObjectNode apick = select(ra, "acct:pick",
                     "Account - " + (account.isBlank() ? "all" : account));
@@ -678,6 +678,7 @@ public final class DiscordBridge {
             case ORDERS -> "Orders";
             case RIVALS -> "Rivals";
             case EVASION -> "Evasion";
+            case STAFF -> "Staff Watch";
             case PAYROLL -> "Payroll";
             case TUNE -> "Tune";
             case FLIPS -> "Flips";
@@ -1068,6 +1069,7 @@ public final class DiscordBridge {
             case ORDERS -> ordersPage(stateColor, subtitle, footer);
             case RIVALS -> rivalsPage(stateColor, subtitle, footer);
             case EVASION -> evasionPage(stateColor, subtitle, footer);
+            case STAFF -> staffPage();
             case PAYROLL -> payrollPage(stateColor, subtitle, footer);
             case TUNE -> tunePage(stateColor, subtitle, footer);
             case FLIPS -> flipsPage(stateColor, subtitle, footer);
@@ -1671,6 +1673,35 @@ public final class DiscordBridge {
     }
 
     /** Who came near, when, and what the guard did about it - newest first. */
+    private StatsImage.Page staffPage() {
+        return staffPageFor(dev.doughbay.fabric.StaffWatchReport.snapshot(),System.currentTimeMillis(),DoughBayClient.account(),ZoneId.systemDefault());
+    }
+    static StatsImage.Page staffPageFor(dev.doughbay.fabric.StaffWatchReport.Snapshot snapshot,long now,String host,ZoneId zone) {
+        List<String[]> head = new ArrayList<>();
+        List<String[]> rows = new ArrayList<>();
+        head.add(new String[]{"Detector", snapshot.status(now)});
+        head.add(new String[]{"Watched",dev.doughbay.fabric.StaffActivityMetrics.durationLabel(snapshot.watchedMillis())});
+        head.add(new String[]{"Clock",zone.getId()});
+        for (var row : snapshot.current(now)) rows.add(new String[]{"Now", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(row.name()),
+                row.presence().equals("SPECTATOR") ? "Spectator observed" : row.presence().equals("VANISHED") ? "Hidden from TAB" : "Online in player list",
+                row.observer()+(row.sameRegion()?" (local signal)":"")});
+        for(var summary:snapshot.summaries().stream().limit(8).toList()) {
+            rows.add(new String[]{"History",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),
+                dev.doughbay.fabric.StaffActivityMetrics.durationLabel(summary.observedMillis())+" detected",summary.intervals()+" intervals; last "+Instant.ofEpochMilli(summary.lastSeen()).atZone(zone).format(DateTimeFormatter.ofPattern("MMM d HH:mm"))});
+            rows.add(new String[]{"Usual hours",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),summary.usualHours(),"Observed, not predicted"});
+            rows.add(new String[]{"First seen",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),Instant.ofEpochMilli(summary.firstSeen()).atZone(zone).format(DateTimeFormatter.ofPattern("MMM d HH:mm")),"In retained 30-day history"});
+        }
+        for (var sighting : snapshot.history().stream().limit(8).toList()) rows.add(new String[]{
+                Instant.ofEpochMilli(sighting.at()).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                dev.doughbay.fabric.staffwatch.util.NameFilter.apply(sighting.name()), dev.doughbay.fabric.StaffWatchReport.label(sighting.event()), sighting.observer()});
+        if (rows.isEmpty()) rows.add(new String[]{"", "No staff observations", "", ""});
+        return new StatsImage.Page("Staff Watch", host + " · " + Instant.ofEpochMilli(now).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                "green", head, 0, 0,
+                new String[]{"Time", "Staff", "Observation", "Observer / history"},
+                new boolean[]{false, false, false, false}, rows,
+                "Passive hive observations. Gaps excluded; overlap merged. Absence does not prove offline.");
+    }
+
     private StatsImage.Page evasionPage(String color, String subtitle, String footer) {
         List<String[]> head = new ArrayList<>();
         List<String[]> rows = new ArrayList<>();

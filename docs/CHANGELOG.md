@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 04:54 UTC
+
+- Added Staff Watch activity history to the in-game tab, authenticated web panel and Discord panel: current staff observations, spectator sightings, observing accounts, first/last sightings, detected duration and recent events.
+- History is retained for 30 days in a separate shared sidecar database. Hive overlaps are merged; disconnects, observation gaps and stale data are excluded. Activity hours require enough observed coverage and use the operator's timezone, without inferring staff timezones or account ownership.
+- History collection uses existing detector evidence only, with background persistence and cached UI snapshots. Existing staff escape/reconnect behavior and trading settings are unchanged.
+- The website now shows lifetime mod, CLI and server downloads from the public VPS counter, hiding the count if it cannot be loaded.
 ## 2026-10-15 01:57 UTC
 
 - Added opt-in automatic critical bug reports under Settings → Support. Persistent rejected checkpoints or a failed persistence writer are reported only after two minutes without recovery following healthy operation. Slow sales, normal scans, manual stops and intentional restart/escape handling do not trigger reports.

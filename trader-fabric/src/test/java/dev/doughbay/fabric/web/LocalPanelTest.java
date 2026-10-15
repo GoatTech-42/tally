@@ -46,7 +46,7 @@ class LocalPanelTest {
         @Override
         public synchronized String data(String name, java.util.Map<String, String> query) {
             calls.add("data " + name + " " + new java.util.TreeMap<>(query));
-            return name.equals("settings") || name.equals("rival") ? "{\"page\":\"" + name + "\"}" : null;
+            return name.equals("settings") || name.equals("rival") || name.equals("staff") ? "{\"page\":\"" + name + "\"}" : null;
         }
 
         @Override
@@ -138,12 +138,15 @@ class LocalPanelTest {
         try (LocalPanel panel = open(backend)) {
             // A stranger: no page, no change, no picture, and the trader never hears of the asking.
             assertEquals(401, get(panel, "/api/settings", null).statusCode());
+            assertEquals(401, get(panel, "/api/staff", null).statusCode());
             assertEquals(401, post(panel, "/api/setting", "key=buy.purchase_cap_pct&value=50", null, true).statusCode());
             assertEquals(401, get(panel, "/item/minecraft:diamond.png", null).statusCode());
             assertTrue(backend.calls.isEmpty());
 
             String cookie = signIn(panel);
             HttpResponse<String> page = get(panel, "/api/settings", cookie);
+            assertEquals(200,get(panel,"/api/staff",cookie).statusCode());
+            assertEquals("{\"page\":\"staff\"}",get(panel,"/api/staff",cookie).body());
             assertEquals(200, page.statusCode());
             assertEquals("{\"page\":\"settings\"}", page.body());
             assertTrue(page.headers().firstValue("Content-Type").orElse("").startsWith("application/json"));
@@ -174,7 +177,7 @@ class LocalPanelTest {
             assertEquals(404, get(panel, "/item/A.png", cookie).statusCode());
 
             synchronized (backend) {
-                assertEquals(List.of("data settings {}", "data rival {id=54726164, x=a b}", "data nothing {}",
+                assertEquals(List.of("data settings {}", "data staff {}", "data staff {}", "data rival {id=54726164, x=a b}", "data nothing {}",
                         "change setting {key=buy.purchase_cap_pct, value=30%}", "change nothing {a=b}",
                         "icon minecraft:diamond", "icon stone"), backend.calls);
             }
