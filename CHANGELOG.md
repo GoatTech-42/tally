@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 18:03 UTC
+
+- Fixed large retail lots monopolizing the replenishment loop: after four verified retail-single listings, allow one normal order-desk action before continuing the remaining batch. This can refresh orders, collect fills or place an already eligible order for another market.
+- Only known, purchased retail remainders yield; unresolved recovery stock keeps its previous priority. Existing desk checks, spending limits, stock accounting, stale repricing and click pacing remain enforced. If the desk cannot start within 15 seconds, resume listing rather than stranding stock.
+
 ## 2026-10-15 17:20 UTC
 
 - Added per-client SOCKS5/SOCKS4 proxy profiles, a Multiplayer-screen button, and Proxies tabs in the in-game GUI and authenticated web panel. Profiles apply to new Minecraft connections, pings, transfers and reconnects; existing sessions are not interrupted. Local/LAN connections stay direct.
