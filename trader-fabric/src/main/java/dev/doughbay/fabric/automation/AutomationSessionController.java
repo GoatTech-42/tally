@@ -1964,6 +1964,7 @@ public final class AutomationSessionController {
             // gone - and used to lock Resume out entirely ("must be reconciled
             // first"), the loop that stranded a recovered session. Resume now
             // force-resets it: abandon the phantom, clear the lock, scan fresh.
+            policy = requestedPolicy;
             return forceReset(Minecraft.getInstance());
         }
         String persistenceBlocker = persistenceStartBlocker();
@@ -2130,6 +2131,15 @@ public final class AutomationSessionController {
      * purpose. Reached by the auto-reset watchdog and by an operator.</p>
      */
     public synchronized ExecutionResult forceReset(Minecraft client) {
+        // Recovered checkpoints do not carry an in-memory policy. Resolve the
+        // validated limits before clearing any recovery evidence or arming.
+        ContinuousAutomationPolicy resetPolicy = policy != null
+                ? policy : dev.doughbay.fabric.DoughBayClient.continuousPolicy();
+        if (resetPolicy == null) {
+            return ExecutionResult.refused(
+                    "A valid automation policy is required; recovery remains paused with exposure retained");
+        }
+        policy = resetPolicy;
         long now = System.currentTimeMillis();
         List<Position> abandoned = exposurePositions();
         LOGGER.warn("DoughBay automation: FORCE RESET - abandoning {} unresolved exposure record(s), clearing "
@@ -2198,6 +2208,10 @@ public final class AutomationSessionController {
             return;
         }
         if (now - wedgedSince < (long) (minutes * 60_000L)) return;
+        if (policy == null && dev.doughbay.fabric.DoughBayClient.continuousPolicy() == null) {
+            detail = "PAUSED: a valid automation policy is required before recovery can resume";
+            return;
+        }
         LOGGER.warn("DoughBay automation: recovery has been wedged on locked exposure for {} min; "
                 + "auto force-reset.", (long) minutes);
         forceReset(client);
@@ -2422,6 +2436,11 @@ public final class AutomationSessionController {
             updateManualResolutionEvidence(client, marketSnapshot, now);
         }
         if (!isRunning()) return;
+
+        if (policy == null) {
+            pauseInternal("A valid automation policy is required before trading can resume");
+            return;
+        }
 
         String persistenceFailure = persistenceHealthBlocker();
         if (persistenceFailure != null) {

@@ -191,6 +191,65 @@ final class AutomationSessionControllerPersistenceTest {
                 "session and lifetime counters must advance by the same delta");
     }
 
+    @Test void forceResetRestoresValidatedPolicyBeforeHeartbeat() throws Exception {
+        var persistence = new FakePersistence();
+        var controller = new AutomationSessionController(new AutomatedExecutionDriver());
+        controller.setPersistence(persistence);
+        controller.tick(null, null);
+        var configured = policy();
+        Field global = dev.doughbay.fabric.DoughBayClient.class.getDeclaredField("continuousPolicy");
+        global.setAccessible(true);
+        Object previous = global.get(null);
+        try {
+            global.set(null, configured);
+            assertTrue(controller.forceReset(null).ok());
+            org.junit.jupiter.api.Assertions.assertSame(configured, field(controller, "policy"));
+            var heartbeat = AutomationSessionController.class.getDeclaredMethod("queueRuntimeHeartbeat");
+            heartbeat.setAccessible(true);
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> heartbeat.invoke(controller));
+            assertEquals(1, field(controller, "tradesStarted"));
+            assertEquals(4_100L, field(controller, "committedSpend"));
+        } finally { global.set(null, previous); }
+    }
+
+    @Test void forceResetWithoutValidatedPolicyRetainsRecoveryAndExposure() throws Exception {
+        var persistence = new FakePersistence();
+        var controller = new AutomationSessionController(new AutomatedExecutionDriver());
+        controller.setPersistence(persistence);
+        controller.tick(null, null);
+        var exposure = new dev.doughbay.storage.AutomationUncertainExposure(true, "BUYING", "listing",
+                "minecraft:diamond", "minecraft:diamond", 1, 4100, 6000, "seller", 1000);
+        setField(controller, "uncertainExposure", exposure);
+        Field global = dev.doughbay.fabric.DoughBayClient.class.getDeclaredField("continuousPolicy");
+        global.setAccessible(true);
+        Object previous = global.get(null);
+        try {
+            global.set(null, null);
+            assertFalse(controller.forceReset(null).ok());
+            assertEquals(AutomationSessionController.State.PAUSED, controller.snapshot().state());
+            assertTrue(controller.snapshot().recoveredSession());
+            assertFalse((boolean) field(controller, "armed"));
+            assertEquals(exposure, field(controller, "uncertainExposure"));
+            assertEquals(4_100L, field(controller, "committedSpend"));
+            assertEquals(0, persistence.submissions.get());
+        } finally { global.set(null, previous); }
+    }
+
+    @Test void activeTickWithoutPolicyPausesBeforeSpendingReconciliation() throws Exception {
+        var controller = new AutomationSessionController(new AutomatedExecutionDriver());
+        controller.setPersistence(new FakePersistence());
+        controller.tick(null, null);
+        setField(controller, "state", AutomationSessionController.State.SCANNING);
+        setField(controller, "recoveredSession", false);
+        var tick = AutomationSessionController.class.getDeclaredMethod("tickInternal",
+                net.minecraft.client.Minecraft.class, dev.doughbay.fabric.MarketWatcher.Snapshot.class);
+        tick.setAccessible(true);
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> tick.invoke(controller, null, null));
+        assertEquals(AutomationSessionController.State.PAUSED, controller.snapshot().state());
+        assertTrue(controller.snapshot().detail().contains("policy"));
+        assertEquals(4_100L, field(controller, "committedSpend"));
+    }
+
     private static ContinuousAutomationPolicy policy() {
         return ContinuousAutomationPolicy.fromConfigValues(
                 2, 100_000, 50_000, 5_000,
