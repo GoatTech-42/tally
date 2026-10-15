@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 19:20 UTC
+
+- Enabling auto-update from any settings surface now immediately checks the latest already-published release. Auto-update performs its own checks even if notification-only checks are off.
+- Fixed unchanged-release caching skipping a needed download or retry. A known newer release can be fetched on subsequent checks without another publication or repeated GitHub API requests. Verified downloads still install only after the game closes; current and newer local builds are not downgraded.
+
 ## 2026-10-15 18:03 UTC
 
 - Fixed large retail lots monopolizing the replenishment loop: after four verified retail-single listings, allow one normal order-desk action before continuing the remaining batch. This can refresh orders, collect fills or place an already eligible order for another market.

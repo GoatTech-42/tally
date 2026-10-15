@@ -175,7 +175,6 @@ public final class UpdateScreen extends Screen {
             addRenderableWidget(CockpitButton.builder(Component.literal("Turn on auto-update"), b -> {
                 SESSION.notePanelActivity();
                 Tuning.set("update.auto", 1);
-                UpdateCheck.checkNow();
                 rebuildWidgets();
             }).bounds(x, y, each, 20).build());
             x += each + gap;

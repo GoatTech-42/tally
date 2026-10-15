@@ -219,7 +219,7 @@ public final class UpdateCheck {
         try {
             Thread.sleep(FIRST_MILLIS);
             while (true) {
-                if (Tuning.get("update.check") < 0.5) {
+                if (Tuning.get("update.check") < 0.5 && Tuning.get("update.auto") < 0.5) {
                     status = new Status(State.OFF, 0, 0, PAGE, "");
                 } else {
                     if (own == null) {
@@ -245,6 +245,7 @@ public final class UpdateCheck {
 
     /** The hash the release gave for its jar at the last full look, and when that was. */
     private static String lookedAt = "";
+    private static Release knownRelease;
     private static long lookedAtMillis;
 
     /**
@@ -271,13 +272,37 @@ public final class UpdateCheck {
             }
             if (listed == null) return;
             if (listed.equalsIgnoreCase(lookedAt)) {
-                // Nothing new. Only the time of the look moves on.
+                // An unchanged release may still need downloading: auto-update
+                // can have been enabled since the last look, or its fetch failed.
                 Status s = status;
+                try {
+                    Path ready = fetchCachedIfNeeded(s, knownRelease, listed, Tuning.get("update.auto") >= 0.5,
+                            release -> fetch(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
+                                    .followRedirects(HttpClient.Redirect.NORMAL).build(), release, updateDirectory(), ownJar));
+                    if (ready != null) {
+                        staged = ready;
+                        s = new Status(State.READY, now, s.uploadedAt(), s.page(), s.detail());
+                        DoughBayClient.LOGGER.info("DoughBay update: published build downloaded; installs when the game closes");
+                    }
+                } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
+                catch (Exception e) { DoughBayClient.LOGGER.warn("DoughBay update: download will be retried at the next check"); }
                 if (s.checkedAt() > 0) status = new Status(s.state(), now, s.uploadedAt(), s.page(), s.detail());
                 return;
             }
         }
         check(own, built);
+    }
+
+    @FunctionalInterface interface CachedFetcher { Path fetch(Release release) throws Exception; }
+    static Path fetchCachedIfNeeded(Status current, Release known, String listed, boolean automatic,
+                                    CachedFetcher fetcher) throws Exception {
+        if (!automatic || current.state() != State.NEWER || known == null
+                || !known.sha256().equalsIgnoreCase(listed) || !known.sha256().equalsIgnoreCase(current.detail())) return null;
+        return fetcher.fetch(known);
+    }
+
+    static void settingChanged(String key, double before, double after) {
+        if ((key.equals("update.auto") || key.equals("update.check")) && before < 0.5 && after >= 0.5) checkNow();
     }
 
     /** The hash a checksum file gives for the mod's jar, or null when it names none. */
@@ -309,6 +334,7 @@ public final class UpdateCheck {
             if (response.statusCode() != 200) throw new IOException("GitHub answered " + response.statusCode());
             Release release = parse(response.body());
             if (release == null) throw new IOException("the release lists no mod jar");
+            knownRelease = release;
             lookedAt = release.sha256();
             lookedAtMillis = now;
             State state = compare(own, built, release);
