@@ -3162,6 +3162,14 @@ public final class AutomationSessionController {
         refreshWarmUp(snapshot, System.currentTimeMillis());
         driver.setContainerPricer(this::priceContainer);
         if (pendingOpportunity == null && slotAuditPending && startSlotAudit(client)) return;
+        // Retail remainders return here after every single. Without a slice
+        // boundary, a rapidly selling lot can win this branch for minutes and
+        // the desk below never gets to collect or replenish other markets.
+        boolean onlyRetailQueued = !recoveredQueue.isEmpty() && recoveredQueue.stream()
+                .allMatch(p -> p.status() == PositionStatus.PURCHASED && retailLots.containsKey(p.positionId()));
+        if (pendingOpportunity == null && trackedPosition == null && !windingDown()
+                && retailBatchFlow.yieldToDesk(onlyRetailQueued, now)
+                && startDeskAction(client, snapshot, now)) return;
         if (pendingOpportunity == null && trackedPosition == null && !recoveredQueue.isEmpty()
                 && !bookFullNow(now)) {
             Position next = recoveredQueue.stream()
@@ -4992,6 +5000,7 @@ public final class AutomationSessionController {
             return false;
         }
         stockFlow.deskActionStarted();
+        retailBatchFlow.deskActionStarted();
         deskStep = step;
         transition(State.BID_DESK, "Bid desk: " + step.why());
         return true;
@@ -8672,6 +8681,7 @@ public final class AutomationSessionController {
     }
 
     private final StockFlowScheduler stockFlow = new StockFlowScheduler();
+    private final RetailBatchScheduler retailBatchFlow = new RetailBatchScheduler();
 
     private boolean startRepriceIfDue(Minecraft client, long now) {
         if (dev.doughbay.fabric.ServerStrain.holding()) {
@@ -12339,6 +12349,7 @@ public final class AutomationSessionController {
             persistence.setLoanId(0);
         }
         Position parked = trackedPosition;
+        retailBatchFlow.listed(parked.quantity() == 1 && retailLots.containsKey(parked.positionId()));
         DonutSaleMessageParser.SaleNotice early = bufferedSaleNotice;
         openListings.add(parked);
         if (pendingIsSlow) slowIntent.add(parked.positionId());
