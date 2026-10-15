@@ -21,6 +21,8 @@ public final class WebReports {
     }
     private static final class Draft {
         final String id = UUID.randomUUID().toString();
+        final String formKey;
+        Draft(String key) { formKey = key; }
         final long created = System.currentTimeMillis();
         BugReportPayload payload;
         String log = "", note = "Preparing locally; nothing uploaded.", url = "";
@@ -65,22 +67,31 @@ public final class WebReports {
             if (incident != null && incident.fingerprint().equals(form.get("incident"))) dismissed = incident.fingerprint();
             return reply(true, "Notice dismissed. Trading continues.");
         }
-        if (action.equals("prepare")) {
+        if (action.equals("prepare") || action.equals("submit")) {
+            boolean submit = action.equals("submit");
+            if (submit && !"true".equals(form.get("consent"))) return reply(false, "Sending requires permission to publish this report.");
             if (draft != null && draft.busy) return reply(false, "A report operation is already running.");
             String description = form.getOrDefault("description", ""), expected = form.getOrDefault("expected", "");
             if (description.length() > 3000 || expected.length() > 3000) return reply(false, "Use at most 1500 characters per field.");
-            var d = new Draft(); draft = d;
             boolean includeLog = "true".equals(form.get("includeLog"));
-            CompletableFuture.runAsync(() -> prepare(d, description, expected, includeLog, preparation));
+            String key = description + "\0" + expected + "\0" + includeLog;
+            try { key = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
+            catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+            if (draft != null && draft.formKey.equals(key) && draft.payload != null) {
+                if (!draft.url.isEmpty()) return reply(true, "Already received. Open the existing issue.");
+                return submit ? change(Map.of("action","send","id",draft.id,"consent","true"),preparation,delivery) : reply(true,"Preview ready; nothing uploaded.");
+            }
+            var d = new Draft(key); draft = d;
+            CompletableFuture.runAsync(() -> prepare(d, description, expected, includeLog, preparation, submit, delivery));
             return reply(true, "Preparing locally; nothing uploaded.");
         }
         if (!action.equals("send")) return reply(false, "Unknown report action.");
         if (draft == null || !draft.id.equals(form.get("id"))) return reply(false, "Report expired or changed. Prepare again.");
         var d = draft;
-        if (!"true".equals(form.get("reviewed"))) return reply(false, "Review the public report before sending.");
+        if (!"true".equals(form.get("consent")) && !"true".equals(form.get("reviewed"))) return reply(false, "Sending requires permission to publish this report.");
         if (d.busy || d.payload == null || !d.url.isEmpty() || System.currentTimeMillis() < d.retryAt)
             return reply(false, "This report cannot be sent yet.");
-        d.busy = true; d.note = "Sending reviewed report...";
+        d.busy = true; d.note = "Sending sanitized report...";
         delivery.send(d.payload, d.id, d.log).whenComplete((result, error) -> {
             synchronized (WebReports.class) {
                 d.busy = false;
@@ -89,16 +100,18 @@ public final class WebReports {
                 if (result.filed() && incident != null && d.payload.description().equals(incident.description())) dismissed = incident.fingerprint();
             }
         });
-        return reply(true, "Sending reviewed report...");
+        return reply(true, "Sending sanitized report...");
     }
 
-    private static void prepare(Draft d, String description, String expected, boolean includeLog, Preparation preparation) {
+    private static void prepare(Draft d, String description, String expected, boolean includeLog, Preparation preparation, boolean submit, Delivery delivery) {
         try {
             Prepared result = preparation.capture(description, expected, includeLog);
             result.payload().json(result.log());
             synchronized (WebReports.class) {
                 d.payload = result.payload(); d.log = result.log(); d.busy = false;
-                d.note = "Prepared locally. Review the entire public report before sending.";
+                d.note = "Preview ready; nothing uploaded.";
+                if (submit && draft == d)
+                    change(Map.of("action","send","id",d.id,"consent","true"),preparation,delivery);
             }
         } catch (Exception e) {
             synchronized (WebReports.class) { d.busy = false; d.note = "Could not prepare. Check the text and receiver availability; nothing uploaded."; }
@@ -111,8 +124,8 @@ public final class WebReports {
                 expected = expected.replace(config.apiKey(), "[credential removed]");
             }
             var path = net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("logs/latest.log");
-            var payload = new BugReportPayload(BugReportBuild.current(), "26.2", BugReportPrivacy.clean(description),
-                BugReportPrivacy.clean(expected), BugReportDiagnostics.readCounters(path));
+            var payload = new BugReportPayload(BugReportBuild.current(), "26.2", BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(description)),
+                BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(expected)), BugReportDiagnostics.readCounters(path));
             if (includeLog && !TRANSPORT.supportsLogAttachments("", "").join())
                 throw new IllegalStateException("Log support unavailable. Try later or prepare without the log.");
             String log = includeLog ? BugReportLog.read(path) : "";

@@ -44,6 +44,8 @@ import java.util.Objects;
  */
 public final class DoughBayScreen extends Screen {
 
+    private final ProxyPanel proxyPanel = new ProxyPanel();
+
     private enum Tab {
         OVERVIEW("Dashboard"),
         OPPORTUNITIES("Opportunities"),
@@ -57,6 +59,7 @@ public final class DoughBayScreen extends Screen {
         AUTOMATION("Autopilot"),
         ACTIVITY("Activity"),
         STAFF_WATCH("Staff Watch"),
+        PROXIES("Proxies"),
         DIAGNOSTICS("Diagnostics"),
         LOGS("Logs"),
         PAYROLL("Payroll"),
@@ -380,6 +383,7 @@ public final class DoughBayScreen extends Screen {
     private final AppearancePanel appearancePanel = new AppearancePanel();
     public void selectAppearance(){ tab=Tab.APPEARANCE; }
     public void selectStaffWatch(){ tab=Tab.STAFF_WATCH; }
+    public void selectProxies(){ tab=Tab.PROXIES; }
     private Opportunity selected;
     /**
      * A deliberate, sticky Automation-tab candidate. It is only a display
@@ -803,6 +807,8 @@ public final class DoughBayScreen extends Screen {
             appearancePanel.init(ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
         } else if (tab == Tab.STAFF_WATCH) {
             staffWatchPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
+        } else if (tab == Tab.PROXIES) {
+            proxyPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),this::addRenderableWidget,this::rebuildWidgets);
         } else if (tab == Tab.STATS) {
             initStatsWidgets(ui);
         } else if (tab == Tab.MARKETS) {
@@ -950,6 +956,7 @@ public final class DoughBayScreen extends Screen {
             case ACTIVITY -> renderActivity(graphics, ui);
             case APPEARANCE -> appearancePanel.render(graphics,font);
             case STAFF_WATCH -> staffWatchPanel.render(graphics,font);
+            case PROXIES -> proxyPanel.render(graphics,font);
             case OPPORTUNITIES -> {
                 if (selected == null) {
                     renderOpportunities(graphics, current, ui, mouseX, mouseY);

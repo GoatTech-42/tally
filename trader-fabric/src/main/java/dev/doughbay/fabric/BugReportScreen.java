@@ -16,7 +16,7 @@ public final class BugReportScreen extends Screen {
     private EditBox happened, expected;
     private String happenedDraft = "", expectedDraft = "", report = "", status = "", retryKey = "", issueUrl = "";
     private BugReportPayload payload;
-    private boolean collecting, sending, reviewed;
+    private boolean collecting, sending, sendWhenReady;
     private long retryAt;
     private int scroll;
     private boolean capabilityChecked, capabilityResolved, attachmentReady, includeLog = true;
@@ -46,9 +46,9 @@ public final class BugReportScreen extends Screen {
         expected.setMaxLength(1500); expected.setValue(expectedDraft); expected.setResponder(v -> { expectedDraft = v; invalidate(); });
         happened.active = !collecting && !sending; expected.active = !collecting && !sending;
         addRenderableWidget(happened); addRenderableWidget(expected);
-        var prepare = CockpitButton.builder(Component.literal("Prepare"), b -> prepare()).bounds(x, 111, each, 20).build();
+        var prepare = CockpitButton.builder(Component.literal("Preview"), b -> prepare()).bounds(x, 111, each, 20).build();
         prepare.active = !collecting && !sending && capabilityResolved; addRenderableWidget(prepare);
-        sendButton = CockpitButton.builder(Component.literal("Send reviewed"), b -> send()).bounds(x + each + gap, 111, each, 20).build();
+        sendButton = CockpitButton.builder(Component.literal("Send report"), b -> send()).bounds(x + each + gap, 111, each, 20).build();
         addRenderableWidget(sendButton);
         var github = CockpitButton.builder(Component.literal("GitHub fallback"), b -> {
             if (report.isEmpty() || sending) return;
@@ -59,16 +59,12 @@ public final class BugReportScreen extends Screen {
         github.active = !report.isEmpty() && !sending; addRenderableWidget(github);
         var back = CockpitButton.builder(Component.literal("Back"), b -> onClose()).bounds(x + 3 * (each + gap), 111, each, 20).build();
         back.active = !sending; addRenderableWidget(back);
-        var consent = CockpitButton.builder(Component.literal(reviewed ? "Reviewed; OK to publish" : "I reviewed this public report"), b -> {
-            reviewed = !reviewed; rebuildWidgets();
-        }).bounds(x, 138, Math.min(210, w), 20).build();
-        consent.active = payload != null && !sending; addRenderableWidget(consent);
         if (issueUrl.isEmpty()) {
-            var log = CockpitButton.builder(Component.literal(attachmentReady ? "Include log: " + (includeLog ? "On" : "Off") : "Log upload pending"), b -> {
+            var log = CockpitButton.builder(Component.literal(capabilityResolved ? "Include log: " + (includeLog ? "On" : "Off") : "Checking log support"), b -> {
                 if (collecting || sending) return;
-                includeLog = !includeLog; invalidate(); status = "Prepare again to review the changed attachment choice."; rebuildWidgets();
+                includeLog = !includeLog; invalidate(); status = "The selected diagnostics will be sanitized before sending."; rebuildWidgets();
             }).bounds(x + w - 145, 138, 145, 20).build();
-            log.active = attachmentReady && !collecting && !sending; addRenderableWidget(log);
+            log.active = capabilityResolved && !collecting && !sending; addRenderableWidget(log);
         }
         if (!issueUrl.isEmpty()) addRenderableWidget(CockpitButton.builder(Component.literal("Open issue"), b ->
             Util.getPlatform().openUri(URI.create(issueUrl))).bounds(x + w - 85, 138, 85, 20).build());
@@ -76,21 +72,22 @@ public final class BugReportScreen extends Screen {
     }
     private void refreshSend() {
         var config = DoughBayClient.activeConfig();
-        sendButton.active = payload != null && reviewed && !collecting && !sending && issueUrl.isEmpty()
+        sendButton.active = capabilityResolved && (!includeLog || attachmentReady) && !collecting && !sending && issueUrl.isEmpty()
             && System.currentTimeMillis() >= retryAt;
     }
     private void invalidate() {
-        payload = null; report = ""; reviewed = false; retryKey = ""; issueUrl = ""; scroll = 0; diagnosticLog = "";
+        sendWhenReady = false; payload = null; report = ""; retryKey = ""; issueUrl = ""; scroll = 0; diagnosticLog = "";
         if (sendButton != null) sendButton.active = false;
     }
     private static String filtered(String input) {
         var config = DoughBayClient.activeConfig();
         if (config != null && !config.apiKey().isBlank()) input = input.replace(config.apiKey(), "[credential removed]");
-        return BugReportPrivacy.clean(input);
+        return BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(input));
     }
-    private void prepare() {
+    private void prepare() { prepare(false); }
+    private void prepare(boolean autoSend) {
         if (collecting || sending || !capabilityResolved) return;
-        invalidate(); collecting = true; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
+        invalidate(); sendWhenReady = autoSend; collecting = true; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
         String description = filtered(happenedDraft), expectation = filtered(expectedDraft);
         boolean withLog = attachmentReady && includeLog;
         CompletableFuture.supplyAsync(() -> {
@@ -106,15 +103,18 @@ public final class BugReportScreen extends Screen {
             report = result == null ? "" : payload.preview() + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
-                : "Review the full report below (scroll), then confirm it may be published.";
-            if (minecraft.gui.screen() == this) rebuildWidgets();
+                : "Preview ready. Send report will publish these sanitized details.";
+            if (minecraft.gui.screen() == this) {
+                rebuildWidgets();
+                if (result != null && sendWhenReady) { sendWhenReady = false; send(); }
+            }
         }));
     }
     private void send() {
-        var config = DoughBayClient.activeConfig();
-        if (payload == null || !reviewed || collecting || sending || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt) return;
+        if (collecting || sending || !capabilityResolved || includeLog && !attachmentReady || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt) return;
+        if (payload == null) { prepare(true); return; }
         if (retryKey.isEmpty()) retryKey = java.util.UUID.randomUUID().toString();
-        sending = true; status = "Sending reviewed report over HTTPS…"; rebuildWidgets();
+        sending = true; status = "Sending sanitized report over HTTPS…"; rebuildWidgets();
         transport.send(payload, retryKey, "", "", diagnosticLog).thenAccept(result -> minecraft.execute(() -> {
             sending = false; status = result.message(); issueUrl = result.issueUrl(); retryAt = result.retryAtMillis();
             if (minecraft.gui.screen() == this) rebuildWidgets();
@@ -129,7 +129,7 @@ public final class BugReportScreen extends Screen {
         }
         return super.mouseScrolled(x, y, dx, dy);
     }
-    @Override public void onClose() { if (!sending) minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { if (!sending) { sendWhenReady = false; minecraft.gui.setScreen(parent); } }
     @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); }
     @Override public boolean isPauseScreen() { return false; }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
@@ -137,7 +137,7 @@ public final class BugReportScreen extends Screen {
         g.fill(0, 0, width, height, 0xE0050910);
         int x = left() + 12, w = panelWidth() - 24;
         g.text(font, "REPORT A BUG", x, 12, UiTheme.GOLD);
-        g.text(font, "GitHub issues are public. Raw logs are never included.", x, 23, UiTheme.MUTED);
+        g.text(font, "Send publishes to GitHub. Only sanitized diagnostics are attached.", x, 23, UiTheme.MUTED);
         g.text(font, "What happened? (Do not include names or private chat)", x, 33, UiTheme.TEXT);
         g.text(font, "What did you expect?", x, 70, UiTheme.TEXT);
         int statusY = 163;

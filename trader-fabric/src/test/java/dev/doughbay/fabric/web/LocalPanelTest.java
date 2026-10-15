@@ -46,7 +46,7 @@ class LocalPanelTest {
         @Override
         public synchronized String data(String name, java.util.Map<String, String> query) {
             calls.add("data " + name + " " + new java.util.TreeMap<>(query));
-            return name.equals("settings") || name.equals("rival") || name.equals("staff") || name.equals("reports") ? "{\"page\":\"" + name + "\"}" : null;
+            return name.equals("settings") || name.equals("rival") || name.equals("staff") || name.equals("reports") || name.equals("proxies") ? "{\"page\":\"" + name + "\"}" : null;
         }
 
         @Override
@@ -140,6 +140,8 @@ class LocalPanelTest {
             assertEquals(401, get(panel, "/api/settings", null).statusCode());
             assertEquals(401, get(panel, "/api/staff", null).statusCode());
             assertEquals(401, get(panel, "/api/reports", null).statusCode());
+            assertEquals(401, get(panel, "/api/proxies", null).statusCode());
+            assertEquals(401, post(panel, "/api/proxies", "action=enable", null, true).statusCode());
             assertEquals(401, post(panel, "/api/reports", "action=send", null, true).statusCode());
             assertEquals(401, post(panel, "/api/setting", "key=buy.purchase_cap_pct&value=50", null, true).statusCode());
             assertEquals(401, get(panel, "/item/minecraft:diamond.png", null).statusCode());
@@ -147,6 +149,8 @@ class LocalPanelTest {
 
             String cookie = signIn(panel);
             assertEquals(200, get(panel, "/api/reports", cookie).statusCode());
+            assertEquals(200, get(panel, "/api/proxies", cookie).statusCode());
+            assertEquals(403, post(panel, "/api/proxies", "action=enable", cookie, false).statusCode());
             assertEquals(403, post(panel, "/api/reports", "action=send", cookie, false).statusCode());
             HttpResponse<String> page = get(panel, "/api/settings", cookie);
             assertEquals(200,get(panel,"/api/staff",cookie).statusCode());
@@ -181,7 +185,7 @@ class LocalPanelTest {
             assertEquals(404, get(panel, "/item/A.png", cookie).statusCode());
 
             synchronized (backend) {
-                assertEquals(List.of("data reports {}", "data settings {}", "data staff {}", "data staff {}", "data rival {id=54726164, x=a b}", "data nothing {}",
+                assertEquals(List.of("data reports {}", "data proxies {}", "data settings {}", "data staff {}", "data staff {}", "data rival {id=54726164, x=a b}", "data nothing {}",
                         "change setting {key=buy.purchase_cap_pct, value=30%}", "change nothing {a=b}",
                         "icon minecraft:diamond", "icon stone"), backend.calls);
             }

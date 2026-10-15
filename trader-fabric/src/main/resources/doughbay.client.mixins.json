@@ -14,7 +14,10 @@
     "MinecraftInvoker",
     "NameTagMixin",
     "SidebarNameMixin",
-    "GuiTextNameMixin"
+    "GuiTextNameMixin",
+    "ProxyConnectionMixin",
+    "ProxyLegacyPingMixin",
+    "MultiplayerProxyButtonMixin"
   ],
   "injectors": {
     "defaultRequire": 1
