@@ -43,7 +43,7 @@ final class HivePanel {
             rebuild.run();
         }).bounds(x+half+8,y+163,half,22).build();
         join.active=offline&&member==null;add.accept(join);
-        add.accept(CockpitButton.builder(Component.literal("Setup guide"),b->net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://gonuts.at/guide/#hive"))).bounds(x,y+218,130,22).build());
+        add.accept(CockpitButton.builder(Component.literal("Setup guide"),b->net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://cody-raves.github.io/Gonuts/guide/#hive"))).bounds(x,y+218,130,22).build());
     }
     private static Path game(){ return FabricLoader.getInstance().getGameDir(); }
     private static String message(Exception e){ return e instanceof java.io.IOException&&e.getMessage()!=null?e.getMessage():"Setup could not finish. Existing data and settings were kept."; }
