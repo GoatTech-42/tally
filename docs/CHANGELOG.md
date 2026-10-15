@@ -6,6 +6,7 @@ About tab.
 
 ## 2026-10-15 16:39 UTC
 
+- Fixed replenishment scheduling counting order-screen cleanup and settle waits as completed desk turns. Only dispatched desk actions count now. Below half of usable auction capacity, the desk gets four actions between due reprices instead of two; a due reprice still gets priority after a minute of scheduling deferral. Existing stale thresholds, trading limits and click pacing are unchanged.
 - Added a Report bug page to the authenticated web panel: prepare a sanitized report and optional diagnostic excerpt, review the public preview, and send directly without opening the game GUI. Uploads run in the background, retain retry identifiers, and require explicit review.
 - Added dismissible web-panel notices for detected critical persistence failures and eligible stalled evasion recovery, including clients that have not opted into automatic uploads. Notices never pause trading or open a screen.
 - Combined current Staff Watch sightings into one row per staff member across the hive. Observers are merged, with differing presence or region evidence attributed within the same row. Matching recent sightings across different hive accounts within ten seconds also appear once; separate events remain distinct.
