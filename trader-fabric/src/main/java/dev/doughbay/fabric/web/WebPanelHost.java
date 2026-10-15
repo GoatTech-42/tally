@@ -47,6 +47,9 @@ public final class WebPanelHost {
     private final LocalPanel.Backend backend;
     private Config config;
     private LocalPanel panel;
+    private SharedPanelLease lease;
+    private boolean sharedHost;
+    private long nextRetry;
     private String problem = "";
 
     private WebPanelHost(Logger log, Path configDir, LocalPanel.Backend backend) {
@@ -154,14 +157,22 @@ public final class WebPanelHost {
             panel.close();
             panel = null;
         }
+        releaseLease();
+        sharedHost = false;
         problem = "";
         if (!config.enabled() || !config.pinSet()) return;
         Config c = config;
         try {
+            lease = SharedPanelLease.acquire(file.getParent());
+            if (lease == null) {
+                sharedHost = true;
+                return;
+            }
             panel = LocalPanel.start(c.port(), c.lan(), typed -> matches(c, typed), backend, log);
             log.info("DoughBay web panel: on at port {} ({})", c.port(),
                     c.lan() ? "this computer and its home network" : "this computer only");
         } catch (Exception e) {
+            releaseLease();
             problem = "port " + c.port() + " could not be opened (" + e.getMessage() + ")";
             log.warn("DoughBay web panel: {}", problem);
         }
@@ -183,9 +194,32 @@ public final class WebPanelHost {
         return panel != null;
     }
 
+    /** A remaining hive client can take over when the host closes. */
+    public synchronized void tick() {
+        long now = System.currentTimeMillis();
+        if (!sharedHost || now < nextRetry) return;
+        nextRetry = now + 5000;
+        config = load(file);
+        apply();
+    }
+
+    public synchronized void close() {
+        if (panel != null) { panel.close(); panel = null; }
+        sharedHost = false;
+        releaseLease();
+    }
+
+    private void releaseLease() {
+        if (lease != null) {
+            try { lease.close(); } catch (Exception ignored) { }
+            lease = null;
+        }
+    }
+
     public synchronized String status() {
         if (!config.pinSet()) return "off: set a PIN to turn it on";
         if (!config.enabled()) return "off";
+        if (sharedHost) return "one shared panel hosted by another hive client";
         if (panel == null) return "not running: " + problem;
         return config.lan() ? "on for this PC and phones on your Wi-Fi" : "on for this PC only";
     }
@@ -193,7 +227,7 @@ public final class WebPanelHost {
     /** Where to point a browser: this computer's own address first, then the ones a phone would use. */
     public synchronized List<String> addresses() {
         List<String> out = new ArrayList<>();
-        if (panel == null) return out;
+        if (panel == null && !sharedHost) return out;
         out.add("http://localhost:" + config.port());
         if (!config.lan()) return out;
         try {

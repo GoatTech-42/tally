@@ -148,13 +148,13 @@ public class DoughBayClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        DoughBayConfig config = DoughBayConfig.load();
         dev.doughbay.fabric.staffwatch.StaffWatchClient.initialize(DoughBayClient::openStaffWatch, name -> {
             RESTART.yieldToStaffWatch();
             AUTOMATION_SESSION.pause("Staff Watch alert: " + name);
             var reconnect = dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.schedule;
             if (EVASION != null) EVASION.noteStaffEscape(name, reconnect.address(), reconnect.remainingMillis());
         });
-        DoughBayConfig config = DoughBayConfig.load();
         activeConfig = config;
         applyPermissions(config);
         AUTOMATION_SESSION.setRestStore(config.directory().resolve("market-rests.txt"));
@@ -464,6 +464,7 @@ public class DoughBayClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(SidebarBalance::tick);
         UpdateCheck.start();
         ClientTickEvents.END_CLIENT_TICK.register(UpdateCheck::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> { if (WEB_PANEL != null) WEB_PANEL.tick(); });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             // Keep Minecraft's input clock fresh so it never AFK-throttles the
             // render thread the whole automation loop runs on. A bot never
@@ -676,6 +677,7 @@ public class DoughBayClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> MarketWatcher.requestRankLookup());
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            if (WEB_PANEL != null) WEB_PANEL.close();
             StaffWatchReport.close();
             if (AUTOMATIC_REPORTS != null) AUTOMATIC_REPORTS.close();
             AUTOMATION_SESSION.emergencyStop();
@@ -888,6 +890,12 @@ public class DoughBayClient implements ClientModInitializer {
         net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
     }
 
+    public static void openHiveSetup() {
+        DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
+        screen.selectHive();
+        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
+    }
+
     /** Opens the mod's screen, with the update notice in front of it when there is one to answer. */
     private static void openPanel(net.minecraft.client.Minecraft client) {
         DoughBayScreen main = new DoughBayScreen(watcher,
@@ -1032,7 +1040,7 @@ public class DoughBayClient implements ClientModInitializer {
 
     /** Whether this key is shared with other clients, so the allowance must be divided. */
     public static boolean multiClient() {
-        return Tuning.get("multi.enabled") >= 0.5;
+        return HiveSetup.active() || Tuning.get("multi.enabled") >= 0.5;
     }
 
     /**

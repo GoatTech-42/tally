@@ -10,7 +10,7 @@ public final class WatchConfig {
  public static final java.util.List<String> SERVER_ADDRESSES=java.util.List.of(SERVER_ADDRESS,"east.donutsmp.net","west.donutsmp.net");
  public String serverAddress=SERVER_ADDRESS;
  public static WatchConfig get(){return instance;}
- public static Path path(){return FabricLoader.getInstance().getConfigDir().resolve("doughbay/staffwatch.json");}
+ public static Path path(){return dev.doughbay.fabric.HiveSetup.sharedDirectoryOr(FabricLoader.getInstance().getConfigDir().resolve("doughbay")).resolve("staffwatch.json");}
  public static void load(){if(Files.isRegularFile(path()))try(var reader=Files.newBufferedReader(path())){var loaded=new Gson().fromJson(reader,WatchConfig.class);if(loaded!=null)instance=loaded;}catch(Exception e){System.err.println("[Staff Watch] Invalid config; using defaults: "+e.getMessage());}}
  public String reconnectAddress(){return SERVER_ADDRESSES.contains(serverAddress)?serverAddress:SERVER_ADDRESS;}
  public void save() throws IOException {serverAddress=reconnectAddress();Files.createDirectories(path().getParent());var tmp=path().resolveSibling("staffwatch.json.tmp");Files.writeString(tmp,new GsonBuilder().setPrettyPrinting().create().toJson(this));try{Files.move(tmp,path(),StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);}catch(AtomicMoveNotSupportedException e){Files.move(tmp,path(),StandardCopyOption.REPLACE_EXISTING);}apply();}

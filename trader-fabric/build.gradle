@@ -143,3 +143,20 @@ if (project.hasProperty('proxyScreenshots')) {
  }
 }
 tasks.named('jar') { exclude '**/ProxyGuiSmoke*.class' }
+
+// Disposable local hive setup verification. Never part of release builds.
+if (project.hasProperty('hiveScreenshots')) {
+ sourceSets.main.java.srcDir 'src/hiveSmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.HiveGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/hive-preview-' + (project.hasProperty('hiveJoinPreview') ? 'join' : 'source')
+  vmArg '-Dgonuts.hive.preview.join=' + project.hasProperty('hiveJoinPreview')
+  programArgs '--width', '1920', '--height', '1200'
+ }
+}
+tasks.named('jar') { exclude '**/HiveGuiSmoke*.class' }
