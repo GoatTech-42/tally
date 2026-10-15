@@ -2966,6 +2966,35 @@ public final class AutomationSessionController {
             reconciliationStatus = "Session closed durably; a future Start creates new caps";
             transition(State.STOPPED, "Automation session ended durably");
         }
+        consumeResolvedPausedIntentReceipts();
+    }
+
+    /**
+     * Inventory reconciliation can release an interrupted intent while paused.
+     * The release checkpoint is the acknowledgement of that intent, even when
+     * no PURCHASED/LISTED successor was needed. Consume only after the writer's
+     * latest durable recovery and this controller both agree it is resolved.
+     */
+    private void consumeResolvedPausedIntentReceipts() {
+        AutomationPersistencePort.Status status = persistence.status();
+        if (!recoveryApplied || state != State.PAUSED || !status.ready()
+                || status.refusalOutstanding()
+                || status.lastAcceptedGeneration() != status.lastDurableGeneration()
+                || uncertainExposure.active() || status.recovery().uncertainExposure().active()
+                || status.recovery().sessionOpen() != sessionOpen
+                || purchasePersistenceGeneration > 0 || listedPersistenceGeneration > 0
+                || settlementPersistenceGeneration > 0 || manualResolutionPersistenceGeneration > 0
+                || endSessionPersistenceGeneration > 0
+                || driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE
+                || driver.commandPending()) return;
+        if (status.durable(buyIntentPersistenceGeneration)) {
+            buyIntentPersistenceGeneration = 0;
+            buyIntentCoverageBoundaryMillis = 0;
+        }
+        if (status.durable(listIntentPersistenceGeneration)) {
+            listIntentPersistenceGeneration = 0;
+            listIntentCoverageBoundaryMillis = 0;
+        }
     }
 
     private void updateManualResolutionEvidence(Minecraft client,

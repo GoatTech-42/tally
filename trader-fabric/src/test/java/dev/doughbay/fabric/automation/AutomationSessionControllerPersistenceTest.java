@@ -370,6 +370,79 @@ final class AutomationSessionControllerPersistenceTest {
         field.set(target, value);
     }
 
+    @Test void pausedResolvedBuyReceiptIsConsumedOnlyAfterTheReleaseCheckpointIsDurable() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);
+        setField(c,"buyIntentPersistenceGeneration",7L);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),8,7,"Release queued");
+        consume(c);assertEquals(7L,field(c,"buyIntentPersistenceGeneration"));
+        p.acknowledgeAll();consume(c);
+        assertEquals(0L,field(c,"buyIntentPersistenceGeneration"));
+        assertEquals(null,startBlocker(c));
+        assertEquals(AutomationSessionController.State.PAUSED,c.snapshot().state());
+        assertEquals(4100L,field(c,"committedSpend"));assertEquals(1,field(c,"tradesStarted"));
+        assertEquals(0,p.submissions.get(),"Acknowledgement consumes evidence; it never starts a trade");
+    }
+
+    @Test void pausedResolvedListReceiptIsConsumedWithoutRearmingAnOperatorPause() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);setField(c,"pausedByPlayer",true);
+        setField(c,"listIntentPersistenceGeneration",7L);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),8,8,"Release durable");
+        consume(c);assertEquals(0L,field(c,"listIntentPersistenceGeneration"));
+        assertTrue((boolean)field(c,"pausedByPlayer"));assertFalse(c.restartRecoveryMayResume());
+        assertEquals(AutomationSessionController.State.PAUSED,c.snapshot().state());
+    }
+
+    @Test void unresolvedIntentInMemoryOrInTheDurableLedgerKeepsItsReceipt() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);setField(c,"buyIntentPersistenceGeneration",7L);
+        var exposure=new dev.doughbay.storage.AutomationUncertainExposure(true,"BUYING","listing",
+                "minecraft:diamond","minecraft:diamond",1,4100,6000,"seller",1000);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),8,8,"Durable");
+        setField(c,"uncertainExposure",exposure);consume(c);assertEquals(7L,field(c,"buyIntentPersistenceGeneration"));
+        setField(c,"uncertainExposure",dev.doughbay.storage.AutomationUncertainExposure.none());
+        var recovery=new AutomationSessionRecovery(true,"CONTINUOUS","PAUSED",1,4100,1000,250,750,2000,"","",exposure,java.util.List.of());
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,recovery,8,8,"Prior intent durable");
+        consume(c);assertEquals(7L,field(c,"buyIntentPersistenceGeneration"));
+    }
+
+    @Test void aRefusedReleaseCannotBeMaskedByAnUnrelatedLaterDurableWrite() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);setField(c,"buyIntentPersistenceGeneration",7L);
+        for(long refused:new long[]{7,8}) {
+            p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),9,9,"Other write durable",refused,java.util.Set.of(refused));
+            consume(c);assertEquals(7L,field(c,"buyIntentPersistenceGeneration"));assertTrue(startBlocker(c)!=null);
+        }
+    }
+
+    @Test void anActiveListingRetryKeepsItsDurableIntentReceipt() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);setField(c,"state",AutomationSessionController.State.PREPARING_LIST);
+        setField(c,"listIntentPersistenceGeneration",7L);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),8,8,"Durable");
+        consume(c);assertEquals(7L,field(c,"listIntentPersistenceGeneration"));
+    }
+
+    @Test void consumingAResolvedIntentDoesNotDiscardPurchasedStock() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);
+        var position=new dev.doughbay.core.model.Position(42,"REAL","minecraft:diamond",dev.doughbay.core.model.StackBucket.of(64),64,10000,12000,1000,0,0,0,Double.NaN,dev.doughbay.core.model.PositionStatus.PURCHASED);
+        setField(c,"trackedPosition",position);setField(c,"recoveredOpenPositions",java.util.List.of(position));
+        setField(c,"buyIntentPersistenceGeneration",7L);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),8,8,"Release durable");
+        consume(c);assertEquals(0L,field(c,"buyIntentPersistenceGeneration"));
+        assertEquals(position,field(c,"trackedPosition"));assertTrue(c.snapshot().unresolvedExposure());
+        assertEquals(4100L,field(c,"committedSpend"));assertEquals(1,field(c,"tradesStarted"));
+    }
+
+    private static void consume(AutomationSessionController c) throws Exception {
+        var method=AutomationSessionController.class.getDeclaredMethod("processOutOfBandPersistence");method.setAccessible(true);method.invoke(c);
+    }
+    private static String startBlocker(AutomationSessionController c) throws Exception {
+        var method=AutomationSessionController.class.getDeclaredMethod("persistenceStartBlocker");method.setAccessible(true);return (String)method.invoke(c);
+    }
+
     private static final class FakePersistence implements AutomationPersistencePort {
         private final AtomicInteger submissions = new AtomicInteger();
         private volatile boolean rejectSubmissions;
