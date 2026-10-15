@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 06:07 UTC
+
+- Fixed a recovery watchdog reset resuming without its trading policy, which caused a null-policy error in spending reconciliation and left the bot paused. Recovery now restores validated limits before clearing exposure or arming; unavailable limits retain the recovery lock and records.
+- Added a fail-closed active-tick policy check and preserved explicitly supplied recovered-session policies. Trading limits and existing reset semantics are unchanged when a valid policy is present.
+
 ## 2026-10-15 04:54 UTC
 
 - Added Staff Watch activity history to the in-game tab, authenticated web panel and Discord panel: current staff observations, spectator sightings, observing accounts, first/last sightings, detected duration and recent events.
