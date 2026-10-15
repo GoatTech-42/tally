@@ -13,6 +13,37 @@ public final class BugReportTransport {
     private static final ObjectMapper JSON = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NEVER).build();
     public record Result(boolean filed, String message, String issueUrl, long retryAtMillis) { }
+    public record AutomaticResult(Result result, boolean permanent) { }
+    /** Public capability lookup; never forwards the market API credential. */
+    public com.fasterxml.jackson.databind.JsonNode automaticCapabilities() throws Exception {
+        var request = HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/capabilities"))
+            .timeout(Duration.ofSeconds(10)).GET().build();
+        var response = http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(15, TimeUnit.SECONDS);
+        try (var stream = response.body()) {
+            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> { try { stream.close(); } catch(Exception ignored) {} });
+            byte[] bytes = stream.readNBytes(8193);
+            if (response.statusCode()!=200 || bytes.length>8192) throw new java.io.IOException("Capabilities unavailable");
+            return JSON.readTree(bytes);
+        }
+    }
+    /** Runs on the report daemon only. The caller validates its frozen outbox before calling. */
+    public AutomaticResult sendAutomatic(byte[] frozenBody, String key) throws Exception {
+        if (frozenBody.length>32768 || key==null || !key.matches("[A-Za-z0-9_-]{8,64}"))
+            throw new IllegalArgumentException("Invalid automatic request");
+        var request=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
+            .header("Content-Type","application/json").header("Idempotency-Key",key)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(frozenBody)).build();
+        var response=http.sendAsync(request,HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
+        try(var stream=response.body()) {
+            CompletableFuture.delayedExecutor(10,TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
+            byte[] bytes=stream.readNBytes(16385);
+            if(bytes.length>16384) throw new java.io.IOException("Unexpected receiver reply");
+            int code=response.statusCode();
+            return new AutomaticResult(interpret(code,new String(bytes,java.nio.charset.StandardCharsets.UTF_8),
+                response.headers().firstValue("Retry-After").orElse(""),System.currentTimeMillis()),
+                code>=400 && code<500 && code!=429);
+        }
+    }
     static HttpRequest request(BugReportPayload payload, String key, String token) {
         return request(payload, key, token, "");
     }
@@ -21,6 +52,16 @@ public final class BugReportTransport {
         return HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type", "application/json")
             .header("Idempotency-Key", key).POST(HttpRequest.BodyPublishers.ofByteArray(payload.json(diagnosticLog))).build();
+    }
+    static HttpRequest automaticRequest(BugReportPayload payload, String key, String diagnosticLog,
+            AutomaticReportMetadata automatic, com.fasterxml.jackson.databind.JsonNode capabilities) {
+        if (!advertisesAutomaticReports(capabilities,automatic.kind())
+                || diagnosticLog!=null&&!diagnosticLog.isEmpty()&&!advertisesLogSupport(capabilities))
+            throw new IllegalStateException("Receiver does not support grouped automatic reports");
+        if(key==null||!key.matches("[A-Za-z0-9_-]{8,64}"))throw new IllegalArgumentException("Invalid report retry identifier");
+        return HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
+            .header("Content-Type","application/json").header("Idempotency-Key",key)
+            .POST(HttpRequest.BodyPublishers.ofByteArray(payload.json(diagnosticLog,automatic))).build();
     }
     public CompletableFuture<Boolean> supportsLogAttachments(String apiBaseUrl, String token) {
         var request = HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/capabilities"))
@@ -41,6 +82,18 @@ public final class BugReportTransport {
             || log.path("maxBytes").asInt() < 8192 || log.path("maxLines").asInt() < 102 || log.path("maxLineChars").asInt() < 500) return false;
         for (var version : body.path("schemaVersions")) if (version.isIntegralNumber() && version.asInt() == 2) return true;
         return false;
+    }
+    /** Never send an automatic incident to a receiver that only supports manual schemas. */
+    static boolean advertisesAutomaticReports(com.fasterxml.jackson.databind.JsonNode body, AutomaticReportDetector.Failure kind) {
+        var automatic=body.path("automaticReports");
+        if(!body.path("configured").asBoolean(false) || body.path("requiresAuthentication").asBoolean(true)
+                || !automatic.path("supported").asBoolean(false) || !automatic.path("grouped").asBoolean(false)
+                || automatic.path("schemaVersion").asInt()!=3 || body.path("maxBodyBytes").asInt()<32768
+                || !body.path("schemaVersions").isArray() || !automatic.path("kinds").isArray())return false;
+        boolean schema=false, supportedKind=false;
+        for(var version:body.path("schemaVersions")) if(version.isIntegralNumber()&&version.asInt()==3)schema=true;
+        for(var value:automatic.path("kinds")) if(value.isTextual()&&value.asText().equals(kind.name()))supportedKind=true;
+        return schema&&supportedKind;
     }
     public CompletableFuture<Result> send(BugReportPayload payload, String key, String apiBaseUrl, String token) {
         return send(payload, key, apiBaseUrl, token, "");

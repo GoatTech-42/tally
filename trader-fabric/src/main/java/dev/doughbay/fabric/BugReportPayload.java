@@ -33,6 +33,24 @@ public record BugReportPayload(String build, String minecraftVersion, String des
     public byte[] json() {
         return json("");
     }
+    /** Proposed schema 3. Sender must require grouped automatic-report capabilities first. */
+    public byte[] json(String diagnosticLog, AutomaticReportMetadata automatic) {
+        if (automatic == null) return json(diagnosticLog);
+        var computed = AutomaticReportMetadata.of(build,minecraftVersion,
+            new AutomaticReportDetector.Candidate(automatic.kind(),automatic.signature()));
+        if (!computed.equals(automatic) || !description.equals(automatic.description()) || !expected.equals(automatic.expected()))
+            throw new IllegalArgumentException("Automatic report must use canonical public metadata and text");
+        try {
+            var body = (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(json(diagnosticLog));
+            body.put("schemaVersion",3);
+            var grouping=body.putObject("automatic");
+            grouping.put("kind",automatic.kind().name());grouping.put("signature",automatic.signature().name());
+            grouping.put("fingerprint",automatic.fingerprint());
+            byte[] bytes=JSON.writeValueAsBytes(body);
+            if(bytes.length>32768)throw new IllegalArgumentException("Automatic report exceeds receiver size limit");
+            return bytes;
+        } catch(java.io.IOException e){throw new IllegalStateException("Could not prepare automatic report",e);}
+    }
     public byte[] json(String diagnosticLog) {
         try {
             var body = JSON.createObjectNode();

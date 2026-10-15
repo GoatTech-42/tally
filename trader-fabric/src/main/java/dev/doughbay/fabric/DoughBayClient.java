@@ -93,6 +93,8 @@ public class DoughBayClient implements ClientModInitializer {
         }
     }
     private static EvasionGuard EVASION;
+    private static AutomaticReportService AUTOMATIC_REPORTS;
+    private static String automaticReportStatus = "";
     private static AutoJoin AUTO_JOIN;
     private static final ConsignmentDesk CONSIGNMENT = new ConsignmentDesk();
     private static final Liveness LIVENESS = new Liveness();
@@ -158,6 +160,8 @@ public class DoughBayClient implements ClientModInitializer {
         AUTOMATION_SESSION.setRestStore(config.directory().resolve("market-rests.txt"));
         AUTOMATION_SESSION.setLedgerPath(config.databasePath());
         Tuning.load(config.directory());
+        AUTOMATIC_REPORTS = new AutomaticReportService(
+                net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
         // What one account has ordered, collected and last counted is that
         // account's own. Clients sharing this folder each keep theirs under
         // their own name; in one file, each start read what the other wrote.
@@ -648,11 +652,30 @@ public class DoughBayClient implements ClientModInitializer {
             }
             HUD_ALERTS.tick(client, watcher == null ? null : watcher.snapshot(),
                     EXECUTION_DRIVER.inspect());
+            if (AUTOMATIC_REPORTS != null) {
+                boolean optedIn = Tuning.get("reports.auto_critical") >= 0.5;
+                AUTOMATIC_REPORTS.observe(AUTOMATION_SESSION.automaticReportObservation(optedIn,
+                        client.player != null && client.level != null && client.getConnection() != null,
+                        staffOwnsConnection || RESTART.active() || EVASION != null && (EVASION.triggered() || EVASION.away())),
+                        System.nanoTime() / 1_000_000);
+                String reportStatus = AUTOMATIC_REPORTS.status();
+                if (!reportStatus.equals(automaticReportStatus)) {
+                    automaticReportStatus = reportStatus;
+                    LOGGER.info("GoNuts {}", reportStatus);
+                }
+            }
+        });
+
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            if (AUTOMATIC_REPORTS != null) AUTOMATIC_REPORTS.observe(
+                    AUTOMATION_SESSION.automaticReportObservation(Tuning.get("reports.auto_critical") >= 0.5, false, true),
+                    System.nanoTime() / 1_000_000);
         });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> MarketWatcher.requestRankLookup());
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            if (AUTOMATIC_REPORTS != null) AUTOMATIC_REPORTS.close();
             AUTOMATION_SESSION.emergencyStop();
             if (watcher != null && exactCoverageForwarded) {
                 watcher.clearExactListingCoverage();

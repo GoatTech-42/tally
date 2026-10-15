@@ -51,7 +51,7 @@ public final class SettingsCode {
      * sending follow commands.
      */
     static boolean staysBehind(String key) {
-        return key != null && (PER_ACCOUNT.contains(key) || key.startsWith("follow."));
+        return key != null && (PER_ACCOUNT.contains(key) || key.startsWith("follow.") || key.equals("reports.auto_critical"));
     }
     private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 

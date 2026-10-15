@@ -601,6 +601,11 @@ public final class Tuning {
                     + "nothing. This watches outcomes: stock held, session running, and yet nothing sold or listed "
                     + "for a long time (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
+            new Setting("reports.auto_critical", "Support", "Send critical bug reports automatically",
+                    "Off by default. On: this install sends sanitized diagnostics to public GitHub issues when a critical "
+                    + "persistence failure stays unresolved for 2 minutes. Includes filtered log evidence, without player "
+                    + "names or private chat. Slow sales and normal waits are not reported. Maximum 3 new reports per day. "
+                    + "Enable only if you consent to background public reports (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("liveness.quiet_min", "Session", "Call it stalled after",
                     "Minutes with no sale and no new listing, while holding stock, before it says so. The median "
                     + "hold is a couple of minutes, so anything past this is a stall rather than a slow patch",
@@ -1324,6 +1329,9 @@ public final class Tuning {
     static void loadLocalFrom(Path local) {
         localFile = local;
         LOCAL_KEYS.clear();
+        // Consent can never be inherited from another client through shared tuning.json.
+        LOCAL_KEYS.add("reports.auto_critical");
+        VALUES.put("reports.auto_critical",0.0);
         seenLocalModifiedAt = modifiedAt(local);
         if (local == null || !Files.exists(local)) return;
         try {
@@ -1433,10 +1441,10 @@ public final class Tuning {
      */
     private static void saveLocal() {
         Path local = localFile;
-        if (local == null || LOCAL_KEYS.isEmpty() || !Files.exists(local)) return;
+        if (local == null || LOCAL_KEYS.isEmpty()) return;
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode read = mapper.readTree(Files.readString(local, StandardCharsets.UTF_8));
+            JsonNode read = Files.exists(local) ? mapper.readTree(Files.readString(local, StandardCharsets.UTF_8)) : mapper.createObjectNode();
             if (!(read instanceof ObjectNode root)) return;
             boolean changed = false;
             for (String key : LOCAL_KEYS) {
@@ -1457,6 +1465,7 @@ public final class Tuning {
             if (!changed) return;
             // Written beside the file and moved over it, so a crash half way leaves the old one whole.
             Path fresh = local.resolveSibling(local.getFileName() + ".tmp");
+            Files.createDirectories(local.toAbsolutePath().getParent());
             Files.writeString(fresh, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root),
                     StandardCharsets.UTF_8);
             Files.move(fresh, local, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
