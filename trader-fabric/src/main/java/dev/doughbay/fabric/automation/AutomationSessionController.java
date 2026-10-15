@@ -11293,6 +11293,25 @@ public final class AutomationSessionController {
     }
 
     private void autoResumeInternalPause(Minecraft client, long now, boolean restartOwned) {
+        autoResumeInternalPause(client, now, restartOwned, false);
+    }
+
+    /** Evasion calls this only after its own all-clear wait, without operator force-reset paths. */
+    public synchronized ExecutionResult resumeAfterEvasion() {
+        if (!restartRecoveryMayResume()) {
+            return ExecutionResult.refused("No internally paused running session is available");
+        }
+        if (serverRestarting()) return ExecutionResult.refused("The restart world is not verified yet");
+        String blocked = persistenceStartBlocker();
+        if (blocked != null) return ExecutionResult.refused("Evasion resume is waiting for persistence: " + blocked);
+        autoResumeInternalPause(Minecraft.getInstance(), System.currentTimeMillis(), true, true);
+        return state == State.PAUSED
+                ? ExecutionResult.refused("Waiting for safe inventory, exposure and server reconciliation")
+                : ExecutionResult.awaitingPlayer(detail);
+    }
+
+    private void autoResumeInternalPause(Minecraft client, long now,
+                                         boolean connectionRecoveryOwned, boolean evasionOwned) {
         // A session recovered from disk has no policy until the player presses
         // Resume; only pauses raised while running are resumed here.
         if (!armed) return;
@@ -11308,7 +11327,7 @@ public final class AutomationSessionController {
         // Evasion owns the timing of its own resume: never while somebody is
         // still near, however long the internal-pause clock says it has been.
         dev.doughbay.fabric.EvasionGuard evasion = dev.doughbay.fabric.DoughBayClient.evasionGuard();
-        if (evasion != null && evasion.triggered()) return;
+        if (evasion != null && evasion.triggered() && !evasionOwned) return;
         if (now - stateChangedAtMillis >= INTERNAL_PAUSE_RESUME_MILLIS() && purchasedStackInHand(client)
                 && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
                 && authorizationBlocker(client) == null) {
@@ -11316,7 +11335,7 @@ public final class AutomationSessionController {
             return;
         }
         if (recoveredExposureRemains()) return;
-        if (!restartOwned && detail != null && detail.contains("Join a server")
+        if (!connectionRecoveryOwned && detail != null && detail.contains("Join a server")
                 && dev.doughbay.fabric.Tuning.get("session.resume_after_leave") < 0.5) {
             // Leaving the server is the player's doing; the session waits for Resume.
             pauseResumable = true;
