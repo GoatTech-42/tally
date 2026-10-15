@@ -1225,6 +1225,7 @@ public final class Tuning {
         Setting s = setting(key);
         double clamped = s.clamp(value);
         double before = get(key);
+        if (ACCOUNT_SLOT_KEYS.contains(key)) LOCAL_KEYS.add(key);
         VALUES.put(key, clamped);
         save();
         UpdateCheck.settingChanged(key, before, clamped);
@@ -1280,8 +1281,8 @@ public final class Tuning {
         file = directory.resolve("tuning.json");
         Path f = file;
         seenModifiedAt = modifiedAt(f);
-        if (!Files.exists(f)) return;
         try {
+            if (!Files.exists(f)) return;
             JsonNode root = new ObjectMapper().readTree(Files.readString(f, StandardCharsets.UTF_8));
             if (root == null || !root.isObject()) return;
             Iterator<Map.Entry<String, JsonNode>> it = root.fields();
@@ -1299,14 +1300,18 @@ public final class Tuning {
                 }
                 Setting s = BY_KEY.get(e.getKey());
                 if (s == null || !e.getValue().isNumber()) continue;
+                // Once initialized, shared edits cannot become this account's fallback.
+                if (ACCOUNT_SLOT_KEYS.contains(s.key()) && localFile != null && VALUES.containsKey(s.key())) continue;
                 VALUES.put(s.key(), s.clamp(e.getValue().asDouble()));
                 loaded++;
             }
             DoughBayClient.LOGGER.info("DoughBay tuning: {} setting(s) loaded from {}", loaded, f);
         } catch (IOException | RuntimeException e) {
             DoughBayClient.LOGGER.warn("DoughBay tuning could not be read from {}: {}", f, e.toString());
+        } finally {
+            // Even a fresh/missing shared file must load the account's own limits.
+            loadLocalOverrides();
         }
-        loadLocalOverrides();
     }
 
     /**
@@ -1319,9 +1324,9 @@ public final class Tuning {
      * the game folder, which is never shared, and win over the shared file.
      */
     private static void loadLocalOverrides() {
-        Path local;
+        Path local = localFile;
         try {
-            local = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("doughbay-local.json");
+            if (local == null) local = net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir().resolve("doughbay-local.json");
         } catch (Throwable e) {
             return;   // not running inside the game, as in the tests
         }
@@ -1332,11 +1337,16 @@ public final class Tuning {
     static void loadLocalFrom(Path local) {
         localFile = local;
         LOCAL_KEYS.clear();
+        LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
         // Consent can never be inherited from another client through shared tuning.json.
         LOCAL_KEYS.add("reports.auto_critical");
         VALUES.put("reports.auto_critical",0.0);
         seenLocalModifiedAt = modifiedAt(local);
-        if (local == null || !Files.exists(local)) return;
+        if (local == null) return;
+        if (!Files.exists(local)) {
+            saveLocal();
+            return;
+        }
         try {
             JsonNode root = new ObjectMapper().readTree(Files.readString(local, StandardCharsets.UTF_8));
             if (root == null || !root.isObject()) return;
@@ -1363,12 +1373,16 @@ public final class Tuning {
             if (loaded > 0) {
                 LOG.info("DoughBay tuning: {} setting(s) for this client only from {}", loaded, local);
             }
+            // Freeze legacy limits once, before another hive client changes them.
+            // Existing per-client values above win; unrelated local options remain intact.
+            saveLocal();
         } catch (IOException | RuntimeException e) {
             LOG.warn("DoughBay could not read {}: {}", local, e.toString());
         }
     }
 
     private static volatile Path localFile;
+    private static final java.util.Set<String> ACCOUNT_SLOT_KEYS = java.util.Set.of("slots.max", "orders.bid_slots");
     /** The same log the rest of the mod writes to, reached without starting the mod: the tests read this class too. */
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("DoughBay");
     /** The settings whose value this client's own file gave, and so the ones saved back to it. */
@@ -1379,7 +1393,7 @@ public final class Tuning {
      * {@code doughbay-local.json}, not the file a second client may share.
      */
     public static boolean thisClientOnly(String key) {
-        return key != null && LOCAL_KEYS.contains(key);
+        return key != null && (ACCOUNT_SLOT_KEYS.contains(key) || LOCAL_KEYS.contains(key));
     }
     private static volatile long seenLocalModifiedAt;
 
@@ -1415,7 +1429,7 @@ public final class Tuning {
         if (now == 0) return;
         Map<String, Double> beforeValues = Map.copyOf(VALUES);
         Map<String, String> beforeTexts = Map.copyOf(TEXTS);
-        VALUES.clear();
+        VALUES.keySet().removeIf(key -> !ACCOUNT_SLOT_KEYS.contains(key));
         TEXTS.clear();
         load(f.getParent());
         int changed = 0;
@@ -1492,7 +1506,7 @@ public final class Tuning {
             // saves as nothing, and is gone for good.
             for (Setting s : SETTINGS) {
                 // Never publish a local recovery profile to another client sharing this folder.
-                if (LOCAL_KEYS.contains(s.key())) continue;
+                if (ACCOUNT_SLOT_KEYS.contains(s.key()) || LOCAL_KEYS.contains(s.key())) continue;
                 root.put(s.key(), get(s.key()));
             }
             for (ListSetting l : LISTS) {

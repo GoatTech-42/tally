@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 21:53 UTC
+
+- Fixed hive auction/order slot limits overwriting each other (#36). Both values now always save in each instance's doughbay-local.json, including fresh installs and automatic rank detection. Existing local limits win; legacy shared limits are captured locally once, and subsequent shared edits cannot replace them.
+- Local settings load even when the shared tuning file is missing. Live reload preserves account slot limits if a local slot entry is removed or its file becomes unreadable, without overwriting malformed local files.
+
 ## 2026-10-15 20:05 UTC
 
 - Added guided hive setup: create and copy a code in the account whose data you want to keep, paste and join in a second instance on the same PC, then restart each once. No junction commands, launcher changes or live database copies are needed. Existing history is never silently merged or overwritten; missing shared folders stop startup instead of creating an empty ledger.
