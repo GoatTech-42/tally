@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 22:26 UTC
+
+- Fixed a paused recovery loop after an interrupted buy or listing was verified resolved: the controller now consumes its leftover intent receipt once the writer has durably cleared the uncertainty. This lets the existing recovery retry proceed instead of waiting forever for an already completed checkpoint (#35).
+- Unresolved stock, refused writes, pending actions and operator pauses retain their safeguards. Session spending and trade counts are preserved.
+
 ## 2026-10-15 21:53 UTC
 
 - Fixed hive auction/order slot limits overwriting each other (#36). Both values now always save in each instance's doughbay-local.json, including fresh installs and automatic rank detection. Existing local limits win; legacy shared limits are captured locally once, and subsequent shared edits cannot replace them.
