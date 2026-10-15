@@ -24,9 +24,9 @@ class AutomaticReportServiceTest {
     }
     class FakeGateway implements AutomaticReportService.Gateway {
         final List<String> keys=new ArrayList<>(),bodies=new ArrayList<>();
-        boolean supported=true,fail,permanent;
+        boolean supported=true,fail,permanent,recoverySupported;
         Runnable onCapabilities=()->{};
-        public JsonNode capabilities() throws Exception {onCapabilities.run();var value=caps();((com.fasterxml.jackson.databind.node.ObjectNode)value.path("automaticReports")).put("supported",supported);return value;}
+        public JsonNode capabilities() throws Exception {onCapabilities.run();var value=caps();var automatic=(com.fasterxml.jackson.databind.node.ObjectNode)value.path("automaticReports");automatic.put("supported",supported);if(recoverySupported){automatic.withArray("kinds").add("AUTOMATIC_RECOVERY_STALLED");automatic.putObject("signatures").putArray("AUTOMATIC_RECOVERY_STALLED").add("EVASION_RESUME_STALLED");}return value;}
         public BugReportTransport.AutomaticResult send(byte[] body,String key) throws Exception {
             keys.add(key);bodies.add(new String(body,java.nio.charset.StandardCharsets.UTF_8));
             if(fail) throw new java.io.IOException("private text must not be logged");
@@ -39,6 +39,16 @@ class AutomaticReportServiceTest {
                 BugReportLog.sanitize("[12:00:00] [Render thread/ERROR] IllegalStateException: SecretPlayer token=secret\n[12:00:01] [CHAT] OtherPlayer: private chat")),clock::get,false);
     }
     void qualify(AutomaticReportService service) {service.observe(healthy(),0);service.observe(failure(),1);service.observe(failure(),120001);}
+    @Test void recoveryReportWaitsForReceiverAdvertisementAndUsesExistingDelivery() {
+        var gateway=new FakeGateway();var service=service(gateway);
+        var stalled=new Observation(true,true,true,true,true,false,false,null,true);
+        service.observe(healthy(),0);service.observe(stalled,1);service.observe(stalled,300001);service.process();
+        assertTrue(gateway.bodies.isEmpty(),"old receiver must receive no unsupported recovery incident");
+        gateway.recoverySupported=true;clock.addAndGet(300001);service.observe(stalled,600002);service.process();
+        assertEquals(1,gateway.bodies.size());assertTrue(gateway.bodies.getFirst().contains("AUTOMATIC_RECOVERY_STALLED"));
+        service.process();assertEquals(1,gateway.bodies.size(),"unchanged incident is suppressed by the existing journal");
+        service.close();
+    }
     @Test void healthyOrRecoveringClientsNeverSubmit() {
         var gateway=new FakeGateway();var service=service(gateway);
         service.observe(healthy(),0);service.observe(failure(),1);service.process();

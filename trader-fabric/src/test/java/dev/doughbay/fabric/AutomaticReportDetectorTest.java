@@ -3,6 +3,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import static dev.doughbay.fabric.AutomaticReportDetector.*;
 class AutomaticReportDetectorTest {
+ static Observation stalled(){return new Observation(true,true,true,true,true,false,false,null,true);}
+ @Test void recoveryStallRequiresFiveMinutesAfterStructuredEligibility(){var d=new AutomaticReportDetector();d.observe(healthy(),0);assertTrue(d.observe(stalled(),1).isEmpty());assertTrue(d.observe(stalled(),300000).isEmpty());var c=d.observe(stalled(),300001).orElseThrow();assertEquals(Failure.AUTOMATIC_RECOVERY_STALLED,c.failure());assertEquals(Signature.EVASION_RESUME_STALLED,c.signature());}
+ @Test void newDangerOrNormalRecoveryRestartsRecoveryGrace(){var d=new AutomaticReportDetector();d.observe(healthy(),0);d.observe(stalled(),1);d.observe(new Observation(true,true,true,true,true,false,false,null),299999);assertTrue(d.observe(stalled(),300001).isEmpty());}
+ @Test void manualStopOptOutDisconnectAndPersistenceWaitNeverQualifyRecovery(){for(var o:new Observation[]{new Observation(false,true,true,true,true,false,false,null,true),new Observation(true,true,false,true,true,false,false,null,true),new Observation(true,false,true,true,true,false,false,null,true),new Observation(true,true,true,true,false,false,false,null,true)}){var d=new AutomaticReportDetector();d.observe(healthy(),0);d.observe(o,1);assertTrue(d.observe(o,900001).isEmpty());}}
+ @Test void repairedRecoveryDoesNotReportAnOldIncident(){var d=new AutomaticReportDetector();d.observe(healthy(),0);d.observe(stalled(),1);d.observe(healthy(),299999);assertTrue(d.observe(healthy(),900001).isEmpty());}
  static Observation healthy(){return new Observation(true,true,true,false,true,false,false,null);}
  static Observation refused(){return new Observation(true,true,true,false,true,true,false,Signature.IMMUTABLE_POSITION_IDENTITY_CONFLICT);}
  @Test void refusalMustSurviveRecoveryGrace(){var d=new AutomaticReportDetector();d.observe(healthy(),0);assertTrue(d.observe(refused(),1).isEmpty());assertTrue(d.observe(refused(),120000).isEmpty());assertEquals(Failure.DURABLE_WRITE_REJECTED,d.observe(refused(),120001).orElseThrow().failure());}

@@ -3213,20 +3213,19 @@ public final class AutomationSessionController {
         // lost. Something the bot has already decided it is not selling today
         // should not be carried around waiting for a lift.
         if (pendingOpportunity == null && trackedPosition == null && visitShelfIfDue(client, now)) return;
-        // The desk goes first, but not for ever: with a reprice waiting it
-        // yields after two turns, or a busy desk keeps stale listings stale.
-        boolean deskFirst = !(deskTurnsSinceReprice >= 2 && repriceDue(now) != null);
+        // Give replenishment more real turns while the book is mostly empty.
+        // Only dispatched actions count: closing a stray page or waiting for
+        // settlement is not a desk turn. Due reprices retain a bounded wait.
+        boolean deskFirst = stockFlow.deskFirst(repriceDue(now) != null,
+                believed + spokenFor, Math.min(rankSlots, maxOpenListings()), now);
         if (pendingOpportunity == null && deskFirst && startDeskAction(client, snapshot, now)) {
-            deskTurnsSinceReprice++;
             return;
         }
         if (pendingOpportunity == null && !deskRecovery.pending() && startOrdersRead(client, now)) return;
         if (pendingOpportunity == null && startRepriceIfDue(client, now)) {
-            if (repricing != null) deskTurnsSinceReprice = 0;
             return;
         }
         if (pendingOpportunity == null && !deskFirst && startDeskAction(client, snapshot, now)) {
-            deskTurnsSinceReprice++;
             return;
         }
         if (pendingOpportunity == null && startInHandRelisting(client, now)) return;
@@ -4992,6 +4991,7 @@ public final class AutomationSessionController {
             detail = "Bid desk: " + step.action() + " could not start (" + result.detail() + ")";
             return false;
         }
+        stockFlow.deskActionStarted();
         deskStep = step;
         transition(State.BID_DESK, "Bid desk: " + step.why());
         return true;
@@ -8671,8 +8671,7 @@ public final class AutomationSessionController {
         return due;
     }
 
-    /** Turns the bid desk has taken since a listing was last repriced; the desk must not starve the reprices. */
-    private int deskTurnsSinceReprice;
+    private final StockFlowScheduler stockFlow = new StockFlowScheduler();
 
     private boolean startRepriceIfDue(Minecraft client, long now) {
         if (dev.doughbay.fabric.ServerStrain.holding()) {
@@ -8717,6 +8716,7 @@ public final class AutomationSessionController {
             detail = "Reprice could not start: " + result.detail();
             return false;
         }
+        stockFlow.repriceStarted();
         repricing = due;
         repricingNewPrice = newPrice;
         repriceStartedTick = controllerTick;
@@ -11808,11 +11808,20 @@ public final class AutomationSessionController {
     public synchronized dev.doughbay.fabric.AutomaticReportDetector.Observation automaticReportObservation(
             boolean optedIn, boolean connected, boolean intentionalRecovery) {
         var status=persistence==null?null:persistence.status();
+        var evasion = dev.doughbay.fabric.DoughBayClient.evasionGuard();
+        Minecraft client = Minecraft.getInstance();
+        boolean recoveryStalled = connected && evasion != null && evasion.waitingForAutomaticResume()
+                && restartRecoveryMayResume() && !recoveredExposureRemains()
+                && !staffTransferHold && !serverRestarting() && !panelOpen
+                && status != null && status.ready() && !status.refusalOutstanding()
+                && status.lastAcceptedGeneration() == status.lastDurableGeneration()
+                && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
+                && authorizationBlocker(client) == null && safeInventoryContext(client);
         return new dev.doughbay.fabric.AutomaticReportDetector.Observation(optedIn,connected,
             sessionOpen && !pausedByPlayer && (armed || isRunning()), intentionalRecovery || staffTransferHold || serverRestarting() || panelOpen,
             status!=null && status.ready(),status!=null && status.refusalOutstanding(),
             status!=null && status.loadState()==AutomationPersistencePort.LoadState.FAILED,
-            dev.doughbay.fabric.AutomaticReportDetector.classifyRefusal(status==null?null:status.detail()));
+            dev.doughbay.fabric.AutomaticReportDetector.classifyRefusal(status==null?null:status.detail()), recoveryStalled);
     }
 
     private AutomationSessionCheckpoint checkpoint(

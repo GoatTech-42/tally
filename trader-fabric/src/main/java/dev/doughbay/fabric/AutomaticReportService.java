@@ -52,6 +52,7 @@ public final class AutomaticReportService implements AutoCloseable {
         if(daemon!=null) daemon.scheduleWithFixedDelay(this::process,5,5,TimeUnit.SECONDS);
     }
     public void observe(AutomaticReportDetector.Observation observation,long elapsedMillis) {
+        WebReports.observe(observation, elapsedMillis, build);
         current=new Sample(observation,detector.observe(observation,elapsedMillis).orElse(null),wallClock.getAsLong());
         if(!observation.optedIn()) status="Automatic critical reports: off";
     }
@@ -144,6 +145,7 @@ public final class AutomaticReportService implements AutoCloseable {
         if(receipt.result().filed()) {
             journal.finish(pending.retryKey(),AutomaticReportJournal.Outcome.SENT,wallClock.getAsLong());outbox.clear();
             status="Automatic critical report received: "+receipt.result().issueUrl();
+            WebReports.sent(pending.fingerprint());
         } else if(receipt.permanent()) {
             journal.finish(pending.retryKey(),AutomaticReportJournal.Outcome.EXHAUSTED,wallClock.getAsLong());outbox.clear();
             status="Automatic report rejected; retries stopped";

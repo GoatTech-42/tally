@@ -59,6 +59,7 @@ public final class WebPages {
             case "prices" -> prices(ownPriceViews(), OwnPrices.current().problems(), Tuning.text(OwnPrices.KEY));
             case "rivals" -> ours(rivals(snapshot(), System.currentTimeMillis(), ZoneId.systemDefault()));
             case "staff" -> staff();
+            case "reports" -> WebReports.data();
             case "rival" -> ours(rival(snapshot(), unhex(query == null ? null : query.get("id")), System.currentTimeMillis(),
                     ZoneId.systemDefault(), openListings()));
             default -> null;
@@ -67,6 +68,7 @@ public final class WebPages {
 
     /** A change one of the pages asks for, or null when there is no such change. The answer says what was done. */
     public static String change(String name, Map<String, String> form) {
+        if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));
             case "list" -> onClient(() -> list(form));
@@ -110,24 +112,18 @@ public final class WebPages {
         root.put("timeZone",zone.getId());
         root.put("note", "Shared hive observations, retained for 30 days. No extra game requests. Durations exclude observation gaps and overlapping sightings are merged. Mapped areas are estimates, not verified shard identifiers. These are observed hours, not staff timezones or guaranteed availability. Absence does not prove offline.");
         ArrayNode rows = root.putArray("rows");
-        for (var row : snapshot.current(now)) {
+        var grouped = new java.util.LinkedHashMap<String, List<StaffWatchReport.Row>>();
+        for (var row : snapshot.current(now))
+            grouped.computeIfAbsent(row.name().toLowerCase(Locale.ROOT), ignored -> new ArrayList<>()).add(row);
+        for (var sightings : grouped.values()) {
             var item = rows.addObject();
-            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(row.name()));
-            item.put("presence", row.presence().equals("VANISHED") ? "Hidden from TAB" : row.presence().equals("SPECTATOR") ? "Spectator observed" : "Online in player list");
-            item.put("region", row.nearby() ? "Nearby" : row.sameRegion() ? "Same-region signal" : "Region unconfirmed");
-            item.put("observer",row.observer());
-            item.put("scope",StaffWatchReport.scopeLabel(row.region()));
+            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(sightings.getFirst().name()));
+            item.put("presence", staffEvidence(sightings, row -> row.presence().equals("VANISHED") ? "Hidden from TAB" : row.presence().equals("SPECTATOR") ? "Spectator observed" : "Online in player list"));
+            item.put("region", staffEvidence(sightings, row -> row.nearby() ? "Nearby" : row.sameRegion() ? "Same-region signal" : "Region unconfirmed"));
+            item.put("observer", sightings.stream().map(StaffWatchReport.Row::observer).distinct().collect(java.util.stream.Collectors.joining(", ")));
+            item.put("scope", staffEvidence(sightings, row -> StaffWatchReport.scopeLabel(row.region())));
         }
-        ArrayNode history = root.putArray("history");
-        for (var sighting : snapshot.history()) {
-            var item = history.addObject();
-            item.put("at", sighting.at());
-            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(sighting.name()));
-            item.put("event", StaffWatchReport.label(sighting.event()));
-            item.put("region", sighting.sameRegion() ? "Same-region signal" : "Region unconfirmed");
-            item.put("area", StaffWatchReport.scopeLabel(sighting.region()));
-            item.put("observer",sighting.observer());
-        }
+        root.set("history", staffHistoryData(snapshot.history()));
         ArrayNode summaries=root.putArray("summaries");
         for(var summary:snapshot.summaries()) {
             var item=summaries.addObject();item.put("name",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()));
@@ -135,6 +131,43 @@ public final class WebPages {
             item.put("usualHours",summary.usualHours());
         }
         return root;
+    }
+
+    /** Collapse near-simultaneous cross-observer evidence, never a repeated event from the same observer. */
+    static ArrayNode staffHistoryData(List<StaffWatchReport.Sighting> sightings) {
+        var groups = new ArrayList<List<StaffWatchReport.Sighting>>();
+        var latest = new java.util.HashMap<String, List<StaffWatchReport.Sighting>>();
+        for (var sighting : sightings.stream().sorted(java.util.Comparator.comparingLong(StaffWatchReport.Sighting::at).reversed()).toList()) {
+            String name = sighting.name().toLowerCase(Locale.ROOT);
+            var group = latest.get(name);
+            if (group == null || group.getFirst().event() != sighting.event()
+                    || group.getFirst().at() - sighting.at() > 10_000
+                    || group.stream().anyMatch(other -> other.observer().equals(sighting.observer()))) {
+                group = new ArrayList<>(); groups.add(group); latest.put(name, group);
+            }
+            group.add(sighting);
+        }
+        ArrayNode result = MAPPER.createArrayNode();
+        for (var group : groups) {
+            var first = group.getFirst(); var item = result.addObject();
+            item.put("at", first.at());
+            item.put("firstAt", group.getLast().at());
+            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(first.name()));
+            item.put("event", StaffWatchReport.label(first.event()));
+            item.put("observer", group.stream().map(StaffWatchReport.Sighting::observer).distinct().collect(java.util.stream.Collectors.joining(", ")));
+            var observations = group.stream().map(row -> new StaffWatchReport.Row(row.name(), "", row.sameRegion(), false, row.observer(), row.region())).toList();
+            item.put("region", staffEvidence(observations, row -> row.sameRegion() ? "Same-region signal" : "Region unconfirmed"));
+            item.put("area", staffEvidence(observations, row -> StaffWatchReport.scopeLabel(row.region())));
+        }
+        return result;
+    }
+
+    /** Merge identical evidence; keep conflicting observations explicitly attributed. */
+    private static String staffEvidence(List<StaffWatchReport.Row> rows, java.util.function.Function<StaffWatchReport.Row, String> value) {
+        var values = rows.stream().map(value).distinct().toList();
+        if (values.size() == 1) return values.getFirst();
+        return rows.stream().map(row -> row.observer() + ": " + value.apply(row)).distinct()
+            .collect(java.util.stream.Collectors.joining("; "));
     }
 
     static String settings() {
