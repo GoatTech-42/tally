@@ -33,6 +33,10 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
+    // Match Minecraft's Netty version; bundle only the two additional proxy modules.
+    implementation(include('io.netty:netty-codec-socks:4.2.15.Final')) { transitive = false }
+    implementation(include('io.netty:netty-handler-proxy:4.2.15.Final')) { transitive = false }
+
     // Staff Watch preserves its original HUD/head-alert renderer.
     for (artifact in ['imgui-java-binding','imgui-java-lwjgl3','imgui-java-natives-windows','imgui-java-natives-linux','imgui-java-natives-macos']) {
         implementation(include("io.github.spair:${artifact}:1.90.0")) { exclude group: 'org.lwjgl' }
@@ -123,3 +127,19 @@ if (project.hasProperty('staffActivityScreenshots')) {
  }
 }
 tasks.named('jar') { exclude '**/StaffActivityGuiSmoke*.class' }
+
+// Offline proxy UI and mixin verification; never joins a server or ships in production.
+if (project.hasProperty('proxyScreenshots')) {
+ sourceSets.main.java.srcDir 'src/proxySmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.ProxyGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/proxy-smoke'
+  programArgs '--width', '1600', '--height', '1000'
+ }
+}
+tasks.named('jar') { exclude '**/ProxyGuiSmoke*.class' }

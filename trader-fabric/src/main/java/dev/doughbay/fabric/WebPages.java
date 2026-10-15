@@ -60,6 +60,7 @@ public final class WebPages {
             case "rivals" -> ours(rivals(snapshot(), System.currentTimeMillis(), ZoneId.systemDefault()));
             case "staff" -> staff();
             case "reports" -> WebReports.data();
+            case "proxies" -> dev.doughbay.fabric.proxy.ProxyAccess.settings().publicJson();
             case "rival" -> ours(rival(snapshot(), unhex(query == null ? null : query.get("id")), System.currentTimeMillis(),
                     ZoneId.systemDefault(), openListings()));
             default -> null;
@@ -68,6 +69,7 @@ public final class WebPages {
 
     /** A change one of the pages asks for, or null when there is no such change. The answer says what was done. */
     public static String change(String name, Map<String, String> form) {
+        if ("proxies".equals(name)) return dev.doughbay.fabric.proxy.ProxyAccess.settings().change(form);
         if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));

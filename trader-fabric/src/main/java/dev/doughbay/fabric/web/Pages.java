@@ -342,7 +342,8 @@ final class Pages {
               prices: { label: 'Your prices', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals },
               staff: { label: 'Staff Watch', open: openStaff },
-              reports: { label: 'Report bug', open: openReports }
+              reports: { label: 'Report bug', open: openReports },
+              proxies: { label: 'Proxies', open: openProxies }
             };
             function show(name) {
               view = OWN[name] ? name : '';
@@ -370,7 +371,7 @@ final class Pages {
                 pages.appendChild(b);
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name));
-              mine('reports');
+              mine('reports'); mine('proxies');
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -464,24 +465,22 @@ final class Pages {
               const privacy = el('p', 'muted', 'Reports are public on GitHub. Diagnostics remove player names, chat and personal details. Review the preview for anything sensitive you typed. Nothing is uploaded until you send. This reports the client hosting this panel.');
               const status = el('p', '', ''), preview = el('pre', '', '');
               preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
-              const reviewed = el('input'); reviewed.type = 'checkbox';
-              const reviewedLabel = el('label', '', ' I reviewed this public report'); reviewedLabel.prepend(reviewed);
-              let preparedId = '', blockedId = '';
-              const send = button('', 'Send reviewed report', async () => {
-                send.disabled = true;
-                await change('reports', {action:'send', id:preparedId, reviewed:String(reviewed.checked)});
+              let preparedId = '', blockedId = '', changedSinceSend = true;
+              const fields = action => ({action, description:description.value, expected:expected.value, includeLog:String(log.checked), consent:'true'});
+              const send = button('', 'Send report', async () => {
+                send.disabled = true; changedSinceSend = false;
+                await change('reports', fields('submit'));
                 poll();
               });
-              const prepare = button('', 'Prepare report', async () => {
-                reviewed.checked = false; preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
-                const result = await change('reports', {action:'prepare', description:description.value, expected:expected.value, includeLog:String(log.checked)});
+              const prepare = button('', 'Preview (optional)', async () => {
+                preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
+                const result = await change('reports', fields('prepare'));
                 if (!result || !result.ok) prepare.disabled = false;
                 poll();
               });
               const link = el('a', '', 'Open submitted issue'); link.hidden = true; link.rel = 'noopener noreferrer'; link.target = '_blank';
-              function changed() { blockedId = reportData.id || ''; reviewed.checked = false; preparedId = ''; send.disabled = true; preview.textContent = 'Text changed. Prepare again before sending.'; }
+              function changed() { blockedId = reportData.id || ''; preparedId = ''; changedSinceSend = true; send.disabled = false; preview.textContent = ''; }
               description.oninput = expected.oninput = log.onchange = changed;
-              reviewed.onchange = () => { send.disabled = !reviewed.checked || !preparedId || reportData.busy || !!reportData.issueUrl || Date.now() < (reportData.retryAt || 0); };
               async function poll() {
                 clearTimeout(reportTimer);
                 if (view !== 'reports' || !status.isConnected) return;
@@ -490,17 +489,49 @@ final class Pages {
                   status.textContent = d.note || '';
                   prepare.disabled = !!d.busy;
                   if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy) {
-                    preparedId = d.id; preview.textContent = d.preview; reviewed.checked = false;
+                    preparedId = d.id; preview.textContent = d.preview;
                   }
-                  send.disabled = !reviewed.checked || !preparedId || d.busy || !!d.issueUrl || Date.now() < (d.retryAt || 0);
+                  send.disabled = !!d.busy || !changedSinceSend && !!d.issueUrl || Date.now() < (d.retryAt || 0);
                   link.hidden = !/^https:\\/\\/github\\.com\\/cody-raves\\/Gonuts\\/issues\\/[1-9][0-9]*$/.test(d.issueUrl || '');
                   if (!link.hidden) link.href = d.issueUrl;
                 } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
                 reportTimer = setTimeout(poll, 1500);
               }
               own.replaceChildren(el('h2', '', 'Report bug'), privacy, el('label', '', 'What happened?'), description,
-                el('label', '', 'What did you expect?'), expected, logLabel, prepare, status, preview, reviewedLabel, send, link);
+                el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches the selected diagnostics, then publishes them to GitHub.'), send, prepare, status, preview, link);
               poll();
+            }
+
+            async function openProxies() {
+              try {
+                const data=await api('proxies'); if(view!=='proxies')return;
+                const active=data.profiles.find(p=>p.id===data.selected);
+                const state=el('p','',data.blocked?'Connections blocked: settings unavailable':data.enabled?'Active proxy: '+active.name:'Direct connection: proxy disabled');
+                const pick=el('select'), fresh=el('option','','New profile');fresh.value='';pick.appendChild(fresh);
+                for(const p of data.profiles){const o=el('option','',p.name+(p.id===data.selected&&data.enabled?' (active)':''));o.value=p.id;pick.appendChild(o);}
+                pick.value=active?active.id:'';
+                const fields={},form=el('div');
+                for(const [key,label,type] of [['name','Profile name','text'],['host','Proxy host','text'],['port','Port','number'],['username','Username (blank keeps saved)','text'],['password','Password (blank keeps saved)','password']]){
+                  const input=el('input');input.type=type;input.autocomplete=key==='password'?'new-password':'off';input.style.width='100%';input.style.boxSizing='border-box';
+                  input.maxLength=key==='name'?48:key==='host'?253:255;
+                  const wrap=el('label','',label);wrap.appendChild(input);form.append(wrap,el('br'));fields[key]=input;
+                }
+                fields.port.min=1;fields.port.max=65535;
+                const kind=el('select');for(const type of ['SOCKS5','SOCKS4']){const o=el('option','',type);o.value=type;kind.appendChild(o);}
+                const clear=el('input');clear.type='checkbox';const clearLabel=el('label','',' Clear saved credentials');clearLabel.prepend(clear);
+                function fill(){const p=data.profiles.find(p=>p.id===pick.value);fields.name.value=p?p.name:'';fields.host.value=p?p.host:'';fields.port.value=p?p.port:1080;fields.username.value=fields.password.value='';kind.value=p?p.type:'SOCKS5';clear.checked=false;}
+                pick.onchange=fill;fill();const actions=el('div');let saving=false;
+                async function action(what){
+                  if(saving)return;saving=true;for(const b of actions.querySelectorAll('button'))b.disabled=true;
+                  const values={action:what,id:pick.value,type:kind.value,clearCredentials:String(clear.checked)};
+                  for(const [key,input] of Object.entries(fields))values[key]=input.value;
+                  const result=await change('proxies',values);fields.username.value=fields.password.value='';
+                  if(result&&result.ok)await openProxies();else{saving=false;for(const b of actions.querySelectorAll('button'))b.disabled=false;}
+                }
+                actions.append(button('','Save profile',()=>action('save')),button('','Use proxy',()=>action('enable')),button('','Disable proxy',()=>action('disable')),button('','Delete profile',()=>action('delete')));
+                own.replaceChildren(el('h2','','Proxies'),state,el('p','muted',data.note),pick,form,el('label','','Protocol'),kind,clearLabel,actions,
+                  el('p','muted','SOCKS5 supports username/password. SOCKS4 supports username only. Saved credentials are never returned to the browser. Save edits before choosing Use proxy.'));
+              }catch(e){failed();}
             }
 
             async function openSettings() {

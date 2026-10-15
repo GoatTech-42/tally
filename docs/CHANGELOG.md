@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 17:20 UTC
+
+- Added per-client SOCKS5/SOCKS4 proxy profiles, a Multiplayer-screen button, and Proxies tabs in the in-game GUI and authenticated web panel. Profiles apply to new Minecraft connections, pings, transfers and reconnects; existing sessions are not interrupted. Local/LAN connections stay direct.
+- Proxy routing defaults off. Enabled proxy failures do not fall back to direct connections; unreadable settings block remote connections until explicitly repaired or disabled. Credentials are saved in a separate local file with restricted access, omitted from web responses and excluded from diagnostic reports.
+- Simplified manual bug reports to one Send report action: prepare and sanitize the selected diagnostics automatically, with an optional preview. Public-report disclosure, attachment choice, bounded transport and stable retry identifiers remain in place.
+
 ## 2026-10-15 16:39 UTC
 
 - Fixed replenishment scheduling counting order-screen cleanup and settle waits as completed desk turns. Only dispatched desk actions count now. Below half of usable auction capacity, the desk gets four actions between due reprices instead of two; a due reprice still gets priority after a minute of scheduling deferral. Existing stale thresholds, trading limits and click pacing are unchanged.
