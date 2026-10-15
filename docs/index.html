@@ -210,6 +210,7 @@
         <a class="button" href="#install">Watch the install, 1:45</a>
       </div>
       <p class="build" id="build" aria-live="polite"></p>
+      <p class="build" id="downloads" hidden></p>
       <ul class="facts">
         <li>Free and open source</li>
         <li>No API key needed</li>
@@ -440,6 +441,18 @@
         "Latest build: " + when.format(new Date(jar.updated_at)) + ", " + (jar.size / 1048576).toFixed(1) + " MB";
     })
     .catch(function () { /* the button works without it */ });
+
+  // Lifetime release downloads, including mod, CLI and server assets.
+  fetch("https://gonuts.at/v1/downloads", { credentials: "omit", signal: AbortSignal.timeout(5000) })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (counts) {
+      if (!Number.isSafeInteger(counts.total) || counts.total < 0) return;
+      var counter = document.getElementById("downloads");
+      counter.textContent = "Downloaded " + counts.total.toLocaleString() + " times";
+      counter.title = "Lifetime mod, CLI and server downloads; source and checksum files excluded";
+      counter.hidden = false;
+    })
+    .catch(function () { /* Leave the counter hidden when unavailable. */ });
 
   // ---- what's new: the dated entries of CHANGELOG.md ------------------------
   var log = document.getElementById("log");
