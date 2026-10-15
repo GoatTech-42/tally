@@ -93,6 +93,12 @@ public final class BugReportTransport {
         boolean schema=false, supportedKind=false;
         for(var version:body.path("schemaVersions")) if(version.isIntegralNumber()&&version.asInt()==3)schema=true;
         for(var value:automatic.path("kinds")) if(value.isTextual()&&value.asText().equals(kind.name()))supportedKind=true;
+        if (kind == AutomaticReportDetector.Failure.AUTOMATIC_RECOVERY_STALLED) {
+            boolean signature = false;
+            for (var value : automatic.path("signatures").path(kind.name()))
+                if (value.isTextual() && value.asText().equals("EVASION_RESUME_STALLED")) signature = true;
+            if (!signature) return false;
+        }
         return schema&&supportedKind;
     }
     public CompletableFuture<Result> send(BugReportPayload payload, String key, String apiBaseUrl, String token) {

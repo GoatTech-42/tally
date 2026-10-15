@@ -55,6 +55,11 @@ public final class EvasionGuard {
         return triggered;
     }
 
+    /** Structured all-clear recovery failure, never inferred from sales or raw log text. */
+    public boolean waitingForAutomaticResume() {
+        return triggered && !away && !leaveWanted && clearSinceMillis > 0 && resumeRefusals >= 4;
+    }
+
     /** One thing the guard saw or did: when, who, how far, and what. */
     public record Event(long at, String who, double distance, String action) {}
     private final java.util.ArrayDeque<Event> events = new java.util.ArrayDeque<>();

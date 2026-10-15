@@ -11808,11 +11808,20 @@ public final class AutomationSessionController {
     public synchronized dev.doughbay.fabric.AutomaticReportDetector.Observation automaticReportObservation(
             boolean optedIn, boolean connected, boolean intentionalRecovery) {
         var status=persistence==null?null:persistence.status();
+        var evasion = dev.doughbay.fabric.DoughBayClient.evasionGuard();
+        Minecraft client = Minecraft.getInstance();
+        boolean recoveryStalled = connected && evasion != null && evasion.waitingForAutomaticResume()
+                && restartRecoveryMayResume() && !recoveredExposureRemains()
+                && !staffTransferHold && !serverRestarting() && !panelOpen
+                && status != null && status.ready() && !status.refusalOutstanding()
+                && status.lastAcceptedGeneration() == status.lastDurableGeneration()
+                && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
+                && authorizationBlocker(client) == null && safeInventoryContext(client);
         return new dev.doughbay.fabric.AutomaticReportDetector.Observation(optedIn,connected,
             sessionOpen && !pausedByPlayer && (armed || isRunning()), intentionalRecovery || staffTransferHold || serverRestarting() || panelOpen,
             status!=null && status.ready(),status!=null && status.refusalOutstanding(),
             status!=null && status.loadState()==AutomationPersistencePort.LoadState.FAILED,
-            dev.doughbay.fabric.AutomaticReportDetector.classifyRefusal(status==null?null:status.detail()));
+            dev.doughbay.fabric.AutomaticReportDetector.classifyRefusal(status==null?null:status.detail()), recoveryStalled);
     }
 
     private AutomationSessionCheckpoint checkpoint(

@@ -603,7 +603,8 @@ public final class Tuning {
                     1, 0, 1, Kind.TOGGLE),
             new Setting("reports.auto_critical", "Support", "Send critical bug reports automatically",
                     "Off by default. On: this install sends sanitized diagnostics to public GitHub issues when a critical "
-                    + "persistence failure stays unresolved for 2 minutes. Includes filtered log evidence, without player "
+                    + "persistence failure stays unresolved for 2 minutes, or eligible evasion recovery stalls for 5 minutes. "
+                    + "Requires receiver support for each incident type. Includes filtered log evidence, without player "
                     + "names or private chat. Slow sales and normal waits are not reported. Maximum 3 new reports per day. "
                     + "Enable only if you consent to background public reports (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("liveness.quiet_min", "Session", "Call it stalled after",
