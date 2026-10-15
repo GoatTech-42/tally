@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 16:03 UTC
+
+- Fixed trading remaining paused after an evasion reconnect: an interrupted cooldown was refused by ordinary Resume, then the fallback mistook the bot's own escape for a manual leave when resume-after-leave was off. Evasion now uses guarded internal recovery after its all-clear wait.
+- Evasion retains ownership and retries while safe reconciliation is pending instead of abandoning recovery after four refusals. Manual stops, unresolved exposure, persistence acknowledgements, server checks and existing spending limits remain enforced; no operator force-reset path is used.
+
 ## 2026-10-15 06:07 UTC
 
 - Fixed a recovery watchdog reset resuming without its trading policy, which caused a null-policy error in spending reconciliation and left the bot paused. Recovery now restores validated limits before clearing exposure or arming; unavailable limits retain the recovery lock and records.

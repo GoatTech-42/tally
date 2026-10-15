@@ -809,33 +809,30 @@ public final class EvasionGuard {
             triggered = false;
             return;
         }
-        ExecutionResult result = session.resumeRecoveredSession(DoughBayClient.continuousPolicy());
-        // A session paused in place is not a recovered one and that call
-        // refuses it; the ordinary resume is what an in-place pause wants.
-        if (!result.ok()) {
-            ExecutionResult plain = session.resume();
-            if (plain.ok()) result = plain;
-        }
+        // This is an automatic escape, not an operator leaving or forcing a
+        // recovered session to reset. Keep the original exposure and limits.
+        ExecutionResult result = session.resumeAfterEvasion();
         if (result.ok()) {
             triggered = false;
             clearSinceMillis = 0;
             resumeRefusals = 0;
             note(lastIntruder, 0, "area clear; resumed");
-        } else if (++resumeRefusals >= 4) {
-            // A minute of refusals means this pause is not one the guard can
-            // undo - it happened mid-trade, or the rejoin left it in a state
-            // only the session itself knows how to pick up. Let go of it:
-            // the session's own auto-resume takes over the moment the guard
-            // stops holding it back, and it knows to list a bought stack
-            // first. Holding on here is what left a bot parked for an hour
-            // and a half with nobody within a hundred blocks.
+        } else if (!session.restartRecoveryMayResume()) {
+            // A manual stop or another owner must never be rearmed by this guard.
             triggered = false;
             clearSinceMillis = 0;
             resumeRefusals = 0;
-            note(lastIntruder, 0, "area clear; handed the resume to the session");
-            DoughBayClient.LOGGER.info(
-                    "DoughBay evasion: resume refused four times ({}); leaving it to the session's own auto-resume",
-                    result.detail());
+            return;
+        } else if (++resumeRefusals >= 4) {
+            // Keep ownership: handing this to the generic timer would classify
+            // our own escape as a manual leave when resume_after_leave is off.
+            clearSinceMillis = now - clearBeforeResumeMillis() + 30_000;
+            if (resumeRefusals == 4) {
+                note(lastIntruder, 0, "area clear; waiting for safe automatic resume");
+                DoughBayClient.LOGGER.info(
+                        "DoughBay evasion: safe resume still pending ({}); retaining recovery and retrying in 30 s",
+                        result.detail());
+            }
             return;
         } else {
             // A refused resume is usually momentary: a death screen up, a page

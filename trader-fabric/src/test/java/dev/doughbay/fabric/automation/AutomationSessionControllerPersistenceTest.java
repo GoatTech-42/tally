@@ -250,6 +250,65 @@ final class AutomationSessionControllerPersistenceTest {
         assertEquals(4_100L, field(controller, "committedSpend"));
     }
 
+    @Test void evasionResumeBypassesOnlyTheManualLeaveGate() throws Exception {
+        double previous = dev.doughbay.fabric.Tuning.get("session.resume_after_leave");
+        try {
+            dev.doughbay.fabric.Tuning.set("session.resume_after_leave", 0);
+            var controller = internallyPausedAfterLeave();
+            assertFalse(controller.resumeRecoveredSession(policy()).ok(),
+                    "this live cooldown pause is not a recovered session");
+            assertFalse(controller.resume().ok(),
+                    "ordinary Resume refuses the interrupted cooldown just as on the alt");
+            assertFalse(controller.resumeAfterEvasion().ok(), "no test world is authorized");
+            assertFalse((boolean) field(controller, "pauseResumable"),
+                    "guard recovery must not enter the manual-leave gate that strands cooldown pauses");
+            assertEquals(4_100L, field(controller, "committedSpend"));
+            assertEquals(1, field(controller, "tradesStarted"));
+
+            var manual = internallyPausedAfterLeave();
+            var timer = AutomationSessionController.class.getDeclaredMethod("autoResumeInternalPause",
+                    net.minecraft.client.Minecraft.class, long.class);
+            timer.setAccessible(true);
+            timer.invoke(manual, null, System.currentTimeMillis());
+            assertTrue((boolean) field(manual, "pauseResumable"),
+                    "ordinary timer still leaves a manual disconnect waiting for Resume");
+            assertEquals(AutomationSessionController.State.PAUSED, manual.snapshot().state());
+        } finally { dev.doughbay.fabric.Tuning.set("session.resume_after_leave", previous); }
+    }
+
+    @Test void evasionResumeCannotRearmManualStopOrDiscardUncertainExposure() throws Exception {
+        var controller = internallyPausedAfterLeave();
+        setField(controller, "armed", false);
+        assertFalse(controller.resumeAfterEvasion().ok());
+        assertFalse((boolean) field(controller, "armed"));
+        setField(controller, "armed", true);
+        setField(controller, "pausedByPlayer", true);
+        assertFalse(controller.resumeAfterEvasion().ok());
+        setField(controller, "pausedByPlayer", false);
+        var exposure = new dev.doughbay.storage.AutomationUncertainExposure(true, "BUYING", "listing",
+                "minecraft:diamond", "minecraft:diamond", 1, 4100, 6000, "seller", 1000);
+        setField(controller, "uncertainExposure", exposure);
+        assertFalse(controller.resumeAfterEvasion().ok());
+        assertEquals(exposure, field(controller, "uncertainExposure"));
+        assertEquals(4_100L, field(controller, "committedSpend"));
+        assertEquals(1, field(controller, "tradesStarted"));
+        assertEquals(0, ((FakePersistence) field(controller, "persistence")).submissions.get());
+    }
+
+    private static AutomationSessionController internallyPausedAfterLeave() throws Exception {
+        var controller = new AutomationSessionController(new AutomatedExecutionDriver());
+        controller.setPersistence(new FakePersistence());
+        controller.tick(null, null);
+        setField(controller, "recoveredSession", false);
+        setField(controller, "policy", policy());
+        setField(controller, "armed", true);
+        setField(controller, "pauseResumable", false);
+        setField(controller, "pausedFromState", AutomationSessionController.State.COOLDOWN);
+        setField(controller, "stateChangedAtMillis", System.currentTimeMillis() - 300_000L);
+        setField(controller, "detail", "PAUSED: Join a server before starting live execution");
+        return controller;
+    }
+
     private static ContinuousAutomationPolicy policy() {
         return ContinuousAutomationPolicy.fromConfigValues(
                 2, 100_000, 50_000, 5_000,
