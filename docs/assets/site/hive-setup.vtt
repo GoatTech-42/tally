@@ -1,0 +1,29 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:10.000
+GoNuts hive setup: two accounts, one shared panel.
+Use two launcher instances on the same PC. Headless is optional.
+
+00:00:10.000 --> 00:00:22.000
+1. Start in the instance whose trading history you want to keep.
+Disconnect, then open Multiplayer > GoNuts hive.
+
+00:00:22.000 --> 00:00:34.000
+2. Click Create hive & copy code. Your data stays in its original folder.
+Close and reopen this first instance once.
+
+00:00:34.000 --> 00:00:46.000
+3. Open GoNuts hive in a fresh second instance.
+Click Paste code, then Join hive. Use a different Minecraft account.
+
+00:00:46.000 --> 00:00:58.000
+4. Hive linked: close and reopen the second instance.
+Existing local history is never silently merged or overwritten.
+
+00:00:58.000 --> 00:01:10.000
+5. Enable the web panel in Autopilot > WEB on the first instance.
+Start both accounts; the shared panel can view and control either account.
+
+00:01:10.000 --> 00:01:20.000
+Keep the original shared folder. Logins and proxies stay local.
+Full instructions and troubleshooting: gonuts.at/guide/#hive

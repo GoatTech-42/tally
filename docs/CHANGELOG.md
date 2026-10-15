@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 20:05 UTC
+
+- Added guided hive setup: create and copy a code in the account whose data you want to keep, paste and join in a second instance on the same PC, then restart each once. No junction commands, launcher changes or live database copies are needed. Existing history is never silently merged or overwritten; missing shared folders stop startup instead of creating an empty ledger.
+- New hives automatically use account-specific order records. Only the creating account inherits its old single-account records, so an alt never starts with the owner's saved bids or balance.
+- Clients sharing a configuration folder now host one web panel, with automatic takeover when its host closes, instead of competing for the same port.
+- Added a Guides section to the website, an 80-second captioned hive walkthrough, and organized instructions for installation, the web panel, updates, bug reports, Discord and optional headless use.
+
 ## 2026-10-15 19:20 UTC
 
 - Enabling auto-update from any settings surface now immediately checks the latest already-published release. Auto-update performs its own checks even if notification-only checks are off.

@@ -45,6 +45,7 @@ import java.util.Objects;
 public final class DoughBayScreen extends Screen {
 
     private final ProxyPanel proxyPanel = new ProxyPanel();
+    private final HivePanel hivePanel = new HivePanel();
 
     private enum Tab {
         OVERVIEW("Dashboard"),
@@ -60,6 +61,7 @@ public final class DoughBayScreen extends Screen {
         ACTIVITY("Activity"),
         STAFF_WATCH("Staff Watch"),
         PROXIES("Proxies"),
+        HIVE("Hive setup"),
         DIAGNOSTICS("Diagnostics"),
         LOGS("Logs"),
         PAYROLL("Payroll"),
@@ -384,6 +386,7 @@ public final class DoughBayScreen extends Screen {
     public void selectAppearance(){ tab=Tab.APPEARANCE; }
     public void selectStaffWatch(){ tab=Tab.STAFF_WATCH; }
     public void selectProxies(){ tab=Tab.PROXIES; }
+    public void selectHive(){ tab=Tab.HIVE; }
     private Opportunity selected;
     /**
      * A deliberate, sticky Automation-tab candidate. It is only a display
@@ -809,6 +812,8 @@ public final class DoughBayScreen extends Screen {
             staffWatchPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
         } else if (tab == Tab.PROXIES) {
             proxyPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),this::addRenderableWidget,this::rebuildWidgets);
+        } else if (tab == Tab.HIVE) {
+            hivePanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
         } else if (tab == Tab.STATS) {
             initStatsWidgets(ui);
         } else if (tab == Tab.MARKETS) {
@@ -957,6 +962,7 @@ public final class DoughBayScreen extends Screen {
             case APPEARANCE -> appearancePanel.render(graphics,font);
             case STAFF_WATCH -> staffWatchPanel.render(graphics,font);
             case PROXIES -> proxyPanel.render(graphics,font);
+            case HIVE -> hivePanel.render(graphics,font);
             case OPPORTUNITIES -> {
                 if (selected == null) {
                     renderOpportunities(graphics, current, ui, mouseX, mouseY);
@@ -6707,7 +6713,7 @@ public final class DoughBayScreen extends Screen {
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
         // Seventeen entries down the side, and the line under them.
-        int sidebar = panelWidth >= 680 && panelHeight >= 499 ? 144 : 0;
+        int sidebar = panelWidth >= 680 && panelHeight >= Math.max(499, 120 + Tab.values().length * 21) ? 144 : 0;
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;
