@@ -218,4 +218,35 @@ class UpdateCheckTest {
         assertTrue(Files.readString(log).contains("could not replace"));
         assertFalse(Files.exists(dir.resolve("GoNuts-0.1.0-mc26.2.jar.new")));
     }
+    @Test
+    void enablingAutomaticUpdatesDownloadsTheAlreadyKnownReleaseWithoutANewPublication() throws Exception {
+        var known=release(MOD,100);var newer=new UpdateCheck.Status(UpdateCheck.State.NEWER,1,UPLOADED,"page",MOD);
+        var calls=new java.util.concurrent.atomic.AtomicInteger();Path ready=Path.of("verified-update.jar");
+        UpdateCheck.CachedFetcher fetch=metadata->{assertEquals(known,metadata);calls.incrementAndGet();return ready;};
+        assertNull(UpdateCheck.fetchCachedIfNeeded(newer,known,MOD,false,fetch));assertEquals(0,calls.get());
+        assertEquals(ready,UpdateCheck.fetchCachedIfNeeded(newer,known,MOD,true,fetch));assertEquals(1,calls.get());
+        for(var state:java.util.List.of(UpdateCheck.State.CURRENT,UpdateCheck.State.READY,UpdateCheck.State.AHEAD))
+            assertNull(UpdateCheck.fetchCachedIfNeeded(new UpdateCheck.Status(state,1,UPLOADED,"page",MOD),known,MOD,true,fetch));
+        assertEquals(1,calls.get(),"Already downloaded, current and local-ahead builds must not fetch again");
+    }
+    @Test
+    void aFailedDownloadCanRetryTheSameReleaseWithoutAnotherGitHubApiRequest() throws Exception {
+        var known=release(MOD,100);var newer=new UpdateCheck.Status(UpdateCheck.State.NEWER,1,UPLOADED,"page",MOD);
+        assertThrows(IOException.class,()->UpdateCheck.fetchCachedIfNeeded(newer,known,MOD,true,r->{throw new IOException("offline");}));
+        Path ready=Path.of("retried-update.jar");assertEquals(ready,UpdateCheck.fetchCachedIfNeeded(newer,known,MOD,true,r->ready));
+        assertNull(UpdateCheck.fetchCachedIfNeeded(newer,known,OTHER,true,r->{throw new AssertionError("Changed checksum needs fresh metadata first");}));
+        assertNull(UpdateCheck.fetchCachedIfNeeded(newer,null,MOD,true,r->{throw new AssertionError("Missing metadata must not download");}));
+    }
+    @Test
+    void enablingEitherUpdateSettingWakesTheUpdaterButUnrelatedOrUnchangedSettingsDoNot() throws Exception {
+        var field=UpdateCheck.class.getDeclaredField("wake");field.setAccessible(true);boolean previous=field.getBoolean(null);
+        try {
+            for(String key:java.util.List.of("update.auto","update.check")) {
+                field.setBoolean(null,false);UpdateCheck.settingChanged(key,0,1);assertTrue(field.getBoolean(null));
+                field.setBoolean(null,false);UpdateCheck.settingChanged(key,1,1);assertFalse(field.getBoolean(null));
+                UpdateCheck.settingChanged(key,1,0);assertFalse(field.getBoolean(null));
+            }
+            UpdateCheck.settingChanged("orders.bid",0,1);assertFalse(field.getBoolean(null));
+        } finally {field.setBoolean(null,previous);}
+    }
 }

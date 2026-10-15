@@ -633,7 +633,7 @@ public final class Tuning {
                     "When a newer build is out it is downloaded beside the config, checked against the hash GitHub "
                     + "gives for it, and put in place of the mod's jar after the game has closed, never while it "
                     + "runs. The next start runs the new build; the old jar is kept as update/previous.jar. Needs "
-                    + "the update check on (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+                    + "no separate update-check toggle; enabling this checks the current release immediately (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("follow.enabled", "Follows", "Follow players and record their trades",
                     "Follows the names in follow-list.txt with the server's /follow command, one at a time between "
                     + "trades, and writes every notice the server then sends about them (listed, ordered, bought, "
@@ -1224,8 +1224,10 @@ public final class Tuning {
     public static double set(String key, double value) {
         Setting s = setting(key);
         double clamped = s.clamp(value);
+        double before = get(key);
         VALUES.put(key, clamped);
         save();
+        UpdateCheck.settingChanged(key, before, clamped);
         return clamped;
     }
 
