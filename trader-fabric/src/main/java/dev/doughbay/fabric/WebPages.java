@@ -58,6 +58,7 @@ public final class WebPages {
             case "items" -> items();
             case "prices" -> prices(ownPriceViews(), OwnPrices.current().problems(), Tuning.text(OwnPrices.KEY));
             case "rivals" -> ours(rivals(snapshot(), System.currentTimeMillis(), ZoneId.systemDefault()));
+            case "staff" -> staff();
             case "rival" -> ours(rival(snapshot(), unhex(query == null ? null : query.get("id")), System.currentTimeMillis(),
                     ZoneId.systemDefault(), openListings()));
             default -> null;
@@ -91,6 +92,50 @@ public final class WebPages {
     }
 
     // ---------------------------------------------------------------- settings
+
+    static String staff() {
+        long now = System.currentTimeMillis();
+        StaffWatchReport.Snapshot snapshot = StaffWatchReport.snapshot();
+        return ours(staffData(snapshot,now,DoughBayClient.account(),ZoneId.systemDefault()).toString());
+    }
+    static ObjectNode staffData(StaffWatchReport.Snapshot snapshot,long now,String observer,ZoneId zone) {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("observer",observer);
+        root.put("status", snapshot.status(now));
+        root.put("observedAt", snapshot.at());
+        root.put("fresh", snapshot.fresh(now));
+        root.put("region", snapshot.region());
+        root.put("watchedMillis",snapshot.watchedMillis());
+        root.put("watchingObservers",snapshot.observers());
+        root.put("timeZone",zone.getId());
+        root.put("note", "Shared hive observations, retained for 30 days. No extra game requests. Durations exclude observation gaps and overlapping sightings are merged. Mapped areas are estimates, not verified shard identifiers. These are observed hours, not staff timezones or guaranteed availability. Absence does not prove offline.");
+        ArrayNode rows = root.putArray("rows");
+        for (var row : snapshot.current(now)) {
+            var item = rows.addObject();
+            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(row.name()));
+            item.put("presence", row.presence().equals("VANISHED") ? "Hidden from TAB" : row.presence().equals("SPECTATOR") ? "Spectator observed" : "Online in player list");
+            item.put("region", row.nearby() ? "Nearby" : row.sameRegion() ? "Same-region signal" : "Region unconfirmed");
+            item.put("observer",row.observer());
+            item.put("scope",StaffWatchReport.scopeLabel(row.region()));
+        }
+        ArrayNode history = root.putArray("history");
+        for (var sighting : snapshot.history()) {
+            var item = history.addObject();
+            item.put("at", sighting.at());
+            item.put("name", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(sighting.name()));
+            item.put("event", StaffWatchReport.label(sighting.event()));
+            item.put("region", sighting.sameRegion() ? "Same-region signal" : "Region unconfirmed");
+            item.put("area", StaffWatchReport.scopeLabel(sighting.region()));
+            item.put("observer",sighting.observer());
+        }
+        ArrayNode summaries=root.putArray("summaries");
+        for(var summary:snapshot.summaries()) {
+            var item=summaries.addObject();item.put("name",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()));
+            item.put("intervals",summary.intervals());item.put("observedMillis",summary.observedMillis());item.put("firstSeen",summary.firstSeen());item.put("lastSeen",summary.lastSeen());
+            item.put("usualHours",summary.usualHours());
+        }
+        return root;
+    }
 
     static String settings() {
         ObjectNode root = MAPPER.createObjectNode();

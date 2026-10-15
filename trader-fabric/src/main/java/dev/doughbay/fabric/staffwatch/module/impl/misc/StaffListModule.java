@@ -142,6 +142,7 @@ public final class StaffListModule extends ClientModule {
       this.forget();
       this.connection = null;
       this.shard.clear();
+      dev.doughbay.fabric.StaffWatchReport.publish(System.currentTimeMillis(), false, false, List.of());
    }
 
    private void forget() {
@@ -151,7 +152,7 @@ public final class StaffListModule extends ClientModule {
       this.forgetShard();
    }
 
-   public void resetForRegionTransfer() { this.forgetShard(); this.shard.clear(); }
+   public void resetForRegionTransfer() { this.forgetShard(); this.shard.clear(); dev.doughbay.fabric.StaffWatchReport.observationBoundary(); }
 
    private void forgetShard() {
       this.switches.clear();
@@ -160,6 +161,7 @@ public final class StaffListModule extends ClientModule {
       this.alarm.stop();
       this.resort = true;
    }
+
 
    public static boolean shouldShowHud() {
       StaffListModule module = instance();
@@ -284,12 +286,18 @@ public final class StaffListModule extends ClientModule {
       ClientPacketListener conn = mc.getConnection();
       if (conn != null && mc.player != null && mc.level != null) {
          boolean moved = this.shard.moved(mc);
+         dev.doughbay.fabric.StaffWatchReport.region(mc.level.dimension() == net.minecraft.world.level.Level.OVERWORLD
+                 ? dev.doughbay.fabric.staffwatch.gui.DonutGoliathMapData.name(
+                         dev.doughbay.fabric.staffwatch.gui.DonutGoliathMapData.goliathAt(mc.player.getX(), mc.player.getZ()))
+                 : "Unknown");
          if (conn != this.connection) {
+            dev.doughbay.fabric.StaffWatchReport.observationBoundary();
             this.connection = conn;
             this.forget();
             this.settleTicks = 60;
             this.primed = false;
          } else if (moved) {
+            dev.doughbay.fabric.StaffWatchReport.observationBoundary();
             this.forgetShard();
          }
 
@@ -331,6 +339,18 @@ public final class StaffListModule extends ClientModule {
          this.shard.clear();
          this.primed = false;
       }
+      dev.doughbay.fabric.StaffWatchReport.region(conn!=null && mc.player!=null && mc.level!=null && mc.level.dimension()==net.minecraft.world.level.Level.OVERWORLD
+          ? dev.doughbay.fabric.staffwatch.gui.DonutGoliathMapData.name(dev.doughbay.fabric.staffwatch.gui.DonutGoliathMapData.goliathAt(mc.player.getX(),mc.player.getZ())):"Unknown");
+      long observedAt = System.currentTimeMillis();
+      List<dev.doughbay.fabric.StaffWatchReport.Row> reportRows = new ArrayList<>();
+      for (Staff tracked : this.sorted) {
+         Sighting seen = this.sightings.get(tracked.id);
+         reportRows.add(new dev.doughbay.fabric.StaffWatchReport.Row(tracked.name,
+                 tracked.presence.name(), seen != null && seen.marked(observedAt), seen != null && seen.nearby));
+      }
+      dev.doughbay.fabric.StaffWatchReport.publish(observedAt, true,
+              conn != null && mc.player != null && mc.level != null && this.primed && this.settleTicks==0
+                  && mc.getCurrentServer()!=null && dev.doughbay.fabric.staffwatch.DonutServer.matches(mc.getCurrentServer().ip), reportRows);
    }
 
    private StaffListModule.Changes scan(Minecraft mc, ClientPacketListener conn, long now) {
@@ -390,6 +410,10 @@ public final class StaffListModule extends ClientModule {
       }
 
       this.pruneSightings(now);
+      for (Staff tracked : changes.joined) recordPresence(tracked, now);
+      for (Staff tracked : changes.changed) recordPresence(tracked, now);
+      for (Staff tracked : changes.left) dev.doughbay.fabric.StaffWatchReport.record(now, tracked.name,
+              dev.doughbay.fabric.StaffWatchReport.Event.NO_LONGER_OBSERVED);
       this.sortView(now);
       return changes;
    }
@@ -403,6 +427,14 @@ public final class StaffListModule extends ClientModule {
       );
       this.sorted = List.copyOf(view);
       this.resort = false;
+   }
+
+   private void recordPresence(Staff tracked, long now) {
+      dev.doughbay.fabric.StaffWatchReport.record(now, tracked.name, switch (tracked.presence) {
+         case ONLINE -> dev.doughbay.fabric.StaffWatchReport.Event.OBSERVED;
+         case SPECTATOR -> dev.doughbay.fabric.StaffWatchReport.Event.SPECTATOR;
+         case VANISHED -> dev.doughbay.fabric.StaffWatchReport.Event.HIDDEN_FROM_TAB;
+      }, this.sightings.containsKey(tracked.id) && this.sightings.get(tracked.id).marked(now));
    }
 
    private int group(StaffListModule.Staff s, long now) {
@@ -457,6 +489,9 @@ public final class StaffListModule extends ClientModule {
             }
 
             StaffListModule.Sighting seen = this.sightings.computeIfAbsent(id, key -> new StaffListModule.Sighting());
+            dev.doughbay.fabric.StaffWatchReport.record(now, name, change.mode() == GameType.SPECTATOR
+                    ? dev.doughbay.fabric.StaffWatchReport.Event.SPECTATOR
+                    : dev.doughbay.fabric.StaffWatchReport.Event.MODE_CHANGED, true);
             if (!seen.marked(now)) {
                this.resort = true;
             }
@@ -488,6 +523,8 @@ public final class StaffListModule extends ClientModule {
                   this.resort = true;
                   boolean newAppearance = seen.bodyLostAt == 0L || now - seen.bodyLostAt > 10000L;
                   if (newAppearance) {
+                     dev.doughbay.fabric.StaffWatchReport.record(now, tracked.name,
+                             dev.doughbay.fabric.StaffWatchReport.Event.NEARBY, true);
                      this.alert(tracked.id, seen, now, tracked.name);
                   }
                }

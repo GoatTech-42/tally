@@ -107,3 +107,19 @@ if (project.hasProperty('staffWatchSmoke')) {
         programArgs '--width', '1920', '--height', '1080'
     }
 }
+
+// Disposable offline Staff Watch screenshots; excluded from release artifacts.
+if (project.hasProperty('staffActivityScreenshots')) {
+ sourceSets.main.java.srcDir 'src/staffActivitySmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.StaffActivityGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/staff-activity-smoke'
+  programArgs '--width', '1600', '--height', '1000'
+ }
+}
+tasks.named('jar') { exclude '**/StaffActivityGuiSmoke*.class' }
