@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-15 01:57 UTC
+
+- Added opt-in automatic critical bug reports under Settings → Support. Persistent rejected checkpoints or a failed persistence writer are reported only after two minutes without recovery following healthy operation. Slow sales, normal scans, manual stops and intentional restart/escape handling do not trigger reports.
+- Reports use the public schema 3 receiver with sanitized log excerpts and anonymous incident fingerprints. Per-install consent defaults off and cannot be inherited through shared configuration or copied settings codes; headless installs can opt in through doughbay-local.json.
+- Delivery runs off the game thread. Frozen requests and retry identifiers survive restarts, retries are bounded, and duplicate suppression plus a three-new-report daily limit prevent repeated failures flooding GitHub. Cached evidence is validated before upload, and older or disabled receivers block automatic submission while manual reports remain available.
+
 ## 2026-10-15 00:08 UTC
 
 - Bug reports now send directly without obtaining an API token. Public capabilities enable the sanitized log excerpt, and the GUI shows Sent only after a valid issue link. Retries keep their identifier; a 409 conflict asks the user to prepare again.

@@ -11766,6 +11766,17 @@ public final class AutomationSessionController {
                 + (status.detail().isBlank() ? "" : ": " + status.detail());
     }
 
+    /** Structured facts for the opt-in reporter; excludes raw exception text and financial identifiers. */
+    public synchronized dev.doughbay.fabric.AutomaticReportDetector.Observation automaticReportObservation(
+            boolean optedIn, boolean connected, boolean intentionalRecovery) {
+        var status=persistence==null?null:persistence.status();
+        return new dev.doughbay.fabric.AutomaticReportDetector.Observation(optedIn,connected,
+            sessionOpen && !pausedByPlayer && (armed || isRunning()), intentionalRecovery || staffTransferHold || serverRestarting() || panelOpen,
+            status!=null && status.ready(),status!=null && status.refusalOutstanding(),
+            status!=null && status.loadState()==AutomationPersistencePort.LoadState.FAILED,
+            dev.doughbay.fabric.AutomaticReportDetector.classifyRefusal(status==null?null:status.detail()));
+    }
+
     private AutomationSessionCheckpoint checkpoint(
             boolean open, String checkpointState, Position position,
             AutomationUncertainExposure uncertain, String checkpointDetail) {
