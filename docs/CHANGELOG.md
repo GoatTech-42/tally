@@ -9,7 +9,7 @@ About tab.
 - Added manual region switching to Region Map in the GUI, web panel and Discord. Choose one hive account and a destination; moves wait for a safe, durable checkpoint, use the normal command pacing, and resume only the session paused by this transfer after fresh server confirmation. Failed or cancelled transfers never start trading.
 
 - Added an explicit Staff Watch response choice in the GUI, web panel and Discord: switch region first or disconnect immediately. In switch mode, a fresh alert for the same staff member within two minutes of confirmed arrival disconnects for the existing 5–10 minute cooldown, without a second hop. In-flight duplicates are ignored and other staff alerts do not erase pending follow checks.
-- Added a Region Map tab in the GoNuts GUI and Region Map pages in the web and Discord panels. Spectre's numbered 9×9 Overworld layout identifies this client's mapped server area when Donut Randomized Coords is off; the map highlights the whole area rather than an exact position.
+- Added a Region Map tab in the GoNuts GUI and Region Map pages in the web and Discord panels. The numbered 9×9 Overworld layout identifies this client's mapped server area when Donut Randomized Coords is off; the map highlights the whole area rather than an exact position.
 - The existing name privacy toggle also scrambles GUI XYZ using fixed dummy characters. Web and Discord maps always omit exact coordinates, regardless of that toggle. Disconnected clients and unsupported dimensions show an unavailable region rather than a stale location.
 
 ## 2026-10-16 01:21 UTC
