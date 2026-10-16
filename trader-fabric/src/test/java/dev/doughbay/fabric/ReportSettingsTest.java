@@ -19,7 +19,9 @@ class ReportSettingsTest {
             "{\"v\":1,\"n\":{},\"t\":{\"webhook.url\":\"secret\"}}",
             "{\"v\":1,\"n\":{\"discord.id\":123},\"t\":{}}",
             "{\"v\":1,\"n\":{\"slots.max\":\"token\"},\"t\":{}}",
-            "{\"v\":1,\"n\":{},\"t\":{},\"secret\":1}"})
+            "{\"v\":1,\"n\":{},\"t\":{},\"secret\":1}",
+            "{\"v\":1,\"n\":{},\"t\":{\"secret\":\"hidden\"},\"t\":{}}",
+            "{\"v\":1,\"n\":{},\"t\":{}} {\"secret\":1}"})
             assertThrows(IllegalArgumentException.class,()->SettingsCode.validateReportCode(SettingsCode.encode(json.getBytes(StandardCharsets.UTF_8))));
     }
     @Test void payloadFreezesSettingsForRetriesAndShowsThemInPreview() throws Exception {

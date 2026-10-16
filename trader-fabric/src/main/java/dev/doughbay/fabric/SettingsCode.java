@@ -366,7 +366,9 @@ public final class SettingsCode {
         try (var gz = new GZIPInputStream(new ByteArrayInputStream(base32Decode(code)))) {
             byte[] bytes = gz.readNBytes(65537);
             if (bytes.length > 65536) throw new IllegalArgumentException();
-            var root = new ObjectMapper().readTree(bytes);
+            var root = new ObjectMapper().enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
+                .enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(bytes);
+            if (!encode(bytes).equals(code)) throw new IllegalArgumentException();
             if (root == null || !root.isObject() || root.size() != 3 || !root.path("v").isIntegralNumber()
                     || root.path("v").asInt() != 1 || !root.path("n").isObject()
                     || !root.path("t").isObject() || root.path("t").size() != 0) throw new IllegalArgumentException();
