@@ -361,6 +361,13 @@ public final class AutomationSessionController {
     /** A connection escape owns this hold, independently of the player's pause choice. */
     public synchronized void holdForStaffTransfer(boolean hold) { staffTransferHold = hold; }
 
+    public synchronized ExecutionResult resumeAfterManualRegionTransfer() {
+        if (pausedByPlayer || state != State.PAUSED || !detail.equals("PAUSED: Manual region switch")
+                && !detail.equals("Manual region switch"))
+            return ExecutionResult.refused("Manual region transfer does not own this pause");
+        return resume();
+    }
+
     public synchronized ExecutionResult resumeAfterStaffTransfer() {
         if (pausedByPlayer || state != State.PAUSED || !detail.startsWith("PAUSED: Staff Watch:")
                 && !detail.startsWith("Staff Watch:"))
@@ -1780,6 +1787,7 @@ public final class AutomationSessionController {
 
     /** Stops this controller and the driver before either can advance again. */
     public synchronized void emergencyStop() {
+        dev.doughbay.fabric.staffwatch.ManualRegionTransfer.cancel();
         pausedByPlayer = true;
         armed = false;
         releaseUnclickedWatchExposure();
@@ -1805,6 +1813,7 @@ public final class AutomationSessionController {
     }
 
     public synchronized void stop() {
+        dev.doughbay.fabric.staffwatch.ManualRegionTransfer.cancel();
         pausedByPlayer = true;
         armed = false;
         releaseUnclickedWatchExposure();

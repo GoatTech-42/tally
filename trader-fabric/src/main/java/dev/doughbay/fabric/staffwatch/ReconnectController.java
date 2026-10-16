@@ -34,7 +34,13 @@ public final class ReconnectController {
   if(schedule.active()||flow.phase()==ReconnectFlow.Phase.DISCONNECTING||flow.phase()==ReconnectFlow.Phase.WAITING)return;
   var mc=Minecraft.getInstance();
   if(mc.getCurrentServer()==null||!DonutServer.matches(mc.getCurrentServer().ip)||mc.hasSingleplayerServer())return;
-  if(regionEscape.flow.alert(watcher,config.enabled&&config.autoDisconnect)){
+  if(!config.enabled||!config.autoDisconnect||watcher==null||watcher.isBlank())return;
+  ManualRegionTransfer.cancel();
+  if(!config.regionSwitch){
+   dev.doughbay.fabric.DoughBayClient.yieldRestartToStaffWatch();
+   disconnectNow(watcher);return;
+  }
+  if(regionEscape.flow.alert(watcher,true)){
    lastWatcher=watcher;
    dev.doughbay.fabric.DoughBayClient.yieldRestartToStaffWatch();
   }
@@ -69,7 +75,7 @@ public final class ReconnectController {
   }
   var mc=Minecraft.getInstance();
   if(mc.level!=null&&!mc.hasSingleplayerServer()&&mc.getCurrentServer()!=null){target=mc.getCurrentServer();cancelledByUser=false;donutSession=DonutServer.matches(target.ip);}
-  regionEscape.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);
+  regionEscape.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect&&WatchConfig.get().regionSwitch);
   flow.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect,WatchConfig.get().reconnectAddress(),dev.doughbay.fabric.DoughBayClient.restartOwnsConnection());
   if(!WatchConfig.get().enabled||!WatchConfig.get().autoDisconnect||cancelledByUser){tradingResume.cancel();return;}
   if(tradingResume.pending()){

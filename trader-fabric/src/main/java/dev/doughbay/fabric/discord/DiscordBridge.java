@@ -45,7 +45,7 @@ public final class DiscordBridge {
     private static final long REFRESH_MILLIS = 15_000;
     private static final long FEED_MILLIS = 5_000;
 
-    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, FLIPS, RIVALS, STAFF, EVASION, PAYROLL, TUNE, SEARCH }
+    enum Page { MONEY, STATUS, HIVE, LISTINGS, ITEMS, OPPS, ORDERS, FLIPS, RIVALS, STAFF, REGIONS, EVASION, PAYROLL, TUNE, SEARCH }
 
     private final Logger log;
     private final Path configDir;
@@ -83,6 +83,7 @@ public final class DiscordBridge {
      * made together.
      */
     private volatile String account = "";
+    private volatile String selectedRegion="asia";
     /** The newest hive-control reply already shown, so each is shown once. */
     private volatile long controlRepliesSeenAt = System.currentTimeMillis();
     private volatile String tuneGroup = "";
@@ -153,6 +154,7 @@ public final class DiscordBridge {
 
     /** The page on view, as the picture Discord would be sent. */
     public byte[] panelPng() throws Exception {
+        if (page == Page.REGIONS) return dev.doughbay.fabric.RegionMapImage.render(dev.doughbay.fabric.RegionMapReport.snapshot());
         return StatsImage.render(buildPage().withFaces(faces()).withMascot(mascotFace()));
     }
 
@@ -439,7 +441,8 @@ public final class DiscordBridge {
         if (!publishing.compareAndSet(false, true)) return;
         try {
             StatsImage.Page p = buildPage().withFaces(faces()).withMascot(mascotFace());
-            byte[] png = StatsImage.render(p);
+            byte[] png = page == Page.REGIONS
+                    ? dev.doughbay.fabric.RegionMapImage.render(dev.doughbay.fabric.RegionMapReport.snapshot()) : StatsImage.render(p);
             String payload = payload(p);
             DiscordConfig c = config;
             boolean ok = !c.messageId().isBlank() && rest.editMessage(c.channelId(), c.messageId(), payload, png);
@@ -533,6 +536,10 @@ public final class DiscordBridge {
         }
         ArrayNode r2 = row(rows);
         button(r2, "ctl:search", "Search", 2, false);
+        if(page==Page.REGIONS)button(r2,"regions:switch","Switch selected account",1,
+                account.isBlank() && DoughBayClient.hiveAccounts().size()>1);
+        if (page == Page.STAFF) button(r2,"staff:response",
+                dev.doughbay.fabric.staffwatch.WatchConfig.get().regionSwitch?"Response: Switch region":"Response: Disconnect",2,false);
         if (page == Page.FLIPS) {
             // On the Search row, which has room: the page's own row goes to
             // the list to pick from, and Discord takes five rows and no more.
@@ -600,6 +607,13 @@ public final class DiscordBridge {
                 option(fopts, item(e.itemId()) + " · buy " + money(e.buy()) + " · sell " + money(e.sell()),
                         e.itemId(), chosen != null && chosen.itemId().equals(e.itemId()));
             }
+        }
+        if(page==Page.REGIONS) {
+            ArrayNode rr=row(rows);
+            ObjectNode rp=select(rr,"regions:pick","Destination: "+selectedRegion);
+            ArrayNode ro=rp.putArray("options");
+            for(String region:dev.doughbay.fabric.staffwatch.ManualRegionFlow.DESTINATIONS)
+                option(ro,region,region,region.equals(selectedRegion));
         }
         if (page == Page.TUNE) {
             List<String> groups = new ArrayList<>(Tuning.groups());
@@ -679,6 +693,7 @@ public final class DiscordBridge {
             case RIVALS -> "Rivals";
             case EVASION -> "Evasion";
             case STAFF -> "Staff Watch";
+            case REGIONS -> "Region Map";
             case PAYROLL -> "Payroll";
             case TUNE -> "Tune";
             case FLIPS -> "Flips";
@@ -749,8 +764,24 @@ public final class DiscordBridge {
     }
 
     private String handleComponent(JsonNode d, String customId) {
+        if (customId.equals("staff:response")) {
+            String mode=dev.doughbay.fabric.staffwatch.WatchConfig.get().regionSwitch?"disconnect":"switch";
+            String result=dev.doughbay.fabric.WebPages.change("staff",java.util.Map.of("action","response","mode",mode));
+            try { return MAPPER.readTree(result).path("note").asText("Staff Watch response updated"); }
+            catch(java.io.IOException e) { return "Could not update Staff Watch response"; }
+        }
         JsonNode values = d.path("data").path("values");
         String value = values.isArray() && values.size() > 0 ? values.get(0).asText("") : "";
+        if(customId.equals("regions:pick")) {
+            if(dev.doughbay.fabric.staffwatch.ManualRegionFlow.DESTINATIONS.contains(value))selectedRegion=value;
+            return "Destination: "+selectedRegion+". Press Switch selected account to move.";
+        }
+        if(customId.equals("regions:switch")) {
+            String target=account.isBlank() && DoughBayClient.hiveAccounts().size()<2?DoughBayClient.account():account;
+            String result=dev.doughbay.fabric.WebPages.change("regions",java.util.Map.of("account",target,"destination",selectedRegion));
+            try{return MAPPER.readTree(result).path("note").asText("Region request completed");}
+            catch(java.io.IOException e){return "Could not request region switch";}
+        }
         if (customId.equals("acct:pick")) {
             account = "*".equals(value) ? "" : value;
             return account.isBlank() ? "Showing every account" : "Showing " + account;
@@ -1070,6 +1101,7 @@ public final class DiscordBridge {
             case RIVALS -> rivalsPage(stateColor, subtitle, footer);
             case EVASION -> evasionPage(stateColor, subtitle, footer);
             case STAFF -> staffPage();
+            case REGIONS -> regionPage();
             case PAYROLL -> payrollPage(stateColor, subtitle, footer);
             case TUNE -> tunePage(stateColor, subtitle, footer);
             case FLIPS -> flipsPage(stateColor, subtitle, footer);
@@ -1675,6 +1707,13 @@ public final class DiscordBridge {
     /** Who came near, when, and what the guard did about it - newest first. */
     private StatsImage.Page staffPage() {
         return staffPageFor(dev.doughbay.fabric.StaffWatchReport.snapshot(),System.currentTimeMillis(),DoughBayClient.account(),ZoneId.systemDefault());
+    }
+    private StatsImage.Page regionPage() {
+        var view = dev.doughbay.fabric.RegionMapReport.snapshot();
+        return new StatsImage.Page("Region Map", "This client", "green",
+                List.<String[]>of(new String[]{"Mapped server", view.server()}), 0, 0,
+                new String[]{"Status"}, new boolean[]{false}, List.<String[]>of(new String[]{view.status()}),
+                "Map: panel host. Switch controls move the selected account. Coordinates hidden.");
     }
     static StatsImage.Page staffPageFor(dev.doughbay.fabric.StaffWatchReport.Snapshot snapshot,long now,String host,ZoneId zone) {
         List<String[]> head = new ArrayList<>();

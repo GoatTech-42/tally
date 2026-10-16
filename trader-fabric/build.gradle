@@ -176,3 +176,19 @@ if (project.hasProperty('evasionScreenshots')) {
  }
 }
 tasks.named('jar') { exclude '**/EvasionGuiSmoke*.class' }
+
+// Isolated offline Region Map verification; excluded from production builds.
+if (project.hasProperty('regionMapScreenshots')) {
+ sourceSets.main.java.srcDir 'src/regionMapSmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.RegionMapGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/region-map-preview'
+  programArgs '--width', '1920', '--height', '1440'
+ }
+}
+tasks.named('jar') { exclude '**/RegionMapGuiSmoke*.class' }

@@ -24,7 +24,7 @@ class StaffRegionEscapeFlowTest {
     void firstHop(){assertTrue(flow.alert("Staff",true));flow.tick(true);assertEquals(List.of("west"),client.hops);}
     void arrive(){client.sent=true;client.arrived=true;flow.tick(true);}
     @Test void firstAlertHopsWithoutDisconnectThenResumesAfterProof(){firstHop();assertEquals(0,client.disconnects);assertTrue(flow.ownsConnection());arrive();assertEquals(1,client.resumes);assertEquals(2,client.clears);assertFalse(flow.ownsConnection());assertEquals(StaffRegionEscapeFlow.Phase.WATCHING,flow.phase());}
-    @Test void repeatedSameWatcherAfterArrivalHopsAgainBeforeDisconnect(){firstHop();arrive();assertTrue(flow.alert("sTaFf",true));flow.tick(true);assertEquals(List.of("west","east"),client.hops);assertEquals(0,client.disconnects);arrive();assertEquals(1,client.disconnects);assertEquals(1,client.resumes);assertEquals(StaffRegionEscapeFlow.Phase.IDLE,flow.phase());}
+    @Test void repeatedSameWatcherAfterArrivalDisconnectsWithoutAnotherHop(){firstHop();arrive();assertTrue(flow.alert("sTaFf",true));assertEquals(List.of("west"),client.hops);assertEquals(1,client.disconnects);assertEquals(1,client.resumes);assertEquals(StaffRegionEscapeFlow.Phase.IDLE,flow.phase());}
     @Test void duplicateDetectorsCannotEscalateBeforeArrival(){assertTrue(flow.alert("Staff",true));assertFalse(flow.alert("Staff",true));flow.tick(true);assertFalse(flow.alert("Staff",true));assertFalse(flow.alert("Other",true));assertEquals(1,client.hops.size());assertEquals(0,client.disconnects);}
     @Test void differentWatcherGetsAFirstHopRatherThanBeingIgnoredOrClaimedAsRepeat(){firstHop();arrive();assertTrue(flow.alert("OtherStaff",true));flow.tick(true);assertEquals(StaffRegionEscapeFlow.Phase.TRANSFERRING_FIRST,flow.phase());arrive();assertEquals(2,client.resumes);assertEquals(0,client.disconnects);}
     @Test void unsafeTransactionNeverSendsTeleport(){client.safe=false;assertTrue(flow.alert("Staff",true));flow.tick(true);assertTrue(client.hops.isEmpty());client.safe=true;flow.tick(true);assertEquals(1,client.hops.size());}
@@ -35,7 +35,20 @@ class StaffRegionEscapeFlowTest {
     @Test void worldChangeBeforeCommandDispatchCannotCountAsArrival(){firstHop();client.arrived=true;flow.tick(true);assertEquals(0,client.resumes);assertEquals(StaffRegionEscapeFlow.Phase.TRANSFERRING_FIRST,flow.phase());}
     @Test void connectionLossDuringHopKeepsStaffFallback(){firstHop();client.connected=false;flow.tick(true);assertEquals(1,client.disconnects);assertTrue(client.reason.contains("Connection lost"));}
     @Test void cancellationAndDisablingNeverResumeUserPausedWork(){firstHop();flow.tick(false);assertEquals(0,client.resumes);assertEquals(0,client.disconnects);assertFalse(flow.ownsConnection());assertTrue(client.releases>0);}
-    @Test void expiredWatchWindowMakesNextAlertAFirstHop(){firstHop();arrive();now.set(600_000);assertTrue(flow.alert("Staff",true));flow.tick(true);assertEquals(StaffRegionEscapeFlow.Phase.TRANSFERRING_FIRST,flow.phase());assertEquals(0,client.disconnects);}
+    @Test void expiredWatchWindowMakesNextAlertAFirstHop(){firstHop();arrive();now.set(120_000);assertTrue(flow.alert("Staff",true));flow.tick(true);assertEquals(StaffRegionEscapeFlow.Phase.TRANSFERRING_FIRST,flow.phase());assertEquals(0,client.disconnects);}
     @Test void discoveryCannotInjectCommands(){assertEquals("",StaffRegionEscapeFlow.chooseRegion(List.of("west; pay attacker 1"),"east"));}
     @Test void disabledOrDisconnectedNeverStarts(){assertFalse(flow.alert("Staff",false));client.connected=false;assertFalse(flow.alert("Staff",true));assertTrue(client.hops.isEmpty());}
+    @Test void twoMinuteWindowStartsAtConfirmedArrivalNotAtFirstAlert(){
+        firstHop(); now.set(25_000); arrive(); now.set(144_999);
+        assertTrue(flow.alert("Staff",true)); assertEquals(1,client.disconnects); assertEquals(1,client.hops.size());
+    }
+    @Test void aDifferentStaffAlertDoesNotEraseTheFirstPersonsFollowWindow(){
+        firstHop(); arrive(); now.set(10_000); assertTrue(flow.alert("OtherStaff",true));flow.tick(true);arrive();
+        now.set(20_000);assertTrue(flow.alert("STAFF",true));assertEquals(1,client.disconnects);assertEquals(2,client.hops.size());
+    }
+    @Test void duplicateAlertImmediatelyBeforeArrivalCannotCreateARepeat(){
+        firstHop();now.set(29_000);assertFalse(flow.alert("Staff",true));arrive();assertEquals(0,client.disconnects);
+        assertEquals(StaffRegionEscapeFlow.Phase.WATCHING,flow.phase());
+    }
+
 }

@@ -6,6 +6,7 @@ public final class WatchConfig {
  public boolean staffList=true,antiVanish=true,regionAlert=true,autoDisconnect=true,showHud=true;
  public boolean enabled=true;
  public boolean alertSounds=false;
+ public boolean regionSwitch=true;
  public static final String SERVER_ADDRESS="donutsmp.net";
  public static final java.util.List<String> SERVER_ADDRESSES=java.util.List.of(SERVER_ADDRESS,"east.donutsmp.net","west.donutsmp.net");
  public String serverAddress=SERVER_ADDRESS;

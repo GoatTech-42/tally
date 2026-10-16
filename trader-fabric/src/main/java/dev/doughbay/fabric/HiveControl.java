@@ -120,8 +120,14 @@ public final class HiveControl {
      * client's own session and for orders from another client alike.
      */
     public static String apply(AutomationSessionController session, String command) {
+        if (command != null && command.startsWith("REGION:")) {
+            String destination=command.substring(7);
+            boolean ok=dev.doughbay.fabric.staffwatch.ManualRegionTransfer.request(destination);
+            return (ok?"OK: ":"Refused: ")+dev.doughbay.fabric.staffwatch.ManualRegionTransfer.status();
+        }
         AutomationSessionController.SessionSnapshot s = session.snapshot();
         if (STOP.equals(command)) {
+            dev.doughbay.fabric.staffwatch.ManualRegionTransfer.cancel();
             if (s.state() == AutomationSessionController.State.STOPPED) return "Already stopped";
             session.stop();
             return "Stopped by operator";
