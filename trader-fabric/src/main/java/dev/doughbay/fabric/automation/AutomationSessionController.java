@@ -2229,6 +2229,15 @@ public final class AutomationSessionController {
     /** Called once per client tick, after the global B-key stop has been drained. */
     public synchronized void tick(Minecraft client, MarketWatcher.Snapshot marketSnapshot) {
         controllerTick++;
+        if (ownOnly() && (state == State.READING_ORDERS
+                || state == State.BID_DESK && deskStep != null && deskStep.action() == DeskAction.SWEEP)) {
+            driver.abandon("Flips only enabled: stopping a general market scan");
+            deskStep=null; ordersReadWatchdog.reset();
+            deskQueue.removeIf(step -> step.action() == DeskAction.SWEEP);
+            deskReadDue=true;
+            transition(State.SCANNING, dev.doughbay.fabric.FlipsMode.description());
+            return;
+        }
         // A stop/resume or recovery transition can invalidate a partially
         // completed split. Never carry its old click stage into another state.
         if (isRunning() && singlePeelStage >= 0
@@ -3301,8 +3310,7 @@ public final class AutomationSessionController {
         if (pendingOpportunity == null && ownOnly()) {
             // Their list is all that is bought, and it is bought through
             // orders. Nothing on the auction is watched for.
-            detail = "Trading only your price list: " + dev.doughbay.fabric.OwnPrices.all().size()
-                    + " item(s) on order or being sold; not watching the auction for other deals";
+            detail = dev.doughbay.fabric.FlipsMode.description();
             return;
         }
         if (pendingOpportunity == null && trackedPosition == null && keylessStillLearning(snapshot)) {
@@ -4979,7 +4987,7 @@ public final class AutomationSessionController {
         boolean buysOrPrices = step.action() == DeskAction.PLACE || step.action() == DeskAction.SWEEP
                 || step.action() == DeskAction.QUOTE;
         if (buysOrPrices && (step.action() == DeskAction.PLACE && windingDown()
-                || ownOnly() && ownPrice(step.itemId()) == null)) {
+                || ownOnly() && (step.action() == DeskAction.SWEEP || ownPrice(step.itemId()) == null))) {
             LOGGER.info("DoughBay bid desk: dropped a planned {} for {}: {}", step.action(), step.itemId(),
                     windingDown() ? "the session is winding down" : "only your price list is traded");
             deskReadDue = true;
@@ -5289,7 +5297,7 @@ public final class AutomationSessionController {
         boolean winding = windingDown();
         boolean listOnly = ownOnly();
         boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding;
-        if (bidding) enqueueProbe(now);
+        if (bidding && !listOnly) enqueueProbe(now);
         double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
         // The desk's own margin floor sits over the global ROI: an order fills
         // as the price drops into it, so it needs more room than an auction buy
@@ -6324,7 +6332,7 @@ public final class AutomationSessionController {
 
     /** Whether the player has asked for their list to be all the bot buys, and has put something on it. */
     private static boolean ownOnly() {
-        return dev.doughbay.fabric.Tuning.get("prices.only") >= 0.5 && !dev.doughbay.fabric.OwnPrices.all().isEmpty();
+        return dev.doughbay.fabric.FlipsMode.only();
     }
 
     /** The player's prices for an item, or null when the bot prices it. */

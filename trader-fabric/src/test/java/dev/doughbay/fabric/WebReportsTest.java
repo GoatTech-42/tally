@@ -49,6 +49,16 @@ class WebReportsTest {
         WebReports.observe(failed,130001,"0.1.0");
         assertFalse(JSON.readTree(WebReports.data()).path("alert").asBoolean(),"Repeated ticks must not re-open the same notice");
     }
+    @Test void oldCallerCannotDisableDiagnosticEvidence() throws Exception {
+        awaitReady();var included=new java.util.concurrent.atomic.AtomicBoolean();
+        WebReports.Preparation preparation=(description,expected,include)->{
+            included.set(include);
+            return new WebReports.Prepared(new BugReportPayload("0.1.0","26.2",description,expected,BugReportDiagnostics.counters("")),BugReportLog.sanitize(""));
+        };
+        WebReports.change(Map.of("action","prepare","description","Legacy unchecked log report","expected","Diagnostics always included","includeLog","false"),preparation,
+            (payload,key,log)->CompletableFuture.completedFuture(new BugReportTransport.Result(false,"unused","",0)));
+        awaitReady();assertTrue(included.get());assertTrue(JSON.readTree(WebReports.data()).path("preview").asText().contains("Filtered GoNuts diagnostic excerpt"));
+    }
     private static void awaitReady() throws Exception {
         long deadline=System.nanoTime()+5_000_000_000L;
         while(JSON.readTree(WebReports.data()).path("busy").asBoolean()&&System.nanoTime()<deadline)Thread.sleep(10);

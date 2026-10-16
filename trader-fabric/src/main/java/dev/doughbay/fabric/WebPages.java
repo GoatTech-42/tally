@@ -57,7 +57,7 @@ public final class WebPages {
             case "evasion" -> evasion();
             case "code" -> answer(true, "").put("code", SettingsCode.export()).toString();
             case "items" -> items();
-            case "prices" -> prices(ownPriceViews(), OwnPrices.current().problems(), Tuning.text(OwnPrices.KEY));
+            case "prices" -> pricesData();
             case "rivals" -> ours(rivals(snapshot(), System.currentTimeMillis(), ZoneId.systemDefault()));
             case "staff" -> staff();
             case "reports" -> WebReports.data();
@@ -421,6 +421,13 @@ public final class WebPages {
      * for how much, what it holds, and what that is worth at the price they
      * set and at the price the market pays now.
      */
+    private static String pricesData() {
+        try {
+            ObjectNode root=(ObjectNode)MAPPER.readTree(prices(ownPriceViews(),OwnPrices.current().problems(),Tuning.text(OwnPrices.KEY)));
+            root.put("only",FlipsMode.only());root.put("modeDescription",FlipsMode.description());return root.toString();
+        } catch(java.io.IOException e) { return answer(false,"Could not read Flips settings").toString(); }
+    }
+
     static String prices(List<AutomationSessionController.OwnPriceView> views, List<String> problems, String text) {
         ObjectNode root = MAPPER.createObjectNode();
         root.put("text", text == null ? "" : text);

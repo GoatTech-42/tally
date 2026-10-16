@@ -19,7 +19,7 @@ public final class BugReportScreen extends Screen {
     private boolean collecting, sending, sendWhenReady;
     private long retryAt;
     private int scroll;
-    private boolean capabilityChecked, capabilityResolved, attachmentReady, includeLog = true;
+    private boolean capabilityChecked, capabilityResolved, attachmentReady;
     private String diagnosticLog = "";
     private net.minecraft.client.gui.components.Button sendButton;
     public BugReportScreen(Screen parent) { super(Component.literal("Report a GoNuts bug")); this.parent = parent; }
@@ -59,20 +59,13 @@ public final class BugReportScreen extends Screen {
         github.active = !report.isEmpty() && !sending; addRenderableWidget(github);
         var back = CockpitButton.builder(Component.literal("Back"), b -> onClose()).bounds(x + 3 * (each + gap), 111, each, 20).build();
         back.active = !sending; addRenderableWidget(back);
-        if (issueUrl.isEmpty()) {
-            var log = CockpitButton.builder(Component.literal(capabilityResolved ? "Include log: " + (includeLog ? "On" : "Off") : "Checking log support"), b -> {
-                if (collecting || sending) return;
-                includeLog = !includeLog; invalidate(); status = "The selected diagnostics will be sanitized before sending."; rebuildWidgets();
-            }).bounds(x + w - 145, 138, 145, 20).build();
-            log.active = capabilityResolved && !collecting && !sending; addRenderableWidget(log);
-        }
         if (!issueUrl.isEmpty()) addRenderableWidget(CockpitButton.builder(Component.literal("Open issue"), b ->
             Util.getPlatform().openUri(URI.create(issueUrl))).bounds(x + w - 85, 138, 85, 20).build());
         refreshSend();
     }
     private void refreshSend() {
         var config = DoughBayClient.activeConfig();
-        sendButton.active = capabilityResolved && (!includeLog || attachmentReady) && !collecting && !sending && issueUrl.isEmpty()
+        sendButton.active = capabilityResolved && attachmentReady && !collecting && !sending && issueUrl.isEmpty()
             && System.currentTimeMillis() >= retryAt;
     }
     private void invalidate() {
@@ -89,13 +82,12 @@ public final class BugReportScreen extends Screen {
         if (collecting || sending || !capabilityResolved) return;
         invalidate(); sendWhenReady = autoSend; collecting = true; status = "Preparing locally; nothing is uploaded."; rebuildWidgets();
         String description = filtered(happenedDraft), expectation = filtered(expectedDraft);
-        boolean withLog = attachmentReady && includeLog;
         CompletableFuture.supplyAsync(() -> {
             try {
                 String version = BugReportBuild.current();
                 var next = new BugReportPayload(version, "26.2", description, expectation,
                     BugReportDiagnostics.readCounters(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")));
-                String excerpt = withLog ? BugReportLog.read(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")) : "";
+                String excerpt = BugReportLog.readForReport(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log"));
                 next.json(excerpt); return new Prepared(next, excerpt);
             } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
@@ -103,7 +95,7 @@ public final class BugReportScreen extends Screen {
             report = result == null ? "" : payload.preview() + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
-                : "Preview ready. Send report will publish these sanitized details.";
+                : BugReportLog.UNAVAILABLE.equals(diagnosticLog)?"Log unavailable; report includes that notice. Send publishes the sanitized details.":"Preview ready. Sanitized diagnostics are attached automatically.";
             if (minecraft.gui.screen() == this) {
                 rebuildWidgets();
                 if (result != null && sendWhenReady) { sendWhenReady = false; send(); }
@@ -111,7 +103,7 @@ public final class BugReportScreen extends Screen {
         }));
     }
     private void send() {
-        if (collecting || sending || !capabilityResolved || includeLog && !attachmentReady || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt) return;
+        if (collecting || sending || !capabilityResolved || !attachmentReady || !issueUrl.isEmpty() || System.currentTimeMillis() < retryAt) return;
         if (payload == null) { prepare(true); return; }
         if (retryKey.isEmpty()) retryKey = java.util.UUID.randomUUID().toString();
         sending = true; status = "Sending sanitized report over HTTPS…"; rebuildWidgets();
@@ -140,6 +132,8 @@ public final class BugReportScreen extends Screen {
         g.text(font, "Send publishes to GitHub. Only sanitized diagnostics are attached.", x, 23, UiTheme.MUTED);
         g.text(font, "What happened? (Do not include names or private chat)", x, 33, UiTheme.TEXT);
         g.text(font, "What did you expect?", x, 70, UiTheme.TEXT);
+        if(issueUrl.isEmpty())g.text(font,UiTheme.fit(font,!capabilityResolved?"Checking sanitized log support...":attachmentReady
+                ?"Sanitized diagnostic logs are included automatically.":"Receiver log support unavailable; reopen to retry.",w),x,145,UiTheme.SECONDARY);
         int statusY = 163;
         for (var line : font.split(Component.literal(status), w)) { if (statusY > 173) break; g.text(font, line, x, statusY, UiTheme.SECONDARY); statusY += 10; }
         var lines = font.split(Component.literal(report), w);

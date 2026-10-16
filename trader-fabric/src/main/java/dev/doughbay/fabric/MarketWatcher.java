@@ -590,13 +590,14 @@ public final class MarketWatcher {
                     int mode = (int) Math.round(Tuning.get("feed.keyless"));
                     String key = config.apiKey();
                     boolean noKey = key == null || key.isBlank();
-                    if (mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
+                    if (FlipsMode.only() || mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
                         runKeyless(mode == 2 && !noKey);
                         failures = 0;
                         apiFailures = 0;
                         continue;
                     }
                     runOnce();
+                    if(FlipsMode.only())continue;
                     return;   // stopped on purpose
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -638,21 +639,24 @@ public final class MarketWatcher {
         try (Database db = new Database(config.databasePath())) {
             KeylessFeed.setActive(true);
             try {
+                boolean flipsOnly=FlipsMode.only();
                 java.util.Set<String> tracked;
-                if (Tuning.get("watch.tracked_managed") >= 0.5) {
+                if(flipsOnly) {
+                    tracked=OwnPrices.all().stream().map(e->"minecraft:"+e.itemId()).collect(java.util.stream.Collectors.toSet());
+                } else if (Tuning.get("watch.tracked_managed") >= 0.5) {
                     tracked = new java.util.HashSet<>();
                     for (String b : Tuning.itemSet("watch.tracked")) tracked.add(b.indexOf(':') >= 0 ? b : "minecraft:" + b);
                 } else {
                     tracked = config.trackedCommodities();
                 }
                 java.util.LinkedHashSet<String> warm = new java.util.LinkedHashSet<>(pinHeldExposure(tracked));
-                if (config.autoSelectCommodities()) warm.addAll(lastMarketSet(config));
+                if (!flipsOnly && config.autoSelectCommodities()) warm.addAll(lastMarketSet(config));
                 CommodityRegistry registry = new CommodityRegistry(
-                        Set.copyOf(warm), java.util.Set.of(), Tuning.itemSet("items.gear"));
+                        Set.copyOf(warm), java.util.Set.of(), flipsOnly?java.util.Set.of():Tuning.itemSet("items.gear"));
                 scannedItemIds = registry.trackedIds();
                 MarketService service = new MarketService(AnalyzerConfig.defaults(), config.auctionFees(),
                         config.riskConfig(), registry, null, db);
-                setStatus("Starting keyless mode: learning auction-to-order prices from history...");
+                setStatus(flipsOnly?"KEYLESS: Flips only; general market scans disabled":"Starting keyless mode: learning auction-to-order prices from history...");
                 KeylessFeed feed = new KeylessFeed(config.databasePath());
                 feed.prepare(db);
                 DoughBayClient.LOGGER.info("DoughBay keyless: running without the Donut API ({} price ratios)",
@@ -669,7 +673,7 @@ public final class MarketWatcher {
                 }
                 while (running && System.currentTimeMillis() < until) {
                     int mode = (int) Math.round(Tuning.get("feed.keyless"));
-                    if (mode == 0) return;
+                    if (flipsOnly!=FlipsMode.only() || mode == 0 && !flipsOnly) return;
                     long now = System.currentTimeMillis();
                     if (DoughBayClient.multiClient()) {
                         hive.refresh(KEYLESS_ROLL_CALL_BUDGET, signedInPlayerName(), DoughBayClient.clientMode());
@@ -682,7 +686,7 @@ public final class MarketWatcher {
                             : config.continuousMaxPurchasePrice();
                     List<Opportunity> signals = service.marketSignals(markets, now, signalCap);
                     String name = signedInPlayerName();
-                    String status = "KEYLESS: " + markets.size() + " market(s) valued; "
+                    String status = (flipsOnly?"KEYLESS: Flips only; general scans disabled; ":"KEYLESS: ") + markets.size() + " market(s) valued; "
                             + feed.writtenLastHour(now) + " sale(s) observed in the last hour";
                     latest.updateAndGet(current -> new Snapshot(signals, List.of(), markets, List.of(),
                             Map.of(), Map.of(), current.exactListingCoverage(), name, balance, status,
@@ -767,6 +771,7 @@ public final class MarketWatcher {
                     ? PROXY_MAX_HISTORY_PAGES : MAX_HISTORY_PAGES;
             long historyGapsSuspected = 0;
             while (running) {
+                if(FlipsMode.only())return;
                 if (DoughBayClient.multiClient()) {
                     // The signed-in account is known from launch; the one the
                     // balance sweep learns is the same name several minutes
