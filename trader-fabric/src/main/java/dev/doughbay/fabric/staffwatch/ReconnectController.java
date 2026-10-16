@@ -10,6 +10,8 @@ public final class ReconnectController {
  private boolean automaticAttempt;
  private boolean donutSession;
  private boolean cancelledByUser;
+ private final ReconnectResume tradingResume=new ReconnectResume();
+ private String lastResumeBlocker="";
  public boolean controlsConnection(){if(regionEscape.flow.ownsConnection())return true;if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&schedule.watcher()==null)return false;var c=WatchConfig.get();return c.enabled&&c.autoDisconnect&&donutSession&&(cancelledByUser||schedule.active()||flow.phase()!=ReconnectFlow.Phase.IDLE||Minecraft.getInstance().gui.screen() instanceof DisconnectedScreen);}
  private String lastWatcher="";
  public String lastWatcher(){return lastWatcher;}
@@ -42,7 +44,13 @@ public final class ReconnectController {
   if(c.enabled&&watcher!=null&&!watcher.isBlank())lastWatcher=watcher;
   if(flow.staffCooldown(watcher,c.reconnectAddress(),c.enabled&&c.autoDisconnect)){
    lastWatcher=watcher==null?"Staff":watcher;
+   var session=dev.doughbay.fabric.DoughBayClient.automationSessionController();
+   var before=session.snapshot();
+   boolean owned=before.active()||(session.restartRecoveryMayResume()
+     && before.detail().startsWith("PAUSED: Staff Watch:"));
    try{StaffWatchClient.detected(lastWatcher);}catch(RuntimeException e){System.err.println("[GoNuts Staff Watch] Alert observer failed: "+e.getMessage());}
+   tradingResume.arm(owned&&session.restartRecoveryMayResume(),System.currentTimeMillis());
+   lastResumeBlocker="";
    String address=schedule.address();
    target=current!=null&&address.equals(current.ip)?current:new ServerData("Staff Watch",address,ServerData.Type.OTHER);
   }
@@ -50,9 +58,9 @@ public final class ReconnectController {
  public void connectionStarted(ServerData server){
   regionEscape.cancel();
   target=server;cancelledByUser=false;donutSession=DonutServer.matches(server.ip);
-  if(!automaticAttempt)flow.connectionStarted(WatchConfig.get().reconnectAddress(),donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);
+  if(!automaticAttempt){tradingResume.cancel();flow.connectionStarted(WatchConfig.get().reconnectAddress(),donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);}
  }
- public void cancel(){regionEscape.cancel();flow.cancel();target=null;cancelledByUser=true;}
+ public void cancel(){tradingResume.cancel();regionEscape.cancel();flow.cancel();target=null;cancelledByUser=true;}
  public void tick(){
   // Detector callbacks finish before world teardown, avoiding invalidating their iterators.
   if(flow.phase()==ReconnectFlow.Phase.DISCONNECTING){
@@ -63,5 +71,23 @@ public final class ReconnectController {
   if(mc.level!=null&&!mc.hasSingleplayerServer()&&mc.getCurrentServer()!=null){target=mc.getCurrentServer();cancelledByUser=false;donutSession=DonutServer.matches(target.ip);}
   regionEscape.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);
   flow.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect,WatchConfig.get().reconnectAddress(),dev.doughbay.fabric.DoughBayClient.restartOwnsConnection());
+  if(!WatchConfig.get().enabled||!WatchConfig.get().autoDisconnect||cancelledByUser){tradingResume.cancel();return;}
+  if(tradingResume.pending()){
+   var session=dev.doughbay.fabric.DoughBayClient.automationSessionController();
+   boolean ready=donutSession&&mc.player!=null&&mc.level!=null&&mc.getConnection()!=null
+     &&mc.getConnection().getConnection().isConnected()&&flow.phase()==ReconnectFlow.Phase.IDLE
+     &&!schedule.active()&&!regionEscape.flow.ownsConnection()
+     &&!dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()
+     &&!session.serverRestarting()
+     &&dev.doughbay.fabric.SidebarBalance.freshSince(tradingResume.startedAt());
+   var result=tradingResume.tick(System.currentTimeMillis(),ready,session.restartRecoveryMayResume(),session::resumeAfterRestart);
+   if(result!=null&&result.ok()){
+    dev.doughbay.fabric.DoughBayClient.LOGGER.info("Staff Watch reconnect: session resumed with retained caps");
+    lastResumeBlocker="";
+   }else if(result!=null&&!result.detail().equals(lastResumeBlocker)){
+    lastResumeBlocker=result.detail();
+    dev.doughbay.fabric.DoughBayClient.LOGGER.info("Staff Watch reconnect: safe resume pending ({}); retrying in 30 s",lastResumeBlocker);
+   }
+  }
  }
 }

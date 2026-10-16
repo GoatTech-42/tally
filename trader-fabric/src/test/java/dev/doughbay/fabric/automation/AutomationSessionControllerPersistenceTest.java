@@ -439,6 +439,81 @@ final class AutomationSessionControllerPersistenceTest {
     private static void consume(AutomationSessionController c) throws Exception {
         var method=AutomationSessionController.class.getDeclaredMethod("processOutOfBandPersistence");method.setAccessible(true);method.invoke(c);
     }
+
+    @Test void recoveredListingRetainsResumeOwnershipWhenTheNextServerRestartPausesIt() throws Exception {
+        var c = recoveredWithPolicy();
+        assertFalse(c.armed(), "Disk recovery itself must not arm a paused session");
+        transition(c, AutomationSessionController.State.PREPARING_LIST);
+        transition(c, AutomationSessionController.State.SCANNING);
+        c.observeServerRestart("The server is restarting");
+        assertTrue(c.armed(), "A recovered session that actually traded must retain its resume ownership");
+        assertTrue(c.restartRecoveryMayResume());
+        assertEquals(4100L, field(c, "committedSpend"));
+        assertEquals(1, field(c, "tradesStarted"));
+    }
+
+    @Test void recoveredListingAdoptionRetainsResumeOwnershipAcrossAStaffPause() throws Exception {
+        var c = recoveredWithPolicy();
+        transition(c, AutomationSessionController.State.SCANNING);
+        c.pause("Staff Watch alert: test");
+        assertTrue(c.armed());
+        assertTrue(c.restartRecoveryMayResume());
+        assertFalse((boolean) field(c, "pausedByPlayer"));
+    }
+
+    @Test void pausedRecoveryAndExplicitStopNeverAcquireAutomaticResumeOwnership() throws Exception {
+        var c = recoveredWithPolicy();
+        transition(c, AutomationSessionController.State.PAUSED);
+        assertFalse(c.armed());
+        assertFalse(c.restartRecoveryMayResume());
+        transition(c, AutomationSessionController.State.SCANNING);
+        c.emergencyStop();
+        assertFalse(c.armed());
+        assertFalse(c.restartRecoveryMayResume());
+        // Even an accidental later active-state transition cannot override the player's stop.
+        transition(c, AutomationSessionController.State.PREPARING_LIST);
+        assertFalse(c.armed());
+        assertTrue((boolean) field(c, "pausedByPlayer"));
+    }
+
+    @Test void activeStateWithoutOpenSessionOrPolicyDoesNotCreateResumeAuthorization() throws Exception {
+        var c = recoveredWithPolicy();
+        setField(c, "policy", null);
+        transition(c, AutomationSessionController.State.PREPARING_LIST);
+        assertFalse(c.armed());
+        setField(c, "policy", policy());
+        setField(c, "sessionOpen", false);
+        transition(c, AutomationSessionController.State.SCANNING);
+        assertFalse(c.armed());
+    }
+
+    @Test void restoringRunningOwnershipDoesNotResolveUncertainStockOrResetCaps() throws Exception {
+        var c = recoveredWithPolicy();
+        var exposure = new dev.doughbay.storage.AutomationUncertainExposure(true, "LISTING", "position:42",
+                "minecraft:diamond", "minecraft:diamond", 64, 4100, 6000, "", 1000);
+        setField(c, "uncertainExposure", exposure);
+        transition(c, AutomationSessionController.State.LISTING);
+        assertTrue(c.armed());
+        c.pause("Staff Watch alert: test");
+        assertFalse(c.resumeAfterEvasion().ok());
+        assertEquals(exposure, field(c, "uncertainExposure"));
+        assertEquals(4100L, field(c, "committedSpend"));
+        assertEquals(1, field(c, "tradesStarted"));
+    }
+
+    private static AutomationSessionController recoveredWithPolicy() throws Exception {
+        var c = new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(new FakePersistence());
+        c.tick(null, null);
+        setField(c, "policy", policy());
+        return c;
+    }
+
+    private static void transition(AutomationSessionController c, AutomationSessionController.State state) throws Exception {
+        var method = AutomationSessionController.class.getDeclaredMethod("transition", AutomationSessionController.State.class, String.class);
+        method.setAccessible(true);
+        method.invoke(c, state, "Test completed recovery transition");
+    }
     private static String startBlocker(AutomationSessionController c) throws Exception {
         var method=AutomationSessionController.class.getDeclaredMethod("persistenceStartBlocker");method.setAccessible(true);return (String)method.invoke(c);
     }
