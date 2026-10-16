@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-16 01:21 UTC
+
+- Added a dedicated Evasion tab in game and editable Evasion controls in the local web panel. Choose /rtp or /home, enter existing home names such as base, vault, farm, and cycle through them in entered order. The selected route also applies to periodic moves and underwater retries; an empty home list falls back to /rtp.
+- Automatically learn auction and order capacity together from confirmed own-menu evidence, including rank upgrades. Each account keeps its own limits; a partial first page cannot downgrade a known larger capacity.
+
 ## 2026-10-16 00:48 UTC
 
 - Fixed automatic purchase recovery and own-listing adoption returning to trading without retaining recovery ownership. A later server restart or Staff Watch pause can now resume the already-running session instead of leaving it paused indefinitely.

@@ -160,3 +160,19 @@ if (project.hasProperty('hiveScreenshots')) {
  }
 }
 tasks.named('jar') { exclude '**/HiveGuiSmoke*.class' }
+
+// Isolated offline Evasion settings preview; never included in production.
+if (project.hasProperty('evasionScreenshots')) {
+ sourceSets.main.java.srcDir 'src/evasionSmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.EvasionGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/evasion-preview'
+  programArgs '--width', '1920', '--height', '1200'
+ }
+}
+tasks.named('jar') { exclude '**/EvasionGuiSmoke*.class' }

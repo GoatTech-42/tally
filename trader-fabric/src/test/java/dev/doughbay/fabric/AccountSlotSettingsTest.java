@@ -92,4 +92,23 @@ class AccountSlotSettingsTest {
         assertEquals(45,Tuning.get("slots.max"));assertEquals(30,Tuning.get("orders.bid_slots"));
         assertEquals("{broken",Files.readString(local));
     }
+    @Test void confirmedRankUpgradeUpdatesBothLimitsOnlyForTheOwningAccount() throws Exception {
+        Path shared=shared(),one=root.resolve("one.json"),two=root.resolve("two.json");
+        activate(shared,one); Tuning.learnAccountCapacity(18);
+        activate(shared,two); assertTrue(RankCapacity.apply(new RankCapacity.PageCapacity(90,true)));
+        assertEquals(90,Tuning.get("slots.max")); assertEquals(90,Tuning.get("orders.bid_slots"));
+        activate(shared,one); assertEquals(18,Tuning.get("slots.max")); assertEquals(18,Tuning.get("orders.bid_slots"));
+        activate(shared,two); assertEquals(90,Tuning.get("slots.max")); assertEquals(90,Tuning.get("orders.bid_slots"));
+        assertEquals(18,JSON.readTree(Files.readString(shared.resolve("tuning.json"))).path("slots.max").asInt());
+    }
+    @Test void partialRankEvidenceNeverDowngradesEitherLimitButExactEvidenceCan() throws Exception {
+        Path shared=shared(),local=root.resolve("own.json"); activate(shared,local);
+        Tuning.learnAccountCapacity(90);
+        assertFalse(RankCapacity.apply(new RankCapacity.PageCapacity(45,false)));
+        assertEquals(90,Tuning.get("slots.max")); assertEquals(90,Tuning.get("orders.bid_slots"));
+        assertTrue(RankCapacity.apply(new RankCapacity.PageCapacity(45,true)));
+        assertEquals(45,Tuning.get("slots.max")); assertEquals(45,Tuning.get("orders.bid_slots"));
+        Tuning.learnAccountCapacity(0); Tuning.learnAccountCapacity(180);
+        assertEquals(45,Tuning.get("slots.max")); assertEquals(45,Tuning.get("orders.bid_slots"));
+    }
 }

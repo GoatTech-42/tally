@@ -1362,8 +1362,9 @@ public final class MarketWatcher {
             String rank = client.fetchRank(username);
             DoughBayClient.setRank(rank);
             int slots = slotsForRank(rank);
-            if (slots > 0 && Math.round(Tuning.get("slots.max")) != slots) {
-                Tuning.set("slots.max", slots);
+            if (slots > 0 && (Math.round(Tuning.get("slots.max")) != slots
+                    || Math.round(Tuning.get("orders.bid_slots")) != slots)) {
+                Tuning.learnAccountCapacity(slots);
                 DoughBayClient.LOGGER.info("DoughBay rank {} for {}: {} auction slots",
                         rank.isBlank() ? "(none)" : rank, username, slots);
             } else {

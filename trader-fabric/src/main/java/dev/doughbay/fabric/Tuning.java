@@ -211,8 +211,7 @@ public final class Tuning {
                     50, 10, 100, Kind.PERCENT),
             new Setting("slots.max", "Tiers", "Auction slots",
                     "Listings your rank allows at once: 18 with no rank, 45 with Donut+, 90 with Donut++ and up. "
-                    + "The bot reads the real number off your listings pages and lowers this by itself when your "
-                    + "rank has fewer. After buying a rank, raise it yourself; the bot tells you when there is room",
+                    + "Confirmed capacity from your own server menus automatically updates both auction and order slots, including rank upgrades. Each account keeps its own values",
                     45, 1, 90, Kind.COUNT),
             new Setting("list.singles", "Selling", "Piece out premium markets",
                     "For the markets that measurably pay more per unit for a single than for a stack, break the bought "
@@ -664,9 +663,7 @@ public final class Tuning {
                     "Seconds on the death screen before the client respawns itself, so an unattended session is not stopped by it; 0 waits for you",
                     10, 0, 300, Kind.SECONDS),
             new Setting("evasion.escape", "Evasion", "Escape by",
-                    "What to do when someone crosses the inner ring: 0 nothing, 1 teleport away with /rtp, 2 leave the server. Either way the trade in flight finishes first. "
-                    + "Ships as 0: teleports are refused outright because on DonutSMP they leave the connection one-way, and leaving the server while a player is "
-                    + "near is how you lose an inventory to a combat log. Pausing is what actually worked",
+                    "What to do when someone crosses the inner ring: 0 pause, 1 teleport using the selected /rtp or /home route, 2 disconnect. Existing trade and combat safety checks still apply",
                     1, 0, 2, Kind.COUNT),
             new Setting("evasion.disconnect_blocks", "Evasion", "Escape when within",
                     "Someone this close makes the client escape, not just pause; it always finishes the trade in flight first. Fire it early: the teleport takes a few seconds. 0 never escapes",
@@ -682,7 +679,7 @@ public final class Tuning {
                     "An arrow, potion or fireball already flying towards you within this range triggers the escape at once. 0 ignores projectiles",
                     0, 0, 48, Kind.BLOCKS),
             new Setting("evasion.use_homes", "Evasion", "Escape to a home",
-                    "Run to one of the homes in homes.json rather than a random teleport, never the same one twice running (1 on, 0 off)",
+                    "Use /home and cycle through the names in the Evasion tab in entered order (1), or use /rtp (0). Names must already be set on the server. An empty home list falls back to /rtp",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("evasion.mob_blocks", "Evasion", "Run from hostile mobs within",
                     "A hostile mob this close sends the bot away before it can be hit. Only mobs that attack "
@@ -835,8 +832,8 @@ public final class Tuning {
                     + "else (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid", "Orders", "Place bids",
                     "Post your own buy orders on liquid markets under the quick-sale price and relist the fills (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
-            new Setting("orders.bid_slots", "Orders", "Bid slots used",
-                    "Most of your order slots the bot may fill with its own bids", 20, 1, 90, Kind.COUNT),
+            new Setting("orders.bid_slots", "Orders", "Order slots",
+                    "Your account's order capacity. Confirmed server-menu capacity automatically keeps this equal to your auction slots, including rank upgrades", 20, 1, 90, Kind.COUNT),
             new Setting("orders.depth_share_pct", "Orders", "Order size against market depth",
                     "The most of a market's own daily volume one order may ask for. A flat order size is sixteen "
                     + "minutes of demand in a busy market and five days of it in a thin one; this scales the ask to "
@@ -1394,6 +1391,15 @@ public final class Tuning {
      */
     public static boolean thisClientOnly(String key) {
         return key != null && (ACCOUNT_SLOT_KEYS.contains(key) || LOCAL_KEYS.contains(key));
+    }
+
+    /** The server grants the same auction and order capacity to this account. */
+    public static synchronized void learnAccountCapacity(int slots) {
+        if (slots != 18 && slots != 45 && slots != 90) return;
+        LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
+        VALUES.put("slots.max", (double) slots);
+        VALUES.put("orders.bid_slots", (double) slots);
+        saveLocal();
     }
     private static volatile long seenLocalModifiedAt;
 
