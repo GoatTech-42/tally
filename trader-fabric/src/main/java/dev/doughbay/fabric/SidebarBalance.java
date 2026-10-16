@@ -78,7 +78,7 @@ public final class SidebarBalance {
     }
 
     /** A regional join must not reuse the previous connection's cached balance. */
-    static boolean freshSince(long since) {
+    public static boolean freshSince(long since) {
         return since > 0 && readAt >= since && current() >= 0;
     }
 

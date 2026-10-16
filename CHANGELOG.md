@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-16 00:48 UTC
+
+- Fixed automatic purchase recovery and own-listing adoption returning to trading without retaining recovery ownership. A later server restart or Staff Watch pause can now resume the already-running session instead of leaving it paused indefinitely.
+- Staff Watch reconnects now retain an explicit safe resume retry after cooldown and fresh world verification. Temporary blockers keep retrying; manual stops/cancellation, unresolved stock, rejected writes and session caps remain enforced.
+
 ## 2026-10-15 22:26 UTC
 
 - Fixed a paused recovery loop after an interrupted buy or listing was verified resolved: the controller now consumes its leftover intent receipt once the writer has durably cleared the uncertainty. This lets the existing recovery retry proceed instead of waiting forever for an already completed checkpoint (#35).

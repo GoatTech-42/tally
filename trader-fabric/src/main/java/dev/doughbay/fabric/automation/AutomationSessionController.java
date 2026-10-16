@@ -12553,6 +12553,17 @@ public final class AutomationSessionController {
 
     private void transition(State next, String message) {
         accrueActiveRuntime();
+        // Automatic purchase recovery and own-listing adoption can return to
+        // active trading without passing through start()/resume(). Preserve
+        // that running session's recovery ownership too: otherwise its next
+        // restart or Staff Watch pause is permanently ineligible to resume.
+        // This is bookkeeping, not authorization: world, persistence, exposure
+        // and escape timing checks still decide whether a resume may execute.
+        if (!armed && next != State.PAUSED && next != State.STOPPED
+                && sessionOpen && policy != null && !pausedByPlayer) {
+            armed = true;
+            LOGGER.info("DoughBay automation: restored recovery ownership for the active retained session");
+        }
         // A running record of what it did, so the question "what has it been
         // doing?" has an answer that is not a log file. Only a real change is
         // kept: the same state re-entered with the same detail is the machine
