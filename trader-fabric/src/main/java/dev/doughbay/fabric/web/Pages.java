@@ -79,6 +79,7 @@ final class Pages {
             .row select { flex:1 1 100%; max-width:100%; }
             form.out button { min-height:34px; padding:5px 12px; }
             #own { min-width:0; }
+            #evasion-history td:last-child { white-space:normal; min-width:18em; max-width:40em; overflow-wrap:anywhere; }
             .muted { color:var(--muted); }
             .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
             .bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
@@ -540,9 +541,10 @@ final class Pages {
                 const data=await api('evasion');
                 if(view!=='evasion')return;
                 const actions=el('div','line');
-                actions.append(button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
+                const guardToggle=button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
                   if((await change('evasion',{action:'guard'}))?.ok)openEvasion();
-                }));
+                });
+                guardToggle.id='evasion-guard-toggle';actions.append(guardToggle);
                 const route=el('select');
                 for(const [value,label] of [['rtp','Random teleport (/rtp)'],['home','Cycle named homes (/home)']]){
                   const option=el('option','',label);option.value=value;route.appendChild(option);
@@ -563,9 +565,45 @@ final class Pages {
                     card.appendChild(settingRow(row));
                   }cards.appendChild(card);
                 }
-                own.replaceChildren(el('h2','','Evasion'),actions,el('label','','Named homes'),homes,save,
+                const activity=el('section','card');activity.id='evasion-history';
+                own.replaceChildren(el('h2','','Evasion'),activity,actions,el('label','','Named homes'),homes,save,
                   el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order; an empty list falls back to /rtp. Hive clients sharing this list need the same home names.'),cards);
+                drawEvasionHistory(data);
               }catch(e){failed();}
+            }
+            function drawEvasionHistory(data) {
+              if(view!=='evasion')return;
+              const card=$('evasion-history');if(!card)return;
+              const toggle=$('evasion-guard-toggle');if(toggle)toggle.textContent=data.enabled?'Guard: ON':'Guard: OFF';
+              const summary=el('div','line');
+              for(const text of ['Guard: '+data.guardStatus,'Pause ring: '+data.pauseRing+' blocks',
+                'Escape ring: '+data.escapeRing+' blocks','On contact: '+data.onContact])summary.appendChild(el('span','',text));
+              const history=data.history||{};
+              const counts=el('p','muted',history.available?'Triggered 24h: '+history.triggered24h+
+                (history.mostSeen7d?' · Most seen 7d: '+history.mostSeen7d.who+' ×'+history.mostSeen7d.count:''):
+                'History is temporarily unavailable. Settings remain available.');
+              const table=el('table'),head=el('thead'),header=el('tr'),body=el('tbody');
+              for(const text of ['Time','Client','Who','Blocks','What happened'])header.appendChild(el('th','',text));
+              head.appendChild(header);table.append(head,body);
+              for(const event of history.events||[]) {
+                const row=el('tr');
+                for(const text of [new Date(event.at).toLocaleString(),event.client||'',event.who||'',
+                  event.distance>0?String(Math.round(event.distance)):'',event.action||''])row.appendChild(el('td','',text));
+                body.appendChild(row);
+              }
+              const wide=el('div','wide');wide.appendChild(table);
+              const note=el('p','muted',history.available&&!history.events?.length?'No evasion events recorded.':
+                'Latest 100 hive events. Times use your local clock. Guard controls apply to this client.');
+              card.replaceChildren(el('h2','','Evasion activity'),summary,counts,wide,note,
+                button('','Refresh history',refreshEvasionHistory));
+            }
+            let evasionHistoryLoading=false;
+            async function refreshEvasionHistory() {
+              if(view!=='evasion'||evasionHistoryLoading)return;
+              evasionHistoryLoading=true;
+              try{const data=await api('evasion');if(view==='evasion')drawEvasionHistory(data);}
+              catch(e){if(view==='evasion')toast('Could not refresh evasion history. Your settings have been kept.',true);}
+              finally{evasionHistoryLoading=false;}
             }
             async function openSettings() {
               try {
@@ -1182,6 +1220,7 @@ final class Pages {
             setInterval(() => {
               refresh();
               if (view === 'staff') openStaff();
+              if (view === 'evasion') refreshEvasionHistory();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
               if (++ticks % 4 !== 0) return;
               if (view === 'rivals') openRivals();

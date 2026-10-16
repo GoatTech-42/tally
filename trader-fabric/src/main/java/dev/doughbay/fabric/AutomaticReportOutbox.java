@@ -41,7 +41,7 @@ public final class AutomaticReportOutbox {
             String log=root.path("diagnosticLog").asText("");
             if(!log.isEmpty() && !validExcerpt(log)) throw new IllegalArgumentException();
             var payload=new BugReportPayload(root.path("build").asText(),root.path("minecraftVersion").asText(),
-                root.path("description").asText(),root.path("expected").asText(),counters);
+                root.path("description").asText(),root.path("expected").asText(),counters,root.path("settingsCode").asText(""));
             if(!JSON.readTree(payload.json(log,metadata)).equals(root)) throw new IllegalArgumentException();
         } catch(Exception e) {throw new IllegalArgumentException("Invalid or unsafe automatic outbox");}
     }

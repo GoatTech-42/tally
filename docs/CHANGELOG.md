@@ -4,6 +4,14 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-16 20:49 UTC
+
+- Bug reports now include a sanitized Settings code alongside the diagnostic log. It contains approved numeric settings and toggles, including account slot limits, so support can distinguish configuration problems from defects. Home names, player lists, webhooks, Discord identifiers, tokens and all other text settings are excluded. The preview shows the attached code, and retries retain the prepared snapshot.
+
+- Restored the Evasion activity summary and recent hive event history in the web panel alongside its editable settings. History refreshes without discarding unsaved settings and uses the existing name privacy controls.
+
+- Fixed Evasion showing on in Settings while the guard was off. The GUI, web panel and runtime now use one per-client toggle, including after presets, settings-code imports and restarts. Migration preserves an existing off choice and keeps hive accounts independent.
+
 ## 2026-10-16 03:35 UTC
 
 - Every in-game, web-panel and automatic bug report now captures sanitized diagnostic logs automatically. Removed the Include log toggle. An unreadable log produces a fixed availability notice, without exposing paths or raw errors.

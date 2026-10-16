@@ -28,27 +28,29 @@ public final class EvasionGuard {
     }
 
     private final Path store;
-    private volatile boolean enabled;
     private boolean triggered;
     private long clearSinceMillis;
     private String lastIntruder = "";
 
     EvasionGuard(Path store) {
         this.store = store;
+        boolean legacyEnabled = false;
         try {
-            enabled = Files.exists(store)
+            legacyEnabled = Files.exists(store)
                     && Files.readString(store, StandardCharsets.UTF_8).strip().equals("on");
-        } catch (IOException ignored) {
-            enabled = false;
+        } catch (IOException ignored) { }
+        try {
+            Tuning.migrateEvasionToggle(legacyEnabled);
+        } catch (IOException | RuntimeException failure) {
+            // An unreadable migration must never opt an existing client in.
+            Tuning.set("evasion.enabled", 0);
+            DoughBayClient.LOGGER.warn("GoNuts could not migrate the evasion toggle; leaving it off");
         }
     }
 
-    /**
-     * On only when both say so: the Automation tab's button and the Evasion
-     * setting. The setting is the one people look for, and it wins.
-     */
+    /** One per-client setting drives the controls, status and runtime alike. */
     public boolean enabled() {
-        return enabled && Tuning.get("evasion.enabled") >= 0.5;
+        return Tuning.get("evasion.enabled") >= 0.5;
     }
 
     public boolean triggered() {
@@ -66,6 +68,8 @@ public final class EvasionGuard {
 
     /** The shared ledger the events are written to, so the panel sees every client's; null keeps them in memory. */
     private static volatile java.nio.file.Path ledger;
+
+    static Path ledgerPath() { return ledger; }
 
     public static void setLedger(java.nio.file.Path path) {
         ledger = path;
@@ -172,7 +176,7 @@ public final class EvasionGuard {
     }
 
     public void setEnabled(boolean value) {
-        enabled = value;
+        Tuning.set("evasion.enabled", value ? 1 : 0);
         if (!value) {
             triggered = false;
             clearSinceMillis = 0;
@@ -403,7 +407,7 @@ public final class EvasionGuard {
     }
 
     public String status() {
-        if (!enabled) return "off";
+        if (!enabled()) return "off";
         if (away) return "left the server, " + lastIntruder + " came too close";
         if (leaveWanted) return "leaving once the trade in flight finishes";
         if (triggered) return "paused, " + lastIntruder + " nearby";
@@ -411,7 +415,12 @@ public final class EvasionGuard {
     }
 
     void tick(Minecraft client, AutomationSessionController session) {
-        if (!enabled || client == null) return;
+        if (!enabled()) {
+            triggered = false;
+            clearSinceMillis = 0;
+            return;
+        }
+        if (client == null) return;
         long now = System.currentTimeMillis();
 
         // Off the server: come back when the wait is up.
