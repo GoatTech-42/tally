@@ -497,11 +497,11 @@ public final class EvasionGuard {
                         && dev.doughbay.fabric.Tuning.get("evasion.rtp_if_underwater") >= 0.5
                         && underwaterRtpCount < 5) {
                     underwaterRtpCount++;
-                    DoughBayClient.LOGGER.info("DoughBay evasion: landed underwater (try {}); /rtp again",
+                    DoughBayClient.LOGGER.info("DoughBay evasion: landed underwater (try {}); trying the selected teleport route again",
                             underwaterRtpCount);
                     teleportFrom = client.player.position();
                     teleportedAt = now;
-                    DoughBayClient.executionDriver().sendWhenClear(client, "rtp");
+                    DoughBayClient.executionDriver().sendWhenClear(client, SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5));
                     return;
                 }
                 underwaterRtpCount = 0;
@@ -1131,9 +1131,8 @@ public final class EvasionGuard {
             teleportedAt = System.currentTimeMillis();
             // A named home is lit, enclosed and known; the random teleport is
             // only the fallback when none are configured.
-            String home = Tuning.get("evasion.use_homes") >= 0.5 ? SafeHomes.next() : "";
-            String command = home.isEmpty() ? "rtp" : "home " + home;
-            if (!home.isEmpty()) SafeHomes.noteUsed(home);
+            String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
+            String home = command.startsWith("home ") ? command.substring(5) : "";
             String message = "Evasion: " + lastIntruder + " came too close; "
                     + (home.isEmpty() ? "teleporting away" : "going to home '" + home + "'");
             DoughBayClient.LOGGER.info("DoughBay {}", message);
@@ -1201,8 +1200,9 @@ public final class EvasionGuard {
         teleportFrom = client.player.position();
         teleportedAt = now;
         wandering = true;
-        DoughBayClient.LOGGER.info("DoughBay evasion: moving on with nobody about; /rtp");
-        DoughBayClient.executionDriver().sendWhenClear(client, "rtp");
+        String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
+        DoughBayClient.LOGGER.info("DoughBay evasion: moving on with nobody about; /{}", command);
+        DoughBayClient.executionDriver().sendWhenClear(client, command);
     }
 
     /**

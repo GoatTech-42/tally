@@ -1179,6 +1179,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                             ticksInPhase / 20, ownOrdersPatienceTicks / 20);
                 }
             }
+            learnRankCapacityFromControls(client, container);
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
             int matchSlot = -1;
@@ -3231,7 +3232,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // The pending page gate above prevents stale-page rereads and partial audits.
         // Donut leaves Next on empty pages. The explicit sell placeholders,
         // not the presence of that arrow, establish the end of the book.
-        int nextPageSlot = page.empty() || page.last() ? -1
+        int nextPageSlot = page.last() || (page.empty() && auditPagesTurned > 0) ? -1
                 : findControl(container, inventory, "next page", 45, container.getMenu().slots.size());
         if (nextPageSlot >= 0) {
             if (auditPagesTurned >= MAX_OWN_LISTING_PAGES - 1) {
@@ -3565,62 +3566,26 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             cells.add(new OwnListingCell(stack.isEmpty() ? "minecraft:air" : itemId(stack), stack.getCount(),
                     stack.isEmpty() ? List.of() : tooltipLines(client, stack)));
         }
-        // Pages past the first only exist for ranks with more than 45 slots,
-        // and those are full pages; the first page holds the rank's whole book.
+        int explicit = learnRankCapacityFromControls(client, container);
+        int pageIndex = operation == Operation.CANCEL ? cancelPagesTurned : auditPagesTurned;
+        var capacity = explicit > 0 ? new RankCapacity.PageCapacity(explicit, true)
+                : RankCapacity.auctionPage(cells, pageIndex);
+        RankCapacity.apply(capacity);
         int slots = (int) Math.round(Tuning.get("slots.max"));
-        OwnListingPageEvidence evidence = ownListingPageEvidence(cells, slots >= 45 ? 45 : slots);
-        if (lockedPage(cells)) {
-            // Past the end of the book: a rank with 45 slots has a second page
-            // and every cell of it is locked. Arriving here means the first
-            // page was read whole, so the rank has exactly 45.
-            if (slots > 45) {
-                Tuning.set("slots.max", 45);
-                DoughBayClient.LOGGER.info("DoughBay: the second listings page is locked, so your rank has 45 slots; "
-                        + "auction slots set to 45 (was {})", slots);
-                tellPlayer(client, "Your rank has 45 auction slots. The Auction slots setting was " + slots
-                        + " and is now 45.");
-            }
-            return evidence;
+        return ownListingPageEvidence(cells, Math.min(45, slots));
+    }
+
+    /** Only server navigation furniture; never player inventory or market item lore. */
+    private int learnRankCapacityFromControls(Minecraft client, AbstractContainerScreen<?> container) {
+        List<String> lines = new ArrayList<>();
+        for (int i = 45; i < container.getMenu().slots.size(); i++) {
+            Slot slot = container.getMenu().slots.get(i);
+            if (slot.container == client.player.getInventory() || slot.getItem().isEmpty()) continue;
+            lines.addAll(tooltipLines(client, slot.getItem()));
         }
-        int learned = rankSlotsFromPage(cells);
-        if (!evidence.loaded()) {
-            if (learned > 0 && learned < Math.min(45, slots)) {
-                // The rank used to come from the API, which is gone, so a
-                // no-rank player kept the default 45 and every page failed on
-                // the 27 locked cells. The page itself shows the rank's size.
-                Tuning.set("slots.max", learned);
-                DoughBayClient.LOGGER.info("DoughBay: your listings page shows {} usable slots; auction slots set to {} (was {})",
-                        learned, learned, slots);
-                tellPlayer(client, "Your rank has " + learned + " auction slots. The Auction slots setting was "
-                        + slots + " and is now " + learned + ".");
-                return ownListingPageEvidence(cells, learned);
-            }
-            return evidence;
-        }
-        if (slots < 45) {
-            // Fewer than 45 means the first page is the only one read, and it
-            // shows how many cells the rank really has. More than the setting
-            // is a rank bought since. More slots is more money out at once,
-            // so turning it up stays the player's to do.
-            int room = ownCells(cells);
-            if (room > slots && room != hintedRankSlots) {
-                hintedRankSlots = room;
-                DoughBayClient.LOGGER.info("DoughBay: your listings page shows {} usable slots and the setting is {}",
-                        room, slots);
-                tellPlayer(client, "Your rank now has " + (room >= 45 ? "45 or more" : Integer.toString(room))
-                        + " auction slots and the bot is using " + slots
-                        + ". Raise Auction slots in Settings to use them.");
-            }
-            return evidence;
-        }
-        if (slots == 45 && !evidence.last()) {
-            // A rank of exactly 45 has its whole book on this page. The Next
-            // arrow is drawn all the same and leads to a page of locked
-            // cells, which is where a Donut+ player's slot check went and
-            // never came back from: 45 of 45 on the panel with thirty up.
-            return new OwnListingPageEvidence(true, evidence.empty(), true);
-        }
-        return evidence;
+        int total = RankCapacity.explicitTotal(lines);
+        if (total > 0) RankCapacity.apply(new RankCapacity.PageCapacity(total, true));
+        return total;
     }
 
     private static void tellPlayer(Minecraft client, String message) {
@@ -3628,9 +3593,6 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             client.player.sendSystemMessage(Component.literal("[GoNuts] " + message));
         }
     }
-
-    /** The rank size last pointed out to the player, so they are told once and not on every page. */
-    private int hintedRankSlots;
 
     /** A cell the player's rank can list in: a listing, one waiting to be collected, or a vacant slot. */
     private static boolean ownCell(OwnListingCell cell) {
@@ -3655,7 +3617,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (cell.itemId().equals("minecraft:air")) return false;
         if (authoritativePriceEvidence(cell.tooltip()).sawAuthoritativeField()) return false;
         List<String> lines = cell.tooltip().stream().map(String::strip).toList();
-        return !lines.isEmpty() && lines.getFirst().equalsIgnoreCase("Locked");
+        return !lines.isEmpty() && (lines.getFirst().equalsIgnoreCase("Locked")
+                || lines.getFirst().equalsIgnoreCase("Locked slot"));
     }
 
     /**
@@ -3682,6 +3645,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         int usable = ownCells(cells);
         if (usable == 0 || usable == 45) return 0;
         for (OwnListingCell cell : cells.subList(usable, 45)) {
+            if (!lockedCell(cell)) return 0;
             // Air is a page still loading, and a listing or a vacant slot past
             // a cell that is neither is a page this does not understand.
             if (cell.itemId().equals("minecraft:air")) return 0;

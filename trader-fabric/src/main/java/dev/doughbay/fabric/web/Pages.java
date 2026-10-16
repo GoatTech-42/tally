@@ -338,6 +338,7 @@ final class Pages {
             // ---- the pages down the side: the pictures the mod draws, and the panel's own
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
+              evasion: { label: 'Evasion', open: openEvasion },
               items: { label: 'Items', open: openItems },
               prices: { label: 'Your prices', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals },
@@ -376,6 +377,7 @@ final class Pages {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
                 if (o.value === 'STAFF') { mine('staff'); continue; }
+                if (o.value === 'EVASION') { mine('evasion'); continue; }
                 // The Flips picture is the Your prices page here, which edits the whole list.
                 if (o.value === 'FLIPS') continue;
                 if (o.value === 'TUNE') { mine('items'); mine('prices'); mine('settings'); continue; }
@@ -534,6 +536,38 @@ final class Pages {
               }catch(e){failed();}
             }
 
+            async function openEvasion() {
+              try {
+                const data=await api('evasion');
+                if(view!=='evasion')return;
+                const actions=el('div','line');
+                actions.append(button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
+                  if((await change('evasion',{action:'guard'}))?.ok)openEvasion();
+                }));
+                const route=el('select');
+                for(const [value,label] of [['rtp','Random teleport (/rtp)'],['home','Cycle named homes (/home)']]){
+                  const option=el('option','',label);option.value=value;route.appendChild(option);
+                }
+                route.value=data.useHomes?'home':'rtp';route.setAttribute('aria-label','Teleport destination');
+                route.onchange=async()=>{if((await change('evasion',{action:'route',route:route.value}))?.ok)openEvasion();};
+                actions.appendChild(route);
+                const homes=el('input');homes.value=(data.homes||[]).join(', ');homes.maxLength=2048;
+                homes.placeholder='base, vault, farm';homes.setAttribute('aria-label','Home names in rotation order');
+                const save=button('pick','Save home names',async()=>{
+                  if((await change('evasion',{action:'homes',names:homes.value}))?.ok)openEvasion();
+                });
+                const cards=el('div','cards');
+                for(const group of data.groups||[]){
+                  const card=el('section','card');card.appendChild(el('h2','title',group.name));
+                  for(const row of group.settings||[]){
+                    if(row.key==='evasion.enabled'||row.key==='evasion.use_homes')continue;
+                    card.appendChild(settingRow(row));
+                  }cards.appendChild(card);
+                }
+                own.replaceChildren(el('h2','','Evasion'),actions,el('label','','Named homes'),homes,save,
+                  el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order; an empty list falls back to /rtp. Hive clients sharing this list need the same home names.'),cards);
+              }catch(e){failed();}
+            }
             async function openSettings() {
               try {
                 S.data = await api('settings');
@@ -570,7 +604,7 @@ final class Pages {
             function editor(row) {
               const box = el('div', 'edit');
               box.appendChild(el('p', 'desc', row.description));
-              const saved = j => { if (j) openSettings(); };
+              const saved = j => { if (j) { if(view==='evasion')openEvasion();else openSettings(); } };
               if (row.locked) {
                 box.appendChild(el('p', 'range', 'This one is set on the GoNuts screen in game, not from a browser.'));
                 return box;
@@ -634,7 +668,7 @@ final class Pages {
               if (row.toggle) {
                 const on = row.value >= 0.5;
                 const sw = button('switch ' + (on ? 'on' : 'off'), row.shown, async () => {
-                  if (await change('setting', { key: row.key, toggle: '1' })) openSettings();
+                  if (await change('setting', { key: row.key, toggle: '1' })) { if(view==='evasion')openEvasion();else openSettings(); }
                 });
                 sw.setAttribute('role', 'switch');
                 sw.setAttribute('aria-checked', on ? 'true' : 'false');
@@ -720,6 +754,7 @@ final class Pages {
               for (const g of d.groups || []) {
                 const card = el('section', 'card');
                 card.appendChild(el('h2', 'title', g.name));
+                if(g.name==='Evasion')continue;
                 for (const row of g.settings || []) card.appendChild(settingRow(row));
                 cards.appendChild(card);
               }

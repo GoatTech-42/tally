@@ -58,6 +58,7 @@ public final class DoughBayScreen extends Screen {
         RIVALS("Rivals"),
         ORDERS("Orders"),
         AUTOMATION("Autopilot"),
+        EVASION("Evasion"),
         ACTIVITY("Activity"),
         STAFF_WATCH("Staff Watch"),
         PROXIES("Proxies"),
@@ -387,6 +388,7 @@ public final class DoughBayScreen extends Screen {
     public void selectStaffWatch(){ tab=Tab.STAFF_WATCH; }
     public void selectProxies(){ tab=Tab.PROXIES; }
     public void selectHive(){ tab=Tab.HIVE; }
+    public void selectEvasion(){ tab=Tab.EVASION; }
     private Opportunity selected;
     /**
      * A deliberate, sticky Automation-tab candidate. It is only a display
@@ -657,7 +659,10 @@ public final class DoughBayScreen extends Screen {
                     selectedRival = null;
                     selectedMoney = null;
                 }
-                if (value != Tab.SETTINGS) selectedSetting = null;
+                if (value != Tab.SETTINGS && value != Tab.EVASION) selectedSetting = null;
+                if (value == Tab.EVASION || value == Tab.SETTINGS) {
+                    selectedSetting = null; settingsSearch = ""; settingsScroll = 0;
+                }
                 if (value != Tab.PAYROLL) selectedRule = 0;
                 if (value != Tab.SEARCH) {
                     searchDetailItem = null;
@@ -824,7 +829,7 @@ public final class DoughBayScreen extends Screen {
             initItemsWidgets(ui);
         } else if (tab == Tab.FLIPS) {
             initFlipsWidgets(ui);
-        } else if (tab == Tab.SETTINGS) {
+        } else if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
             initSettingsWidgets(ui);
         } else if (tab == Tab.PAYROLL) {
             initPayrollWidgets(ui);
@@ -977,6 +982,7 @@ public final class DoughBayScreen extends Screen {
             case STATS -> renderStats(graphics, current, ui, mouseX, mouseY);
             case RIVALS -> renderRivals(graphics, ui, mouseX, mouseY);
             case SETTINGS -> renderSettings(graphics, ui, mouseX, mouseY);
+            case EVASION -> renderSettings(graphics, ui, mouseX, mouseY);
             case PAYROLL -> renderPayroll(graphics, ui, mouseX, mouseY);
             case ORDERS -> renderOrders(graphics, current, ui, mouseX, mouseY);
             case AUTOMATION -> renderAutomation(graphics, current, ui);
@@ -2937,11 +2943,13 @@ public final class DoughBayScreen extends Screen {
     // ------------------------------------------------------------------
 
     private static boolean isListSetting(String key) {
+        if ("evasion.homes".equals(key)) return true;
         for (Tuning.ListSetting l : Tuning.LISTS) if (l.key().equals(key)) return true;
         return false;
     }
 
     private static String settingDraftFor(String key) {
+        if ("evasion.homes".equals(key)) return String.join(", ", SafeHomes.homes());
         if (isListSetting(key)) return Tuning.text(key);
         double v = Tuning.get(key);
         return v == Math.rint(v) ? String.valueOf((long) v) : String.format(Locale.ROOT, "%.2f", v);
@@ -2969,7 +2977,18 @@ public final class DoughBayScreen extends Screen {
         java.util.List<String> names = new ArrayList<>(Tuning.PRESETS.keySet());
         java.util.Collections.reverse(names);
         names.add("Default");
-        for (String name : names) {
+        if (tab == Tab.EVASION) {
+            EvasionGuard guard = DoughBayClient.evasionGuard();
+            addRenderableWidget(CockpitButton.builder(Component.literal(guard != null && guard.enabled() ? "Guard: ON" : "Guard: OFF"), b -> {
+                if (guard == null) return;
+                boolean on = !guard.enabled();
+                Tuning.set("evasion.enabled", on ? 1 : 0); guard.setEnabled(on); rebuildWidgets();
+            }).bounds(px - 236, py, 104, 18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal(Tuning.get("evasion.use_homes") >= .5 ? "Teleport: /home" : "Teleport: /rtp"), b -> {
+                Tuning.set("evasion.use_homes", Tuning.get("evasion.use_homes") >= .5 ? 0 : 1); rebuildWidgets();
+            }).bounds(px - 128, py, 128, 18).build());
+        }
+        for (String name : tab == Tab.EVASION ? List.<String>of() : names) {
             int w = this.font.width(name) + 16;
             px -= w + 4;
             addRenderableWidget(CockpitButton.builder(Component.literal(name), ignored -> {
@@ -2980,6 +2999,7 @@ public final class DoughBayScreen extends Screen {
             }).bounds(px, py, w, 18).build());
         }
         if (selectedSetting == null) {
+            if (tab == Tab.EVASION) return;
             int by = ui.bottom() - 27;
             int bx = ui.innerLeft();
             int w1 = 156;
@@ -3004,12 +3024,17 @@ public final class DoughBayScreen extends Screen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Apply"), ignored -> applySetting())
                 .bounds(bx, y, 64, 20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Default"), ignored -> {
-            if (isListSetting(selectedSetting)) {
+            if ("evasion.homes".equals(selectedSetting)) {
+                try { SafeHomes.saveHomes(""); }
+                catch (java.io.IOException e) { settingsMessage = "Could not save home names"; return; }
+            } else if (isListSetting(selectedSetting)) {
                 Tuning.setText(selectedSetting, "");
             } else {
                 Tuning.reset(selectedSetting);
             }
             settingsMessage = "Reset to default";
+            if ("evasion.enabled".equals(selectedSetting) && DoughBayClient.evasionGuard() != null)
+                DoughBayClient.evasionGuard().setEnabled(Tuning.get(selectedSetting) >= .5);
             selectedSetting = null;
             rebuildWidgets();
         }).bounds(bx + 70, y, 64, 20).build());
@@ -3042,7 +3067,11 @@ public final class DoughBayScreen extends Screen {
 
     private void applySetting() {
         if (selectedSetting == null) return;
-        if (isListSetting(selectedSetting)) {
+        if ("evasion.homes".equals(selectedSetting)) {
+            try { SafeHomes.saveHomes(settingDraft); settingsMessage = "Saved " + SafeHomes.homes().size() + " home(s); used in entered order"; }
+            catch (IllegalArgumentException e) { settingsMessage = e.getMessage(); return; }
+            catch (java.io.IOException e) { settingsMessage = "Could not save home names; existing file kept"; return; }
+        } else if (isListSetting(selectedSetting)) {
             Tuning.setText(selectedSetting, settingDraft);
             int n = Tuning.itemSet(selectedSetting).size();
             settingsMessage = "Saved: " + n + " item(s)";
@@ -3057,6 +3086,8 @@ public final class DoughBayScreen extends Screen {
                 return;
             }
             double stored = Tuning.set(selectedSetting, parsed);
+            if ("evasion.enabled".equals(selectedSetting) && DoughBayClient.evasionGuard() != null)
+                DoughBayClient.evasionGuard().setEnabled(stored >= .5);
             settingsMessage = "Saved " + setting.label() + " = " + setting.format(stored)
                     + (stored != parsed ? " (kept within " + setting.format(setting.min()) + " to "
                     + setting.format(setting.max()) + ")" : "");
@@ -3067,6 +3098,7 @@ public final class DoughBayScreen extends Screen {
 
     /** Whether the settings search hides a row; matches on key, label or description. */
     private boolean settingHidden(String key, String label, String desc) {
+        if (tab == Tab.EVASION && (key.equals("evasion.enabled") || key.equals("evasion.use_homes"))) return true;
         if (settingsSearch.isBlank()) return false;
         String q = settingsSearch.strip().toLowerCase(Locale.ROOT);
         return !(key.toLowerCase(Locale.ROOT).contains(q)
@@ -3087,7 +3119,7 @@ public final class DoughBayScreen extends Screen {
         String hint = selectedSetting == null
                 ? "click a row to edit  ·  presets on the right"
                 : "type a value, then Apply";
-        graphics.text(this.font, truncate("Settings  ·  " + hint, Math.max(20, width - searchW - 12)),
+        graphics.text(this.font, truncate((tab == Tab.EVASION ? "Evasion" : "Settings  ·  " + hint), Math.max(0, width - searchW - 12 - (tab == Tab.EVASION ? 244 : 0))),
                 x + searchW + 8, top, GOLD);
 
         int listTopY = top + 16;
@@ -3104,7 +3136,7 @@ public final class DoughBayScreen extends Screen {
         }
 
         // One card per group, flowed into two columns, shortest column first.
-        boolean wide = width >= 640;
+        boolean wide = width >= 640 && tab != Tab.EVASION;
         int gap = 8;
         int colWidth = wide ? (width - gap) / 2 : width;
         int[] colY = {listTopY - settingsScroll, listTopY - settingsScroll};
@@ -3114,11 +3146,14 @@ public final class DoughBayScreen extends Screen {
         List<String> groups = new ArrayList<>(Tuning.groups());
         groups.add("Keys");
         groups.add("Items");
+        if (tab == Tab.EVASION) groups = new ArrayList<>(List.of("Homes", "Evasion"));
+        else groups.remove("Evasion");
         for (String group : groups) {
             boolean items = group.equals("Items");
             boolean keys = group.equals("Keys");
             int rows = 0;
-            if (items) {
+            if (group.equals("Homes")) rows = 1;
+            else if (items) {
                 for (Tuning.ListSetting l : Tuning.LISTS) {
                     if (!settingHidden(l.key(), l.label(), l.description())) rows++;
                 }
@@ -3149,7 +3184,12 @@ public final class DoughBayScreen extends Screen {
             int yy = cy + 27;
             int innerX = cx + 9;
             int innerWidth = colWidth - 18;
-            if (keys) {
+            if (group.equals("Homes")) {
+                yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
+                        "evasion.homes", "Home names (click to edit)", "Enter base, vault, farm. These homes must already exist on the server. Cycles in that order; an empty list uses /rtp.",
+                        SafeHomes.homes().isEmpty() ? "No homes saved" : String.join(", ", SafeHomes.homes()),
+                        SafeHomes.homes().isEmpty(), index++, mouseX, mouseY);
+            } else if (keys) {
                 KeyMapping open = DoughBayClient.keyOpenScreen();
                 KeyMapping stop = DoughBayClient.keyEmergencyStop();
                 if (!settingHidden("key.open", "Open the GoNuts screen", "")) {
@@ -3201,7 +3241,10 @@ public final class DoughBayScreen extends Screen {
             graphics.fill(x, barY - 4, right, ui.bottom() - 4, CARD);
             String label;
             String details;
-            if (isListSetting(selectedSetting)) {
+            if ("evasion.homes".equals(selectedSetting)) {
+                label = "Named homes";
+                details = "Names only: base, vault, farm. Set them on the server first. Used in order when /home is selected.";
+            } else if (isListSetting(selectedSetting)) {
                 Tuning.ListSetting l = null;
                 for (Tuning.ListSetting c : Tuning.LISTS) if (c.key().equals(selectedSetting)) l = c;
                 label = l == null ? selectedSetting : l.label();
@@ -3242,6 +3285,7 @@ public final class DoughBayScreen extends Screen {
 
     /** What a setting does, its range and default, shown under the mouse. */
     private void renderSettingTooltip(GuiGraphicsExtractor graphics, String key, int mouseX, int mouseY, UiLayout ui) {
+        if ("evasion.homes".equals(key)) return;
         if (key.startsWith("key.")) return;
         List<String> lines = new ArrayList<>();
         List<Integer> colors = new ArrayList<>();
@@ -3693,16 +3737,12 @@ public final class DoughBayScreen extends Screen {
                 .bounds(geometry.modeX(), geometry.modeY(), geometry.modeWidth() - 118, 20)
                 .build();
         addRenderableWidget(automationModeButton);
-        // Evasion toggle beside it: stop when another player comes within
-        // 24 blocks, resume after a clear minute.
+        // Keep the shortcut, with all evasion controls in their own tab.
         EvasionGuard evasion = DoughBayClient.evasionGuard();
         if (evasion != null) {
             addRenderableWidget(CockpitButton.builder(
-                            Component.literal(evasion.enabled()
-                                    ? "Evasion: ON (" + EvasionGuard.radiusBlocks() + "b)"
-                                    : "Evasion: OFF"), ignored -> {
-                                evasion.setEnabled(!evasion.enabled());
-                                driverMessage = "Evasion " + evasion.status();
+                            Component.literal("Evasion settings"), ignored -> {
+                                tab = Tab.EVASION; selectedSetting = null; settingsSearch = ""; settingsScroll = 0;
                                 rebuildWidgets();
                             })
                     .bounds(geometry.modeX() + geometry.modeWidth() - 114, geometry.modeY(), 114, 20)
@@ -6405,7 +6445,7 @@ public final class DoughBayScreen extends Screen {
             return true;
         }
 
-        if (tab == Tab.SETTINGS) {
+        if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
             for (int i = 0; i < settingRowBounds.size(); i++) {
                 int[] b = settingRowBounds.get(i);
                 if (event.y() >= b[0] && event.y() < b[1] && event.x() >= b[3] && event.x() < b[4]) {
@@ -6610,7 +6650,7 @@ public final class DoughBayScreen extends Screen {
             pageScrollPixels = clamp(next, 0, maxPageScrollPixels);
             return true;
         }
-        if (tab == Tab.SETTINGS) {
+        if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
             settingsScroll = clamp(settingsScroll - (int) Math.signum(deltaY) * 24, 0, Math.max(0, settingsMaxScroll));
             return true;
         }

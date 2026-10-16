@@ -54,6 +54,7 @@ public final class WebPages {
     public static String data(String name, Map<String, String> query) {
         return switch (name == null ? "" : name) {
             case "settings" -> settings();
+            case "evasion" -> evasion();
             case "code" -> answer(true, "").put("code", SettingsCode.export()).toString();
             case "items" -> items();
             case "prices" -> prices(ownPriceViews(), OwnPrices.current().problems(), Tuning.text(OwnPrices.KEY));
@@ -73,6 +74,7 @@ public final class WebPages {
         if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));
+            case "evasion" -> onClient(() -> changeEvasion(form));
             case "list" -> onClient(() -> list(form));
             case "preset" -> onClient(() -> preset(form.get("name")));
             case "code" -> onClient(() -> importCode(form.get("code")));
@@ -272,6 +274,8 @@ public final class WebPages {
         if (s == null) return answer(false, "There is no such setting.").toString();
         if (form.containsKey("reset")) {
             Tuning.reset(s.key());
+            if (s.key().equals("evasion.enabled") && DoughBayClient.evasionGuard() != null)
+                DoughBayClient.evasionGuard().setEnabled(Tuning.get(s.key()) >= .5);
             return answer(true, s.label() + " reset to " + s.format(Tuning.get(s.key()))).toString();
         }
         boolean toggle = s.kind() == Tuning.Kind.TOGGLE;
@@ -281,11 +285,51 @@ public final class WebPages {
             return answer(false, "Not a number: " + form.getOrDefault("value", "").strip()).toString();
         }
         double applied = Tuning.set(s.key(), asked);
+        if (s.key().equals("evasion.enabled") && DoughBayClient.evasionGuard() != null)
+            DoughBayClient.evasionGuard().setEnabled(applied >= .5);
         String note = s.label() + " set to " + s.format(applied);
         if (Math.abs(applied - asked) > 1e-9) {
             note += ", the " + (asked > applied ? "most" : "least") + " it can be";
         }
         return answer(true, note).toString();
+    }
+
+    static String evasion() {
+        try {
+            ObjectNode root = (ObjectNode) MAPPER.readTree(settings());
+            ArrayNode groups = MAPPER.createArrayNode();
+            for (var group : root.path("groups")) if (group.path("name").asText().equals("Evasion")) groups.add(group);
+            root.set("groups", groups);
+            root.remove(List.of("lists", "presets"));
+            root.put("enabled", DoughBayClient.evasionGuard() != null && DoughBayClient.evasionGuard().enabled());
+            root.put("useHomes", Tuning.get("evasion.use_homes") >= .5);
+            var names = root.putArray("homes"); SafeHomes.homes().forEach(names::add);
+            return root.toString();
+        } catch (java.io.IOException e) { return answer(false, "Evasion settings are unavailable").toString(); }
+    }
+
+    static String changeEvasion(Map<String, String> form) {
+        String action = form.getOrDefault("action", "");
+        if (action.equals("homes")) {
+            try { SafeHomes.saveHomes(form.getOrDefault("names", "")); }
+            catch (IllegalArgumentException e) { return answer(false, e.getMessage()).toString(); }
+            catch (java.io.IOException e) { return answer(false, "Could not save home names; existing file kept").toString(); }
+            return answer(true, "Saved " + SafeHomes.homes().size() + " home(s); used in entered order").toString();
+        }
+        if (action.equals("route")) {
+            String route = form.getOrDefault("route", "");
+            if (!route.equals("home") && !route.equals("rtp")) return answer(false, "Choose /home or /rtp").toString();
+            Tuning.set("evasion.use_homes", route.equals("home") ? 1 : 0);
+            return answer(true, "Teleport route saved").toString();
+        }
+        if (action.equals("guard")) {
+            var guard = DoughBayClient.evasionGuard();
+            if (guard == null) return answer(false, "Evasion guard is not ready").toString();
+            boolean enabled = !guard.enabled();
+            Tuning.set("evasion.enabled", enabled ? 1 : 0); guard.setEnabled(enabled);
+            return answer(true, enabled ? "Evasion enabled" : "Evasion disabled").toString();
+        }
+        return answer(false, "Unknown evasion action").toString();
     }
 
     static String list(Map<String, String> form) {

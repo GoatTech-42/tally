@@ -7,6 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
+import java.nio.file.StandardCopyOption;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 
 /**
  * The safe places to run to.
@@ -110,18 +114,60 @@ public final class SafeHomes {
     }
 
     /**
-     * The next home to run to: never the one just used, and otherwise chosen
-     * by the hour so the pattern is not a simple cycle. Empty when none are
-     * configured.
+     * The next home in entered order, wrapping at the end. Empty when none are
+     * configured. A single saved home is reused.
      */
     public static String next() {
         List<String> all = homes;
         if (all.isEmpty()) return "";
-        if (all.size() == 1) return all.get(0);
-        List<String> choices = new ArrayList<>(all);
-        choices.remove(lastUsed);
-        int index = (int) ((System.currentTimeMillis() / 3_600_000L + choices.size()) % choices.size());
-        return choices.get(index);
+        for (int i = 0; i < all.size(); i++)
+            if (all.get(i).equalsIgnoreCase(lastUsed)) return all.get((i + 1) % all.size());
+        return all.getFirst();
+    }
+
+    /** UI accepts names, not commands. Reject the entire edit rather than saving a partial list. */
+    public static List<String> parseNames(String text) {
+        if (text == null || text.length() > 2048) throw new IllegalArgumentException("Enter up to 32 home names");
+        var unique = new LinkedHashMap<String, String>();
+        for (String token : text.strip().split("[\\s,]+")) {
+            if (token.isEmpty()) continue;
+            if (!token.matches("[A-Za-z0-9_-]{1,32}"))
+                throw new IllegalArgumentException("Use home names only, such as base, vault, farm; no slash or command");
+            unique.putIfAbsent(token.toLowerCase(Locale.ROOT), token);
+            if (unique.size() > 32) throw new IllegalArgumentException("Use at most 32 home names");
+        }
+        return List.copyOf(unique.values());
+    }
+
+    /** Preserve allies and unrelated fields; never replace an unreadable file with defaults. */
+    public static synchronized void saveHomes(String text) throws IOException {
+        List<String> names = parseNames(text);
+        Path f = file;
+        if (f == null) throw new IOException("Home settings have not loaded yet");
+        var root = MAPPER.createObjectNode();
+        if (Files.exists(f)) {
+            if (Files.size(f) > 65_536) throw new IOException("Home settings file is too large");
+            JsonNode existing = MAPPER.readTree(Files.readString(f));
+            if (existing == null || !existing.isObject()) throw new IOException("Home settings need repair before saving");
+            root = (com.fasterxml.jackson.databind.node.ObjectNode) existing;
+        }
+        var array = root.putArray("homes");
+        names.forEach(array::add);
+        Path temporary = Files.createTempFile(f.getParent(), "homes-", ".tmp");
+        try {
+            Files.writeString(temporary, MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+            Files.move(temporary, f, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally { Files.deleteIfExists(temporary); }
+        homes = names;
+        seenModified = Files.getLastModifiedTime(f).toMillis();
+    }
+
+    /** Rotates attempts in entered order. The names refer to homes already set on the server. */
+    public static String teleportCommand(boolean useHomes) {
+        String home = useHomes ? next() : "";
+        if (home.isEmpty()) return "rtp";
+        noteUsed(home);
+        return "home " + home;
     }
 
     public static void noteUsed(String name) {
