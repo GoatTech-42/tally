@@ -7,11 +7,16 @@ import java.nio.charset.StandardCharsets;
 
 /** Immutable, reviewed body; retries reuse this body and its report identifier. */
 public record BugReportPayload(String build, String minecraftVersion, String description,
-                               String expected, Map<String, Object> diagnostics) {
+                               String expected, Map<String, Object> diagnostics, String settingsCode) {
+    public BugReportPayload(String build, String minecraftVersion, String description, String expected, Map<String,Object> diagnostics) {
+        this(build,minecraftVersion,description,expected,diagnostics,SettingsCode.exportForReport());
+    }
+    BugReportPayload withoutSettings() { return new BugReportPayload(build,minecraftVersion,description,expected,diagnostics, ""); }
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Set<String> KEYS = Set.of("state", "sqlite_errors", "uncompleted_desk_actions", "disconnect_notices", "evasion_notices", "recovered_purchase_pauses");
     private static final Set<String> STATES = Set.of("SCANNING", "BID_DESK", "PREPARING_LIST", "LISTING", "MONITORING", "COOLDOWN", "PAUSED", "STOPPED", "IDLE", "BUYING", "UNKNOWN");
     public BugReportPayload {
+        SettingsCode.validateReportCode(settingsCode);
         diagnostics = Map.copyOf(diagnostics);
         if (build == null || !build.matches("[0-9A-Za-z.+_-]{1,40}") || minecraftVersion == null || !minecraftVersion.matches("[0-9A-Za-z.+_-]{1,40}"))
             throw new IllegalArgumentException("Invalid build metadata");
@@ -54,6 +59,7 @@ public record BugReportPayload(String build, String minecraftVersion, String des
     public byte[] json(String diagnosticLog) {
         try {
             var body = JSON.createObjectNode();
+            if (settingsCode != null && !settingsCode.isEmpty()) body.put("settingsCode",settingsCode);
             body.put("schemaVersion", 1); body.put("build", build); body.put("minecraftVersion", minecraftVersion);
             body.put("description", description); body.put("expected", expected); body.set("diagnostics", JSON.valueToTree(diagnostics));
             if (diagnosticLog != null && !diagnosticLog.isEmpty()) {
@@ -69,6 +75,7 @@ public record BugReportPayload(String build, String minecraftVersion, String des
     }
     public String preview() {
         return "GoNuts bug report\nBuild: " + build + "\nMinecraft: " + minecraftVersion + "\n\nWhat happened:\n" + description
-            + "\n\nExpected:\n" + expected + "\n\n" + BugReportDiagnostics.format(diagnostics);
+            + "\n\nExpected:\n" + expected + "\n\n" + BugReportDiagnostics.format(diagnostics)
+            + (settingsCode == null || settingsCode.isEmpty() ? "" : "\n\nSanitized numeric Settings code (no text, names, webhooks, IDs or tokens):\n" + settingsCode);
     }
 }

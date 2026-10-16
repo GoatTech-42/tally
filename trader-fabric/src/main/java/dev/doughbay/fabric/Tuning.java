@@ -1263,6 +1263,38 @@ public final class Tuning {
         return changed;
     }
 
+    /** Retire the second guard switch once, preserving OFF in either legacy source.
+     * The version marker belongs to the game directory, never the hive's shared file.
+     */
+    static synchronized void migrateEvasionToggle(boolean legacyEnabled) throws IOException {
+        LOCAL_KEYS.add("evasion.enabled");
+        Path local = localFile;
+        if (local == null) throw new IOException("Local tuning is not initialized");
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode read = Files.exists(local) ? mapper.readTree(Files.readString(local, StandardCharsets.UTF_8)) : mapper.createObjectNode();
+        if (!(read instanceof ObjectNode root)) throw new IOException("Local settings must be an object");
+        boolean migrated = root.path("_evasionToggleVersion").asInt() == 1;
+        double value = migrated
+                ? root.path("evasion.enabled").isNumber() ? setting("evasion.enabled").clamp(root.path("evasion.enabled").asDouble()) : 0
+                : legacyEnabled && get("evasion.enabled") >= .5 ? 1 : 0;
+        VALUES.put("evasion.enabled", value);
+        if (migrated && root.path("evasion.enabled").isNumber()) return;
+        root.put("evasion.enabled", value).put("_evasionToggleVersion", 1);
+        Files.createDirectories(local.toAbsolutePath().getParent());
+        Path fresh = Files.createTempFile(local.toAbsolutePath().getParent(), "gonuts-toggle-", ".tmp");
+        try {
+            Files.writeString(fresh, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root), StandardCharsets.UTF_8);
+            try {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(fresh);
+        }
+        seenLocalModifiedAt = modifiedAt(local);
+    }
+
     public static void reset(String key) {
         VALUES.remove(key);
         save();
@@ -1298,7 +1330,8 @@ public final class Tuning {
                 Setting s = BY_KEY.get(e.getKey());
                 if (s == null || !e.getValue().isNumber()) continue;
                 // Once initialized, shared edits cannot become this account's fallback.
-                if (ACCOUNT_SLOT_KEYS.contains(s.key()) && localFile != null && VALUES.containsKey(s.key())) continue;
+                if ((ACCOUNT_SLOT_KEYS.contains(s.key()) || s.key().equals("evasion.enabled") && LOCAL_KEYS.contains(s.key()))
+                        && localFile != null && VALUES.containsKey(s.key())) continue;
                 VALUES.put(s.key(), s.clamp(e.getValue().asDouble()));
                 loaded++;
             }
@@ -1335,6 +1368,7 @@ public final class Tuning {
         localFile = local;
         LOCAL_KEYS.clear();
         LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
+        LOCAL_KEYS.add("evasion.enabled");
         // Consent can never be inherited from another client through shared tuning.json.
         LOCAL_KEYS.add("reports.auto_critical");
         VALUES.put("reports.auto_critical",0.0);

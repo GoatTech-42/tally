@@ -61,7 +61,7 @@ public final class BugReportTransport {
         if(key==null||!key.matches("[A-Za-z0-9_-]{8,64}"))throw new IllegalArgumentException("Invalid report retry identifier");
         return HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type","application/json").header("Idempotency-Key",key)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(payload.json(diagnosticLog,automatic))).build();
+            .POST(HttpRequest.BodyPublishers.ofByteArray((advertisesSettingsSupport(capabilities) ? payload : payload.withoutSettings()).json(diagnosticLog,automatic))).build();
     }
     public CompletableFuture<Boolean> supportsLogAttachments(String apiBaseUrl, String token) {
         var request = HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/capabilities"))
@@ -74,6 +74,12 @@ public final class BugReportTransport {
                 return advertisesLogSupport(JSON.readTree(bytes));
             } catch (Exception e) {return false;}
         }).orTimeout(15, TimeUnit.SECONDS).exceptionally(e -> false);
+    }
+    static boolean advertisesSettingsSupport(com.fasterxml.jackson.databind.JsonNode body) {
+        var settings = body.path("settingsCode");
+        return settings.path("supported").asBoolean(false)
+            && settings.path("format").asText().equals("DB1-numeric-v1")
+            && settings.path("maxChars").asInt() >= 12000;
     }
     static boolean advertisesLogSupport(com.fasterxml.jackson.databind.JsonNode body) {
         var log = body.path("diagnosticLog");
@@ -105,11 +111,18 @@ public final class BugReportTransport {
         return send(payload, key, apiBaseUrl, token, "");
     }
     public CompletableFuture<Result> send(BugReportPayload payload, String key, String apiBaseUrl, String token, String diagnosticLog) {
-        if (diagnosticLog != null && !diagnosticLog.isEmpty()) return supportsLogAttachments(apiBaseUrl,token).thenCompose(supported -> supported
-            ? sendSupported(payload,key,token,diagnosticLog)
-            : CompletableFuture.completedFuture(new Result(false,"Log attachment support is unavailable. Prepare without the log to send diagnostics only.","",0)));
-        return sendSupported(payload,key,token,"");
+        return CompletableFuture.supplyAsync(() -> {
+            try { return automaticCapabilities(); }
+            catch (Exception e) { return JSON.createObjectNode(); }
+        }).thenCompose(capabilities -> {
+            if (diagnosticLog != null && !diagnosticLog.isEmpty() && !advertisesLogSupport(capabilities))
+                return CompletableFuture.completedFuture(new Result(false,"Report service capabilities unavailable. Retry this prepared report later.","",0));
+            if (payload.settingsCode() != null && !payload.settingsCode().isEmpty() && !advertisesSettingsSupport(capabilities))
+                return CompletableFuture.completedFuture(new Result(false,"Settings attachment support unavailable. Keep this prepared report and retry later.","",0));
+            return sendSupported(payload,key,token,diagnosticLog);
+        });
     }
+
     private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog) {
         try {
             return http.sendAsync(request(payload, key, token, diagnosticLog), HttpResponse.BodyHandlers.ofInputStream())

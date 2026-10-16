@@ -335,10 +335,17 @@ public final class WebPages {
             for (var group : root.path("groups")) if (group.path("name").asText().equals("Evasion")) groups.add(group);
             root.set("groups", groups);
             root.remove(List.of("lists", "presets"));
-            root.put("enabled", DoughBayClient.evasionGuard() != null && DoughBayClient.evasionGuard().enabled());
+            var guard=DoughBayClient.evasionGuard();
+            root.put("enabled", guard != null && guard.enabled());
+            root.put("guardStatus", guard == null ? "off" : guard.status());
+            root.put("pauseRing", (int)Tuning.get("evasion.radius_blocks"));
+            root.put("escapeRing", (int)Tuning.get("evasion.disconnect_blocks"));
+            int mode=(int)Tuning.get("evasion.escape");
+            root.put("onContact",mode==0?"pause only":mode==1?"teleport away":"leave the server");
+            root.set("history",EvasionHistory.read(EvasionGuard.ledgerPath(),System.currentTimeMillis()));
             root.put("useHomes", Tuning.get("evasion.use_homes") >= .5);
             var names = root.putArray("homes"); SafeHomes.homes().forEach(names::add);
-            return root.toString();
+            return ours(root.toString());
         } catch (java.io.IOException e) { return answer(false, "Evasion settings are unavailable").toString(); }
     }
 

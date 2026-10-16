@@ -8,7 +8,7 @@ import java.util.Map;
 class BugReportTransportTest {
     private static BugReportPayload payload() {
         return new BugReportPayload("0.1.1-staffwatch+26.2", "26.2", "A listing did not complete", "It should finish",
-            BugReportDiagnostics.counters("DoughBay automation [SCANNING]: private message\nSQLiteException: private"));
+            BugReportDiagnostics.counters("DoughBay automation [SCANNING]: private message\nSQLiteException: private")).withoutSettings();
     }
     @Test void exactReceiverSchemaContainsOnlyValidatedFields() throws Exception {
         var body = new ObjectMapper().readTree(payload().json());

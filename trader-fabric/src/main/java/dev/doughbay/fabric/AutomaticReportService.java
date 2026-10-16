@@ -129,7 +129,7 @@ public final class AutomaticReportService implements AutoCloseable {
             if(reservation.isEmpty()) {nextCapabilityCheck=now+300_000;status="Automatic report suppressed by duplicate or daily limit";return;}
             var entry=reservation.get();
             pending=new AutomaticReportOutbox.Pending(entry.retryKey(),entry.fingerprint(),
-                new String(prepared.payload().json(prepared.log(),metadata),java.nio.charset.StandardCharsets.UTF_8),now,0,0);
+                new String((BugReportTransport.advertisesSettingsSupport(capabilities) ? prepared.payload() : prepared.payload().withoutSettings()).json(prepared.log(),metadata),java.nio.charset.StandardCharsets.UTF_8),now,0,0);
             outbox.save(pending);
         }
         // Recovery or opt-out during capability/evidence preparation prevents the first upload.
