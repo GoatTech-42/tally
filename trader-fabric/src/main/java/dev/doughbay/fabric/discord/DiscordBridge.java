@@ -535,7 +535,8 @@ public final class DiscordBridge {
             }
         }
         ArrayNode r2 = row(rows);
-        button(r2, "ctl:search", "Search", 2, false);
+        if(page==Page.FLIPS)button(r2,"flips:only",dev.doughbay.fabric.FlipsMode.only()?"Flips only: ON":"Flips only: OFF",2,false);
+        else button(r2, "ctl:search", "Search", 2, false);
         if(page==Page.REGIONS)button(r2,"regions:switch","Switch selected account",1,
                 account.isBlank() && DoughBayClient.hiveAccounts().size()>1);
         if (page == Page.STAFF) button(r2,"staff:response",
@@ -805,6 +806,11 @@ public final class DiscordBridge {
                 tuneKey = "";
             }
             case "tune:key" -> tuneKey = value;
+            case "flips:only" -> {
+                String result=dev.doughbay.fabric.WebPages.change("setting",java.util.Map.of("key","prices.only","toggle","1"));
+                try{return MAPPER.readTree(result).path("note").asText("Flips mode updated");}
+                catch(java.io.IOException e){return "Could not update Flips mode";}
+            }
             case "flips:key" -> flipKey = value;
             case "flips:remove" -> {
                 dev.doughbay.fabric.OwnPrices.Entry e = flip();
@@ -1895,7 +1901,7 @@ public final class DiscordBridge {
         dev.doughbay.fabric.OwnPrices.Entry chosen = flip();
         List<AutomationSessionController.OwnPriceView> views = session.ownPriceViews();
         head.add(new String[] {"On your list", views.isEmpty() ? "nothing yet: press Add item" : views.size() + " item(s)", "gold"});
-        head.add(new String[] {"Trading", Tuning.get("prices.only") >= 0.5 ? "only these" : "these, and the markets the bot picks"});
+        head.add(new String[] {"Trading", dev.doughbay.fabric.FlipsMode.description()});
         if (chosen != null) {
             head.add(new String[] {"Selected", item(chosen.itemId()) + ": buy " + money(chosen.buy()) + ", sell " + money(chosen.sell())});
         }

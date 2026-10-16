@@ -7846,7 +7846,7 @@ public final class DoughBayScreen extends Screen {
         int rx = ui.innerRight();
         boolean only = Tuning.get("prices.only") >= 0.5;
         rx -= 150;
-        addRenderableWidget(CockpitButton.builder(Component.literal(only ? "Trade only these: on" : "Trade only these: off"), ignored -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal(only ? "Flips only: ON" : "Flips only: OFF"), ignored -> {
             Tuning.set("prices.only", only ? 0 : 1);
             flipSay(only ? "The bot trades your list alongside everything else again."
                     : "The bot now buys only what is on this list: its other orders are cancelled. What it holds is still sold.", false);
@@ -7958,7 +7958,8 @@ public final class DoughBayScreen extends Screen {
         List<AutomationSessionController.OwnPriceView> views = AUTOMATION_SESSION.ownPriceViews();
         boolean only = Tuning.get("prices.only") >= 0.5;
         int barY = ui.bottom() - 27;
-        int y = top + 22;
+        graphics.text(this.font, truncate(FlipsMode.description(), width), x, top+19, only?GOOD:WARN);
+        int y = top + 35;
         int rowHeight = 18;
         // The list has what three rows of the picker and its caption leave it.
         int room = Math.max(1, (barY - 38 - (12 + 3 * FLIP_CELL + 8) - (y + 27 + 12 + 6)) / rowHeight);

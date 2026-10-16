@@ -340,7 +340,7 @@ final class Pages {
               settings: { label: 'Settings', open: openSettings },
               evasion: { label: 'Evasion', open: openEvasion },
               items: { label: 'Items', open: openItems },
-              prices: { label: 'Your prices', open: openPrices },
+              prices: { label: 'Flips', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals },
               staff: { label: 'Staff Watch', open: openStaff },
               reports: { label: 'Report bug', open: openReports },
@@ -462,13 +462,12 @@ final class Pages {
               description.style.boxSizing = expected.style.boxSizing = 'border-box';
               description.value = reportData.description || '';
               expected.value = reportData.expected || '';
-              const log = el('input'); log.type = 'checkbox'; log.checked = true;
-              const logLabel = el('label', '', ' Include sanitized diagnostic log'); logLabel.prepend(log);
+              const logLabel = el('p','muted','Sanitized diagnostic logs are included automatically.');
               const privacy = el('p', 'muted', 'Reports are public on GitHub. Diagnostics remove player names, chat and personal details. Review the preview for anything sensitive you typed. Nothing is uploaded until you send. This reports the client hosting this panel.');
               const status = el('p', '', ''), preview = el('pre', '', '');
               preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
               let preparedId = '', blockedId = '', changedSinceSend = true;
-              const fields = action => ({action, description:description.value, expected:expected.value, includeLog:String(log.checked), consent:'true'});
+              const fields = action => ({action, description:description.value, expected:expected.value, consent:'true'});
               const send = button('', 'Send report', async () => {
                 send.disabled = true; changedSinceSend = false;
                 await change('reports', fields('submit'));
@@ -500,7 +499,7 @@ final class Pages {
                 reportTimer = setTimeout(poll, 1500);
               }
               own.replaceChildren(el('h2', '', 'Report bug'), privacy, el('label', '', 'What happened?'), description,
-                el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches the selected diagnostics, then publishes them to GitHub.'), send, prepare, status, preview, link);
+                el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches diagnostics automatically, then publishes them to GitHub.'), send, prepare, status, preview, link);
               poll();
             }
 
@@ -933,10 +932,13 @@ final class Pages {
                 area.blur();
                 openPrices();
               }));
-              const parts = [intro, area, line];
+              const mode=button(d.only?'go':'',d.only?'Flips only: ON':'Flips only: OFF',async()=>{
+                if((await change('setting',{key:'prices.only',toggle:'1'}))?.ok)openPrices();
+              });
+              const parts = [el('h2','title','Flips'),mode,el('p',d.only?'t-good':'t-gold',d.modeDescription||''),intro,area,line];
               for (const p of d.problems || []) parts.push(el('p', 't-bad', 'Not understood: ' + p));
               if (!d.rows || !d.rows.length) {
-                parts.push(el('p', 'muted', 'Nothing on the list yet. The bot prices everything itself.'));
+                parts.push(el('p', 'muted', d.only?'Your Flips list is empty. Add an item; general market scanning stays off.':'Nothing on the list yet. Normal trading is active.'));
               } else {
                 const wide = el('div', 'wide');
                 wide.tabIndex = 0;

@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-16 03:35 UTC
+
+- Every in-game, web-panel and automatic bug report now captures sanitized diagnostic logs automatically. Removed the Include log toggle. An unreadable log produces a fixed availability notice, without exposing paths or raw errors.
+
+- Made Flips only prominent on the Flips pages in the GUI, web panel and Discord, with an explanation of normal trading when it is off.
+- Flips only now stays restricted even with an empty list. General market scans stop; a general read already in progress is abandoned safely, and queued auction price sweeps are dropped. Targeted order quotes and existing stock maintenance remain available. The background feed keeps recorded sales and hive presence alive without the broad API scanner.
+
 ## 2026-10-16 02:42 UTC
 
 - Added manual region switching to Region Map in the GUI, web panel and Discord. Choose one hive account and a destination; moves wait for a safe, durable checkpoint, use the normal command pacing, and resume only the session paused by this transfer after fresh server confirmation. Failed or cancelled transfers never start trading.

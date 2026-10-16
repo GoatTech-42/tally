@@ -73,7 +73,7 @@ public final class WebReports {
             if (draft != null && draft.busy) return reply(false, "A report operation is already running.");
             String description = form.getOrDefault("description", ""), expected = form.getOrDefault("expected", "");
             if (description.length() > 3000 || expected.length() > 3000) return reply(false, "Use at most 1500 characters per field.");
-            boolean includeLog = "true".equals(form.get("includeLog"));
+            boolean includeLog = true; // Old callers cannot turn diagnostics off.
             String key = description + "\0" + expected + "\0" + includeLog;
             try { key = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
             catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
@@ -109,7 +109,7 @@ public final class WebReports {
             result.payload().json(result.log());
             synchronized (WebReports.class) {
                 d.payload = result.payload(); d.log = result.log(); d.busy = false;
-                d.note = "Preview ready; nothing uploaded.";
+                d.note = BugReportLog.UNAVAILABLE.equals(d.log)?"Log unavailable; the report includes that notice. Nothing uploaded.":"Preview ready; sanitized diagnostics included automatically.";
                 if (submit && draft == d)
                     change(Map.of("action","send","id",d.id,"consent","true"),preparation,delivery);
             }
@@ -126,9 +126,9 @@ public final class WebReports {
             var path = net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("logs/latest.log");
             var payload = new BugReportPayload(BugReportBuild.current(), "26.2", BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(description)),
                 BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(expected)), BugReportDiagnostics.readCounters(path));
-            if (includeLog && !TRANSPORT.supportsLogAttachments("", "").join())
-                throw new IllegalStateException("Log support unavailable. Try later or prepare without the log.");
-            String log = includeLog ? BugReportLog.read(path) : "";
+            if (!TRANSPORT.supportsLogAttachments("", "").join())
+                throw new IllegalStateException("Log support unavailable. Try again later.");
+            String log = BugReportLog.readForReport(path);
             payload.json(log);
             return new Prepared(payload, log);
     }

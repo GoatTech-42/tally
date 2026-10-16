@@ -17,7 +17,13 @@ public final class BugReportLog {
     private static final Pattern FRAME = Pattern.compile("^\\s*at (?:[\\w.]+//)?(dev\\.doughbay\\.[A-Za-z0-9_.$]+)\\(([A-Za-z0-9_$]+\\.java):(\\d{1,6})\\)\\s*$");
     private static final Pattern SQLITE = Pattern.compile("\\b(SQLITE_(?:BUSY_SNAPSHOT|BUSY|LOCKED|ERROR|CONSTRAINT|CORRUPT|IOERR|FULL|READONLY))\\b");
     private static final Set<String> ERRORS = Set.of("SQLiteException", "IllegalStateException", "IllegalArgumentException", "NullPointerException", "IOException", "SocketException", "TimeoutException", "ConnectException");
+    public static final String UNAVAILABLE = "Filtered GoNuts diagnostic excerpt; messages, identities and locations omitted.\nSample: diagnostic log unavailable on this client.";
     private BugReportLog() { }
+    /** Every report gets filtered evidence or a fixed availability marker, never raw exception/path text. */
+    public static String readForReport(Path path) {
+        try { return read(path); }
+        catch (IOException | RuntimeException e) { return UNAVAILABLE; }
+    }
     public static String read(Path path) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
             long end = file.length(), start = Math.max(0, end - 262144);
