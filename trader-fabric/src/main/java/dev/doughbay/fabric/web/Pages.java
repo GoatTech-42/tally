@@ -972,7 +972,11 @@ final class Pages {
               try {
                 const d = await api('staff');
                 if (view !== 'staff') return;
+                const response=button('',d.regionSwitch?'Response: Switch region first':'Response: Disconnect immediately',async()=>{
+                  if((await change('staff',{action:'response',mode:d.regionSwitch?'disconnect':'switch'}))?.ok)openStaff();
+                });
                 const parts = [el('h2', 'title', 'Shared hive Staff Watch'),
+                  response,el('p','desc','Same staff freshly detected within 2 minutes of confirmed arrival: disconnect. Duplicate in-flight alerts do not count. Escape / reconnect must be enabled.'),
                   el('p', 'desc', d.status + ' · Timezone shown: ' + d.timeZone), el('p', 'desc', d.note),
                   el('p', 'desc', 'Observation coverage: ' + Math.floor(d.watchedMillis / 60000) + ' minutes (overlap merged)')];
                 if (!d.fresh) parts.push(el('p', 'bad', 'Current detection is unavailable; history is not live presence.'));

@@ -378,10 +378,10 @@ public final class Tuning {
                     + "hand; the bot now reads the same snapshot and acts on it within the second, so these "
                     + "mostly push the sales, listings and fills off the screen (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
-            new Setting("privacy.hide_name", "HUD", "Hide my name",
+            new Setting("privacy.hide_name", "HUD", "Hide name and coordinates",
                     "Scramble your own name where this client draws it - the name tag over your head while the "
                     + "camera drifts, and the sidebar scoreboard - so screenshots and video do not show it. Your "
-                    + "screen only: the server and other players see no difference (1 on, 0 off)",
+                    + "Region Map XYZ is also scrambled. Your screen only: the server and other players see no difference (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("camera.orbit", "HUD", "Drift the camera",
                     "Swing the view slowly around the player while the bot trades. It never uses the camera - slots "

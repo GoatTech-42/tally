@@ -61,6 +61,7 @@ public final class DoughBayScreen extends Screen {
         EVASION("Evasion"),
         ACTIVITY("Activity"),
         STAFF_WATCH("Staff Watch"),
+        REGION_MAP("Region Map"),
         PROXIES("Proxies"),
         HIVE("Hive setup"),
         DIAGNOSTICS("Diagnostics"),
@@ -383,9 +384,11 @@ public final class DoughBayScreen extends Screen {
 
     private Tab tab = Tab.OVERVIEW;
     private final StaffWatchPanel staffWatchPanel = new StaffWatchPanel();
+    private final RegionMapPanel regionMapPanel = new RegionMapPanel();
     private final AppearancePanel appearancePanel = new AppearancePanel();
     public void selectAppearance(){ tab=Tab.APPEARANCE; }
     public void selectStaffWatch(){ tab=Tab.STAFF_WATCH; }
+    public void selectRegionMap(){ tab=Tab.REGION_MAP; }
     public void selectProxies(){ tab=Tab.PROXIES; }
     public void selectHive(){ tab=Tab.HIVE; }
     public void selectEvasion(){ tab=Tab.EVASION; }
@@ -813,6 +816,8 @@ public final class DoughBayScreen extends Screen {
             widgetStateKey = automationStateKey(snapshot());
         } else if (tab == Tab.APPEARANCE) {
             appearancePanel.init(ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
+        } else if (tab == Tab.REGION_MAP) {
+            regionMapPanel.init(ui.innerLeft(),ui.contentTop(),ui.innerWidth(),this::addRenderableWidget);
         } else if (tab == Tab.STAFF_WATCH) {
             staffWatchPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
         } else if (tab == Tab.PROXIES) {
@@ -966,6 +971,7 @@ public final class DoughBayScreen extends Screen {
             case ACTIVITY -> renderActivity(graphics, ui);
             case APPEARANCE -> appearancePanel.render(graphics,font);
             case STAFF_WATCH -> staffWatchPanel.render(graphics,font);
+            case REGION_MAP -> regionMapPanel.render(graphics, font, ui.innerLeft(), ui.contentTop(), ui.innerWidth(), ui.bottom() - 16);
             case PROXIES -> proxyPanel.render(graphics,font);
             case HIVE -> hivePanel.render(graphics,font);
             case OPPORTUNITIES -> {

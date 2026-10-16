@@ -75,6 +75,8 @@ public final class WebPages {
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));
             case "evasion" -> onClient(() -> changeEvasion(form));
+            case "staff" -> onClient(() -> changeStaffResponse(form));
+            case "regions" -> onClient(() -> changeRegion(form));
             case "list" -> onClient(() -> list(form));
             case "preset" -> onClient(() -> preset(form.get("name")));
             case "code" -> onClient(() -> importCode(form.get("code")));
@@ -102,7 +104,39 @@ public final class WebPages {
     static String staff() {
         long now = System.currentTimeMillis();
         StaffWatchReport.Snapshot snapshot = StaffWatchReport.snapshot();
-        return ours(staffData(snapshot,now,DoughBayClient.account(),ZoneId.systemDefault()).toString());
+        var root=staffData(snapshot,now,DoughBayClient.account(),ZoneId.systemDefault());
+        var config=dev.doughbay.fabric.staffwatch.WatchConfig.get();
+        root.put("regionSwitch",config.regionSwitch);
+        root.put("escapeEnabled",config.enabled&&config.autoDisconnect);
+        root.put("repeatWindowSeconds",120);
+        return ours(root.toString());
+    }
+    private static String changeRegion(Map<String,String> form) {
+        String destination=form.getOrDefault("destination","");
+        if(!dev.doughbay.fabric.staffwatch.ManualRegionFlow.DESTINATIONS.contains(destination))
+            return answer(false,"Choose a valid region").toString();
+        String target=form.getOrDefault("account","");
+        if(target.isBlank())return answer(false,"Choose one account to switch").toString();
+        if(!target.equalsIgnoreCase(DoughBayClient.account())) {
+            if(DoughBayClient.hiveAccounts().stream().noneMatch(target::equalsIgnoreCase))
+                return answer(false,"Unknown hive account").toString();
+            var control=DoughBayClient.hiveControl();
+            boolean queued=control!=null && control.post(target,"REGION:"+destination,"Region Map");
+            return answer(queued,queued?"Switch request queued for "+target+"; wait for its reply":"Could not queue region switch").toString();
+        }
+        boolean accepted=dev.doughbay.fabric.staffwatch.ManualRegionTransfer.request(destination);
+        return answer(accepted,dev.doughbay.fabric.staffwatch.ManualRegionTransfer.status()).toString();
+    }
+
+    private static String changeStaffResponse(Map<String,String> form) {
+        if (!"response".equals(form.get("action")) || !Set.of("switch","disconnect").contains(form.getOrDefault("mode","")))
+            return answer(false,"Choose switch or disconnect").toString();
+        var config=dev.doughbay.fabric.staffwatch.WatchConfig.get();
+        boolean previous=config.regionSwitch;
+        config.regionSwitch="switch".equals(form.get("mode"));
+        try { config.save(); }
+        catch(java.io.IOException e) { config.regionSwitch=previous; return answer(false,"Could not save Staff Watch response").toString(); }
+        return answer(true,config.regionSwitch?"First alert switches region; same staff within two minutes disconnects":"Staff alerts disconnect immediately").toString();
     }
     static ObjectNode staffData(StaffWatchReport.Snapshot snapshot,long now,String observer,ZoneId zone) {
         ObjectNode root = MAPPER.createObjectNode();

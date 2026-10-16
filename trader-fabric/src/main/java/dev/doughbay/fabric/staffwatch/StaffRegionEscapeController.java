@@ -40,9 +40,8 @@ final class StaffRegionEscapeController {
             public String regionHint() {
                 String sent = DoughBayClient.executionDriver().lastEscapeCommand();
                 if (sent.startsWith("rtp ") && ALLOWED.contains(sent.substring(4))) return sent.substring(4);
-                var server = mc().getCurrentServer();
-                if (server != null && server.ip.startsWith("east.")) return "east";
-                if (server != null && server.ip.startsWith("west.")) return "west";
+                var area = dev.doughbay.fabric.RegionMapReport.snapshot();
+                if (area.mapped()) return dev.doughbay.fabric.RegionMapData.command(area.area());
                 return "";
             }
             public boolean pauseSafely() {

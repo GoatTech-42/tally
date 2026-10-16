@@ -462,6 +462,9 @@ public class DoughBayClient implements ClientModInitializer {
                 category));
 
         ClientTickEvents.END_CLIENT_TICK.register(SidebarBalance::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(RegionMapReport::tick);
+        dev.doughbay.fabric.staffwatch.ManualRegionTransfer.init();
+        ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.staffwatch.ManualRegionTransfer::tick);
         UpdateCheck.start();
         ClientTickEvents.END_CLIENT_TICK.register(UpdateCheck::tick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> { if (WEB_PANEL != null) WEB_PANEL.tick(); });

@@ -29,6 +29,7 @@ final class StaffWatchPanel {
   toggle(add,"Region alerts",()->c.regionAlert,v->c.regionAlert=v,x+8,92,col);
   toggle(add,"Show HUD",()->c.showHud,v->c.showHud=v,x+16+col,92,col);
   toggle(add,"Alert sounds",()->c.alertSounds,v->c.alertSounds=v,x+8,118,col);
+  toggle(add,"Switch regions first",()->c.regionSwitch,v->c.regionSwitch=v,x+16+col,118,col);
   add(add,CockpitButton.builder(Component.literal("Server: "+c.reconnectAddress()),b->{int next=(WatchConfig.SERVER_ADDRESSES.indexOf(c.reconnectAddress())+1)%WatchConfig.SERVER_ADDRESSES.size();c.serverAddress=WatchConfig.SERVER_ADDRESSES.get(next);persist();b.setMessage(Component.literal("Server: "+c.reconnectAddress()));}).bounds(x+8,top+162,w-16,20).build(),162);
   position();
  }
@@ -49,7 +50,7 @@ final class StaffWatchPanel {
   text(g,font,"STAFF WATCH",x+10,y+10,UiTheme.GOLD);
   text(g,font,"Donut SMP staff panels at top center; warnings appear below.",x+10,y+25,UiTheme.SECONDARY);
   text(g,font,"DONUT SMP — click to choose Main / East / West",x+10,y+148,UiTheme.TEXT);
-  text(g,font,"Staff: change region; repeat sighting: hop, leave, wait 5–10 min.",x+10,y+190,UiTheme.MUTED);
+  text(g,font,c.regionSwitch?"First alert: switch region. Same staff within 2 min: disconnect.":"Staff alert: disconnect immediately; wait 5–10 min before rejoining.",x+10,y+190,UiTheme.MUTED);
   text(g,font,message,x+10,y+204,error?UiTheme.BAD:UiTheme.GOOD);
   UiTheme.panel(g,x,y+226,w,76,UiTheme.INSET);
   text(g,font,c.enabled?"MONITORING ENABLED":"MODULE DISABLED",x+10,y+237,c.enabled?UiTheme.GOOD:UiTheme.MUTED);
