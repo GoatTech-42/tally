@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 18:18 UTC
+
+- Website Swarm cards now show six estimated standings (sale records per hour, profit per hour/24 hours, revenue per hour/24 hours and 24-hour profit margin), plus an equal-weight overall score and position using available metrics. Collective profit/revenue and your Hive profit share give context. Figures use compact K/M/B notation and rounded-display labels; missing revenue remains unknown or partial until clients report it. No 10-Hive or ledger-coverage wait is required.
+
 ## 2026-10-17 18:07 UTC
 
 - Linked clients now report optional gross booked sales revenue for rolling one-hour and 24-hour windows to support anonymous collective Swarm estimates. Revenue uses completed real sales, stays separate from profit and sale-record counts, and remains unknown when ledger sale prices are incomplete. Reading is local and read-only; no trades or settings changes are dispatched.
