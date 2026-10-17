@@ -4738,7 +4738,8 @@ public final class AutomationSessionController {
     /** Money sitting in the player's open bids: out of the bank, so counted against the cap like listings. */
     private long bidsOut() {
         long out = 0;
-        for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) out += r.unitPrice() * r.remaining();
+        for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders)
+            if (!r.alreadyCancelled()) out += r.unitPrice() * r.remaining();
         return out;
     }
 
@@ -5481,7 +5482,7 @@ public final class AutomationSessionController {
         boolean chasing = dev.doughbay.fabric.Tuning.get("orders.chase") >= 0.5;
         double chaseRoi = Math.max(minimumRoi, dev.doughbay.fabric.Tuning.get("orders.chase_min_margin_pct") / 100.0);
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
-            if (r.remaining() > 0) bidItems.add(r.itemId());
+            if (!r.alreadyCancelled() && r.remaining() > 0) bidItems.add(r.itemId());
             String pendingKey = orderKey(r.itemId(), r.unitPrice(), r.requested());
             if (deliveredByKey.getOrDefault(pendingKey, 0) - collectedByKey.getOrDefault(pendingKey, 0) > 0) bidItems.add(r.itemId());
             String k = orderKey(r.itemId(), r.unitPrice(), r.requested());
@@ -5507,6 +5508,19 @@ public final class AutomationSessionController {
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         "collecting " + pending + " " + r.itemId(), collectAttempts.getOrDefault(k, 0)));
+            }
+            // Closed rows remain on Your Orders after their refund and collection.
+            // Only goods still owed reserve this market, not the unfilled quantity
+            // of an order the server has already cancelled. Do not chase, quote or
+            // collect the old delivered total again after it has been accounted for.
+            if (r.alreadyCancelled()) {
+                if (pending > 0 && !lotStillSelling && collectQueued.add(k)
+                        && collectAttempts.getOrDefault(k, 0) < 4) {
+                    deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(),
+                            r.requested(), r.unitPrice(), "the order was cancelled with goods still on it",
+                            collectAttempts.getOrDefault(k, 0)));
+                }
+                continue;
             }
             if (r.remaining() == 0) continue;   // completed orders cannot be cancelled; they age off the page
             BidKey key = new BidKey(r.itemId(), r.unitPrice());
@@ -5592,17 +5606,6 @@ public final class AutomationSessionController {
                     }
                 }
             }
-            // The server has already closed this one and is only holding the
-            // goods. There is nothing to cancel and the page will not offer it;
-            // what it offers is Collect, and what we are owed is the delivered
-            // part. Trying to cancel it was the whole Edit Order hang.
-            if (r.alreadyCancelled()) {
-                if (r.delivered() > 0) {
-                    deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(),
-                            r.delivered(), r.unitPrice(), "the order was cancelled with goods still on it"));
-                }
-                continue;
-            }
             // An order that is to be pulled gives up what is on it first,
             // part stack or not: nothing more is coming to it.
             if (wholeOnly && (bidding || denied || winding) && why != null && pending > 0 && !listablePart
@@ -5672,7 +5675,8 @@ public final class AutomationSessionController {
             room += borrowedHeadroom(Math.round(dev.doughbay.fabric.Tuning.get("orders.bid_min_room")) - room);
         }
         int active = 0;
-        for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) if (r.remaining() > 0) active++;
+        for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders)
+            if (!r.alreadyCancelled() && r.remaining() > 0) active++;
         int free = slots - active;
         if (snapshot == null || free <= 0) return;
         // Cache-only aggregate observations choose which native checks to spend this plan on.
