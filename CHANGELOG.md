@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 20:26 UTC
+
+- A prolonged recovery hold no longer automatically force-resets unresolved exposure outside Swarm mode. Stock records, spend accounting and pending checkpoints stay intact; the existing recovery timer now warns that audited recovery is required. Native verified recovery can continue, and elapsed time never starts trading or writes off a position.
+- Filtered bug reports now include fixed reason codes for recognized reconciliation/recovery pauses, a completed-order marker, and a retained-exposure warning. Repeated unchanged state ticks are collapsed so they do not crowd out useful failure evidence. Raw pause messages, identities, locations and credentials remain excluded.
+- Reviewed all 15 open bug reports in the linked report-triage document. Related published patches remain awaiting confirmation; missing evidence is explicitly identified rather than treating generic exceptions or zero counters as proof of an upstream outage or a resolved bug.
+
 ## 2026-10-17 20:02 UTC
 
 - Fixed a bid-planning loop where a fresh Swarm or selected-item order quote triggered another full Your Orders read, allowing the quote to expire before placement. The desk now replans against a still-fresh native own-order book. Missing or stale own-order evidence still requires a read, and native prices, sizing, inventory, spend limits and protective guards remain authoritative.

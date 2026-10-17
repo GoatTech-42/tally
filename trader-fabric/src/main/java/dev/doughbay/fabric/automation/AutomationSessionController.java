@@ -2186,14 +2186,10 @@ public final class AutomationSessionController {
     }
 
     /**
-     * Self-heal for a session that has sat wedged on an unresolvable recovered
-     * exposure. Once it has been PAUSED with locked exposure for
-     * recovery.auto_reset_min minutes straight - well past any legitimate
-     * recovery, which resolves in seconds - force-reset it so a bot nobody is
-     * watching does not sit dead for hours. Off when the setting is 0.
+     * Report a prolonged recovery hold without treating elapsed time as proof
+     * that its stock, exposure or pending ledger writes can be abandoned.
      */
-    private void maybeForceResetWedged(Minecraft client, long now) {
-        if(communityGuidanceEnabled()||experimentRequestedMode!=null){wedgedSince=0;return;}
+    private void maybeReportWedgedRecovery(Minecraft client, long now) {
         if (pausedByPlayer) {
             wedgedSince = 0;
             return;
@@ -2206,20 +2202,20 @@ public final class AutomationSessionController {
         boolean wedged = recoveredSession && recoveredExposureRemains();
         if (minutes < 0.5 || !wedged) {
             wedgedSince = 0;
+            wedgedRecoveryReported = false;
             return;
         }
         if (wedgedSince == 0) {
             wedgedSince = now;
             return;
         }
-        if (now - wedgedSince < (long) (minutes * 60_000L)) return;
-        if (policy == null && dev.doughbay.fabric.DoughBayClient.continuousPolicy() == null) {
-            detail = "PAUSED: a valid automation policy is required before recovery can resume";
-            return;
-        }
-        LOGGER.warn("DoughBay automation: recovery has been wedged on locked exposure for {} min; "
-                + "auto force-reset.", (long) minutes);
-        forceReset(client);
+        if (wedgedRecoveryReported || now - wedgedSince < (long) (minutes * 60_000L)) return;
+        wedgedRecoveryReported = true;
+        LOGGER.warn("DoughBay automation: recovery remains blocked after {} min; "
+                + "exposure and pending checkpoints retained; audited recovery is required", (long) minutes);
+        // Existing native recovery can still progress; do not reset its state,
+        // arm trading or cancel a position merely because a timer expired.
+        reconciliationStatus = "Recovery remains blocked; exposure retained for audited recovery";
     }
 
     /** Same current scoreboard/API selection used by Discord; shared by trading and diagnostics. */
@@ -2474,7 +2470,7 @@ public final class AutomationSessionController {
         synchronizePersistenceRecovery();
         processOutOfBandPersistence();
         checkStuckPersistence(now);
-        maybeForceResetWedged(client, now);
+        maybeReportWedgedRecovery(client, now);
         if (manualResolutionFirstConfirmedAt > 0
                 && manualResolutionPersistenceGeneration <= 0) {
             updateManualResolutionEvidence(client, marketSnapshot, now);
@@ -12806,6 +12802,7 @@ public final class AutomationSessionController {
 
     private long pendingPersistenceSince;
     private long wedgedSince;   // when a locked recovered exposure first wedged the session
+    private boolean wedgedRecoveryReported;
     private static final long STUCK_PERSISTENCE_MILLIS = 120_000L;
 
     private long pendingPersistenceDurableGeneration;
