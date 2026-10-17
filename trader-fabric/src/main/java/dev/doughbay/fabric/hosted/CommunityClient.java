@@ -89,8 +89,12 @@ public final class CommunityClient {
     public String marketScope(){return connected&&networkSupported?CommunityBatches.NETWORK:"";}
     /** Cache-only admission for sharing detector observations; no enrollment or control side effects. */
     public boolean sharingStaffSightings(long now){
+        return connected&&networkSupported&&staffSharingSession(now);
+    }
+    /** Rechecks consent and transport when delivering evidence observed before an automatic game disconnect. */
+    public boolean staffSharingSession(long now){
         var dashboard=HostedDashboardClient.INSTANCE.view();
-        return started&&enabled&&enrolled&&eligible&&connected&&networkSupported&&dashboard.linked()&&dashboard.online()
+        return started&&enabled&&enrolled&&eligible&&dashboard.linked()&&dashboard.online()
                 &&!account.isEmpty()&&account.equalsIgnoreCase(registeredAccount)
                 &&lastUpload>0&&now>=lastUpload&&now-lastUpload<=600_000;
     }

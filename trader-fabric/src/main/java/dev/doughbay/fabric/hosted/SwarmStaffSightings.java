@@ -12,19 +12,20 @@ public final class SwarmStaffSightings {
     private final LinkedHashMap<String,Sighting> sightings = new LinkedHashMap<>();
     private static final Set<String> EVENTS = Set.of("OBSERVED", "SPECTATOR", "NEARBY", "MODE_CHANGED");
 
-    public synchronized void observe(String staff, String serverLabel, String event, long at,
+    public synchronized boolean observe(String staff, String serverLabel, String event, long at,
                                      boolean sameRegion, boolean participating, long now) {
-        if (!participating) { clear(); return; }
+        if (!participating) { clear(); return false; }
         expire(now);
         if (!sameRegion || staff == null || !staff.matches("[A-Za-z0-9_]{1,16}")
-                || !EVENTS.contains(event == null ? "" : event) || at <= 0 || at > now || now - at > TTL) return;
+                || !EVENTS.contains(event == null ? "" : event) || at <= 0 || at > now || now - at > TTL) return false;
         String region = broadRegion(serverLabel);
         String key = staff.toLowerCase(Locale.ROOT) + "|" + region;
         var previous = sightings.get(key);
-        if (previous != null && previous.observedAt() >= at) return;
+        if (previous != null && previous.observedAt() >= at) return false;
         sightings.remove(key);
         sightings.put(key, new Sighting(staff, region, event, at));
         while (sightings.size() > LIMIT) sightings.remove(sightings.keySet().iterator().next());
+        return true;
     }
 
     public synchronized ArrayNode snapshot(boolean participating, long now) {

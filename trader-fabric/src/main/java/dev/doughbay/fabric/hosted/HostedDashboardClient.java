@@ -13,6 +13,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.List;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** Outbound-only dashboard. Never makes relay availability a condition for trading. */
 public final class HostedDashboardClient {
@@ -30,6 +33,9 @@ public final class HostedDashboardClient {
     private WebSocket socket;private volatile boolean started;
     private record Capture(String account,ObjectNode telemetry){}
     private volatile Capture latest;private String metricsAccount="";
+    private record StaffUpload(long epoch,Capture capture,ArrayNode rows){}
+    private final AtomicReference<StaffUpload> staffPending=new AtomicReference<>();
+    private final AtomicBoolean staffQueued=new AtomicBoolean();
     private DashboardActivityCounters activity;private String activityAccount="";private long observedTerminal;
     private long capturedAt,nextConnect,connectedAt,lastPing,lastTelemetry,metricsAt;private volatile long epoch;private long lastReceived;
     private int attempts;private boolean connecting,welcome;
@@ -38,6 +44,31 @@ public final class HostedDashboardClient {
     private CompletableFuture<Void> writes=CompletableFuture.completedFuture(null);private int pendingWrites;private boolean forceTelemetry;
     private HostedDashboardClient(){}
     public View view(){return view;}
+    /** Nonblocking handoff on the existing transport worker; game protection never waits for delivery. */
+    public void queueStaffSightings(ArrayNode rows){
+        var capture=latest;if(!started||capture==null||rows==null||rows.isEmpty())return;
+        staffPending.set(new StaffUpload(epoch,capture,rows.deepCopy()));scheduleStaffUpload();
+    }
+    private void scheduleStaffUpload(){
+        if(staffQueued.compareAndSet(false,true))worker.execute(this::publishStaffUpload);
+    }
+    private void publishStaffUpload(){
+        var upload=staffPending.getAndSet(null);
+        try {
+            long now=System.currentTimeMillis();
+            if(upload==null||upload.epoch()!=epoch||!welcome||!CommunityClient.INSTANCE.staffSharingSession(now)
+                    ||!upload.capture().account().equalsIgnoreCase(panelAccount))return;
+            var j=upload.capture().telemetry().deepCopy().put("at",now);
+            if(metrics!=null&&metricsAccount.equals(upload.capture().account())){
+                j.setAll(metrics);
+                String identity=SwarmRank.accountId(rankingSalt,upload.capture().account());
+                if(!identity.isEmpty())j.put("accountId",identity);
+            }
+            j.set("staffSightings",upload.rows());send(j);
+        } finally {
+            staffQueued.set(false);if(staffPending.get()!=null)scheduleStaffUpload();
+        }
+    }
     public synchronized void start(Path game,Path shared,Path db,String currentBuild) {
         if(started)return;started=true;store=new DashboardStore(game);hivePanel=new DashboardHive(shared);database=db;build=DashboardProtocol.build(currentBuild);rankDirectory=game.resolve("gonuts-dashboard/rank-coverage");
         worker.execute(()->{
@@ -83,6 +114,7 @@ public final class HostedDashboardClient {
         catch(Exception e){return System.currentTimeMillis()+60_000;}
     }
     public synchronized void unlink(){
+        staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();
         if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","Removing local link...",0);
@@ -98,7 +130,7 @@ public final class HostedDashboardClient {
     public void tick(Minecraft client){
         CommunityClient.INSTANCE.dashboardLinked(view.linked());
         long now=System.currentTimeMillis();String account=DoughBayClient.account();panelAccount=account;CommunityClient.INSTANCE.account(account);CommunityRegion.tick(client);CommunityClient.INSTANCE.connected(CommunityRegion.donut(client));CommunityPerformance.INSTANCE.tick(CommunityRegion.donut(client),System.nanoTime());
-        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;SwarmRank.clear();SwarmStaffSightings.INSTANCE.clear();}
+        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;SwarmRank.clear();SwarmStaffSightings.INSTANCE.clear();staffPending.set(null);}
         if(!CommunityClient.INSTANCE.sharingStaffSightings(now))SwarmStaffSightings.INSTANCE.clear();
         var controller=DoughBayClient.automationSessionController();
         var session=controller.snapshot();
@@ -275,6 +307,7 @@ public final class HostedDashboardClient {
         }));
     }
     private void failed(String message){
+        staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);
@@ -284,6 +317,7 @@ public final class HostedDashboardClient {
         if(link!=null)view=new View(true,false,false,link.name,message,nextConnect);
     }
     private void revoked(){
+        staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);if(socket!=null)socket.abort();socket=null;link=null;welcome=false;connecting=false;
