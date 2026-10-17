@@ -58,4 +58,13 @@ class SwarmStaffSightingsTest {
         for(String label:new String[]{"", "Unknown", "NA West 3", "x=123 z=456", "na-west-1234"})
             assertEquals("unknown",SwarmStaffSightings.broadRegion(label));
     }
+    @Test void alreadyObservedHandoffSurvivesBufferClearWithoutReplayingHistory() {
+        var feed=new SwarmStaffSightings();
+        assertTrue(feed.observe("DemoStaff","na-west-1","NEARBY",now,true,true,now));
+        var queued=feed.snapshot(true,now);
+        assertTrue(feed.snapshot(false,now+1).isEmpty());
+        assertEquals(1,queued.size());
+        assertEquals(now,queued.get(0).path("observedAt").asLong());
+        assertTrue(feed.snapshot(true,now+2).isEmpty());
+    }
 }

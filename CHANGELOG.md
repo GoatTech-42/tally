@@ -6,7 +6,7 @@ About tab.
 
 ## 2026-10-17 18:41 UTC
 
-- Participating clients can share new Staff Watch detections with same-region evidence for the Swarm dashboard sidebar. Reports contain only the public staff name, broad explicitly reported region, detection type and time; they expire after 15 minutes. Global staff-online entries and disappearances alone are excluded. Unlinking or losing participation clears the temporary local feed. Staff Watch controls and alert behavior are unchanged.
+- Participating clients can share new Staff Watch detections with same-region evidence for the Swarm dashboard sidebar. Reports contain only the public staff name, broad explicitly reported region, detection type and time; they expire after 15 minutes. Global staff-online entries and disappearances alone are excluded. Detections are handed to the existing transport immediately, so a protective game disconnect does not lose an already-observed report. Unlinking or losing participation clears the temporary local feed. Staff Watch controls and alert behavior are unchanged.
 
 ## 2026-10-17 18:18 UTC
 
