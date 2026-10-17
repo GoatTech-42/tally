@@ -6,6 +6,26 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OrderNavigationTest {
+    @Test void cancellationSkipsHistoricalClosedRowsInsteadOfOpeningTheirEditPage() {
+        var completed=new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",64,200,64,100000);
+        var cancelled=new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",64,200,0,100000,true);
+        var active=new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",64,200,8,100000);
+        assertFalse(AutomatedExecutionDriver.matchesOwnOrder(completed,"minecraft:stone",200,0,true));
+        assertFalse(AutomatedExecutionDriver.matchesOwnOrder(cancelled,"minecraft:stone",200,0,true));
+        assertTrue(AutomatedExecutionDriver.matchesOwnOrder(active,"minecraft:stone",200,0,true));
+        assertTrue(AutomatedExecutionDriver.matchesOwnOrder(completed,"minecraft:stone",200,64,false),
+                "a completed order can still have goods to collect");
+    }
+    @Test void aRefusedNewRequestCannotChangeTheExistingOrderRowTarget() throws Exception {
+        var driver=new AutomatedExecutionDriver();
+        field("ownMatchOrdinal").setInt(driver,2);
+        field("ownMatchRequested").setInt(driver,64);
+        assertFalse(driver.collectOrder("minecraft:stone",200,128,7,true).ok());
+        assertEquals(2,field("ownMatchOrdinal").getInt(driver));
+        assertEquals(64,field("ownMatchRequested").getInt(driver));
+        assertFalse(driver.cancelOrder("minecraft:stone",200).ok());
+        assertEquals(2,field("ownMatchOrdinal").getInt(driver));
+    }
     @Test
     void deferredClicksKeepEveryOrderStepOnItsCurrentPage() throws Exception {
         var driver = new AutomatedExecutionDriver();

@@ -5135,7 +5135,7 @@ public final class AutomationSessionController {
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
         ExecutionResult result = switch (step.action()) {
             case READ -> driver.readOwnOrders();
-            case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.ordinal(),
+            case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.count(), step.ordinal(),
                     dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why())
                             && !ownSingles(step.itemId()));
             case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
@@ -5224,9 +5224,13 @@ public final class AutomationSessionController {
                 // cancel attempts - the cancel was simply the wrong question.
                 LOGGER.info("DoughBay bid desk: {} at {} each has a delivery waiting; collecting instead of cancelling",
                         step.itemId(), step.unitPrice());
-                deskQueue.addFirst(new DeskStep(DeskAction.COLLECT, step.itemId(),
-                        step.count(), step.unitPrice(), "a delivery was waiting"));
-                transition(State.SCANNING, "Bid desk: an order had a delivery waiting; collecting it");
+                // CANCEL steps have count zero, not the order's requested
+                // quantity. Reread before collecting so the stock is credited
+                // to the real order key and cannot be collected/booked twice.
+                deskQueue.addFirst(new DeskStep(DeskAction.READ, "", 0, 0,
+                        "reading your orders after a delivery interrupted cancellation"));
+                deskReadDue = false;
+                transition(State.SCANNING, "Bid desk: a delivery arrived; refreshing Your Orders before collection");
                 return;
             }
             if (step.action() == DeskAction.CANCEL && !navigationFailed) {
