@@ -1139,12 +1139,11 @@ final class Pages {
                   const status=el('p','','');status.id='dashboard-status';status.setAttribute('aria-live','polite');
                   const all=el('div');all.id='dashboard-accounts';
                   const community=el('p');community.id='dashboard-community-status';
-                  const enable=button('go','Enable Swarm API',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
-                  const disable=button('stop','Disable Swarm API',async()=>{await change('dashboard',{action:'community_disable',account:account.value});openDashboard();});disable.id='dashboard-community-disable';
+                  const enable=button('go','Retry Swarm connection',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
                   own.replaceChildren(el('h2','title','Hosted Dashboard'),website,
-                    el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linked bots share one hive group.'),
+                    el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linking joins the Swarm: public market observations are contributed and discovery hints received. Linked bots share one hive group.'),
                     el('label','','Account'),account,el('label','','Pairing code'),code,el('label','','Client label'),name,link,reconnect,unlink,status,all,
-                    el('h2','title','Swarm API'),el('p','muted','Opt in per bot to contribute public market and follow observations, including observed account identities and payments, and receive shared discovery guidance. Live price, inventory and trading checks remain required. Disable to stop sharing and return to normal discovery.'),community,enable,disable,
+                    el('h2','title','Swarm API'),el('p','muted','Linking a bot opts it into contributing public market and follow observations, including observed account identities and payments, and receiving shared discovery guidance. Live price, inventory and trading checks remain required. Swarm contribution is required for the hosted dashboard. Unlink to leave the Swarm.'),community,enable,
                     el('p','muted','Each bot keeps its own credential in its own installation. Dashboard outages do not stop trading. After unlinking, remove its offline entry on the website too.'));
                 }
                 const select=document.getElementById('dashboard-account');const selected=select.value;
@@ -1162,7 +1161,6 @@ final class Pages {
                 for(const id of ['dashboard-reconnect','dashboard-unlink'])document.getElementById(id).disabled=!current.available||current.busy||!current.linked;
                 const contribution=current.community||{};
                 document.getElementById('dashboard-community-enable').disabled=!current.available||!current.linked||(contribution.enabled&&contribution.guidanceEnabled);
-                document.getElementById('dashboard-community-disable').disabled=!current.available||(!contribution.enabled&&!contribution.enrolled);
                 document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
                 document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
               } catch(e){failed();}

@@ -43,7 +43,7 @@ public final class DashboardScreen extends Screen {
         int y=compact()?194:230;
         if(view.linked()){g.text(font,UiTheme.fit(font,"Linked as: "+view.name(),w),x,y,UiTheme.TEXT);y+=17;}
         for(var line:font.split(Component.literal(view.status()),w)){if(y>=height-(compact()?56:76))break;g.text(font,line,x,y,view.online()?UiTheme.GOOD:UiTheme.SECONDARY);y+=12;}
-        if(!compact())g.text(font,UiTheme.fit(font,"Only your dashboard can pause/resume this linked client.",w),x,height-68,UiTheme.MUTED);
+        g.text(font,UiTheme.fit(font,"Linking joins Swarm: share public market data and receive discovery hints.",w),x,height-68,UiTheme.MUTED);
         if(!compact())g.text(font,UiTheme.fit(font,"Local unlink disconnects it; remove the entry on the website too.",w),x,height-54,UiTheme.MUTED);
         super.extractRenderState(g,mx,my,delta);
     }

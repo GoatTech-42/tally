@@ -83,6 +83,7 @@ public final class HostedDashboardClient {
     }
     public synchronized void unlink(){
         if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","Removing local link...",0);
+        CommunityClient.INSTANCE.dashboardUnlinked();
         worker.execute(()->{
             if(socket!=null)socket.abort();socket=null;link=null;welcome=false;connecting=false;nextConnect=Long.MAX_VALUE;
             try{store.forget();view=new View(false,false,false,"","Not linked; unlink the offline entry on the website too",0);}
@@ -92,6 +93,7 @@ public final class HostedDashboardClient {
     public void reconnect(){if(!started||!view.linked()||view.busy())return;worker.execute(()->{epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
     /** Called on the client thread: only reads already-held figures, never SQL or networking. */
     public void tick(Minecraft client){
+        CommunityClient.INSTANCE.dashboardLinked(view.linked());
         long now=System.currentTimeMillis();String account=DoughBayClient.account();panelAccount=account;CommunityClient.INSTANCE.account(account);CommunityRegion.tick(client);CommunityClient.INSTANCE.connected(CommunityRegion.donut(client));CommunityPerformance.INSTANCE.tick(CommunityRegion.donut(client),System.nanoTime());
         if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;}
         var controller=DoughBayClient.automationSessionController();
@@ -210,6 +212,7 @@ public final class HostedDashboardClient {
             return new DashboardCommands.Result("completed","Swarm opt-in requested; guidance waits for eligibility and safe idle");
         }
         if(action.equals("swarm_disable")) {
+            if(INSTANCE.view().linked())return new DashboardCommands.Result("rejected","Unlink this client to leave Swarm; participation is included with the dashboard");
             CommunityClient.INSTANCE.disable();
             return new DashboardCommands.Result("completed","Swarm disabled; normal discovery resumes at safe idle");
         }

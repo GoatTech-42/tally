@@ -1,6 +1,6 @@
 # Hosted dashboard client: protocol 1
 
-Public release integration: Discord sign-in and per-installation pairing, owner-authorized expiring controls, opt-in Swarm guidance, and passive per-client mascot activity. Legacy clients without optional fields remain supported.
+Public release integration: Discord sign-in and per-installation pairing, owner-authorized expiring controls, Swarm participation through dashboard linking, and passive per-client mascot activity. Legacy clients without optional fields remain supported.
 
 ## Pairing
 

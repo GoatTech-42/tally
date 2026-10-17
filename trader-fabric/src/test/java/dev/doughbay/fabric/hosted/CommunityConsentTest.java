@@ -11,6 +11,17 @@ class CommunityConsentTest {
     CommunityClient client()throws Exception {
         var ctor=CommunityClient.class.getDeclaredConstructor();ctor.setAccessible(true);return ctor.newInstance();
     }
+    @Test void dashboardLinkIsConsentWithoutASecondEnableClick()throws Exception {
+        var c=client();set(c,"started",true);
+        assertFalse(c.claimLinkedConsent(true),"wait for persisted settings before migration");
+        set(c,"configReady",true);
+        assertFalse(c.claimLinkedConsent(false));
+        assertTrue(c.claimLinkedConsent(true),"existing or new linked bot joins once");
+        assertFalse(c.claimLinkedConsent(true),"do not reset enrollment on every game tick");
+        var store=new CommunityStore(game);set(c,"store",store);
+        var save=CommunityClient.class.getDeclaredMethod("save");save.setAccessible(true);save.invoke(c);
+        assertTrue(store.read("settings.json").path("linkConsentApplied").asBoolean());
+    }
     @Test void legacySharingAloneNeverEnablesGuidanceAndDashboardLinkRemainsRequired()throws Exception {
         var c=client();
         for(String key:new String[]{"started","enabled","eligible"})set(c,key,true);

@@ -52,7 +52,7 @@ public final class CommunityClient {
     }
     private final CommunityQueryBackoff queryBackoff=new CommunityQueryBackoff();
     private final AtomicLong generation=new AtomicLong();
-    private volatile boolean enabled,started,connected,guidanceConsent;
+    private volatile boolean enabled,started,connected,guidanceConsent,configReady,linkConsentApplied;
     private volatile String account="",status="Off",build="",lastUploadScope="",lastQueryScope="";
     private volatile long lastUpload,lastQuery,accepted,rejected,dropped,compared,usable,wouldReplace,agreements;
     private volatile boolean enrolled,eligible,networkSupported;
@@ -76,10 +76,11 @@ public final class CommunityClient {
     public synchronized void start(Path game,String build){
         if(started)return;started=true;store=new CommunityStore(game);this.build=build;CommunityPerformance.INSTANCE.enable();
         worker.execute(()->{
-            try{var config=store.read("settings.json");if(config!=null){enabled=config.path("enabled").asBoolean();guidanceConsent=config.path("guidanceEnabled").asBoolean(false);credential=config.path("credential").asText();contributor=config.path("contributorId").asText();registeredAccount=config.path("account").asText();
+            try{var config=store.read("settings.json");if(config!=null){enabled=config.path("enabled").asBoolean();guidanceConsent=config.path("guidanceEnabled").asBoolean(false);linkConsentApplied=config.path("linkConsentApplied").asBoolean(false);credential=config.path("credential").asText();contributor=config.path("contributorId").asText();registeredAccount=config.path("account").asText();
                 if(!credential.isEmpty()&&!credential.matches("gnc1_[A-Za-z0-9_-]{43}"))throw new IllegalArgumentException();}
                 pending=store.read("pending.json");enrolled=!credential.isEmpty();status=enabled?"Starting Swarm":"Off";
             }catch(Exception e){enabled=false;credential="";status="Could not load private community settings";}
+            finally{configReady=true;}
         });
         worker.scheduleWithFixedDelay(()->{try{pump();}catch(Exception e){lastServiceFailure=System.currentTimeMillis();status="Community unavailable; local scanning continues";nextUpload=System.currentTimeMillis()+Math.min(600_000,10_000L<<Math.min(6,failures++));}},1,1,TimeUnit.SECONDS);
         Runtime.getRuntime().addShutdownHook(new Thread(()->{worker.shutdownNow();shadowWorker.shutdownNow();},"gonuts-community-close"));
@@ -87,15 +88,25 @@ public final class CommunityClient {
     public void connected(boolean value){connected=value;}
     public String marketScope(){return connected&&networkSupported?CommunityBatches.NETWORK:"";}
     public void account(String name){account=CommunityWire.account(name)?name:"";}
-    /** Explicit operator opt-in. Legacy contribution consent alone never enables trading guidance. */
+    /** Linking the dashboard includes Swarm contribution; unlinking removes participation. */
+    public void dashboardLinked(boolean linked){if(claimLinkedConsent(linked))enable();}
+    synchronized boolean claimLinkedConsent(boolean linked){
+        if(!started||!configReady||!linked||linkConsentApplied)return false;
+        linkConsentApplied=true;return true;
+    }
+    public void dashboardUnlinked(){linkConsentApplied=false;disableSharing();}
     public boolean guidanceEnabled(){return guidanceEnabled(HostedDashboardClient.INSTANCE.view().linked());}
     boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
     public void enable(){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;enabled=true;guidanceConsent=true;generation.incrementAndGet();status="Enabling Swarm contribution and discovery";worker.execute(()->{try{save();nextCapabilities=nextUpload=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}
-    public void disable(){if(!started)return;enabled=false;guidanceConsent=false;generation.incrementAndGet();status="Disabling Swarm";worker.execute(()->{
+    public void disable(){
+        if(HostedDashboardClient.INSTANCE.view().linked()){status="Swarm participation is included with the dashboard; unlink to leave";return;}
+        disableSharing();
+    }
+    private void disableSharing(){if(!started)return;enabled=false;guidanceConsent=false;generation.incrementAndGet();status="Disabling Swarm";worker.execute(()->{
         synchronized(this){queue.clear();queries.clear();cache.clear();}
         try{save();acknowledgeOrderBatch(false);store.remove("pending.json");pending=null;unenroll();}catch(Exception e){status="Off; waiting to remove server enrollment";}
     });}
-    private void save()throws Exception{store.write("settings.json",DashboardProtocol.JSON.createObjectNode().put("enabled",enabled).put("guidanceEnabled",guidanceConsent).put("consent",CommunityWire.CONSENT)
+    private void save()throws Exception{store.write("settings.json",DashboardProtocol.JSON.createObjectNode().put("enabled",enabled).put("guidanceEnabled",guidanceConsent).put("linkConsentApplied",linkConsentApplied).put("consent",CommunityWire.CONSENT)
             .put("credential",credential).put("contributorId",contributor).put("account",registeredAccount));}
     private volatile ObjectNode isolatedOrderJob=DashboardProtocol.JSON.createObjectNode();
     public void publishIsolatedOrderJob(ObjectNode state){isolatedOrderJob=state.deepCopy();}
@@ -285,6 +296,7 @@ public final class CommunityClient {
     private void pump()throws Exception{
         long now=System.currentTimeMillis();savePerformance(now);
         if(!enabled){if(!credential.isEmpty()&&now>=nextUpload){nextUpload=now+60_000;unenroll();}return;}
+        if(!HostedDashboardClient.INSTANCE.view().linked())return;
         if(now>=nextCapabilities){nextCapabilities=now+60_000;var response=request("GET","capabilities",null,false);if(response.statusCode()!=200){serviceEnabled=false;networkSupported=false;status="Service unavailable; local scanning continues";return;}
             var c=json(response);serviceEnabled=c.path("enabled").asBoolean()&&java.util.stream.StreamSupport.stream(c.path("schemas").spliterator(),false).anyMatch(v->v.isInt()&&v.asInt()==1);var supported=new HashSet<String>();for(var type:c.path("types"))supported.add(type.asText());types=Set.copyOf(supported);networkSupported=serviceEnabled&&CommunityBatches.networkAdvertised(c);}
         if(!serviceEnabled||account.isBlank())return;
