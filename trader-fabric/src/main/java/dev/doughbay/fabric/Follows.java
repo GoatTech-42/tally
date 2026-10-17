@@ -230,6 +230,10 @@ public final class Follows {
         long now = System.currentTimeMillis();
         Event event = parse(text);
         if (event != null) {
+            var community=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE;
+            if(event.kind().equals("paid"))community.observe(dev.doughbay.fabric.hosted.CommunityWire.payment(event.player(),event.item(),event.price(),now));
+            else if(event.kind().equals("was_paid"))community.observe(dev.doughbay.fabric.hosted.CommunityWire.payment(event.item(),event.player(),event.price(),now));
+            else community.observe(dev.doughbay.fabric.hosted.CommunityWire.follow(event.player(),event.kind(),ItemNames.resolve(event.item()),event.item(),event.quantity(),event.price(),now));
             append(eventsFile, String.join("\t", Long.toString(now), event.player(), event.kind(),
                     Integer.toString(event.quantity()), event.item(), Long.toString(event.price())));
             remember(seen(now, event));

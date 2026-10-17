@@ -54,6 +54,7 @@ public final class WebPages {
     public static String data(String name, Map<String, String> query) {
         return switch (name == null ? "" : name) {
             case "settings" -> settings();
+            case "dashboard" -> dashboard();
             case "evasion" -> evasion();
             case "code" -> answer(true, "").put("code", SettingsCode.export()).toString();
             case "items" -> items();
@@ -74,6 +75,7 @@ public final class WebPages {
         if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));
+            case "dashboard" -> onClient(() -> changeDashboard(form));
             case "evasion" -> onClient(() -> changeEvasion(form));
             case "staff" -> onClient(() -> changeStaffResponse(form));
             case "regions" -> onClient(() -> changeRegion(form));
@@ -97,6 +99,37 @@ public final class WebPages {
         byte[] png = dev.doughbay.fabric.discord.DiscordBridge.itemPng(itemId);
         if (png != null && ICONS.size() < 4_000) ICONS.put(itemId, png);
         return png;
+    }
+
+    private static List<String> dashboardAccounts() {
+        var accounts=new java.util.TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+        accounts.addAll(DoughBayClient.hiveAccounts());
+        if(!DoughBayClient.account().isBlank())accounts.add(DoughBayClient.account());
+        return List.copyOf(accounts);
+    }
+    private static String dashboard() {
+        var client=dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE;
+        var root=MAPPER.createObjectNode();var rows=root.putArray("accounts");int index=0;
+        for(String account:dashboardAccounts()){
+            var row=rows.addObject();var state=client.hiveStatus(account);
+            row.put("id",dev.doughbay.fabric.hosted.DashboardHive.id(account));
+            row.put("label",NameMask.on()?"Account "+(++index):account);
+            row.put("available",state!=null);
+            if(state!=null){row.setAll(state);row.remove("run");row.remove("at");}
+            else row.put("status","Unavailable: offline or this client needs the dashboard test build");
+        }
+        return root.toString();
+    }
+    private static String changeDashboard(Map<String,String> form) {
+        String target=dashboardAccounts().stream().filter(account->dev.doughbay.fabric.hosted.DashboardHive.id(account)
+                .equals(form.getOrDefault("account",""))).findFirst().orElse(null);
+        if(target==null)return answer(false,"Choose one hive account").toString();
+        try{
+            boolean accepted=dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.hiveAction(target,
+                    form.getOrDefault("action",""),form.getOrDefault("code",""),form.getOrDefault("name","GoNuts client"));
+            return answer(accepted,accepted?"Request sent to selected account; waiting for its status":"Account unavailable, busy, or request already pending").toString();
+        }catch(IllegalArgumentException e){return answer(false,"Check the pairing code and action").toString();}
+        catch(Exception e){return answer(false,"Could not send dashboard request").toString();}
     }
 
     // ---------------------------------------------------------------- settings
@@ -902,7 +935,7 @@ public final class WebPages {
         } catch (Throwable e) {
             mc = null;
         }
-        if (mc == null) return work.get();
+        if (mc == null || mc.isSameThread()) return work.get();
         CompletableFuture<T> done = new CompletableFuture<>();
         mc.execute(() -> {
             try {

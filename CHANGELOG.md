@@ -4,6 +4,14 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## Unreleased
+
+- Added opt-in community market contribution and private shadow comparisons. Existing scanning and trading rules remain unchanged.
+
+- Hosted dashboard can relay the full existing web panel, with bounded replies and expiring requests through the existing controls.
+
+- Added opt-in hosted dashboard pairing under About → Dashboard and in the local web panel, with installation-local credentials, live account telemetry and serialized pause/resume/snapshot controls. Relay outages never stop trading. Shared hives group under a random label; no local path is transmitted.
+
 ## 2026-10-16 03:35 UTC
 
 - Every in-game, web-panel and automatic bug report now captures sanitized diagnostic logs automatically. Removed the Include log toggle. An unreadable log produces a fixed availability notice, without exposing paths or raw errors.

@@ -953,14 +953,13 @@ public final class DiscordBridge {
 
     private void onClient(Runnable r) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc != null) mc.execute(() -> {
-            try {
-                r.run();
-            } catch (Exception e) {
-                note("Failed: " + e.getMessage());
-            }
-            refreshNow = true;
-        });
+        if (mc != null) {
+            Runnable action=()->{
+                try { r.run(); } catch (Exception e) { note("Failed: " + e.getMessage()); }
+                refreshNow=true;
+            };
+            if(mc.isSameThread())action.run();else mc.execute(action);
+        }
     }
 
     private void note(String text) {

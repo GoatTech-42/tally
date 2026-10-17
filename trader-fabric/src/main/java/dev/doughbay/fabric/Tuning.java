@@ -679,7 +679,7 @@ public final class Tuning {
                     "An arrow, potion or fireball already flying towards you within this range triggers the escape at once. 0 ignores projectiles",
                     0, 0, 48, Kind.BLOCKS),
             new Setting("evasion.use_homes", "Evasion", "Escape to a home",
-                    "Use /home and cycle through the names in the Evasion tab in entered order (1), or use /rtp (0). Names must already be set on the server. An empty home list falls back to /rtp",
+                    "Use /home and cycle through the names in the Evasion tab in entered order (1), or use /rtp (0). Names must already be set on the server. If home escape is selected with no saved homes, disconnect rather than use /rtp",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("evasion.mob_blocks", "Evasion", "Run from hostile mobs within",
                     "A hostile mob this close sends the bot away before it can be hit. Only mobs that attack "
@@ -764,7 +764,7 @@ public final class Tuning {
                     "Teleport somewhere new this often even with nobody about, give or take half the interval. "
                     + "The escape teleport only fires once you have been noticed; standing in one hole all day is "
                     + "what gets you noticed. Nothing is interrupted - the bot trades through commands and never "
-                    + "touches the world. 0 to stay put",
+                    + "touches the world. Only active with the teleport escape action and a valid selected route. 0 to stay put",
                     45, 0, 360, Kind.MINUTES),
             new Setting("evasion.rtp_wait_sec", "Evasion", "Teleport warm-up",
                     "How long the server takes to move you after the teleport command; the client leaves the server if nothing has happened by then",
@@ -1263,6 +1263,38 @@ public final class Tuning {
         return changed;
     }
 
+    /** Retire the second guard switch once, preserving OFF in either legacy source.
+     * The version marker belongs to the game directory, never the hive's shared file.
+     */
+    static synchronized void migrateEvasionToggle(boolean legacyEnabled) throws IOException {
+        LOCAL_KEYS.add("evasion.enabled");
+        Path local = localFile;
+        if (local == null) throw new IOException("Local tuning is not initialized");
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode read = Files.exists(local) ? mapper.readTree(Files.readString(local, StandardCharsets.UTF_8)) : mapper.createObjectNode();
+        if (!(read instanceof ObjectNode root)) throw new IOException("Local settings must be an object");
+        boolean migrated = root.path("_evasionToggleVersion").asInt() == 1;
+        double value = migrated
+                ? root.path("evasion.enabled").isNumber() ? setting("evasion.enabled").clamp(root.path("evasion.enabled").asDouble()) : 0
+                : legacyEnabled && get("evasion.enabled") >= .5 ? 1 : 0;
+        VALUES.put("evasion.enabled", value);
+        if (migrated && root.path("evasion.enabled").isNumber()) return;
+        root.put("evasion.enabled", value).put("_evasionToggleVersion", 1);
+        Files.createDirectories(local.toAbsolutePath().getParent());
+        Path fresh = Files.createTempFile(local.toAbsolutePath().getParent(), "gonuts-toggle-", ".tmp");
+        try {
+            Files.writeString(fresh, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root), StandardCharsets.UTF_8);
+            try {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                Files.move(fresh, local, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(fresh);
+        }
+        seenLocalModifiedAt = modifiedAt(local);
+    }
+
     public static void reset(String key) {
         VALUES.remove(key);
         save();
@@ -1298,7 +1330,8 @@ public final class Tuning {
                 Setting s = BY_KEY.get(e.getKey());
                 if (s == null || !e.getValue().isNumber()) continue;
                 // Once initialized, shared edits cannot become this account's fallback.
-                if (ACCOUNT_SLOT_KEYS.contains(s.key()) && localFile != null && VALUES.containsKey(s.key())) continue;
+                if ((ACCOUNT_SLOT_KEYS.contains(s.key()) || s.key().equals("evasion.enabled") && LOCAL_KEYS.contains(s.key()))
+                        && localFile != null && VALUES.containsKey(s.key())) continue;
                 VALUES.put(s.key(), s.clamp(e.getValue().asDouble()));
                 loaded++;
             }
@@ -1335,6 +1368,7 @@ public final class Tuning {
         localFile = local;
         LOCAL_KEYS.clear();
         LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
+        LOCAL_KEYS.add("evasion.enabled");
         // Consent can never be inherited from another client through shared tuning.json.
         LOCAL_KEYS.add("reports.auto_critical");
         VALUES.put("reports.auto_critical",0.0);

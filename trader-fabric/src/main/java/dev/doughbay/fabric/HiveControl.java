@@ -120,6 +120,15 @@ public final class HiveControl {
      * client's own session and for orders from another client alike.
      */
     public static String apply(AutomationSessionController session, String command) {
+        if("EXPERIMENT_PAUSE_IDLE".equals(command))return session.requestExperimentPauseAtIdle();
+        if("COMMUNITY_EXPERIMENT_OFF".equals(command))return session.requestExperimentMode(false,0);
+        if(command!=null&&command.startsWith("COMMUNITY_EXPERIMENT_ON:")) {
+            try{return session.requestExperimentMode(true,Long.parseLong(command.substring("COMMUNITY_EXPERIMENT_ON:".length())));}
+            catch(NumberFormatException ignored){return "Refused: invalid experiment deadline";}
+        }
+        if ("ORDER_SOURCE_READ".equals(command)) return session.requestFullOrderSourceRead();
+        if ("ORDER_COMPARE_ONLY".equals(command)) return session.requestIsolatedOrderTest();
+        if ("ORDER_GUIDANCE_ONLY".equals(command)) return session.requestIsolatedGuidanceTest();
         if (command != null && command.startsWith("REGION:")) {
             String destination=command.substring(7);
             boolean ok=dev.doughbay.fabric.staffwatch.ManualRegionTransfer.request(destination);

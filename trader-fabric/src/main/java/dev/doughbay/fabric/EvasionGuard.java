@@ -28,27 +28,29 @@ public final class EvasionGuard {
     }
 
     private final Path store;
-    private volatile boolean enabled;
     private boolean triggered;
     private long clearSinceMillis;
     private String lastIntruder = "";
 
     EvasionGuard(Path store) {
         this.store = store;
+        boolean legacyEnabled = false;
         try {
-            enabled = Files.exists(store)
+            legacyEnabled = Files.exists(store)
                     && Files.readString(store, StandardCharsets.UTF_8).strip().equals("on");
-        } catch (IOException ignored) {
-            enabled = false;
+        } catch (IOException ignored) { }
+        try {
+            Tuning.migrateEvasionToggle(legacyEnabled);
+        } catch (IOException | RuntimeException failure) {
+            // An unreadable migration must never opt an existing client in.
+            Tuning.set("evasion.enabled", 0);
+            DoughBayClient.LOGGER.warn("GoNuts could not migrate the evasion toggle; leaving it off");
         }
     }
 
-    /**
-     * On only when both say so: the Automation tab's button and the Evasion
-     * setting. The setting is the one people look for, and it wins.
-     */
+    /** One per-client setting drives the controls, status and runtime alike. */
     public boolean enabled() {
-        return enabled && Tuning.get("evasion.enabled") >= 0.5;
+        return Tuning.get("evasion.enabled") >= 0.5;
     }
 
     public boolean triggered() {
@@ -66,6 +68,8 @@ public final class EvasionGuard {
 
     /** The shared ledger the events are written to, so the panel sees every client's; null keeps them in memory. */
     private static volatile java.nio.file.Path ledger;
+
+    static Path ledgerPath() { return ledger; }
 
     public static void setLedger(java.nio.file.Path path) {
         ledger = path;
@@ -172,7 +176,7 @@ public final class EvasionGuard {
     }
 
     public void setEnabled(boolean value) {
-        enabled = value;
+        Tuning.set("evasion.enabled", value ? 1 : 0);
         if (!value) {
             triggered = false;
             clearSinceMillis = 0;
@@ -403,7 +407,7 @@ public final class EvasionGuard {
     }
 
     public String status() {
-        if (!enabled) return "off";
+        if (!enabled()) return "off";
         if (away) return "left the server, " + lastIntruder + " came too close";
         if (leaveWanted) return "leaving once the trade in flight finishes";
         if (triggered) return "paused, " + lastIntruder + " nearby";
@@ -411,7 +415,12 @@ public final class EvasionGuard {
     }
 
     void tick(Minecraft client, AutomationSessionController session) {
-        if (!enabled || client == null) return;
+        if (!enabled()) {
+            triggered = false;
+            clearSinceMillis = 0;
+            return;
+        }
+        if (client == null) return;
         long now = System.currentTimeMillis();
 
         // Off the server: come back when the wait is up.
@@ -501,7 +510,7 @@ public final class EvasionGuard {
                             underwaterRtpCount);
                     teleportFrom = client.player.position();
                     teleportedAt = now;
-                    DoughBayClient.executionDriver().sendWhenClear(client, SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5));
+                    teleportAway(client);
                     return;
                 }
                 underwaterRtpCount = 0;
@@ -968,8 +977,8 @@ public final class EvasionGuard {
         note(lastIntruder, 0, "under water, air running out");
         clearSinceMillis = 0;
         leaveWanted = false;
-        if (DoughBayClient.executionDriver().refusesTeleports()) {
-            // No teleport to use. Logged off, nothing drowns.
+        if (escapeMode() == 2 || DoughBayClient.executionDriver().refusesTeleports()) {
+            // Respect Disconnect even when teleports are otherwise enabled.
             leave(client, "Evasion: under water and teleports are off; leaving the server");
         } else {
             teleportAway(client);
@@ -1114,6 +1123,22 @@ public final class EvasionGuard {
         }
         try {
             if (client.getConnection() == null) return;
+            boolean useHomes = Tuning.get("evasion.use_homes") >= .5;
+            var route = EvasionRoute.action(escapeMode(), useHomes, !SafeHomes.homes().isEmpty());
+            if (route == EvasionRoute.Action.PAUSE) {
+                teleportedAt = 0;
+                triggered = true;
+                clearSinceMillis = 0;
+                DoughBayClient.LOGGER.info("DoughBay evasion: escape action is pause; no teleport sent");
+                return;
+            }
+            if (route == EvasionRoute.Action.DISCONNECT) {
+                teleportedAt = 0;
+                leave(client, useHomes && SafeHomes.homes().isEmpty() && escapeMode() == 1
+                        ? "Evasion: home escape selected but no homes configured; disconnecting without RTP"
+                        : "Evasion: disconnect escape selected; leaving without teleporting");
+                return;
+            }
             // Teleports are refused at the send gate, so arming the warm-up
             // here would guarantee it expires - and the expiry path leaves the
             // server, which then rejoins, which looks exactly like the client
@@ -1127,11 +1152,13 @@ public final class EvasionGuard {
                 clearSinceMillis = 0;
                 return;
             }
+            String command = SafeHomes.teleportCommand(useHomes);
+            if (command.isEmpty()) {
+                leave(client, "Evasion: no configured home available; disconnecting without RTP");
+                return;
+            }
             teleportFrom = client.player.position();
             teleportedAt = System.currentTimeMillis();
-            // A named home is lit, enclosed and known; the random teleport is
-            // only the fallback when none are configured.
-            String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
             String home = command.startsWith("home ") ? command.substring(5) : "";
             String message = "Evasion: " + lastIntruder + " came too close; "
                     + (home.isEmpty() ? "teleporting away" : "going to home '" + home + "'");
@@ -1163,7 +1190,8 @@ public final class EvasionGuard {
      */
     private void wander(Minecraft client, AutomationSessionController session, long now) {
         long every = (long) (Tuning.get("evasion.wander_every_min") * 60_000);
-        if (every <= 0) {
+        if (every <= 0 || !EvasionRoute.mayWander(escapeMode(),
+                Tuning.get("evasion.use_homes") >= .5, !SafeHomes.homes().isEmpty())) {
             wanderAt = 0;
             return;
         }
@@ -1196,11 +1224,12 @@ public final class EvasionGuard {
             DoughBayClient.LOGGER.info("DoughBay evasion: topping up from the shelf before moving on");
             return;
         }
+        String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
+        if (command.isEmpty()) { wanderAt = 0; return; }
         wanderAt = now + jitteredWander(every);
         teleportFrom = client.player.position();
         teleportedAt = now;
         wandering = true;
-        String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
         DoughBayClient.LOGGER.info("DoughBay evasion: moving on with nobody about; /{}", command);
         DoughBayClient.executionDriver().sendWhenClear(client, command);
     }

@@ -8,6 +8,26 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class FollowsTest {
     @Test
+    void liveFollowFormatsObservedOctoberSixteenKeepTheirDistinctMeaning() {
+        String[] lines={"FollowActor listed 64 Arrow for $ 43.9K",
+                "FollowActor bought 1 Ender Chest for $ 13.5K",
+                "FollowActor ordered 64 Ender Chests for $ 218K",
+                "FollowActor sold multiple items for $ 3K",
+                "FollowActor paid FollowOther $ 50M",
+                "FollowActor was paid $ 1.1M by FollowOther",
+                "FollowActor added $ 7.5M to FollowOther's bounty"};
+        String[] kinds={"listed","bought","ordered","sold","paid","was_paid","bounty"};
+        long[] totals={43900,13500,218000,3000,50000000,1100000,7500000};
+        for(int i=0;i<lines.length;i++) {
+            var event=Follows.parse(lines[i]);
+            assertNotNull(event);assertEquals(kinds[i],event.kind());assertEquals(totals[i],event.price());
+            if(i==3){assertEquals(0,event.quantity());assertEquals("",event.item());}
+        }
+        // A listing notification is an attributed historical event, not a sale receipt.
+        assertEquals("listed",Follows.parse(lines[0]).kind());
+    }
+
+    @Test
     void theListThatShipsIsFiveHundredNamesTheServerWouldAccept() {
         java.util.List<String> bots = Follows.knownBots();
         assertEquals(500, bots.size());

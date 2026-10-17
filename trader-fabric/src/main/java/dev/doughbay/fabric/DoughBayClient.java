@@ -358,8 +358,7 @@ public class DoughBayClient implements ClientModInitializer {
         // phone on the home network. Off until a PIN is set on the screen.
         dev.doughbay.fabric.discord.DiscordBridge webView = dev.doughbay.fabric.discord.DiscordBridge.panelOnly(
                 LOGGER, config.directory(), config.databasePath(), AUTOMATION_SESSION);
-        WEB_PANEL = dev.doughbay.fabric.web.WebPanelHost.start(LOGGER, config.directory(),
-                new dev.doughbay.fabric.web.LocalPanel.Backend() {
+        PANEL_BACKEND = new dev.doughbay.fabric.web.LocalPanel.Backend() {
                     @Override
                     public byte[] png() throws Exception {
                         return webView.panelPng();
@@ -394,7 +393,8 @@ public class DoughBayClient implements ClientModInitializer {
                     public byte[] icon(String itemId) {
                         return WebPages.icon(itemId);
                     }
-                });
+                };
+        WEB_PANEL = dev.doughbay.fabric.web.WebPanelHost.start(LOGGER, config.directory(), PANEL_BACKEND);
         HUD_ALERTS.register();
         QuietScreen.register();
         // Observe action-bar/system messages after Minecraft receives them.
@@ -463,6 +463,10 @@ public class DoughBayClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(SidebarBalance::tick);
         ClientTickEvents.END_CLIENT_TICK.register(RegionMapReport::tick);
+        dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.start(
+                net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(),config.directory(),config.databasePath(),BugReportBuild.current());
+        ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE::tick);
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
         dev.doughbay.fabric.staffwatch.ManualRegionTransfer.init();
         ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.staffwatch.ManualRegionTransfer::tick);
         UpdateCheck.start();
@@ -1084,6 +1088,9 @@ public class DoughBayClient implements ClientModInitializer {
     }
 
     /** Start and Stop for the other clients in the hive; null until the ledger path is known. */
+    private static dev.doughbay.fabric.web.LocalPanel.Backend PANEL_BACKEND;
+    public static dev.doughbay.fabric.web.LocalPanel.Backend panelBackend() { return PANEL_BACKEND; }
+
     public static HiveControl hiveControl() {
         return HIVE_CONTROL;
     }

@@ -691,6 +691,10 @@ public final class DoughBayScreen extends Screen {
             int aboutCard = (aboutWidth - 8) / 2;
             int aboutRight = aboutWidth - aboutCard - 8;
             int aboutX = ui.innerRight() - 8;
+            int aboutCardTop=ui.contentTop()+8;
+            int aboutCardHeight=(ui.bottom()-10-aboutCardTop-8)/2;
+            addRenderableWidget(CockpitButton.builder(Component.literal("Dashboard"),b->Minecraft.getInstance().gui.setScreen(new DashboardScreen(this)))
+                    .bounds(ui.innerLeft()+9,aboutCardTop+aboutCardHeight-25,Math.max(40,Math.min(150,aboutCard-18)),18).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Report bug"), b ->
                     Minecraft.getInstance().gui.setScreen(new BugReportScreen(this)))
                     .bounds(aboutX - 86, ui.contentTop() + 10, 86, 16).build());
@@ -6332,11 +6336,11 @@ public final class DoughBayScreen extends Screen {
         yy = drawWrapped(graphics,
                 "Collects completed sales and active listings, values exact item/stack markets, "
                         + "then ranks conservative resale opportunities.",
-                x + 9, yy, cardWidth - 18, y + cardHeight - 8, TEXT);
+                x + 9, yy, cardWidth - 18, y + cardHeight - 32, TEXT);
         drawWrapped(graphics,
                 "The goal is likely profit, sale probability, and time until capital is reusable — "
                         + "not merely finding the cheapest listing.",
-                x + 9, yy + 5, cardWidth - 18, y + cardHeight - 8, SECONDARY);
+                x + 9, yy + 5, cardWidth - 18, y + cardHeight - 32, SECONDARY);
 
         int rightWidth = width - cardWidth - gap;
         card(graphics, rightX, y, rightWidth, cardHeight, CARD);
