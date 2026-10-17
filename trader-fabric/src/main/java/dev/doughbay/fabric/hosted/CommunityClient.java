@@ -87,6 +87,13 @@ public final class CommunityClient {
     }
     public void connected(boolean value){connected=value;}
     public String marketScope(){return connected&&networkSupported?CommunityBatches.NETWORK:"";}
+    /** Cache-only admission for sharing detector observations; no enrollment or control side effects. */
+    public boolean sharingStaffSightings(long now){
+        var dashboard=HostedDashboardClient.INSTANCE.view();
+        return started&&enabled&&enrolled&&eligible&&connected&&networkSupported&&dashboard.linked()&&dashboard.online()
+                &&!account.isEmpty()&&account.equalsIgnoreCase(registeredAccount)
+                &&lastUpload>0&&now>=lastUpload&&now-lastUpload<=600_000;
+    }
     public void account(String name){account=CommunityWire.account(name)?name:"";}
     /** Linking the dashboard includes Swarm contribution; unlinking removes participation. */
     public void dashboardLinked(boolean linked){if(claimLinkedConsent(linked))enable();}

@@ -29,5 +29,9 @@ public final class CommunityRegion {
     }
     public static boolean donut(Minecraft mc){return mc!=null&&mc.level!=null&&mc.player!=null&&mc.getConnection()!=null&&!mc.hasSingleplayerServer()&&mc.getCurrentServer()!=null&&dev.doughbay.fabric.staffwatch.DonutServer.matches(mc.getCurrentServer().ip);}
     public static String current(){var signal=current;return System.currentTimeMillis()-signal.at()<15_000?signal.name():"";}
+    public static String current(Minecraft mc){
+        var signal=current;long age=System.currentTimeMillis()-signal.at();
+        return donut(mc)&&signal.connection()==mc.getConnection()&&signal.level()==mc.level&&age>=0&&age<15_000?signal.name():"";
+    }
     private CommunityRegion(){}
 }
