@@ -109,8 +109,10 @@ public final class HostedDashboardClient {
         // No raw session detail/action text crosses the relay: it can contain identities, home names or paths.
         j.setAll(activity.snapshot(now));
         var swarm=CommunityClient.INSTANCE.view();
+        j.put("mascotFace", Mascot.faceFor(session,DoughBayClient.evasionGuard()).name());
         j.putObject("swarm").put("enabled",swarm.path("enabled").asBoolean())
-                .put("guidanceEnabled",swarm.path("guidanceEnabled").asBoolean()).put("eligible",swarm.path("eligible").asBoolean());
+                .put("guidanceEnabled",swarm.path("guidanceEnabled").asBoolean()).put("eligible",swarm.path("eligible").asBoolean())
+                .put("sentAt",SwarmActivity.sentAt()).put("receivedAt",SwarmActivity.receivedAt());
         if(SidebarBalance.current()<=0)j.remove("bank");
         latest=new Capture(account,j);
     }

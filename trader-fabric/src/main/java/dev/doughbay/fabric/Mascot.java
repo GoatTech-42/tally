@@ -118,6 +118,7 @@ public final class Mascot {
         };
         if(character != Appearance.Character.ORIGINAL) MascotCharacters.draw(canvas,character,motionMillis(),UiTheme.reducedMotion());
         MascotFace.draw(canvas, facialPose);
+        if (character == Appearance.Character.ORIGINAL) SwarmActivity.draw(canvas, System.currentTimeMillis(), UiTheme.reducedMotion());
         pose.popMatrix();
         return width;
     }

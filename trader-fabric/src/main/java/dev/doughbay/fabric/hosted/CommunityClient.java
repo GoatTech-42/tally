@@ -88,7 +88,8 @@ public final class CommunityClient {
     public String marketScope(){return connected&&networkSupported?CommunityBatches.NETWORK:"";}
     public void account(String name){account=CommunityWire.account(name)?name:"";}
     /** Explicit operator opt-in. Legacy contribution consent alone never enables trading guidance. */
-    public boolean guidanceEnabled(){return enabled&&guidanceConsent&&eligible&&HostedDashboardClient.INSTANCE.view().linked();}
+    public boolean guidanceEnabled(){return guidanceEnabled(HostedDashboardClient.INSTANCE.view().linked());}
+    boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
     public void enable(){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;enabled=true;guidanceConsent=true;generation.incrementAndGet();status="Enabling Swarm contribution and discovery";worker.execute(()->{try{save();nextCapabilities=nextUpload=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}
     public void disable(){if(!started)return;enabled=false;guidanceConsent=false;generation.incrementAndGet();status="Disabling Swarm";worker.execute(()->{
         synchronized(this){queue.clear();queries.clear();cache.clear();}
@@ -173,7 +174,7 @@ public final class CommunityClient {
         if(!enabled||!marketScope().equals("net-donut"))throw new IllegalArgumentException("scope_changed");
         var req=HttpRequest.newBuilder(CommunityWire.BASE.resolve(path)).timeout(java.time.Duration.ofSeconds(2)).header("Authorization","Bearer "+credential).GET().build();
         HttpResponse<byte[]> response;
-        try{response=http.send(req,HttpResponse.BodyHandlers.ofByteArray());}catch(Exception error){lastServiceFailure=System.currentTimeMillis();throw error;}
+        try{dev.doughbay.fabric.SwarmActivity.sent();response=http.send(req,HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()==200)dev.doughbay.fabric.SwarmActivity.received();}catch(Exception error){lastServiceFailure=System.currentTimeMillis();throw error;}
         if(response.statusCode()==429){queryBackoff.defer(System.currentTimeMillis(),response.headers().firstValue("Retry-After").orElse("60"));lastServiceFailure=System.currentTimeMillis();throw new IllegalArgumentException("snapshot_rate_limited");}
         if(response.statusCode()!=200){lastServiceFailure=System.currentTimeMillis();throw new IllegalArgumentException("snapshot_http_failure");}
         return json(response);
@@ -275,7 +276,7 @@ public final class CommunityClient {
         var builder=HttpRequest.newBuilder(CommunityWire.BASE.resolve(path)).timeout(java.time.Duration.ofSeconds(10));
         if(auth)builder.header("Authorization","Bearer "+credential);
         if(body!=null)builder.header("Content-Type","application/json").method(method,HttpRequest.BodyPublishers.ofString(body.toString()));else builder.method(method,HttpRequest.BodyPublishers.noBody());
-        try{var response=http.send(builder.build(),HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()==429&&CommunityQueryBackoff.query(method,path))queryBackoff.defer(System.currentTimeMillis(),response.headers().firstValue("Retry-After").orElse("60"));if(response.statusCode()>=400)lastServiceFailure=System.currentTimeMillis();return response;}
+        try{dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(builder.build(),HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()>=200&&response.statusCode()<300)dev.doughbay.fabric.SwarmActivity.received();if(response.statusCode()==429&&CommunityQueryBackoff.query(method,path))queryBackoff.defer(System.currentTimeMillis(),response.headers().firstValue("Retry-After").orElse("60"));if(response.statusCode()>=400)lastServiceFailure=System.currentTimeMillis();return response;}
         catch(Exception error){lastServiceFailure=System.currentTimeMillis();throw error;}
     }
     private JsonNode json(HttpResponse<byte[]> response)throws Exception{
@@ -330,7 +331,7 @@ public final class CommunityClient {
         long own=generation.get();var body=(ObjectNode)pending.path("body");body.put("sentAt",System.currentTimeMillis());
         var request=HttpRequest.newBuilder(CommunityWire.BASE.resolve("observations")).timeout(java.time.Duration.ofSeconds(10)).header("Authorization","Bearer "+credential)
                 .header("Content-Type","application/json").header("Idempotency-Key",pending.path("key").asText()).POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
-        var response=http.send(request,HttpResponse.BodyHandlers.ofByteArray());if(!enabled||generation.get()!=own)return;
+        dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(request,HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()==200||response.statusCode()==202)dev.doughbay.fabric.SwarmActivity.received();if(!enabled||generation.get()!=own)return;
         int code=response.statusCode();if(code>=400)lastServiceFailure=System.currentTimeMillis();
         if(code==200||code==202){var result=json(response);if(!result.path("replay").asBoolean())accepted+=result.path("accepted").asLong();rejected+=result.path("rejected").size();for(var failure:result.path("rejected")){String reason=failure.path("code").asText();if(reason.matches("[a-z_]{1,48}")&&rejectionCodes.size()<32)rejectionCodes.merge(reason,1L,Long::sum);}eligible=result.path("eligible").asBoolean();lastUpload=System.currentTimeMillis();lastUploadScope=body.path("region").asText();failures=0;status="Shadow active; local scanning unchanged";acknowledgeOrderBatch(CommunityOrderReceipt.successfulBatch(result,body.path("records").size()));clearPending();}
         else if(code==429){nextUpload=System.currentTimeMillis()+retryAfter(response);status="Upload rate limited; local scanning continues";}

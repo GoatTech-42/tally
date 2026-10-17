@@ -1,6 +1,6 @@
-# Hosted dashboard client: protocol 1 test build
+# Hosted dashboard client: protocol 1
 
-Status: implemented locally, not published, real pairing test pending.
+Public release integration: Discord sign-in and per-installation pairing, owner-authorized expiring controls, opt-in Swarm guidance, and passive per-client mascot activity. Legacy clients without optional fields remain supported.
 
 ## Pairing
 
@@ -13,7 +13,7 @@ Local unlink stops the socket and removes the local credential; remove the offli
 
 - Hive grouping uses a random `hive_` plus 32 lowercase hex characters, saved in shared `dashboard-hive-id.txt`. A file lock prevents simultaneous clients generating different groups. No path-derived identifier leaves the machine. The value is only a display group, not authorization.
 - Credentials are in the game directory's `gonuts-dashboard/installation.json`, outside shared config. Files and the private directory use owner-only ACLs/POSIX permissions. No credential, code or response body is logged. Fixed HTTPS/WSS endpoints only; redirects are disabled and redeem response URLs must match the contract.
-- Advertised capabilities: `pause`, `resume`, `snapshot`. `send_crash_report` is not advertised: the existing local alert describes a report ready to prepare, not necessarily a frozen prepared report. Unsupported commands are rejected.
+- Advertised capabilities: `pause`, `resume`, `snapshot`, `panel`, `swarm_enable`, `swarm_disable`. Swarm controls never start trading. Optional telemetry includes `mascotFace` and `swarm` consent/eligibility plus transport `sentAt`/`receivedAt` timestamps; timestamps do not prove useful data or a trade. `send_crash_report` is not advertised: the existing local alert describes a report ready to prepare, not necessarily a frozen prepared report. Unsupported commands are rejected.
 - Session state, slots, bank and session trade count come from the same controller/sidebar figures as the HUD. Account labels obey the existing privacy toggle. Detail and lastAction are regenerated state descriptions; raw strings could contain player names, homes, paths or chat and are never forwarded.
 - Rolling hour/day booked profit, completed sales and recorded purchases are read strictly read-only from REAL positions for the exact account, including negative profit. They are omitted if the ledger is unavailable.
 - Listing/reprice counts come from confirmed successful LIST terminal events, deduplicated by sequence, with repricing kept separate. Existing positions do not preserve trustworthy prior action counts, so those fields are omitted until this client has observed a full hour/day. Observation resets on process restart or account change. The website should display unavailable for absent fields. No completed sales are substituted for listings/reprices and no partial interval is projected into an hourly number.

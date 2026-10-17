@@ -8205,7 +8205,7 @@ public final class AutomationSessionController {
             // A new mode gets a new native plan; old queued prices are not dispatched.
             deskQueue.removeIf(step->step.action()==DeskAction.PLACE||step.action()==DeskAction.QUOTE);
             deskReadDue=true;nextOrdersReadAt=0;
-            LOGGER.info("GoNuts private experiment: community mode {} at safe checkpoint",experimentCommunityEnabled?"ON":"OFF");
+            LOGGER.info("GoNuts Swarm: discovery mode {} at safe checkpoint",communityGuidanceEnabled()?"ON":"OFF");
         }
         if(experimentPauseAtIdle) {experimentPauseAtIdle=false;stop();return true;}
         return false;

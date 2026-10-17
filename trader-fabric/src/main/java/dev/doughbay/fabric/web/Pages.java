@@ -307,10 +307,11 @@ final class Pages {
               body.set('id', id);
               if (value !== undefined && value !== null) body.set('value', value);
               if (text !== undefined && text !== null) body.set('text', text);
-              await fetch('/act', { method: 'POST', headers: { 'X-GoNuts': '1',
+              const response = await fetch('/act', { method: 'POST', headers: { 'X-GoNuts': '1',
                 'Content-Type': 'application/x-www-form-urlencoded' }, body });
               setTimeout(refresh, 350);
               setTimeout(refresh, 1500);
+              return response.ok;
             }
             function press(id) {
               if (id === 'ctl:search') {
@@ -389,6 +390,7 @@ final class Pages {
                 back.href = 'https://gonuts.at/dashboard/';
                 pages.appendChild(back);
               } else mine('dashboard');
+              mine('analyzer');
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -593,8 +595,15 @@ final class Pages {
                 }
                 const activity=el('section','card');activity.id='evasion-history';
                 own.replaceChildren(el('h2','','Evasion'),activity,actions,el('label','','Named homes'),homes,save,
-                  el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order; an empty list falls back to /rtp. Hive clients sharing this list need the same home names.'),cards);
+                  el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order. With no configured homes, emergency escape disconnects; optional movement is skipped. Hive clients sharing this list need the same home names.'),cards);
                 drawEvasionHistory(data);
+                // Select only the web renderer's page; this never changes trading or the Discord view.
+                if(await act('page:pick','EVASION')) {
+                  if(view!=='evasion')return;
+                  const image=el('img');image.id='evasion-shot';image.alt='Evasion status and recent events, matching the Discord panel';
+                  image.src='/panel.png?t='+Date.now();
+                  const panel=el('div','wide');panel.appendChild(image);own.prepend(panel);
+                }
               }catch(e){failed();}
             }
             function drawEvasionHistory(data) {
@@ -1363,6 +1372,7 @@ final class Pages {
                 draw(await r.json());
                 await reportNotice();
                 if (!view) picture();
+                else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
               } catch (e) {
                 if (!view) put('notice', SILENT);
               }
