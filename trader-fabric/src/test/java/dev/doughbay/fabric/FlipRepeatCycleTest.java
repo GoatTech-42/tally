@@ -96,4 +96,54 @@ class FlipRepeatCycleTest {
     long amountReserved(AutomationSessionController c)throws Exception {
         Method m=c.getClass().getDeclaredMethod("bidsOut");m.setAccessible(true);return (long)m.invoke(c);
     }
+    void completeNext(AutomationSessionController c, AutomatedExecutionDriver.OperationIntent intent,
+                      String item,long price,long sequence,long now)throws Exception {
+        Object next=((Deque<?>)get(c,"deskQueue")).removeFirst();set(c,"deskStep",next);
+        var driver=(AutomatedExecutionDriver)get(c,"driver");
+        set(driver,"lastTerminalEvent",new AutomatedExecutionDriver.TerminalEvent(sequence,intent,
+                AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,"","",item,64,price,"",false,now,"fixture"));
+        invoke(c,"observeDeskTerminal",new Class[]{net.minecraft.client.Minecraft.class,long.class},null,now);
+    }
+    @Test void quoteForAnotherFlipCannotRecreateAnOrderJustPlacedAfterTheOwnBookRead()throws Exception {
+        Path file=root.resolve("two-flips.json");
+        Files.writeString(file,"{\"prices.only\":1,\"prices.own\":\"stone top+100 1000 2000 x1, diamond top+100 1000 2000 x1\",\"hive.split_markets\":0,\"buy.scale_with_bank\":0,\"orders.bid\":1,\"orders.bid_slots\":8}");
+        Tuning.loadLocalFrom(file);
+        long now=1000000;var c=controller(now);
+        var steps=plan(c,now);
+        assertTrue(steps.getFirst().contains("action=PLACE")&&steps.getFirst().contains(ITEM));
+        assertTrue(steps.get(1).contains("action=QUOTE")&&steps.get(1).contains("minecraft:diamond"));
+        // PLACE succeeds only after the driver has reread Your Orders and
+        // verified the new row there. Simulate that native confirmation page.
+        set(get(c,"driver"),"lastPlacementOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,0,100000)));
+        completeNext(c,AutomatedExecutionDriver.OperationIntent.PLACE_ORDER,ITEM,200,1,now+1);
+        completeNext(c,AutomatedExecutionDriver.OperationIntent.ORDER_QUOTE,"minecraft:diamond",100,2,now+2);
+        var replanned=((Collection<?>)get(c,"deskQueue")).stream().map(Object::toString).toList();
+        assertFalse(replanned.stream().anyMatch(s->s.contains("action=PLACE")&&s.contains(ITEM)),
+                "the native read predates our successful placement; it cannot prove that market is still empty");
+        assertTrue(replanned.stream().anyMatch(s->s.contains("action=PLACE")&&s.contains("minecraft:diamond")));
+        assertEquals(12800L,amountReserved(c));
+        assertEquals(now+1,get(c,"ownOrdersReadAt"));
+    }
+    @Test void receiptOnlyPlacementCannotRefreshTheOldBookOrReplanDuplicateBids()throws Exception {
+        long now=1000000;var c=controller(now);plan(c,now);
+        // The native cache could be an old page even though an exact chat receipt proves placement.
+        set(get(c,"driver"),"lastOwnOrders",List.of());
+        completeNext(c,AutomatedExecutionDriver.OperationIntent.PLACE_ORDER,ITEM,200,1,now+1);
+        assertEquals(0L,get(c,"ownOrdersReadAt"));
+        assertEquals(true,get(c,"deskReadDue"));
+        invoke(c,"replanQuotedOrders",new Class[]{long.class},now+2);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty());
+        assertEquals(true,get(c,"deskReadDue"));
+    }
+    @Test void historicalCompletedOrCancelledRowsCannotCertifyAnActivePlacementBook() {
+        var completed=new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000);
+        var cancelled=new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,0,100000,true);
+        assertNull(AutomatedExecutionDriver.activePlacementBook(List.of(completed,cancelled),ITEM,64,200));
+        var active=new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,8,100000);
+        assertNull(AutomatedExecutionDriver.activePlacementBook(List.of(active),ITEM,32,200));
+        assertNull(AutomatedExecutionDriver.activePlacementBook(List.of(active),ITEM,64,201));
+        var verified=AutomatedExecutionDriver.activePlacementBook(List.of(completed,active),ITEM,64,200);
+        assertEquals(List.of(completed,active),verified);
+        assertThrows(UnsupportedOperationException.class,()->verified.add(cancelled));
+    }
 }

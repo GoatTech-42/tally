@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 22:35 UTC
+
+- Fixed a multi-Flip replanning bug: after placing one order, a quote for another item could reuse the older empty own-order book and queue the first order again. A verified native confirmation page now updates the controller's book, reserved funds and slots before replanning.
+- Receipt-only placement success does not refresh the old page: it requires another native Your Orders read. Historical completed or cancelled rows cannot certify an active placed order. All earlier Flip replenishment and report fixes remain included.
+
 ## 2026-10-17 22:28 UTC
 
 - Fixed a repeat-order stall: cancelled orders that remain visible on Your Orders no longer reserve an active bid slot, unfilled funds or the selected Flip market. Goods still owed must be collected before replenishment; active orders and purchase/spend limits remain respected.

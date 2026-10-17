@@ -750,6 +750,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private List<OwnOrderRow> lastOwnOrders = List.of();
+    /** A native page with the active placed order; null for receipt/completed-only success. */
+    private List<OwnOrderRow> lastPlacementOrders;
     private int ownStage;
     private int ownSettleUntilTick;
     private int placeCount;
@@ -762,6 +764,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     public synchronized List<OwnOrderRow> lastOwnOrders() {
         return lastOwnOrders;
+    }
+
+    public synchronized List<OwnOrderRow> lastPlacementOrders() {
+        return lastPlacementOrders;
+    }
+
+    static List<OwnOrderRow> activePlacementBook(List<OwnOrderRow> rows, String item, int count, long unit) {
+        return rows.stream().anyMatch(r -> r.itemId().equals(item) && r.requested() == count
+                && r.unitPrice() == unit && !r.alreadyCancelled() && r.remaining() > 0)
+                ? List.copyOf(rows) : null;
     }
 
     // "768 requested", and from a thousand up "1.2K requested": an order of
@@ -821,6 +833,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownOrdersArrivalNoted = false;
         ownTargetUnitPrice = unitPrice;
         placeConfirmed = false;
+        lastPlacementOrders = null;
         placeReceipt = "";
         ownDone = false;
         placeFromContainerId = -1;
@@ -1218,6 +1231,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 case PLACE_ORDER -> {
                     if (ownStage == 1 && placeCount > 0 && matchSlot >= 0 && rows.stream().anyMatch(r ->
                             r.itemId().equals(targetItemId) && r.unitPrice() == placeUnitPrice && r.requested() == placeCount && placeConfirmed)) {
+                        lastPlacementOrders = activePlacementBook(rows, targetItemId, placeCount, placeUnitPrice);
                         complete(client, String.format(Locale.ROOT, "Bid placed: %s x%d at %s each",
                                 shortName(targetItemId), placeCount, money(placeUnitPrice)));
                         return;

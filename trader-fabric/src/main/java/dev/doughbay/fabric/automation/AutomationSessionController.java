@@ -5279,6 +5279,18 @@ public final class AutomationSessionController {
             case PLACE -> {
                 deskSettleUntilMillis = now + 900;
                 deskPlaceFailures = 0;   // a placement that worked ends the run of failures
+                // A later item's quote can replan the whole batch. It must see
+                // the order just placed, not reuse the empty book from before
+                // placement. Only a verified post-placement page refreshes the
+                // book; a receipt alone requires another native read.
+                var placedBook = driver.lastPlacementOrders();
+                if (placedBook != null) {
+                    ownOrders = placedBook;
+                    ownOrdersReadAt = now;
+                } else {
+                    ownOrdersReadAt = 0;
+                    deskReadDue = true;
+                }
                 bidPlacedAt.put(new BidKey(step.itemId(), step.unitPrice()), now);
                 placedBids.put(step.itemId(), new PlacedBid(step.itemId(), step.unitPrice(), step.count(), now));
                 saveBidsAndFills();
