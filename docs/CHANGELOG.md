@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 17:56 UTC
+
+- Swarm rankings now give an estimated position among active contributing Hives with available reported 24-hour profit. Removed the 10-Hive minimum and 90% coverage wait; two Hives are enough. A Hive uses available bot data and may be partial. Ties share a rank; other users identities and figures stay private.
+
 ## 2026-10-17 12:16 UTC
 
 - Replaced the sampled “all sellers” rank with an anonymous Swarm Hive percentile based on client-reported booked realized profit over 24 hours. Active bots belonging to the same owner form one Hive; duplicate accounts count once. Only your own result and the eligible Hive count are shown.

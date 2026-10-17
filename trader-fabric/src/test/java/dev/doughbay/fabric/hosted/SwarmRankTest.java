@@ -44,19 +44,32 @@ class SwarmRankTest {
         assertNotEquals(SwarmRank.accountId(salt,"example"),SwarmRank.accountId("y".repeat(32),"example"));
         assertEquals("",SwarmRank.accountId("","example"));assertEquals("",SwarmRank.accountId(salt,""));
     }
-    @Test void ownResultExpiresAndUnqualifiedDataCannotProducePercentile(){
+    @Test void ownResultExpiresAndMissingDataCannotProduceRank(){
         SwarmRank.receive(frame(),ID,NOW);
         assertTrue(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
         assertFalse(SwarmRank.rows(NOW+5000).getFirst()[1].contains("75%"));
         assertFalse(SwarmRank.rows(NOW+90_001).getFirst()[1].contains("75%"));
         SwarmRank.receive(frame(),"b".repeat(64),NOW);assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
-        var small=frame();((com.fasterxml.jackson.databind.node.ObjectNode)small.get("rank")).put("hivesCounted",9);
+        var small=frame();((com.fasterxml.jackson.databind.node.ObjectNode)small.get("rank")).put("hivesCounted",1);
         SwarmRank.receive(small,ID,NOW);assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
         var bad=frame();((com.fasterxml.jackson.databind.node.ObjectNode)bad.get("rank")).put("percentile",Double.NaN);
         SwarmRank.receive(bad,ID,NOW);assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
         SwarmRank.receive(frame(),ID,NOW-6000);assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
         var unavailable=frame();var r=(com.fasterxml.jackson.databind.node.ObjectNode)unavailable.get("rank");r.removeAll();r.put("unavailable",true).put("reason","insufficient_group");
-        SwarmRank.receive(unavailable,ID,NOW);assertEquals("Needs 10 qualified active Hives",SwarmRank.rows(NOW).getFirst()[1]);
+        SwarmRank.receive(unavailable,ID,NOW);assertEquals("Waiting for another Hive",SwarmRank.rows(NOW).getFirst()[1]);
+    }
+    @Test void smallActiveGroupsRankImmediatelyAndPositionsAreBounded(){
+        for(int n:java.util.List.of(2,3,5)){
+            var f=frame();var r=(com.fasterxml.jackson.databind.node.ObjectNode)f.get("rank");
+            r.put("hivesCounted",n).put("position",1).put("minCoverage",0);
+            SwarmRank.receive(f,ID,NOW);
+            assertEquals("#1 of "+n+" active Hives",SwarmRank.rows(NOW).getFirst()[1]);
+            assertTrue(SwarmRank.rows(NOW).getFirst()[0].contains("Estimated"));
+            r.put("position",n+1);SwarmRank.receive(f,ID,NOW);
+            assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("#"));
+            r.put("position",1.5);SwarmRank.receive(f,ID,NOW);
+            assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("#"));
+        }
     }
     @Test void constituentExpiryCanShortenButNeverExtendResultTtl(){
         var f=frame();var r=(com.fasterxml.jackson.databind.node.ObjectNode)f.get("rank");
