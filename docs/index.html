@@ -541,8 +541,14 @@
     more.hidden = all || entries.length <= FIRST;
   }
 
-  fetch("CHANGELOG.md", { cache: "no-store" })
+  // The root changelog is also bundled in the client. Read that canonical
+  // GitHub file so a release cannot leave this page on an older docs copy.
+  fetch("https://raw.githubusercontent.com/cody-raves/Gonuts/main/CHANGELOG.md", { cache: "no-store" })
     .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+    .catch(function () {
+      return fetch("CHANGELOG.md", { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); });
+    })
     .then(function (text) {
       var entries = parse(text);
       if (!entries.length) throw new Error("no entries");
