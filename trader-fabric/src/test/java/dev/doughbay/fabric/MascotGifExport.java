@@ -48,7 +48,6 @@ class MascotGifExport {
 
     private static final int TILE = 200;
     private static final int HEAD = 176;
-    private static final Color BACKGROUND = new Color(0x161B22);
     /** 20 frames a second; GIF delays are in hundredths of a second. */
     private static final int DELAY_CS = 5;
 
@@ -120,19 +119,22 @@ class MascotGifExport {
         }
         IndexColorModel palette = sharedPalette(frames);
         List<BufferedImage> indexed = new ArrayList<>(count);
-        for (BufferedImage f : frames) indexed.add(toPalette(f, palette));
+        for (BufferedImage f : frames) {
+            BufferedImage converted = toPalette(f, palette);
+            assertTrue((converted.getRGB(0, 0) >>> 24) == 0, "Card background must show through");
+            assertTrue((converted.getRGB(TILE / 2, TILE / 2) >>> 24) == 255, "Face must stay opaque");
+            indexed.add(converted);
+        }
         writeDeltaGif(file, indexed);
     }
 
     /** One frame: the still shell, then the moving face in the shell's 256-unit space. */
     private static BufferedImage frame(BufferedImage shell, MascotAnimation.Pose pose) {
-        BufferedImage img = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_RGB);
+        BufferedImage img = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.setColor(BACKGROUND);
-        g.fillRect(0, 0, TILE, TILE);
         int inset = (TILE - HEAD) / 2;
         g.translate(inset, inset);
         g.scale(HEAD / 256.0, HEAD / 256.0);
@@ -166,7 +168,7 @@ class MascotGifExport {
      * colours from frame to frame and make the still head shimmer.
      */
     private static IndexColorModel sharedPalette(List<BufferedImage> frames) throws IOException {
-        BufferedImage strip = new BufferedImage(TILE, TILE * frames.size(), BufferedImage.TYPE_INT_RGB);
+        BufferedImage strip = new BufferedImage(TILE, TILE * frames.size(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = strip.createGraphics();
         for (int i = 0; i < frames.size(); i++) g.drawImage(frames.get(i), 0, i * TILE, null);
         g.dispose();
@@ -179,6 +181,7 @@ class MascotGifExport {
     private static BufferedImage toPalette(BufferedImage frame, IndexColorModel palette) {
         BufferedImage out = new BufferedImage(TILE, TILE, BufferedImage.TYPE_BYTE_INDEXED, palette);
         Graphics2D g = out.createGraphics();
+        g.setComposite(java.awt.AlphaComposite.Src);
         g.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_DISABLE);
         g.drawImage(frame, 0, 0, null);
         g.dispose();
@@ -218,8 +221,9 @@ class MascotGifExport {
                 IIOMetadataNode control = child(root, "GraphicControlExtension");
                 control.setAttribute("disposalMethod", "doNotDispose");
                 control.setAttribute("userInputFlag", "FALSE");
-                control.setAttribute("transparentColorFlag", "FALSE");
-                control.setAttribute("transparentColorIndex", "0");
+                int transparent = ((IndexColorModel) p.image().getColorModel()).getTransparentPixel();
+                control.setAttribute("transparentColorFlag", transparent >= 0 ? "TRUE" : "FALSE");
+                control.setAttribute("transparentColorIndex", Integer.toString(Math.max(0, transparent)));
                 control.setAttribute("delayTime", Integer.toString(p.delay()));
                 IIOMetadataNode descriptor = child(root, "ImageDescriptor");
                 descriptor.setAttribute("imageLeftPosition", Integer.toString(p.x()));
