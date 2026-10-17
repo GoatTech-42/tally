@@ -5279,10 +5279,10 @@ public final class AutomationSessionController {
                 long best = event.price();
                 orderQuotes.put(step.itemId(), new long[]{best, now});
                 if(step.why().equals("COMMUNITY_QUOTE")) {
-                    deskReadDue=true;
+                    replanQuotedOrders(now);
                 } else if (step.why().startsWith(OWN_QUOTE)) {
                     LOGGER.info("DoughBay your prices: the best order for {} pays {} each", step.itemId(), best);
-                    deskReadDue = true;
+                    replanQuotedOrders(now);
                 } else if (best > step.unitPrice()) {
                     LOGGER.info("DoughBay bid desk: no deliveries for {}; orders pay up to {} each against our {}; replanning",
                             step.itemId(), best, step.unitPrice());
@@ -5355,6 +5355,21 @@ public final class AutomationSessionController {
                 pr.markDone();
                 LOGGER.info("DoughBay probe: run complete; unfilled rungs cancelled, filled rungs kept");
             }
+        }
+    }
+
+    private void replanQuotedOrders(long now) {
+        // A full Your Orders read can take 90 seconds. Sending every fresh
+        // quote through it expires Swarm's 30-second native quote before a
+        // bid can run, so the next preflight asks for the same quote forever.
+        // Recompute sizing and prices against the still-fresh native own book;
+        // the last-moment placement gates continue to check both timestamps.
+        if (policy != null && ownOrdersReadAt > 0 && now >= ownOrdersReadAt
+                && now - ownOrdersReadAt <= 60_000) {
+            deskReadDue = false;
+            planDesk(lastSnapshot, now);
+        } else {
+            deskReadDue = true;
         }
     }
 
