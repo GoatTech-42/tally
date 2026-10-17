@@ -250,7 +250,7 @@ public final class HostedDashboardClient {
             }catch(Exception e){metrics=null;if(rankCoverage!=null)rankCoverage.gap();SwarmRank.clear();}
         }
         var j=captured.telemetry().deepCopy();if(metrics!=null)j.setAll(metrics);
-        String identity=SwarmRank.accountId(rankingSalt,captured.account());
+        String identity=metrics==null?"":SwarmRank.accountId(rankingSalt,captured.account());
         if(!identity.equals(publishedAccountId)){SwarmRank.clear();publishedAccountId=identity;}
         if(metrics!=null&&!identity.isEmpty())j.put("accountId",identity);
         var shape=j.deepCopy();shape.remove("at");String encoded=shape.toString();
