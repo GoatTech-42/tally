@@ -47,6 +47,7 @@ class SwarmRankTest {
     @Test void ownResultExpiresAndUnqualifiedDataCannotProducePercentile(){
         SwarmRank.receive(frame(),ID,NOW);
         assertTrue(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
+        assertFalse(SwarmRank.rows(NOW+5000).getFirst()[1].contains("75%"));
         assertFalse(SwarmRank.rows(NOW+90_001).getFirst()[1].contains("75%"));
         SwarmRank.receive(frame(),"b".repeat(64),NOW);assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
         var small=frame();((com.fasterxml.jackson.databind.node.ObjectNode)small.get("rank")).put("hivesCounted",9);
