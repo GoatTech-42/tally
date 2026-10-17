@@ -602,8 +602,12 @@ final class Pages {
                 if(await act('page:pick','EVASION')) {
                   if(view!=='evasion')return;
                   const image=el('img');image.id='evasion-shot';image.alt='Evasion status and recent events, matching the Discord panel';
+                  const panel=el('div','wide');panel.appendChild(image);
+                  // Show one activity view. Keep text history only as a fallback when the image is unavailable.
+                  image.onload=()=>{if(view==='evasion'){panel.hidden=false;activity.hidden=true;}};
+                  image.onerror=()=>{if(view==='evasion'){panel.hidden=true;activity.hidden=false;}};
                   image.src='/panel.png?t='+Date.now();
-                  const panel=el('div','wide');panel.appendChild(image);own.prepend(panel);
+                  own.prepend(panel);
                 }
               }catch(e){failed();}
             }

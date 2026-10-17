@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 10:54 UTC
+
+- Evasion now shows one activity view: the native picture with recent events, followed by the original guard, route, homes and tuning controls. The duplicate text activity table appears only if the picture cannot load, and returns to hidden after a successful refresh.
+
 ## 2026-10-17 10:50 UTC
 
 - Fixed the Evasion event image overflowing the local and hosted web panel. It now scales to the content width while preserving its aspect ratio, leaving the complete image, settings and history accessible.
