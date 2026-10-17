@@ -10,6 +10,21 @@ class BugReportTransportTest {
         return new BugReportPayload("0.1.1-staffwatch+26.2", "26.2", "A listing did not complete", "It should finish",
             BugReportDiagnostics.counters("DoughBay automation [SCANNING]: private message\nSQLiteException: private")).withoutSettings();
     }
+    @Test void anonymousGroupingHeaderIsCapabilityGatedAndNeverUsesCredentials() throws Exception {
+        var json=new ObjectMapper();
+        var capabilities=json.readTree("{\"reporterKey\":{\"supported\":true,\"optional\":true,\"header\":\"X-GoNuts-Reporter\",\"pattern\":\"[0-9a-f]{64}\"}}");
+        assertTrue(BugReportTransport.advertisesReporterKey(capabilities));
+        assertFalse(BugReportTransport.advertisesReporterKey(json.readTree("{}")));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)capabilities.path("reporterKey")).put("header","Authorization");
+        assertFalse(BugReportTransport.advertisesReporterKey(capabilities));
+        String key="a".repeat(64);
+        var request=BugReportTransport.request(payload(),"retry-key-123","private-market-token","",key);
+        assertEquals(key,request.headers().firstValue("X-GoNuts-Reporter").orElseThrow());
+        assertTrue(request.headers().firstValue("Authorization").isEmpty());
+        assertFalse(request.headers().toString().contains("private-market-token"));
+        assertTrue(BugReportTransport.request(payload(),"retry-key-123","private-market-token","").headers().firstValue("X-GoNuts-Reporter").isEmpty());
+        assertThrows(IllegalArgumentException.class,()->BugReportTransport.request(payload(),"retry-key-123","","","not-a-key"));
+    }
     @Test void exactReceiverSchemaContainsOnlyValidatedFields() throws Exception {
         var body = new ObjectMapper().readTree(payload().json());
         assertEquals(6, body.size()); assertEquals(1, body.path("schemaVersion").asInt());
