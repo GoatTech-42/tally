@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 12:16 UTC
+
+- Replaced the sampled “all sellers” rank with an anonymous Swarm Hive percentile based on client-reported booked realized profit over 24 hours. Active bots belonging to the same owner form one Hive; duplicate accounts count once. Only your own result and the eligible Hive count are shown.
+- Rankings require at least 10 qualified active contributing Hives, fresh valid ledger snapshots and 90% recorded ledger-observation coverage. New clients begin collecting coverage from this update; offline gaps and missing profit remain unknown. Ties do not count as lower profit. Stale or unqualified results show an explanation instead of an invented rank.
+
 ## 2026-10-17 11:58 UTC
 
 - Added Feature request beside Report bug in the local and hosted web panel. It opens the same public GitHub feature-request form as the in-game button, without attaching bug-report diagnostics.

@@ -11,7 +11,7 @@ import dev.doughbay.core.model.MarketStats;
 import dev.doughbay.core.model.Opportunity;
 import dev.doughbay.fabric.AutomatedExecutionDriver;
 import dev.doughbay.fabric.DoughBayClient;
-import dev.doughbay.fabric.MarketShare;
+import dev.doughbay.fabric.hosted.SwarmRank;
 import dev.doughbay.fabric.MarketWatcher;
 import dev.doughbay.fabric.OrderBook;
 import dev.doughbay.fabric.Payroll;
@@ -1263,14 +1263,7 @@ public final class DiscordBridge {
                 head.add(new String[] {"Asking", money(rs.getLong(3))});
             }
             head.add(new String[] {"Trades", v.trades() + " this session"});
-            MarketShare.Share share = marketShare();
-            if (share.rank() > 0) {
-                head.add(new String[] {"Share 24h", share.describe()});
-                head.add(new String[] {"Rank", share.describeRank() + " by sales"});
-                if (!share.topPercent().isBlank()) {
-                    head.add(new String[] {"Percentile", share.topPercent() + " of all sellers", "green"});
-                }
-            }
+            head.addAll(SwarmRank.rows(System.currentTimeMillis()));
             if (session.quietMarket()) head.add(new String[] {"Mode", "quiet: smaller, steadier trades", "gold"});
             AutomationSessionController.WarmUp warm = session.warmUp();
             if (!warm.ready()) {
@@ -1405,16 +1398,7 @@ public final class DiscordBridge {
             head.add(new String[] {"Listed", totalListed + " · asking " + money(totalAsk)});
             head.add(new String[] {"Profit 1h", money(totalProfit) + " · " + totalSales + " sold", "green"});
             head.add(new String[] {"Profit 24h", money(totalProfit24) + " · " + totalSales24 + " sold", "green"});
-            MarketShare.Share share = marketShare();
-            if (share.rank() > 0) {
-                head.add(new String[] {"Share of market", share.describe(), "green"});
-                head.add(new String[] {"Busiest of ours", share.ranked() + " " + share.describeRank()});
-                // Both halves of that ratio are counted inside the feed, so the
-                // reader can see how much of the market the feed reaches.
-                if (!share.describeCoverage().isBlank()) {
-                    head.add(new String[] {"Sampling", share.describeCoverage(), "dim"});
-                }
-            }
+            head.addAll(SwarmRank.rows(System.currentTimeMillis()));
             head.add(new String[] {"Viewing", account.isBlank() ? "all accounts" : account});
             head.add(new String[] {"Panel host", DoughBayClient.account() + " (this client)"});
         } catch (Exception e) {
@@ -1524,19 +1508,6 @@ public final class DiscordBridge {
         } catch (Exception e) {
             return own;
         }
-    }
-
-    /**
-     * Our slice of the auction house, counted inside the server's own feed on
-     * both sides so the sampling cancels. See {@link MarketShare} for why the
-     * obvious alternative overstates it twentyfold.
-     */
-    private MarketShare.Share marketShare() {
-        List<String> accounts = new ArrayList<>(DoughBayClient.hiveAccounts());
-        String me = DoughBayClient.account();
-        if (accounts.isEmpty() && !me.isBlank()) accounts.add(me);
-        if (!account.isBlank()) accounts = List.of(account);
-        return MarketShare.of(ledgerPath, 24 * 3_600_000L, accounts);
     }
 
     /** The one-line rival summary the hourly report carries. */
