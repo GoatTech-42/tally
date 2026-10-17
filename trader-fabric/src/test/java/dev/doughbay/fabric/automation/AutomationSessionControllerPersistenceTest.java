@@ -19,6 +19,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 final class AutomationSessionControllerPersistenceTest {
 
     @Test
+    void normalResumeNeverForceResetsARecoveredPurchaseMissingInHandEvidence() throws Exception {
+        var persistence=new FakePersistence();
+        var controller=new AutomationSessionController(new AutomatedExecutionDriver());controller.setPersistence(persistence);
+        var purchase=new dev.doughbay.core.model.Position(62,"REAL","minecraft:deepslate_diamond_ore",
+                dev.doughbay.core.model.StackBucket.of(62),62,589000,1750074,1000,0,0,0,Double.NaN,
+                dev.doughbay.core.model.PositionStatus.PURCHASED);
+        setField(controller,"state",AutomationSessionController.State.PAUSED);
+        setField(controller,"recoveryApplied",true);setField(controller,"recoveredSession",true);
+        setField(controller,"sessionOpen",true);setField(controller,"pauseResumable",true);
+        setField(controller,"trackedPosition",purchase);setField(controller,"committedSpend",320830476L);
+        assertFalse(controller.resumeRecoveredSession(policy()).ok());
+        assertFalse(controller.resume().ok());
+        assertEquals(purchase,field(controller,"trackedPosition"));
+        assertEquals(320830476L,field(controller,"committedSpend"));
+        assertEquals(AutomationSessionController.State.PAUSED,field(controller,"state"));
+        assertEquals(false,field(controller,"armed"));assertEquals(true,field(controller,"sessionOpen"));
+        assertEquals(0,persistence.submissions.get(),"ordinary resume must not write off the purchase");
+    }
+
+    @Test
     void unchangedStackQuantityKeepsPositionAndRetryIdentityWithoutLedgerChurn() throws Exception {
         var persistence = new FakePersistence();
         var controller = new AutomationSessionController(new AutomatedExecutionDriver());

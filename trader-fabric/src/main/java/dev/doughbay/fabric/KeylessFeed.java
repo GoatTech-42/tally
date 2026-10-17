@@ -160,6 +160,7 @@ public final class KeylessFeed {
 
     /** One of our listings sold. Exact, so it is written as it is; only while keyless runs. */
     public static void recordOwnSale(String itemKey, int count, long price, String player) {
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.observe(dev.doughbay.fabric.hosted.CommunityWire.sale(player,itemKey,count,price,System.currentTimeMillis()));
         if (!active || itemKey == null || itemKey.indexOf('#') >= 0 || count <= 0 || price <= 0) return;
         OWN_SALES.add(new OwnSale(itemKey, count, price, System.currentTimeMillis(),
                 player == null || player.isBlank() ? "me" : player));

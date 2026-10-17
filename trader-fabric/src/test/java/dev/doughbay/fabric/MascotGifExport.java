@@ -71,6 +71,13 @@ class MascotGifExport {
         render(out.resolve("mascot-sale.gif"), shell, MascotAnimation.Mood.SALE, 3.75);
         render(out.resolve("mascot-idle.gif"), shell, MascotAnimation.Mood.IDLE, 11.0);
         render(out.resolve("mascot-working.gif"), shell, MascotAnimation.Mood.WORK, workingLoop());
+        render(out.resolve("mascot-paused.gif"), shell, MascotAnimation.Mood.PAUSED, 4);
+        render(out.resolve("mascot-sleep.gif"), shell, MascotAnimation.Mood.SLEEP, 4);
+        render(out.resolve("mascot-alert.gif"), shell, MascotAnimation.Mood.ALERT, 2);
+        for (var mood : MascotAnimation.Mood.values()) {
+            String name = switch (mood) { case WATCH -> "reading"; case WORK -> "working"; default -> mood.name().toLowerCase(java.util.Locale.ROOT); };
+            ImageIO.write(frame(shell, MascotAnimation.sample(mood, 0, true)), "png", out.resolve("mascot-" + name + "-still.png").toFile());
+        }
 
         for (String name : List.of("reading", "sale", "idle", "working")) {
             assertTrue(Files.size(out.resolve("mascot-" + name + ".gif")) > 1_000);

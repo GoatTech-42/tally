@@ -63,7 +63,10 @@ final class Pages {
             button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible,
             .wide:focus-visible {
               outline:none; border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
-            nav button { text-align:left; white-space:nowrap; flex:0 0 auto; border-left-width:3px; }
+            nav button, nav a { text-align:left; white-space:nowrap; flex:0 0 auto; border-left-width:3px; }
+            nav a { display:block; padding:9px 12px; min-height:42px; border:1px solid var(--edge); border-left-width:3px; border-radius:4px; color:inherit; background:var(--surface); text-decoration:none; }
+            nav a:hover { background:var(--hover); }
+            nav a:focus-visible { outline:none; border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
             nav button[aria-current="page"] { background:var(--selected); color:var(--gold); border-left-color:var(--gold); }
             button.go { color:var(--good); border-color:var(--good); }
             button.stop { color:var(--bad); border-color:var(--bad); }
@@ -248,6 +251,7 @@ final class Pages {
             const controls = $('controls');
             const pages = $('pages');
             const own = $('own');
+            const hostedPanel = location.pathname.startsWith('/dashboard/panel/');
             let last = '';
             let lastPages = '';
             let setting = null;
@@ -303,10 +307,11 @@ final class Pages {
               body.set('id', id);
               if (value !== undefined && value !== null) body.set('value', value);
               if (text !== undefined && text !== null) body.set('text', text);
-              await fetch('/act', { method: 'POST', headers: { 'X-GoNuts': '1',
+              const response = await fetch('/act', { method: 'POST', headers: { 'X-GoNuts': '1',
                 'Content-Type': 'application/x-www-form-urlencoded' }, body });
               setTimeout(refresh, 350);
               setTimeout(refresh, 1500);
+              return response.ok;
             }
             function press(id) {
               if (id === 'ctl:search') {
@@ -339,6 +344,7 @@ final class Pages {
             // ---- the pages down the side: the pictures the mod draws, and the panel's own
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
+              dashboard: { label: 'Dashboard', open: openDashboard },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
               items: { label: 'Items', open: openItems },
@@ -349,6 +355,10 @@ final class Pages {
               proxies: { label: 'Proxies', open: openProxies }
             };
             function show(name) {
+              if (name === 'dashboard' && hostedPanel) {
+                location.assign('https://gonuts.at/dashboard/');
+                return;
+              }
               view = OWN[name] ? name : '';
               try { history.replaceState(null, '', view ? '#' + view : location.pathname); } catch (e) { }
               $('pic').hidden = !!view;
@@ -375,6 +385,12 @@ final class Pages {
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name));
               mine('reports'); mine('proxies');
+              if (hostedPanel) {
+                const back = el('a', '', 'Dashboard');
+                back.href = 'https://gonuts.at/dashboard/';
+                pages.appendChild(back);
+              } else mine('dashboard');
+              mine('analyzer');
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -471,19 +487,30 @@ final class Pages {
               let preparedId = '', blockedId = '', changedSinceSend = true;
               const fields = action => ({action, description:description.value, expected:expected.value, consent:'true'});
               const send = button('', 'Send report', async () => {
+                clearTimeout(reportTimer);
                 send.disabled = true; changedSinceSend = false;
-                await change('reports', fields('submit'));
+                const result = await change('reports', fields('submit'));
+                if (!result || !result.ok) {
+                  status.textContent = result?.note || 'Report request failed. Please try again.';
+                  send.disabled = false; changedSinceSend = true; return;
+                }
+                status.textContent = result.note || 'Preparing report...';
                 poll();
               });
               const prepare = button('', 'Preview (optional)', async () => {
+                clearTimeout(reportTimer);
                 preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
                 const result = await change('reports', fields('prepare'));
-                if (!result || !result.ok) prepare.disabled = false;
+                if (!result || !result.ok) {
+                  status.textContent = result?.note || 'Preview request failed. Please try again.';
+                  prepare.disabled = false; send.disabled = false; return;
+                }
+                status.textContent = result.note || 'Preparing preview...';
                 poll();
               });
               const link = el('a', '', 'Open submitted issue'); link.hidden = true; link.rel = 'noopener noreferrer'; link.target = '_blank';
               function changed() { blockedId = reportData.id || ''; preparedId = ''; changedSinceSend = true; send.disabled = false; preview.textContent = ''; }
-              description.oninput = expected.oninput = log.onchange = changed;
+              description.oninput = expected.oninput = changed;
               async function poll() {
                 clearTimeout(reportTimer);
                 if (view !== 'reports' || !status.isConnected) return;
@@ -568,8 +595,15 @@ final class Pages {
                 }
                 const activity=el('section','card');activity.id='evasion-history';
                 own.replaceChildren(el('h2','','Evasion'),activity,actions,el('label','','Named homes'),homes,save,
-                  el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order; an empty list falls back to /rtp. Hive clients sharing this list need the same home names.'),cards);
+                  el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order. With no configured homes, emergency escape disconnects; optional movement is skipped. Hive clients sharing this list need the same home names.'),cards);
                 drawEvasionHistory(data);
+                // Select only the web renderer's page; this never changes trading or the Discord view.
+                if(await act('page:pick','EVASION')) {
+                  if(view!=='evasion')return;
+                  const image=el('img');image.id='evasion-shot';image.alt='Evasion status and recent events, matching the Discord panel';
+                  image.src='/panel.png?t='+Date.now();
+                  const panel=el('div','wide');panel.appendChild(image);own.prepend(panel);
+                }
               }catch(e){failed();}
             }
             function drawEvasionHistory(data) {
@@ -1088,6 +1122,50 @@ final class Pages {
               own.replaceChildren(...parts);
             }
             
+            async function openDashboard() {
+              try {
+                const d=await api('dashboard');if(view!=='dashboard')return;
+                if(!document.getElementById('dashboard-status')) {
+                  const account=el('select');account.id='dashboard-account';account.setAttribute('aria-label','Dashboard account');
+                  account.onchange=()=>{document.getElementById('dashboard-code').value='';openDashboard();};
+                  const code=el('input');code.id='dashboard-code';code.maxLength=16;code.placeholder='K7PQ-M3ZD';code.setAttribute('aria-label','Pairing code');
+                  const name=el('input');name.id='dashboard-name';name.maxLength=48;name.value='GoNuts client';name.setAttribute('aria-label','Client label');
+                  const website=el('a','','Open gonuts.at dashboard');website.href='https://gonuts.at/dashboard/';website.target='_blank';website.rel='noopener noreferrer';
+                  const link=button('go','Link selected account',async()=>{
+                    const value=code.value;code.value='';await change('dashboard',{action:'link',account:account.value,code:value,name:name.value});openDashboard();
+                  });link.id='dashboard-link';
+                  const reconnect=button('','Reconnect selected account',async()=>{await change('dashboard',{action:'reconnect',account:account.value});openDashboard();});reconnect.id='dashboard-reconnect';
+                  const unlink=button('stop','Unlink selected account',async()=>{await change('dashboard',{action:'unlink',account:account.value});openDashboard();});unlink.id='dashboard-unlink';
+                  const status=el('p','','');status.id='dashboard-status';status.setAttribute('aria-live','polite');
+                  const all=el('div');all.id='dashboard-accounts';
+                  const community=el('p');community.id='dashboard-community-status';
+                  const enable=button('go','Retry Swarm connection',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
+                  own.replaceChildren(el('h2','title','Hosted Dashboard'),website,
+                    el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linking joins the Swarm: public market observations are contributed and discovery hints received. Linked bots share one hive group.'),
+                    el('label','','Account'),account,el('label','','Pairing code'),code,el('label','','Client label'),name,link,reconnect,unlink,status,all,
+                    el('h2','title','Swarm API'),el('p','muted','Linking a bot opts it into contributing public market and follow observations, including observed account identities and payments, and receiving shared discovery guidance. Live price, inventory and trading checks remain required. Swarm contribution is required for the hosted dashboard. Unlink to leave the Swarm.'),community,enable,
+                    el('p','muted','Each bot keeps its own credential in its own installation. Dashboard outages do not stop trading. After unlinking, remove its offline entry on the website too.'));
+                }
+                const select=document.getElementById('dashboard-account');const selected=select.value;
+                const rows=d.accounts||[];
+                if(JSON.stringify(rows.map(r=>[r.id,r.label]))!==select.dataset.rows){
+                  select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
+                  if(rows.some(r=>r.id===selected))select.value=selected;
+                  select.dataset.rows=JSON.stringify(rows.map(r=>[r.id,r.label]));
+                }
+                const current=rows.find(r=>r.id===select.value)||{available:false,status:'No hive accounts available'};
+                document.getElementById('dashboard-status').textContent=(current.linked?'Linked as '+current.name+'  |  ':'')+current.status;
+                document.getElementById('dashboard-link').disabled=!current.available||current.busy||current.linked||Date.now()<current.retryAt;
+                document.getElementById('dashboard-code').disabled=!current.available||current.busy||current.linked;
+                document.getElementById('dashboard-name').disabled=!current.available||current.busy||current.linked;
+                for(const id of ['dashboard-reconnect','dashboard-unlink'])document.getElementById(id).disabled=!current.available||current.busy||!current.linked;
+                const contribution=current.community||{};
+                document.getElementById('dashboard-community-enable').disabled=!current.available||!current.linked||(contribution.enabled&&contribution.guidanceEnabled);
+                document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
+                document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
+              } catch(e){failed();}
+            }
+
             async function openStaff() {
               try {
                 const d = await api('staff');
@@ -1292,6 +1370,7 @@ final class Pages {
                 draw(await r.json());
                 await reportNotice();
                 if (!view) picture();
+                else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
               } catch (e) {
                 if (!view) put('notice', SILENT);
               }
@@ -1300,6 +1379,7 @@ final class Pages {
             setInterval(() => {
               refresh();
               if (view === 'staff') openStaff();
+              if (view === 'dashboard') openDashboard();
               if (view === 'evasion') refreshEvasionHistory();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
               if (++ticks % 4 !== 0) return;

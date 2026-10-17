@@ -924,7 +924,7 @@ public final class AutomationSessionController {
     private static String rivalNote() {
         dev.doughbay.fabric.RivalIntel.Snapshot r = rivals();
         if (r == null || r.refreshedAt() == 0 || r.rivals().isEmpty()) return "";
-        return r.quietField() ? " · rivals quiet" : " · rivals " + r.activeNow() + "/" + r.rivals().size() + " on";
+        return r.quietField() ? " Â· rivals quiet" : " Â· rivals " + r.activeNow() + "/" + r.rivals().size() + " on";
     }
     /** How many listings of one item and stack size may be up at once. */
     private static int MAX_OPEN_PER_MARKET() {
@@ -1813,6 +1813,10 @@ public final class AutomationSessionController {
     }
 
     public synchronized void stop() {
+        experimentPauseAtIdle=false;
+        if (isolatedOrderRetry.pending()) isolatedJob("cancelled","operator_stop");
+        isolatedOrderRetry.cancel();
+        if (isolatedOrderTest) finishIsolatedOrderTest(false, "cancelled_by_operator");
         dev.doughbay.fabric.staffwatch.ManualRegionTransfer.cancel();
         pausedByPlayer = true;
         armed = false;
@@ -1861,17 +1865,13 @@ public final class AutomationSessionController {
         if (state != State.PAUSED) {
             return ExecutionResult.refused("Only a paused session can be resumed");
         }
-        armed = true;
+        armed = false;
         if (!pauseResumable) {
             return ExecutionResult.refused(
                     "This pause protects an uncertain operation and cannot be resumed automatically");
         }
         if (recoveredSession) {
-            // Resume now unsticks a recovered session rather than refusing: it
-            // abandons the stale exposure and scans fresh (held items stay in
-            // the inventory and re-list). Pressing Resume is the operator
-            // saying "stop waiting, just go".
-            return forceReset(Minecraft.getInstance());
+            return ExecutionResult.refused("Recovered exposure must be reconciled through the recovered-session controls; plain Resume never force-resets it");
         }
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return ExecutionResult.refused(blocker);
@@ -1894,18 +1894,17 @@ public final class AutomationSessionController {
                 return ExecutionResult.refused(
                         "Buffered sale evidence is too old to reconcile automatically");
             }
+            armed=true;
             transition(State.MONITORING, "Resumed monitoring the one exact listed position");
             return ExecutionResult.awaitingPlayer(detail);
         }
         if (pausedFromState == State.SCANNING
                 && pendingOpportunity == null && !hasUnresolvedPosition()) {
+            armed=true;
             transition(State.SCANNING, "Resumed scanning fresh signals");
             return ExecutionResult.awaitingPlayer(detail);
         }
-        // Nothing clean to resume into (a purchased or uncertain position is in
-        // the way): treat Resume as the operator forcing a fresh start rather
-        // than leaving it parked.
-        return forceReset(Minecraft.getInstance());
+        return ExecutionResult.refused("Purchased or uncertain exposure must be reconciled before resuming; exposure retained");
     }
 
     /**
@@ -1914,17 +1913,17 @@ public final class AutomationSessionController {
      */
     public synchronized String pauseGuidance() {
         if (state != State.PAUSED) {
-            return state == State.STOPPED ? "Stopped — press Start to begin." : "Running.";
+            return state == State.STOPPED ? "Stopped â€” press Start to begin." : "Running.";
         }
         if (!pauseResumable) {
             return "This pause guards an uncertain operation. Use the recovery controls on the "
                     + "Automation tab, or Stop and Start again.";
         }
         if (recoveredSession) {
-            return "Recovered session — use 'Resume recovered session' on the Automation tab, not plain Resume.";
+            return "Recovered session â€” use 'Resume recovered session' on the Automation tab, not plain Resume.";
         }
         if (dev.doughbay.fabric.Tuning.get("session.auto_resume") < 0.5) {
-            return "session.auto_resume is off, so it will not resume by itself — turn it on in Settings.";
+            return "session.auto_resume is off, so it will not resume by itself â€” turn it on in Settings.";
         }
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return "Waiting: " + blocker;
@@ -1932,9 +1931,9 @@ public final class AutomationSessionController {
             return "The driver is finishing an operation; Resume works once it is idle.";
         }
         if (hasUnresolvedPosition()) {
-            return "A purchased or uncertain position must be reconciled first — see the Automation tab.";
+            return "A purchased or uncertain position must be reconciled first â€” see the Automation tab.";
         }
-        return "Ready to resume — press Resume.";
+        return "Ready to resume â€” press Resume.";
     }
 
     /** Continues an open recovered session without resetting its durable caps. */
@@ -1969,12 +1968,8 @@ public final class AutomationSessionController {
                 }
                 return ExecutionResult.awaitingPlayer(detail);
             }
-            // Exposure that is not in hand is a phantom - already listed or
-            // gone - and used to lock Resume out entirely ("must be reconciled
-            // first"), the loop that stranded a recovered session. Resume now
-            // force-resets it: abandon the phantom, clear the lock, scan fresh.
-            policy = requestedPolicy;
-            return forceReset(Minecraft.getInstance());
+            // Missing in-hand evidence is not proof the exposure is gone.
+            return ExecutionResult.refused("Recovered exposure is not verified in hand; reconcile inventory and own listings before resuming. Exposure retained");
         }
         String persistenceBlocker = persistenceStartBlocker();
         if (persistenceBlocker != null) {
@@ -2198,6 +2193,7 @@ public final class AutomationSessionController {
      * watching does not sit dead for hours. Off when the setting is 0.
      */
     private void maybeForceResetWedged(Minecraft client, long now) {
+        if(communityGuidanceEnabled()||experimentRequestedMode!=null){wedgedSince=0;return;}
         if (pausedByPlayer) {
             wedgedSince = 0;
             return;
@@ -2226,9 +2222,43 @@ public final class AutomationSessionController {
         forceReset(client);
     }
 
+    /** Same current scoreboard/API selection used by Discord; shared by trading and diagnostics. */
+    static long observedTradingBalance(long previous,long apiBalance,boolean demo) {
+        long current=dev.doughbay.fabric.SidebarBalance.best(demo?-1:apiBalance);
+        return current>0?current:previous;
+    }
+
     /** Called once per client tick, after the global B-key stop has been drained. */
     public synchronized void tick(Minecraft client, MarketWatcher.Snapshot marketSnapshot) {
         controllerTick++;
+        // Observe actual balance before the stopped read-only paths return.
+        // This preserves configured percentage caps; it does not increase them.
+        long observed=observedTradingBalance(lastKnownBalance,
+                marketSnapshot==null?-1:marketSnapshot.accountBalance(),marketSnapshot!=null&&marketSnapshot.demo());
+        if(observed!=lastKnownBalance) {
+            lastKnownBalance=observed;
+            if(observed>0)dev.doughbay.fabric.DoughBayClient.noteBalanceForHive(observed);
+        }
+        if(controllerTick%40==0) {
+            dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshDiscoveryMarkets(
+                    communityGuidanceEnabled()&&state!=State.PAUSED&&state!=State.STOPPED?experimentRequiredMarkets():java.util.Set.of());
+            dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.publishExperimentMeasurement(
+                dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode().put("at",System.currentTimeMillis())
+                    .put("state",state.name()).put("bankBalance",lastKnownBalance).put("bankKnown",lastKnownBalance>0)
+                    .put("policyReady",policy!=null).put("purchaseCap",policy==null?-1:effectivePurchaseCap()).put("outstandingCap",policy==null?-1:effectiveSpendCap())
+                    .put("committedSpend",committedSpend).put("ownOrdersReadAt",ownOrdersReadAt)
+                    .put("ownOrderFunds",bidsOut()).put("tradesStarted",tradesStarted)
+                    .put("communityExperiment",communityGuidanceEnabled()).put("communityOptIn",publicCommunityEnabled).put("modeChangedAt",experimentModeAt)
+                    .put("modeSwitchPending",experimentRequestedMode!=null).put("pauseAtIdlePending",experimentPauseAtIdle)
+                    .put("actualDiscoveryReadsOmitted",experimentSkippedReads)
+                    .set("ownedStock",experimentOwnedStock(client,System.currentTimeMillis())));
+        }
+        if(tickExperimentBoundary(client,System.currentTimeMillis()))return;
+        if (isolatedOrderTest) { tickIsolatedOrderTest(client, marketSnapshot); return; }
+        if (isolatedOrderRetry.pending()) {
+            tickIsolatedOrderRetry(client);
+            return;
+        }
         if (ownOnly() && (state == State.READING_ORDERS
                 || state == State.BID_DESK && deskStep != null && deskStep.action() == DeskAction.SWEEP)) {
             driver.abandon("Flips only enabled: stopping a general market scan");
@@ -2282,10 +2312,6 @@ public final class AutomationSessionController {
                 pauseInternal("Could not finish inventory preparation; no new operation was started");
                 return;
             }
-        }
-        if (marketSnapshot != null && marketSnapshot.accountBalance() > 0) {
-            lastKnownBalance = marketSnapshot.accountBalance();
-            dev.doughbay.fabric.DoughBayClient.noteBalanceForHive(lastKnownBalance);
         }
         if (staffTransferHold) {
             synchronizePersistenceRecovery();
@@ -2706,6 +2732,13 @@ public final class AutomationSessionController {
         return Math.max(1, Math.min(ContinuousAutomationPolicy.MAX_OPEN_LISTINGS, slots));
     }
 
+    // Presentation-only provenance for confirmed relist action counts; never used to authorize a trade.
+    private long dashboardRepricePositionId=-1;
+    public synchronized boolean consumeDashboardReprice(long positionId) {
+        if(positionId!=dashboardRepricePositionId)return false;
+        dashboardRepricePositionId=-1;return true;
+    }
+
     public synchronized SessionSnapshot snapshot() {
         long currentSessionRuntime = currentSessionActiveMillis();
         long currentLifetimeRuntime = currentLifetimeActiveMillis();
@@ -2722,11 +2755,11 @@ public final class AutomationSessionController {
 
     private void synchronizePersistenceRecovery() {
         if (persistence == null) {
-            persistenceStatus = "FAILED — automation persistence is not connected";
+            persistenceStatus = "FAILED â€” automation persistence is not connected";
             return;
         }
         AutomationPersistencePort.Status status = persistence.status();
-        persistenceStatus = status.loadState().name() + " — " + status.detail();
+        persistenceStatus = status.loadState().name() + " â€” " + status.detail();
         if (!status.ready() || recoveryApplied) return;
 
         AutomationSessionRecovery recovery = status.recovery();
@@ -2744,7 +2777,7 @@ public final class AutomationSessionController {
         long parkedSpend = parkedSpend();
         boolean exposureRemains = !remaining.isEmpty() || recovery.uncertainExposure().active();
         if (!recovery.sessionOpen() && !exposureRemains) {
-            persistenceStatus = "READY — no recovered automation exposure; "
+            persistenceStatus = "READY â€” no recovered automation exposure; "
                     + openListings.size() + " listing(s) still open";
             return;
         }
@@ -2813,7 +2846,7 @@ public final class AutomationSessionController {
                 ? "PAUSED: recovered " + recoveredExposureCount()
                 + " unresolved REAL exposure record(s); no automatic command may run"
                 : "PAUSED: recovered open session; spend/trade caps were not reset";
-        persistenceStatus = "READY — durable recovery applied fail-closed";
+        persistenceStatus = "READY â€” durable recovery applied fail-closed";
     }
 
     /**
@@ -3519,7 +3552,7 @@ public final class AutomationSessionController {
             }
             int underdogs = 0;
             for (Opportunity o : watched) if (isUnderdog(o)) underdogs++;
-            String underdogNote = underdogs > 0 ? " · underdog " + underdogs : "";
+            String underdogNote = underdogs > 0 ? " Â· underdog " + underdogs : "";
             watchCandidates = List.copyOf(watched);
             watchBuy = true;
             pendingOpportunity = watched.get(0);
@@ -3922,14 +3955,20 @@ public final class AutomationSessionController {
     private List<Opportunity> orderCandidates(MarketWatcher.Snapshot snapshot, long now) {
         if (dev.doughbay.fabric.Tuning.get("orders.source") < 0.5) return List.of();
         dev.doughbay.fabric.OrderBook book = dev.doughbay.fabric.DoughBayClient.orderBook();
-        if (book == null || book.orders().isEmpty() || policy == null) return List.of();
+        return orderCandidates(snapshot, now, book == null ? List.of() : book.orders());
+    }
+
+    /** Same production selector, with an explicit immutable public-book input for shadow evaluation. */
+    private List<Opportunity> orderCandidates(MarketWatcher.Snapshot snapshot, long now,
+            List<dev.doughbay.fabric.OrderBook.Order> orders) {
+        if (dev.doughbay.fabric.Tuning.get("orders.source") < 0.5 || orders.isEmpty() || policy == null) return List.of();
         long stamp = snapshot != null && snapshot.updatedAt() > 0 ? Math.min(now, snapshot.updatedAt()) : now;
         double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
         double minimumRoi = Math.max(policy.minimumRoiPercent(), riskConfig.minimumRoiPercent()) / 100.0;
         int max = (int) dev.doughbay.fabric.Tuning.get("orders.max_targets");
         long affordCap = Math.min(effectivePurchaseCap(), effectiveSpendCap() - committedSpend);
         List<Opportunity> out = new ArrayList<>();
-        for (dev.doughbay.fabric.OrderBook.Order o : book.orders()) {
+        for (dev.doughbay.fabric.OrderBook.Order o : orders) {
             if (out.size() >= max) break;
             if (!o.parts().isEmpty() || !dev.doughbay.fabric.Tuning.itemAllowed(o.itemId())) continue;
             if (o.itemId().indexOf('#') >= 0 || ownPrice(o.itemId()) != null || siblingsMarket(o.itemId())) continue;
@@ -4984,6 +5023,20 @@ public final class AutomationSessionController {
             return true;
         }
         DeskStep step = deskQueue.pollFirst();
+        if(communityGuidanceEnabled()&&step.action()==DeskAction.PLACE) {
+            boolean ownFresh=ownOrdersReadAt>0&&now-ownOrdersReadAt<=60000;
+            boolean quoteFresh=dev.doughbay.fabric.hosted.CommunityDiscoveryGate.quoteFresh(orderQuotes.get(step.itemId()),
+                    ownTopOrderSeenAt.getOrDefault(step.itemId(),0L),now,30000);
+            if(!ownFresh||!quoteFresh) {
+                // Discard the stale proposed bid; the quote must lead to a new native sizing/price plan.
+                deskQueue.removeIf(queued->queued.action()==DeskAction.PLACE);
+                if(!ownFresh)deskQueue.addFirst(new DeskStep(DeskAction.READ,"",0,0,"community preflight refreshing Your Orders"));
+                else deskQueue.addFirst(new DeskStep(DeskAction.QUOTE,step.itemId(),0,0,"COMMUNITY_QUOTE"));
+                detail="Community discovery: live own-order and market evidence required before bidding";
+                return true;
+            }
+        }
+
         // The desk plans a run of steps and then works through it. A run
         // planned before the player wound the session down, or asked for their
         // own list alone, still had its orders in it, and they went out
@@ -5053,7 +5106,8 @@ public final class AutomationSessionController {
         stockFlow.deskActionStarted();
         retailBatchFlow.deskActionStarted();
         deskStep = step;
-        transition(State.BID_DESK, "Bid desk: " + step.why());
+        transition(State.BID_DESK, "Bid desk: " + (step.why().equals("COMMUNITY_QUOTE")
+                ?"checking live order price (Swarm validation)":step.why()));
         return true;
     }
 
@@ -5213,13 +5267,16 @@ public final class AutomationSessionController {
                 bidQuotes.put(step.itemId() + "x" + step.count(),
                         new BidPriceEvidence.Quote(step.itemId(), step.count(), now, asks));
                 dev.doughbay.fabric.KeylessFeed.recordAsks(step.itemId(), step.count(), asks);
+                if(!asks.isEmpty())dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.compare(step.itemId(),step.count(),asks.get(0)/(double)Math.max(1,step.count()),now);
                 LOGGER.info("DoughBay keyless sweep: {} x{} has {} live ask(s) from others",
                         step.itemId(), step.count(), asks.size());
             }
             case QUOTE -> {
                 long best = event.price();
                 orderQuotes.put(step.itemId(), new long[]{best, now});
-                if (step.why().startsWith(OWN_QUOTE)) {
+                if(step.why().equals("COMMUNITY_QUOTE")) {
+                    deskReadDue=true;
+                } else if (step.why().startsWith(OWN_QUOTE)) {
                     LOGGER.info("DoughBay your prices: the best order for {} pays {} each", step.itemId(), best);
                     deskReadDue = true;
                 } else if (best > step.unitPrice()) {
@@ -5355,20 +5412,8 @@ public final class AutomationSessionController {
         }
         if (recordChanged) saveCollected();
         // The best price anyone is paying on the order house, ours included.
-        java.util.Map<String, Long> bestOrder = new java.util.HashMap<>();
         dev.doughbay.fabric.OrderBook seenBook = dev.doughbay.fabric.DoughBayClient.orderBook();
-        if (seenBook != null) {
-            for (dev.doughbay.fabric.OrderBook.Order o : seenBook.orders()) {
-                if (o.parts().isEmpty() && o.remaining() > 0) bestOrder.merge(o.itemId(), o.unitPrice(), Math::max);
-            }
-        }
-        // The order house's own search for one item outranks the pages we
-        // happen to have read, for as long as it is fresh.
-        for (var quoted : orderQuotes.entrySet()) {
-            if (quoted.getValue()[0] > 0 && now - quoted.getValue()[1] <= ORDER_QUOTE_TTL) {
-                bestOrder.merge(quoted.getKey(), quoted.getValue()[0], Math::max);
-            }
-        }
+        java.util.Map<String, Long> bestOrder = tradingBestBids(seenBook == null ? List.of() : seenBook.orders(),now);
         long nofill = dev.doughbay.fabric.Tuning.millis("orders.nofill_min");
         int quotesQueued = 0;
         java.util.Set<String> ordersSeen = new java.util.HashSet<>();
@@ -5569,6 +5614,10 @@ public final class AutomationSessionController {
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) if (r.remaining() > 0) active++;
         int free = slots - active;
         if (snapshot == null || free <= 0) return;
+        // Cache-only aggregate observations choose which native checks to spend this plan on.
+        var sharedDiscovery=communityGuidanceEnabled()
+                ?dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.discoveryHints(experimentRequiredMarkets(),now)
+                :java.util.Map.<String,dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.Hint>of();
         // A desk with ninety free slots that places two bids in twenty minutes
         // is being stopped by something, and until the reasons are counted the
         // only honest answer to "why so few orders" is a guess. Every gate
@@ -5632,19 +5681,16 @@ public final class AutomationSessionController {
         // Rank by dollars a resale lot can earn, with diminishing weight on
         // current market volume. Percentage margin alone favoured cheap churn.
         // Competitive bid pricing, evidence and capital gates still run below.
-        java.util.Map<String, Long> topBid = new java.util.HashMap<>();
         dev.doughbay.fabric.OrderBook book = dev.doughbay.fabric.DoughBayClient.orderBook();
-        if (book != null) {
-            for (dev.doughbay.fabric.OrderBook.Order o : book.orders()) {
-                if (o.parts().isEmpty() && o.remaining() > 0) topBid.merge(o.itemId(), o.unitPrice(), Math::max);
-            }
-        }
-        for (var quoted : orderQuotes.entrySet()) {
-            if (quoted.getValue()[0] > 0 && now - quoted.getValue()[1] <= ORDER_QUOTE_TTL) {
-                topBid.merge(quoted.getKey(), quoted.getValue()[0], Math::max);
-            }
-        }
+        java.util.Map<String, Long> topBid = tradingBestBids(book == null ? List.of() : book.orders(),now);
         candidates.sort((a, b) -> {
+            int sharedRank=dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.compareForDiscovery(
+                    sharedDiscovery.get(a.itemKey()+"|"+a.bucket().exactCount()),sharedDiscovery.get(b.itemKey()+"|"+b.bucket().exactCount()));
+            if(sharedRank!=0)return sharedRank;
+            if(communityGuidanceEnabled()) {
+                boolean guidedA=experimentDiscoveryItems.contains(a.itemKey()),guidedB=experimentDiscoveryItems.contains(b.itemKey());
+                if(guidedA!=guidedB)return guidedA?-1:1;
+            }
             double scoreA = OrderBidPricing.rankScore(auctionFees.netSale(bidResalePrice(a, now)),
                     topBid.getOrDefault(a.itemKey(), 0L), Math.max(1, a.bucket().exactCount()), a.salesPerHour());
             double scoreB = OrderBidPricing.rankScore(auctionFees.netSale(bidResalePrice(b, now)),
@@ -5924,17 +5970,23 @@ public final class AutomationSessionController {
                             : retail == null ? " (resale estimate " + Math.round(bidResalePrice(m, now)) + trimmed + ")"
                             : " (retail batch estimated profit " + Math.round(retail.profit(unit)) + "; " + retail.tier(unit) + ")"),
                     0, retail == null ? 0 : retail.singlePrice()));
+            dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.noteDiscoveryUse(
+                    sharedDiscovery.get(m.itemKey()+"|"+m.bucket().exactCount()),"bid_plan");
         }
         // Price checks on markets of the bot's own choosing are for the bot's own trading.
-        int retailChecks = onlyOwn ? 0 : enqueueRetailQuotes(snapshot, now);
+        int retailChecks = onlyOwn ? 0 : enqueueRetailQuotes(snapshot, now,sharedDiscovery);
         // Refresh several proven markets before returning to the long auction
         // watch. Read our orders again afterwards so fills/placements that arrived
         // during the checks are accounted for before planning the next bids.
         if (free > 0 && room > 0 && !refreshPrices.isEmpty()
                 && dev.doughbay.fabric.KeylessFeed.active()
                 && dev.doughbay.fabric.Tuning.get("keyless.sweep") >= 0.5) {
-            refreshPrices.sort(java.util.Comparator.comparingLong(m ->
-                    sweptAt.getOrDefault(m.itemKey() + "x" + m.bucket().exactCount(), 0L)));
+            refreshPrices.sort((a,b)->{
+                int sharedRank=dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.compareForDiscovery(
+                        sharedDiscovery.get(a.itemKey()+"|"+a.bucket().exactCount()),sharedDiscovery.get(b.itemKey()+"|"+b.bucket().exactCount()));
+                return sharedRank!=0?sharedRank:Long.compare(sweptAt.getOrDefault(a.itemKey()+"x"+a.bucket().exactCount(),0L),
+                        sweptAt.getOrDefault(b.itemKey()+"x"+b.bucket().exactCount(),0L));
+            });
             int checks = retailChecks;
             for (MarketStats m : refreshPrices) {
                 if (checks >= 6) break;
@@ -5943,6 +5995,8 @@ public final class AutomationSessionController {
                         && s.itemId().equals(m.itemKey()) && s.count() == m.bucket().exactCount())) continue;
                 deskQueue.addLast(new DeskStep(DeskAction.SWEEP, m.itemKey(), m.bucket().exactCount(), 0,
                         "refreshing bid prices for " + shortId(m.itemKey())));
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.noteDiscoveryUse(
+                        sharedDiscovery.get(m.itemKey()+"|"+m.bucket().exactCount()),"auction_check");
                 if (++checks >= 6) break;
             }
             if (checks > retailChecks) {
@@ -6800,7 +6854,8 @@ public final class AutomationSessionController {
                 Math.max(policy.minimumRoiPercent(), riskConfig.minimumRoiPercent()) / 100.0);
     }
 
-    private int enqueueRetailQuotes(MarketWatcher.Snapshot snapshot, long now) {
+    private int enqueueRetailQuotes(MarketWatcher.Snapshot snapshot, long now,
+            java.util.Map<String,dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.Hint> sharedDiscovery) {
         if (!singlesListingEnabled() || !dev.doughbay.fabric.KeylessFeed.active()
                 || dev.doughbay.fabric.Tuning.get("keyless.sweep") < 0.5) return 0;
         var profile = dev.doughbay.fabric.DoughBayClient.stackProfile();
@@ -6810,8 +6865,12 @@ public final class AutomationSessionController {
                         && ownPrice(id) == null && !siblingsMarket(id)
                         && !deskQueue.stream().anyMatch(st -> st.action() == DeskAction.PLACE && st.itemId().equals(id)) && !hasRetailStock(id)
                         && profile.shapeOf(id) != null && profile.shapeOf(id).prefersSingles())
-                .sorted(java.util.Comparator.comparingLong(id -> Math.min(sweptAt.getOrDefault(id + "x1", 0L),
-                        sweptAt.getOrDefault(id + "x" + fullStack(id), 0L)))).toList();
+                .sorted((a,b)->{
+                    int sharedRank=dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.compareForDiscovery(
+                            sharedDiscovery.get(a+"|"+fullStack(a)),sharedDiscovery.get(b+"|"+fullStack(b)));
+                    return sharedRank!=0?sharedRank:Long.compare(Math.min(sweptAt.getOrDefault(a+"x1",0L),sweptAt.getOrDefault(a+"x"+fullStack(a),0L)),
+                            Math.min(sweptAt.getOrDefault(b+"x1",0L),sweptAt.getOrDefault(b+"x"+fullStack(b),0L)));
+                }).toList();
         int checks = 0;
         for (String item : items) {
             if (checks >= 4) break; // Leave two checks for ordinary stack markets.
@@ -6822,6 +6881,7 @@ public final class AutomationSessionController {
                 if (now - sweptAt.getOrDefault(key, 0L) < BidPriceEvidence.QUOTE_TTL) continue;
                 deskQueue.addLast(new DeskStep(DeskAction.SWEEP, item, count, 0,
                         "checking retail " + shortId(item) + " x" + count));
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.noteDiscoveryUse(sharedDiscovery.get(item+"|"+fullStack(item)),"auction_check");
                 checks++;
             }
         }
@@ -7656,11 +7716,561 @@ public final class AutomationSessionController {
         return true;
     }
 
+    // Private test-build controls: no timer, no trading-state transition, no resume.
+    private boolean isolatedOrderTest;
+    private boolean isolatedGuidanceOnly;
+    private int isolatedOrderStage;
+    private long isolatedOrderStarted;
+    private long isolatedOrderCycle;
+    private ContinuousAutomationPolicy isolatedPreviousPolicy;
+    private final dev.doughbay.fabric.hosted.IsolatedOrderRetry isolatedOrderRetry = new dev.doughbay.fabric.hosted.IsolatedOrderRetry();
+    private long isolatedNextSnapshotFetch;
+    private final dev.doughbay.fabric.hosted.IsolatedOrderSource isolatedSource = new dev.doughbay.fabric.hosted.IsolatedOrderSource();
+    private String isolatedJobPhase = "";
+    private List<dev.doughbay.fabric.hosted.CommunityMarketGuidance.Hint> isolatedGuidance = List.of();
+    private int isolatedGuidanceIndex;
+    private com.fasterxml.jackson.databind.node.ObjectNode isolatedDecisions;
+    private com.fasterxml.jackson.databind.node.ArrayNode isolatedGuidanceChecks;
+    private List<AutomatedExecutionDriver.OrderRow> isolatedReadRows;
+    private long isolatedReadEnded,isolatedLiveReadStarted;
+    private long isolatedQuoteAt;
+    private List<dev.doughbay.fabric.hosted.CommunityTradeSimulation.Level> isolatedQuoteLevels=List.of();
+    private int isolatedQuoteParseFailures;
+    private com.fasterxml.jackson.databind.node.ObjectNode isolatedPendingCheck;
+
+
+    private void isolatedJob(String phase,String reason) {
+        if (phase.equals(isolatedJobPhase)) return;
+        isolatedJobPhase=phase;
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.publishIsolatedOrderJob(
+                dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                .put("at",System.currentTimeMillis()).put("phase",phase).put("reason",reason)
+                .put("guardInterruptions",isolatedOrderRetry.interruptions()).put("tradingHeld",true)
+                .put("restartFromPage",1));
+    }
+
+    private boolean isolatedGuardsClear() {
+        var guard=dev.doughbay.fabric.DoughBayClient.evasionGuard();
+        return !staffTransferHold && !dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()
+                && (guard==null || !guard.triggered() && !guard.away());
+    }
+
+    private void tickIsolatedOrderRetry(Minecraft client) {
+        long now=System.currentTimeMillis();
+        boolean connected=client!=null && client.player!=null && client.level!=null && client.getConnection()!=null;
+        if (isolatedOrderRetry.ready(now,connected,connected && safeInventoryContext(client),
+                isolatedGuardsClear(),pausedByPlayer && !armed && (state==State.STOPPED || state==State.PAUSED))) {
+            String result=beginIsolatedOrderAttempt(false);
+            if (!result.startsWith("OK:")) isolatedJob("refused","retry_admission_refused");
+        } else if (!isolatedOrderRetry.pending()) isolatedJob("cancelled","retry_limit_or_operator_change");
+        else detail="Read-only test queued: waiting for Evasion/reconnect to clear; trading remains paused";
+    }
+
+    public synchronized String requestFullOrderSourceRead() {
+        if (!isRunning()) return "Refused: source must already be trading";
+        seedOrdersSchedule(System.currentTimeMillis());
+        nextFullSweepAt = 0;
+        nextOrdersReadAt = 0;experimentForceSourceRead=true;
+        return "OK: one full source read due at the next safe checkpoint";
+    }
+
+    public synchronized String requestIsolatedOrderTest() {return requestIsolatedOrderJob(false);}
+    public synchronized String requestIsolatedGuidanceTest() {return requestIsolatedOrderJob(true);}
+    private String requestIsolatedOrderJob(boolean guidanceOnly) {
+        if (isolatedOrderTest || isolatedOrderRetry.pending()) return "Already running or queued";
+        if (!pausedByPlayer || armed || (state!=State.STOPPED && state!=State.PAUSED))
+            return "Refused: operator must stop trading first";
+        isolatedGuidanceOnly=guidanceOnly;
+        var client=Minecraft.getInstance();
+        if (!isolatedGuardsClear() || client.player==null || client.level==null || !safeInventoryContext(client)) {
+            long now=System.currentTimeMillis();
+            isolatedOrderRetry.begin(now);
+            isolatedOrderRetry.waitForGuard(now);
+            isolatedJob("waiting_guard","waiting_for_safe_reconnect");
+            return "OK: read-only test queued until guard and reconnect clear";
+        }
+        return beginIsolatedOrderAttempt(true);
+    }
+
+    private String beginIsolatedOrderAttempt(boolean newJob) {
+        if (!dev.doughbay.fabric.hosted.IsolatedOrderTestGate.canStart(state.name(),
+                driver.operationIntent().name(), isolatedOrderTest, !safeInventoryContext(Minecraft.getInstance()), staffTransferHold, pausedByPlayer && !armed))
+            return "Refused: operator must stop trading and leave a clear inventory screen";
+        var testPolicy = dev.doughbay.fabric.DoughBayClient.continuousPolicy();
+        if (testPolicy == null) return "Refused: trading policy unavailable for simulation";
+        if (newJob) isolatedOrderRetry.begin(System.currentTimeMillis());
+        isolatedGuidance=List.of();isolatedGuidanceIndex=0;isolatedDecisions=null;
+        isolatedGuidanceChecks=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createArrayNode();
+        isolatedReadRows=null;isolatedReadEnded=0;isolatedLiveReadStarted=0;
+        isolatedQuoteLevels=List.of();isolatedQuoteParseFailures=0;isolatedPendingCheck=null;isolatedQuoteAt=0;
+        isolatedNextSnapshotFetch=0;
+        isolatedSource.reset();
+        isolatedPreviousPolicy = policy;
+        policy = testPolicy;
+        isolatedOrderTest = true;
+        isolatedOrderStage = 0;
+        isolatedOrderStarted = System.currentTimeMillis();
+        pausedByPlayer = true;
+        armed = false;
+        isolatedJob("starting","operator_requested_read_only_test");
+        detail = "Read-only community comparison requested; trading remains stopped";
+        LOGGER.info("GoNuts isolated order test: requested; no trading actions permitted");
+        return "OK: isolated read-only comparison requested";
+    }
+
+    private void tickIsolatedOrderTest(Minecraft client, MarketWatcher.Snapshot market) {
+        long now = System.currentTimeMillis();
+        if (!isolatedGuardsClear()) {
+            driver.abandon("Read-only comparison interrupted by guard; waiting to retry");
+            finishIsolatedOrderTest(false,"guard_interrupted_read");
+            return;
+        }
+        if ((!pausedByPlayer || armed || (state != State.STOPPED && state != State.PAUSED)) || staffTransferHold || client == null || client.player == null
+                || client.level == null || now - isolatedOrderStarted > 10 * 60_000L) {
+            driver.abandon("Isolated order comparison interrupted");
+            finishIsolatedOrderTest(false, "interrupted_or_timeout");
+            return;
+        }
+        if (market != null) lastSnapshot = market;
+        if(capsFollowBank()&&lastKnownBalance<=0) {
+            isolatedJob("waiting_balance","scoreboard_balance_not_observed");
+            detail="Read-only test waiting for the existing scoreboard balance before bank-scaled cap validation";
+            return;
+        }
+        driver.setExternalAllowed(true);
+        if (isolatedOrderStage == 0) {
+            if (!safeInventoryContext(client)) {
+                isolatedJob("waiting_inventory","own_orders_inventory_not_clear");
+                detail = "Read-only test waiting for a clear inventory screen";
+                closeStrayAuctionPage(client);
+                return;
+            }
+            awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
+            var result = driver.readOwnOrders();
+            if (!result.ok()) { finishIsolatedOrderTest(false, "own_order_read_refused"); return; }
+            isolatedOrderStage = 1;
+            isolatedJob("own_orders","checking_own_orders");
+            detail = "Read-only test: checking own orders; trading stopped";
+            return;
+        }
+        if (isolatedOrderStage == 1) {
+            var event = nextTerminal(AutomatedExecutionDriver.OperationIntent.OWN_ORDERS);
+            if (event == null) return;
+            if (event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
+                finishIsolatedOrderTest(false, "own_order_read_failed"); return;
+            }
+            ownOrders = List.copyOf(driver.lastOwnOrders());
+            ownOrdersReadAt = now;
+            closeContainerPage(client);
+            isolatedOrderStage = 2;
+            return;
+        }
+        if (isolatedOrderStage == 2) {
+            if (now<isolatedNextSnapshotFetch) return;
+            if (now-ownOrdersReadAt>270_000) {
+                if (isolatedOrderCycle!=0) dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.discardOrderShadow(isolatedOrderCycle);
+                isolatedOrderCycle=0;isolatedOrderStage=0;return;
+            }
+            if (isolatedOrderCycle==0) {
+                var managed=new java.util.HashSet<String>();
+                var items=new java.util.HashSet<String>(dev.doughbay.fabric.Tuning.itemSet("watch.tracked"));
+                items.addAll(placedBids.keySet());
+                for (Position position:openListings) items.add(baseItemId(position.itemKey()));
+                for (String entry:items) {
+                    String item=entry.contains(":")?entry:"minecraft:"+entry;
+                    try { managed.add(dev.doughbay.fabric.hosted.CommunityWire.key(item,fullStack(item))); }
+                    catch(IllegalArgumentException ignored) { }
+                }
+                int ownCount=(int)ownOrders.stream().filter(row->row.remaining()>0&&!row.alreadyCancelled()).count();
+                isolatedOrderCycle=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.beginOrderShadow(managed,true,ownCount,200,now);
+                if (isolatedOrderCycle==0) { isolatedNextSnapshotFetch=now+1000; isolatedJob("waiting_service","shadow_client_not_ready"); return; }
+                isolatedJob("fetching_snapshot","peer_snapshot_lookup");
+            }
+            var snapshot=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.orderShadowSnapshot(isolatedOrderCycle);
+            if (snapshot==null) return;
+            if (!snapshot.reason().isEmpty()) {
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.discardOrderShadow(isolatedOrderCycle);
+                isolatedOrderCycle=0;
+                isolatedNextSnapshotFetch=now+15_000;
+                isolatedJob("waiting_snapshot",snapshot.reason());
+                String source = isolatedSource.request(snapshot.reason(),
+                        dev.doughbay.fabric.DoughBayClient.account(),
+                        dev.doughbay.fabric.DoughBayClient.hiveAccounts(), isolatedGuardsClear(),
+                        peer -> { var control=dev.doughbay.fabric.DoughBayClient.hiveControl();
+                            return control!=null && control.post(peer,"ORDER_SOURCE_READ","Read-only comparison fresh-source request"); });
+                if (source.equals("source_no_peer") || source.equals("source_write_failed")) {
+                    finishIsolatedOrderTest(false,source);return;
+                }
+                if (source.equals("source_queued")) isolatedJob("waiting_source","fresh_source_request_queued");
+                return;
+            }
+            // The lookup and stale-marker handoff above are read-only and must not
+            // be blocked by a server-reopened menu. The actual scan still requires
+            // the original clear-inventory and guard checks.
+            if (!safeInventoryContext(client)) {
+                isolatedJob("waiting_inventory","snapshot_ready_inventory_not_clear");
+                closeStrayAuctionPage(client);
+                return;
+            }
+            if (now-ownOrdersReadAt>270_000) return;
+            if(isolatedGuidanceOnly){
+                isolatedReadEnded=isolatedLiveReadStarted=now;
+                isolatedDecisions=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                        .put("method","historical_guidance_only_read_only_test").put("verdict","not_evaluated")
+                        .put("actionsDispatched",false).put("actualFinalTradeChangeProven",false).put("isolatedTest",true);
+                isolatedOrderStage=4;isolatedJob("guidance_own_orders","refreshing_own_orders_without_full_baseline");return;
+            }
+            awaitedTerminalSequence=driver.lastTerminalEvent().sequence();
+            var result=driver.scanOrders(0);
+            if (!result.ok()) { finishIsolatedOrderTest(false,"full_read_refused");return; }
+            ordersReadWatchdog.reset();
+            isolatedLiveReadStarted=now;
+            isolatedOrderStage=3;
+            isolatedJob("reading","fresh_peer_snapshot_captured");
+            return;
+        }
+        if (isolatedOrderStage>=4) { tickIsolatedGuidance(client,now);return; }
+        var event = nextTerminal(AutomatedExecutionDriver.OperationIntent.ORDERS);
+        if (event == null) {
+            int pages = driver.ordersPagesRead();
+            detail = "Read-only community comparison: " + pages + "/" + driver.ordersPagesWanted()
+                    + " pages; trading stopped";
+            if (ordersReadWatchdog.stalled(now, driver.commandPending(), driver.lastCommandSentAt(), pages)) {
+                driver.abandon("Isolated order read stalled");
+                finishIsolatedOrderTest(false, "full_read_stalled");
+            }
+            return;
+        }
+        if (event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
+            finishIsolatedOrderTest(false, "full_read_failed"); return;
+        }
+        var book = dev.doughbay.fabric.DoughBayClient.orderBook();
+        var rows = new ArrayList<dev.doughbay.fabric.OrderBook.Order>();
+        for (var row : driver.lastOrders()) rows.add(new dev.doughbay.fabric.OrderBook.Order(now,
+                row.itemId(), row.itemKey(), row.descriptorJson(), row.parts(), row.unitPrice(),
+                row.delivered(), row.total(), row.page()));
+        if (book != null) book.record(rows, driver.ordersPagesRead(), now, driver.lastOrdersSweepComplete());
+        isolatedDecisions=compareCommunityOrderDecisions(isolatedOrderCycle,now).put("isolatedTest",true);
+        isolatedReadRows=List.copyOf(driver.lastOrders());isolatedReadEnded=now;
+        closeContainerPage(client);
+        isolatedOrderStage=4;
+        isolatedJob("guidance_own_orders","refreshing_own_orders_before_targeted_checks");
+    }
+
+    private java.util.Set<String> isolatedOwnMarkets() {
+        var items=new java.util.HashSet<String>();
+        for(var row:ownOrders)if(row.remaining()>0)items.add(row.itemId());
+        return items;
+    }
+    private long isolatedGuidanceCeiling(String item) {
+        double profit=Math.max(policy.minimumProfit(),riskConfig.minimumProfit());
+        double roi=Math.max(Math.max(policy.minimumRoiPercent(),riskConfig.minimumRoiPercent()),
+                dev.doughbay.fabric.Tuning.get("orders.bid_min_margin_pct"))/100.0;
+        return lastSnapshot==null||lastSnapshot.demo()?0:bidCeilingUnit(lastSnapshot,item,fullStack(item),profit,roi);
+    }
+    /** Read-only advisory validation. The snapshot selects markets; actual searches
+     * supply the price. No shared row is inserted into the live book or own orders. */
+    private void tickIsolatedGuidance(Minecraft client,long now) {
+        if(isolatedOrderStage==4) {
+            if(!safeInventoryContext(client)){closeStrayAuctionPage(client);return;}
+            awaitedTerminalSequence=driver.lastTerminalEvent().sequence();
+            if(!driver.readOwnOrders().ok()){finishIsolatedOrderTest(false,"guidance_own_read_refused");return;}
+            isolatedOrderStage=5;return;
+        }
+        if(isolatedOrderStage==5) {
+            var event=nextTerminal(AutomatedExecutionDriver.OperationIntent.OWN_ORDERS);
+            if(event==null)return;
+            if(event.intent()!=AutomatedExecutionDriver.OperationIntent.OWN_ORDERS
+                    ||event.outcome()!=AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED){
+                finishIsolatedOrderTest(false,"guidance_own_read_failed");return;
+            }
+            ownOrders=List.copyOf(driver.lastOwnOrders());ownOrdersReadAt=now;
+            closeContainerPage(client);
+            var snapshot=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.orderShadowSnapshot(isolatedOrderCycle);
+            if(snapshot==null||!snapshot.reason().isEmpty()){finishIsolatedOrderTest(false,"guidance_snapshot_unavailable");return;}
+            var remote=dev.doughbay.fabric.hosted.CommunityOrderDecisions.snapshotRows(snapshot);
+            var followed=new java.util.HashSet<String>();
+            var intelligence=rivals();
+            if(intelligence!=null&&intelligence.fromFollows()) {
+                for(var market:intelligence.shadows())followed.add(market.itemId());
+                for(var market:intelligence.askShadows())followed.add(market.itemId());
+            }
+            var allowed=new java.util.HashSet<String>(followed);
+            for(var row:remote)allowed.add(row.itemId());
+            allowed.removeIf(item->!dev.doughbay.fabric.Tuning.buyingAllowed(item)||siblingsMarket(item));
+            var ceilings=new java.util.HashMap<String,Long>();
+            for(String item:allowed)ceilings.put(item,isolatedGuidanceCeiling(item));
+            isolatedGuidance=dev.doughbay.fabric.hosted.CommunityMarketGuidance.plan(remote,followed,allowed,
+                    isolatedOwnMarkets(),ceilings,now,3);
+            isolatedOrderStage=6;
+            isolatedJob("guidance_live_checks","checking_selected_markets_live");return;
+        }
+        if(isolatedOrderStage==6) {
+            if(isolatedGuidanceIndex>=isolatedGuidance.size()) {
+                var report=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                        .put("method","historical_guidance_live_trade_simulation_v2")
+                        .put("evaluatedAt",now).put("selectedMarkets",isolatedGuidance.size())
+                        .put("liveChecks",isolatedGuidanceChecks.size()).put("actionsDispatched",false)
+                        .put("baselineFullReadMs",Math.max(0,isolatedReadEnded-isolatedLiveReadStarted))
+                        .put("targetedValidationMs",Math.max(0,now-isolatedReadEnded))
+                        .put("skipped",false).put("actualSavedMs",0).put("sharedPricesExecutable",false)
+                        .put("snapshotOwnIdentityRequiredForGuidance",false)
+                        .put("fullReadBaselineRetained",!isolatedGuidanceOnly).put("decisionEquivalenceProven",false)
+                        .put("reason",isolatedGuidance.isEmpty()?"no_guidance_candidates":"guidance_checked_live");
+                report.set("checks",isolatedGuidanceChecks.deepCopy());
+                isolatedDecisions.set("backgroundGuidance",report);
+                if(isolatedGuidanceOnly)dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishGuidanceShadow(isolatedOrderCycle,isolatedDecisions,now);
+                else dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(isolatedOrderCycle,
+                        isolatedReadRows,true,isolatedReadEnded,isolatedDecisions);
+                isolatedOrderCycle=0;
+                finishIsolatedOrderTest(true,report.path("reason").asText());return;
+            }
+            if(!safeInventoryContext(client)){closeStrayAuctionPage(client);return;}
+            awaitedTerminalSequence=driver.lastTerminalEvent().sequence();
+            if(!driver.quoteOrders(isolatedGuidance.get(isolatedGuidanceIndex).itemId()).ok()) {
+                recordIsolatedGuidanceCheck(false,0,now);return;
+            }
+            isolatedOrderStage=7;return;
+        }
+        if(isolatedOrderStage==7) {
+            var event=nextTerminal(AutomatedExecutionDriver.OperationIntent.ORDER_QUOTE);
+            if(event==null)return;
+            boolean success=event.intent()==AutomatedExecutionDriver.OperationIntent.ORDER_QUOTE
+                    &&event.outcome()==AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED;
+            recordIsolatedGuidanceCheck(success,event.price(),now);
+            closeContainerPage(client);return;
+        }
+        if(isolatedOrderStage==8) {
+            if(!safeInventoryContext(client)){closeStrayAuctionPage(client);return;}
+            awaitedTerminalSequence=driver.lastTerminalEvent().sequence();
+            var hint=isolatedGuidance.get(isolatedGuidanceIndex);
+            if(!driver.probeCheapest(hint.itemId(),fullStack(hint.itemId()),dev.doughbay.fabric.DoughBayClient.account()).ok()) {
+                finishIsolatedTradeSimulation(false,0,now);return;
+            }
+            isolatedOrderStage=9;
+            isolatedJob("guidance_trade_simulation","checking_live_auction_lot_read_only");return;
+        }
+        var event=nextTerminal(AutomatedExecutionDriver.OperationIntent.PROBE);
+        if(event==null)return;
+        boolean success=event.intent()==AutomatedExecutionDriver.OperationIntent.PROBE
+                &&event.outcome()==AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED;
+        long ask=success?driver.lastProbePlainPurchaseUpper().stream().mapToLong(Long::longValue).min().orElse(0):0;
+        finishIsolatedTradeSimulation(success,ask,now);
+        closeContainerPage(client);
+    }
+    private void recordIsolatedGuidanceCheck(boolean success,long livePrice,long now) {
+        var hint=isolatedGuidance.get(isolatedGuidanceIndex);
+        long purchaseCap=effectivePurchaseCap(),outstandingLimit=effectiveSpendCap();
+        long room=Math.max(0,outstandingLimit-committedSpend);
+        long cap=Math.max(0,Math.min(purchaseCap,room));
+        long ceiling=isolatedGuidanceCeiling(hint.itemId());
+        var check=dev.doughbay.fabric.hosted.CommunityMarketGuidance.check(hint,success,livePrice,now,
+                ownOrdersReadAt,isolatedOwnMarkets(),fullStack(hint.itemId()),ceiling,cap,now,isolatedGuardsClear());
+        isolatedPendingCheck=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                .put("itemId",hint.itemId()).put("evidence",hint.evidence())
+                .put("historicalBid",check.historicalBid()).put("liveBid",check.liveBid())
+                .put("status",check.status()).put("priceChanged",check.priceChanged())
+                .put("proposedUnit",check.proposedUnit()).put("previewQuantity",fullStack(hint.itemId()))
+                .put("ownOrdersFresh",check.ownOrdersFresh()).put("placementStillRequiresValidation",true)
+                .put("liveSearchSucceeded",success);
+        String why=ceiling<=0?"no_supported_resale_ceiling":livePrice>=ceiling?"above_resale_margin_ceiling"
+                :livePrice==Long.MAX_VALUE||livePrice+1>purchaseCap/Math.max(1,fullStack(hint.itemId()))?"per_purchase_cap"
+                :livePrice+1>room/Math.max(1,fullStack(hint.itemId()))?"outstanding_cap_room":"within_caps";
+        isolatedPendingCheck.putObject("capDiagnostics").put("reason",why).put("resaleCeilingUnit",ceiling)
+                .put("purchaseCap",purchaseCap).put("outstandingLimit",outstandingLimit)
+                .put("committedSpend",committedSpend).put("outstandingRoom",room)
+                .put("balanceKnown",lastKnownBalance>0).put("capsFollowBank",capsFollowBank());
+        isolatedQuoteLevels=success?driver.lastQuoteLevels():List.of();
+        isolatedQuoteParseFailures=success?driver.lastQuoteParseFailures():1;
+        isolatedQuoteAt=now;
+        isolatedOrderStage=8;
+    }
+    private void finishIsolatedTradeSimulation(boolean auctionSuccess,long askUpper,long now) {
+        var hint=isolatedGuidance.get(isolatedGuidanceIndex);
+        boolean exposureHold=uncertainExposure.active()||(trackedPosition!=null&&trackedPosition.status()!=PositionStatus.LISTED);
+        double profit=Math.max(policy.minimumProfit(),riskConfig.minimumProfit());
+        double roi=Math.max(policy.minimumRoiPercent(),riskConfig.minimumRoiPercent());
+        var result=dev.doughbay.fabric.hosted.CommunityTradeSimulation.evaluate(isolatedQuoteLevels,
+                isolatedQuoteParseFailures,fullStack(hint.itemId()),askUpper,isolatedQuoteAt,now,ownOrdersReadAt,
+                isolatedOwnMarkets().contains(hint.itemId()),effectivePurchaseCap(),Math.max(0,effectiveSpendCap()-committedSpend),
+                profit,roi,now,isolatedGuardsClear(),exposureHold);
+        var sim=isolatedPendingCheck.putObject("tradeSimulation");
+        sim.put("reason",result.reason()).put("purchaseUpperBound",result.purchaseCost())
+                .put("deliveryGrossLowerBound",result.deliveryGross()).put("netProfitLowerBound",result.netProfit())
+                .put("roiPercentLowerBound",result.roi()).put("deliveryUnitLowerBound",result.deliveryUnit())
+                .put("orderQuantityObserved",result.quantityObserved()).put("auctionQuantityObserved",auctionSuccess&&askUpper>0)
+                .put("ownOrdersFresh",now-ownOrdersReadAt<=60_000).put("ownMarket",isolatedOwnMarkets().contains(hint.itemId()))
+                .put("quoteParseFailures",isolatedQuoteParseFailures).put("unresolvedExposureHold",exposureHold)
+                .put("minimumProfit",profit).put("minimumRoiPercent",roi)
+                .put("auctionSellerKnown",false).put("auctionEvidenceRole","anonymous_price_observation")
+                .put("ownAuctionExclusionComplete",false).put("exactConfirmationRequired",true).put("availabilityReserved",false)
+                .put("actionsDispatched",false).put("paperCandidateQualified",result.reason().equals("paper_candidate_qualified"));
+        var auctionEvidence=sim.putObject("auctionEvidence");
+        if(auctionSuccess)driver.lastProbePurchaseDiagnostics().forEach(auctionEvidence::put);
+        isolatedPendingCheck.put("availableQuantityVerified",false).put("quantityEvidenceObserved",result.quantityObserved());
+        isolatedGuidanceChecks.add(isolatedPendingCheck.deepCopy());isolatedPendingCheck=null;
+        isolatedGuidanceIndex++;isolatedOrderStage=6;
+    }
+
+    private void finishIsolatedOrderTest(boolean succeeded, String reason) {
+        if (isolatedOrderCycle != 0) {
+            if(isolatedGuidanceOnly){
+                var decisions=isolatedDecisions==null?dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode():isolatedDecisions;
+                decisions.set("backgroundGuidance",dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                        .put("reason",reason).put("completed",false).put("actionsDispatched",false));
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishGuidanceShadow(isolatedOrderCycle,decisions,System.currentTimeMillis());
+            } else if(isolatedReadRows!=null&&isolatedDecisions!=null) {
+                isolatedDecisions.set("backgroundGuidance",dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                        .put("reason",reason).put("completed",false).put("actionsDispatched",false));
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(isolatedOrderCycle,
+                        isolatedReadRows,true,isolatedReadEnded,isolatedDecisions);
+            } else dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(
+                    isolatedOrderCycle,List.of(),false,System.currentTimeMillis());
+        }
+        isolatedOrderCycle = 0;
+        isolatedOrderTest = false;
+        policy = isolatedPreviousPolicy;
+        isolatedPreviousPolicy = null;
+        ordersReadWatchdog.reset();
+        boolean retry=!succeeded && reason.equals("guard_interrupted_read")
+                && pausedByPlayer && !armed && isolatedOrderRetry.interrupted(System.currentTimeMillis());
+        if (retry) isolatedJob("waiting_guard","guard_interrupted_read");
+        else { isolatedOrderRetry.cancel(); isolatedJob(succeeded?"completed":"failed",reason); }
+        detail = "Read-only comparison " + (retry ? "queued for safe retry: " : succeeded ? "finished: " : "stopped: ")
+                + reason + "; trading remains paused";
+        LOGGER.info("GoNuts isolated order test: {}; actions dispatched=false; trading remains stopped", reason);
+    }
+
     /** The order house is read on a timer, between trades, never in the middle of one. */
     private long nextOrdersReadAt = System.currentTimeMillis() + 45_000;
     /** The first read after a launch is the full sweep; then every "full sweep" interval. */
     private long nextFullSweepAt = 0;
     private boolean ordersReadWasFull;
+    private long experimentOwnAuctionAt;
+    /** Local owned-state evidence only: canonical items/counts, never lore, names or server identifiers. */
+    private com.fasterxml.jackson.databind.node.ObjectNode experimentOwnedStock(Minecraft client,long now) {
+        var out=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode();
+        if(client==null||client.player==null)return out.put("inventoryObserved",false);
+        out.put("inventoryObserved",true).put("inventoryObservedAt",now).put("ownAuctionObservedAt",experimentOwnAuctionAt);
+        var inventory=out.putObject("plainInventoryCounts");
+        var held=client.player.getInventory();
+        for(int slot=0;slot<held.getContainerSize();slot++) {
+            var stack=held.getItem(slot);if(stack.isEmpty()||dev.doughbay.fabric.ItemDescriptor.of(stack).hasParts())continue;
+            String item=net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            inventory.put(item,inventory.path(item).asInt()+stack.getCount());
+        }
+        out.put("cursorEmpty",client.player.containerMenu.getCarried().isEmpty());
+        var auction=out.putObject("ownAuctionCounts");
+        if(experimentOwnAuctionAt>0)for(var row:driver.lastOwnListings()) {
+            if(!row.itemKey().equals(row.itemId()))continue;
+            auction.put(row.itemId(),auction.path(row.itemId()).asInt()+row.count());
+        }
+        return out;
+    }
+
+    // Private experiment only; starts OFF on every process launch. No public/server gate changes.
+    private boolean experimentCommunityEnabled,experimentForceSourceRead,publicCommunityEnabled;
+    private boolean communityGuidanceEnabled(){return experimentCommunityEnabled||publicCommunityEnabled;}
+    private Boolean experimentRequestedMode;
+    private long experimentUntil,experimentModeAt,experimentLookupCycle,experimentLookupStarted,experimentSkippedReads;
+    private boolean experimentPauseAtIdle;
+    private java.util.Set<String> experimentDiscoveryItems=java.util.Set.of();
+    public synchronized String requestExperimentMode(boolean enabled,long until) {
+        long now=System.currentTimeMillis();
+        if(enabled&&(until<=now||until-now>12*3600000L))return "Refused: invalid experiment deadline";
+        experimentRequestedMode=enabled;experimentUntil=until;
+        return "OK: experiment mode queued for safe idle checkpoint";
+    }
+    public synchronized String requestExperimentPauseAtIdle() {
+        if(state==State.PAUSED||state==State.STOPPED)return "Already paused or stopped";
+        experimentPauseAtIdle=true;return "OK: will stop at safe idle checkpoint, preserving exposure";
+    }
+    private boolean experimentIdle(Minecraft client) {
+        return (state==State.SCANNING||state==State.MONITORING)&&safeInventoryContext(client)
+                &&driver.operationIntent()==AutomatedExecutionDriver.OperationIntent.NONE&&repricing==null
+                &&(trackedPosition==null||trackedPosition.status()==PositionStatus.LISTED)
+                &&!uncertainExposure.active()&&isolatedGuardsClear();
+    }
+    private boolean tickExperimentBoundary(Minecraft client,long now) {
+        if(experimentCommunityEnabled&&now>=experimentUntil)experimentRequestedMode=false;
+        if(!experimentIdle(client))return false;
+        boolean publicRequested=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.guidanceEnabled();
+        if(experimentRequestedMode!=null||publicRequested!=publicCommunityEnabled) {
+            // Seed persisted cadence before requesting this mode's discovery check.
+            seedOrdersSchedule(now);
+            if(experimentRequestedMode!=null)experimentCommunityEnabled=experimentRequestedMode;
+            publicCommunityEnabled=publicRequested;experimentRequestedMode=null;experimentModeAt=now;
+            dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.discardOrderShadow(experimentLookupCycle);
+            experimentLookupCycle=0;experimentDiscoveryItems=java.util.Set.of();
+            // A new mode gets a new native plan; old queued prices are not dispatched.
+            deskQueue.removeIf(step->step.action()==DeskAction.PLACE||step.action()==DeskAction.QUOTE);
+            deskReadDue=true;nextOrdersReadAt=0;
+            LOGGER.info("GoNuts Swarm: discovery mode {} at safe checkpoint",communityGuidanceEnabled()?"ON":"OFF");
+        }
+        if(experimentPauseAtIdle) {experimentPauseAtIdle=false;stop();return true;}
+        return false;
+    }
+    private java.util.Set<String> experimentRequiredMarkets() {
+        var result=new java.util.HashSet<String>();
+        for(String entry:dev.doughbay.fabric.Tuning.itemSet("watch.tracked")) {
+            String item=entry.contains(":")?entry:"minecraft:"+entry;
+            if(!dev.doughbay.fabric.Tuning.buyingAllowed(item))continue;
+            try{result.add(dev.doughbay.fabric.hosted.CommunityWire.key(item,fullStack(item)));}
+            catch(IllegalArgumentException ignored){}
+        }return result;
+    }
+    private java.util.Map<String,Long> tradingBestBids(java.util.List<dev.doughbay.fabric.OrderBook.Order> rows,long now) {
+        if(!communityGuidanceEnabled())return dev.doughbay.fabric.hosted.CommunityOrderDecisions.bestBids(rows,orderQuotes,now,ORDER_QUOTE_TTL);
+        var live=new java.util.HashMap<String,Long>();
+        orderQuotes.forEach((item,quote)->{
+            if(dev.doughbay.fabric.hosted.CommunityDiscoveryGate.quoteFresh(quote,0,now,30000))live.put(item,quote[0]);
+        });return live;
+    }
+    /** Returns true only while fetching or after an eligible broad discovery reuse. No historical prices enter the book. */
+    private boolean tryCommunityDiscovery(long now) {
+        if(!communityGuidanceEnabled())return false;
+        if(ownOrdersReadAt<=0||now-ownOrdersReadAt>60000) {
+            deskReadDue=true;nextOrdersReadAt=now+15000;return false;
+        }
+        var service=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE;
+        var required=experimentRequiredMarkets();
+        if(experimentLookupCycle==0) {
+            experimentLookupCycle=service.beginOrderShadow(required,true,ownOrders.size(),200,now);
+            experimentLookupStarted=now;
+            if(experimentLookupCycle==0)return false;
+            return true;
+        }
+        var snapshot=service.orderShadowSnapshot(experimentLookupCycle);
+        if(snapshot==null&&now-experimentLookupStarted<10000)return true;
+        var decision=dev.doughbay.fabric.hosted.CommunityDiscoveryGate.evaluate(snapshot,required,200,now,ownOrdersReadAt,
+                !capsFollowBank()||lastKnownBalance>0,isolatedGuardsClear()&&!uncertainExposure.active());
+        service.discardOrderShadow(experimentLookupCycle);experimentLookupCycle=0;
+        var report=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode().put("evaluatedAt",now)
+                .put("phase","private_production_discovery").put("executionEnabled",true)
+                .put("reason",decision.reason()).put("sourceReadId",decision.sourceReadId())
+                .put("sourceEndedAt",decision.sourceEndedAt()).put("requestedMarkets",required.size())
+                .put("coveredMarkets",decision.coveredMarkets().size()).put("actionsDispatched",false);
+        var missing=new java.util.TreeSet<>(required);missing.removeAll(decision.coveredMarkets());
+        report.put("coveredRequestedMarkets",required.size()-missing.size());
+        if(decision.reason().equals("requested_markets_not_covered")) {
+            var keys=report.putArray("missingRequestedMarkets");missing.forEach(keys::add);
+        }
+        if(!decision.reusable()) {
+            experimentDiscoveryItems=java.util.Set.of();
+            service.publishProductionDiscovery(report.put("actualSkippedReads",experimentSkippedReads));return false;
+        }
+        var items=new java.util.HashSet<String>();
+        for(String key:decision.coveredMarkets())items.add(key.substring(0,key.indexOf('|')));
+        experimentDiscoveryItems=java.util.Set.copyOf(items);experimentSkippedReads++;
+        // This is discovery reuse, not full coverage in the local book. Do NOT advance the full-read timestamp.
+        nextOrdersReadAt=now+dev.doughbay.fabric.Tuning.millis("orders.scan_min");deskReadDue=true;
+        service.publishProductionDiscovery(report.put("actualSkippedReads",experimentSkippedReads));
+        LOGGER.info("GoNuts private experiment: reused peer discovery {}, {} requested markets; cumulative omitted reads {}",
+                decision.sourceReadId(),required.size(),experimentSkippedReads);
+        return true;
+    }
+
+    private long communityOrderShadowCycle;
     private boolean ordersScheduleSeeded;
     private final OrderReadWatchdog ordersReadWatchdog = new OrderReadWatchdog();
 
@@ -7696,6 +8306,7 @@ public final class AutomationSessionController {
             return true;
         }
         if (!safeInventoryContext(client)) return false;
+        if(!experimentForceSourceRead&&tryCommunityDiscovery(now))return true;
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
         boolean full = now >= nextFullSweepAt;
         int pages = full ? 0 : (int) dev.doughbay.fabric.Tuning.get("orders.pages");
@@ -7705,6 +8316,17 @@ public final class AutomationSessionController {
             nextOrdersReadAt = now + 60_000;
             detail = "Order house read could not start: " + result.detail();
             return false;
+        }
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(communityOrderShadowCycle,List.of(),false,now);communityOrderShadowCycle=0;
+        if(full){
+            var managed=new java.util.HashSet<String>();
+            var items=new java.util.HashSet<String>(dev.doughbay.fabric.Tuning.itemSet("watch.tracked"));
+            items.addAll(placedBids.keySet());for(Position position:openListings)items.add(baseItemId(position.itemKey()));
+            for(String entry:items){String item=entry.indexOf(':')>=0?entry:"minecraft:"+entry;
+                try{managed.add(dev.doughbay.fabric.hosted.CommunityWire.key(item,fullStack(item)));}catch(IllegalArgumentException ignored){}}
+            int ownCount=(int)ownOrders.stream().filter(row->row.remaining()>0&&!row.alreadyCancelled()).count();
+            communityOrderShadowCycle=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.beginOrderShadow(managed,
+                    ownOrdersReadAt>0&&now-ownOrdersReadAt<=300_000,ownCount,driver.ordersPagesWanted(),now);
         }
         ordersReadWatchdog.reset();
         transition(State.READING_ORDERS, "Reading the order house");
@@ -7761,6 +8383,7 @@ public final class AutomationSessionController {
         if (event.intent() != AutomatedExecutionDriver.OperationIntent.ORDERS
                 || event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
             nextOrdersReadAt = now + Math.min(interval, 3 * 60_000L);
+            dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(communityOrderShadowCycle,List.of(),false,now);communityOrderShadowCycle=0;
             if (book != null) book.noteFailure(event.detail());
             LOGGER.info("DoughBay automation: order house read did not complete: {}", event.detail());
             transition(State.SCANNING, "Order house read skipped (" + event.detail() + "); scanning");
@@ -7780,6 +8403,8 @@ public final class AutomationSessionController {
             LOGGER.info("DoughBay automation: the full sweep stopped at page {}; treated as a partial read", pages);
         }
         if (book != null) book.record(orders, pages, now, complete);
+        var decisionComparison = compareCommunityOrderDecisions(communityOrderShadowCycle, now);
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(communityOrderShadowCycle,driver.lastOrders(),true,now,decisionComparison);communityOrderShadowCycle=0;
         // The same sweep goes home: the order house is a page in the game and
         // nowhere else, so this is the only way the API ever learns of it.
         dev.doughbay.fabric.FeedUploader uploader = dev.doughbay.fabric.DoughBayClient.feedUploader();
@@ -7792,12 +8417,93 @@ public final class AutomationSessionController {
             readInterval = Math.max(interval, 30 * 60_000L);
         }
         nextOrdersReadAt = now + readInterval;
-        if (ordersReadWasFull) nextFullSweepAt = now + dev.doughbay.fabric.Tuning.millis("orders.full_sweep_min");
+        if (ordersReadWasFull) {nextFullSweepAt = now + dev.doughbay.fabric.Tuning.millis("orders.full_sweep_min");experimentForceSourceRead=false;}
         deskReadDue = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5
                 || dev.doughbay.fabric.Tuning.get("orders.collect") >= 0.5;
         LOGGER.info("DoughBay automation: order house {}: {} order(s) on {} page(s)",
                 ordersReadWasFull ? "swept" : "read", orders.size(), pages);
         transition(State.SCANNING, "Order house read: " + orders.size() + " order(s); scanning");
+    }
+
+    /** Called on the controller thread after recording the live read. Never dispatches an action.
+     * Bid decisions are certified by equality of their complete public-book input maps;
+     * replaying planDesk itself would mutate cancellation queues, cooldowns and persistence.
+     */
+    private com.fasterxml.jackson.databind.node.ObjectNode compareCommunityOrderDecisions(long cycle, long now) {
+        var json = dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                .put("evaluatedAt", now).put("method", "production_purchase_selector_and_bid_delivery_input_equivalence")
+                .put("verdict", "unverifiable").put("actionsDispatched", false);
+        var snapshot = dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.orderShadowSnapshot(cycle);
+        var requiredDiscovery=new java.util.HashSet<String>();
+        for(String entry:dev.doughbay.fabric.Tuning.itemSet("watch.tracked")) {
+            String item=entry.contains(":")?entry:"minecraft:"+entry;
+            if(!dev.doughbay.fabric.Tuning.buyingAllowed(item))continue;
+            try{requiredDiscovery.add(dev.doughbay.fabric.hosted.CommunityWire.key(item,fullStack(item)));}
+            catch(IllegalArgumentException ignored){}
+        }
+        var discovery=dev.doughbay.fabric.hosted.CommunityDiscoveryGate.evaluate(snapshot,requiredDiscovery,
+                200,now,ownOrdersReadAt,!capsFollowBank()||lastKnownBalance>0,
+                isolatedGuardsClear()&&!uncertainExposure.active()&&trackedPosition==null);
+        if(!communityGuidanceEnabled())dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.publishProductionDiscovery(
+                dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode().put("evaluatedAt",now)
+                    .put("phase","normal_loop_shadow").put("reason",discovery.reason())
+                    .put("hypotheticalSkipEligible",discovery.reusable()).put("executionEnabled",false)
+                    .put("sourceReadId",discovery.sourceReadId()).put("sourceEndedAt",discovery.sourceEndedAt())
+                    .put("requestedMarkets",requiredDiscovery.size()).put("coveredMarkets",discovery.coveredMarkets().size())
+                    .put("actionsDispatched",false).put("actualSkippedReads",0));
+
+        if (snapshot == null) return json.put("reason", "pre_read_snapshot_not_ready");
+        if (!snapshot.reason().isEmpty()) return json.put("reason", snapshot.reason());
+        if (policy == null) return json.put("reason", "policy_unavailable");
+        try {
+            var book = dev.doughbay.fabric.DoughBayClient.orderBook();
+            if (book == null) return json.put("reason", "live_book_unavailable");
+            var live = book.orders();
+            var remote = dev.doughbay.fabric.hosted.CommunityOrderDecisions.snapshotRows(snapshot);
+            var rolling = orderDecisionDiagnostics(live, remote, now);
+            var current = new ArrayList<dev.doughbay.fabric.OrderBook.Order>();
+            for (var row : driver.lastOrders()) current.add(new dev.doughbay.fabric.OrderBook.Order(now,
+                    row.itemId(), row.itemKey(), row.descriptorJson(), row.parts(), row.unitPrice(),
+                    row.delivered(), row.total(), row.page()));
+            var fresh = dev.doughbay.fabric.hosted.CommunityOrderDecisions.distinctRead(current);
+            json.setAll(rolling);
+            json.put("method", "production_candidate_inputs_with_history_and_order_diagnostics_v2")
+                    .put("actualFinalTradeChangeProven", false)
+                    .put("liveBookRows", live.size()).put("snapshotRows", remote.size())
+                    .put("currentReadRows", fresh.size());
+            json.set("currentReadDecisionComparison", orderDecisionDiagnostics(fresh, remote, now));
+            json.set("historyEffect", orderDecisionDiagnostics(live, fresh, now));
+            return json;
+        } catch (RuntimeException ignored) {
+            return json.put("reason", "decision_comparison_failed");
+        }
+    }
+
+    /** Pure diagnostics; differing candidate inputs do not prove a dispatched final action changed. */
+    private com.fasterxml.jackson.databind.node.ObjectNode orderDecisionDiagnostics(
+            List<dev.doughbay.fabric.OrderBook.Order> live,
+            List<dev.doughbay.fabric.OrderBook.Order> remote, long now) {
+        var before = orderCandidates(lastSnapshot, now, live);
+        var after = orderCandidates(lastSnapshot, now, remote);
+        var liveInputs = dev.doughbay.fabric.hosted.CommunityOrderDecisions.purchaseInputs(before);
+        var remoteInputs = dev.doughbay.fabric.hosted.CommunityOrderDecisions.purchaseInputs(after);
+        boolean ordered = liveInputs.equals(remoteInputs);
+        boolean sameSet = dev.doughbay.fabric.hosted.CommunityOrderDecisions.purchaseSet(liveInputs)
+                .equals(dev.doughbay.fabric.hosted.CommunityOrderDecisions.purchaseSet(remoteInputs));
+        boolean bids = dev.doughbay.fabric.hosted.CommunityOrderDecisions.bestBids(live, orderQuotes, now, ORDER_QUOTE_TTL)
+                .equals(dev.doughbay.fabric.hosted.CommunityOrderDecisions.bestBids(remote, orderQuotes, now, ORDER_QUOTE_TTL));
+        boolean deliveries = dev.doughbay.fabric.hosted.CommunityOrderDecisions.deliveryEnvelope(live)
+                .equals(dev.doughbay.fabric.hosted.CommunityOrderDecisions.deliveryEnvelope(remote));
+        return dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode()
+                .put("purchaseCandidatesEqual", ordered).put("purchaseCandidateSetEqual", sameSet)
+                .put("purchaseOrderOnlyDifference", sameSet && !ordered)
+                .put("purchaseExplanationOnlyDifference", ordered && !before.equals(after))
+                .put("livePurchaseCandidates", before.size()).put("snapshotPurchaseCandidates", after.size())
+                .put("bidDecisionInputsEqual", bids).put("deliveryDecisionInputsEqual", deliveries)
+                .put("verdict", ordered && bids && deliveries ? "equivalent" : !sameSet ? "different" : "unverifiable")
+                .put("reason", ordered && bids && deliveries ? "all_order_book_decision_dependencies_equal"
+                        : !sameSet ? "purchase_candidate_inputs_changed"
+                        : !ordered ? "purchase_candidate_order_changed" : "bid_or_delivery_input_changed");
     }
 
     private boolean startSlotAudit(Minecraft client) {
@@ -7845,6 +8551,7 @@ public final class AutomationSessionController {
             transition(State.SCANNING, "Slot check skipped (" + event.detail() + "); scanning");
             return;
         }
+        experimentOwnAuctionAt=now;
         List<AutomatedExecutionDriver.OwnListingRow> rows =
                 new ArrayList<>(driver.lastOwnListings());
         // What the server itself just said, before reconciliation starts
@@ -9190,6 +9897,7 @@ public final class AutomationSessionController {
         repricing = null;
         openListings.removeIf(p -> p.positionId() == listed.positionId());
         if (shelveRatherThanLose(client, listed, now)) return;
+        dashboardRepricePositionId=listed.positionId();
         // The stack is in the inventory, so the server has definitely taken
         // the listing down and that slot is free. The relist a moment later
         // will put one back; without this the pair only ever counted upward.
@@ -11841,7 +12549,7 @@ public final class AutomationSessionController {
         AutomationPersistencePort.Status status = persistence.status();
         if (!status.ready()) {
             return "Automation recovery is not ready: " + status.loadState()
-                    + (status.detail().isBlank() ? "" : " — " + status.detail());
+                    + (status.detail().isBlank() ? "" : " â€” " + status.detail());
         }
         if (!recoveryApplied) {
             return "Automation recovery has not yet been applied on the client tick";
@@ -12007,7 +12715,7 @@ public final class AutomationSessionController {
                 true, State.PAUSED.name(), trackedPosition, uncertainExposure,
                 checkpointDetail));
         if (generation <= 0) {
-            persistenceStatus = "FAILED — pause checkpoint queue rejected; prior durable state retained";
+            persistenceStatus = "FAILED â€” pause checkpoint queue rejected; prior durable state retained";
         }
     }
 
@@ -12339,15 +13047,15 @@ public final class AutomationSessionController {
         return n;
     }
 
-    /** "small 12/25 · mid 3/15 · large 1/5", for the Automation tab and status lines. */
+    /** "small 12/25 Â· mid 3/15 Â· large 1/5", for the Automation tab and status lines. */
     public synchronized String tierSummary() {
         StringBuilder out = new StringBuilder();
         for (Tier tier : Tier.values()) {
-            if (out.length() > 0) out.append(" · ");
+            if (out.length() > 0) out.append(" Â· ");
             out.append(tier.name().toLowerCase(java.util.Locale.ROOT)).append(' ')
                     .append(openOfTier(tier)).append('/').append(tierSlots(tier));
         }
-        out.append(" · slow ").append(openSlow(System.currentTimeMillis())).append('/').append(slowLaneSlots());
+        out.append(" Â· slow ").append(openSlow(System.currentTimeMillis())).append('/').append(slowLaneSlots());
         return out.toString();
     }
 

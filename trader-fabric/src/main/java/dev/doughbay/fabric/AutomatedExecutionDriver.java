@@ -297,6 +297,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private Operation operation = Operation.NONE;
+    private dev.doughbay.fabric.hosted.CommunityPerformance.Read communityReadTiming;
     private Phase phase = Phase.IDLE;
 
     private Opportunity opportunity;
@@ -1910,6 +1911,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * open. Read-only: the Search control is the only thing clicked, by the
      * same steps a delivery takes to find its order.
      */
+    private List<dev.doughbay.fabric.hosted.CommunityTradeSimulation.Level> lastQuoteLevels=List.of();
+    private int lastQuoteParseFailures;
+    public synchronized List<dev.doughbay.fabric.hosted.CommunityTradeSimulation.Level> lastQuoteLevels(){return lastQuoteLevels;}
+    public synchronized int lastQuoteParseFailures(){return lastQuoteParseFailures;}
+    private static long quantityBand(String raw){
+        String suffix=raw.matches("(?i).*[kmb]$")?raw.substring(raw.length()-1):"";
+        return displayedBandFor(suffix.isEmpty()?raw:raw.substring(0,raw.length()-1),suffix);
+    }
     public synchronized ExecutionResult quoteOrders(String itemId) {
         if (!authorizedExecutionEnabled) {
             return ExecutionResult.refused(EXECUTION_DISABLED);
@@ -1930,6 +1939,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         opportunity = null;
         operation = Operation.ORDER_QUOTE;
+        lastQuoteLevels=List.of();lastQuoteParseFailures=0;
         targetListingKey = "order-quote:" + canonical;
         targetItemKey = canonical;
         targetItemId = canonical;
@@ -2034,6 +2044,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // Stage 2, read only: the most any open order on the page pays.
                 long best = 0;
                 int open = 0;
+                var verifiedLevels=new ArrayList<dev.doughbay.fabric.hosted.CommunityTradeSimulation.Level>();
+                int parseFailures=0;
                 for (int menuSlot = 0; menuSlot < Math.min(45, container.getMenu().slots.size()); menuSlot++) {
                     Slot slot = container.getMenu().slots.get(menuSlot);
                     if (slot.container == inventory) continue;
@@ -2041,13 +2053,19 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (stack.isEmpty() || !itemId(stack).equals(targetItemId)) continue;
                     if (ItemDescriptor.of(stack).hasParts() || worn(stack)) continue;
                     long unit = -1;
-                    long remaining = -1;
+                    long remaining = -1,remainingFloor=-1;
                     for (String line : tooltipLines(client, stack)) {
                         Matcher price = ORDER_PRICE.matcher(line);
                         if (price.find()) unit = parseAbbreviated(price.group(1) + price.group(2));
                         Matcher done = ORDER_DELIVERED.matcher(line);
-                        if (done.find()) remaining = parseAbbreviated(done.group(2)) - parseAbbreviated(done.group(1));
+                        if (done.find()) {
+                            long total=parseAbbreviated(done.group(2)),delivered=parseAbbreviated(done.group(1));
+                            remaining=total-delivered;
+                            remainingFloor=dev.doughbay.fabric.hosted.CommunityTradeSimulation.remainingLowerBound(total,delivered,quantityBand(done.group(1)));
+                        }
                     }
+                    if(unit<=0||remaining<0||remainingFloor<0)parseFailures++;
+                    else if(remainingFloor>0)verifiedLevels.add(new dev.doughbay.fabric.hosted.CommunityTradeSimulation.Level(unit,remainingFloor));
                     if (unit <= 0 || remaining == 0) continue;
                     open++;
                     best = Math.max(best, unit);
@@ -2055,6 +2073,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // Rows arrive a moment after the page opens; an empty first
                 // look is a page still loading, not an item nobody orders.
                 if (open == 0 && ticksInPhase < PROBE_EMPTY_SETTLE_TICKS) return;
+                lastQuoteLevels=List.copyOf(verifiedLevels);lastQuoteParseFailures=parseFailures;
                 targetPrice = best;
                 complete(client, best > 0
                         ? String.format(Locale.ROOT, "Orders for %s pay up to %s each (%d open on the page)",
@@ -2209,10 +2228,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * tooltip lines above the price (the requirement, part of what makes an
      * order the order it is); {@code tail} is every line below it, kept
      * verbatim and never part of identity - it is where a buyer's name would
-     * be if the server prints one, which nobody has looked at yet.
+     * be if the server prints one. The legacy-data audit found no buyer field.
      */
     public record OrderRow(String itemId, String itemKey, String descriptorJson, List<String> parts,
-                           long unitPrice, long delivered, long total, int page, List<String> tail) {
+                           long unitPrice, long delivered, long total, int page, List<String> tail, int stack, String owner, long observedAt) {
+        public OrderRow(String itemId,String itemKey,String descriptorJson,List<String> parts,long unitPrice,long delivered,long total,int page,List<String> tail){
+            this(itemId,itemKey,descriptorJson,parts,unitPrice,delivered,total,page,tail,64,"",0);
+        }
     }
 
     private List<OrderRow> lastOrders = List.of();
@@ -2223,6 +2245,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int ordersFilterClicks;
     private int ordersSettleUntilTick;
     private boolean ordersFullSweep;
+    private boolean ordersReadHasNext;
+    private dev.doughbay.fabric.hosted.CommunityObservations.OrderRead communityOrderStream;
     private static final int ORDERS_MAX_PAGES = 200;
 
     /** The rows read by the last successful order-house read. */
@@ -2249,6 +2273,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         opportunity = null;
         operation = Operation.ORDERS;
+        communityReadTiming=dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.begin(false,0,"",System.nanoTime());
         targetListingKey = "orders:scan";
         targetItemKey = "";
         targetItemId = "";
@@ -2275,6 +2300,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         listingCaptureTaken = false;
         confirmationCaptureTaken = false;
         lastCapturePath = null;
+        if(communityOrderStream!=null)communityOrderStream.abort();
+        communityOrderStream=dev.doughbay.fabric.hosted.CommunityObservations.beginOrderRead(System.currentTimeMillis());
         ordersRead.clear();
         // Zero pages means every page: turn until Next Page is gone or a page is empty.
         ordersPagesWanted = pages <= 0 ? ORDERS_MAX_PAGES : pages;
@@ -2285,6 +2312,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ordersTurnRetries = 0;
         ordersTurnPending = false;
         lastOrdersSweepComplete = false;
+        lastOrdersSweepCapped = false;
+        lastOrdersPhysicalComplete = false;
+        ordersReadHasNext = false;
         ordersSettleUntilTick = 0;
         try {
             sendCommand(client, "orders");
@@ -2442,11 +2472,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             String id = itemId(stack);
             String key = descriptor.hasParts() ? id + "#" + descriptor.hash() : id;
             ordersRead.add(new OrderRow(id, key, descriptor.toJson(), List.copyOf(parts), unit,
-                    Math.max(0, delivered), total, page, List.copyOf(tail)));
+                    Math.max(0, delivered), total, page, List.copyOf(tail),Math.min(64,stack.getMaxStackSize()),dev.doughbay.fabric.hosted.CommunityWire.owner(tooltip),System.currentTimeMillis()));
         }
         int rowsOnPage = ordersRead.size() - rowsBefore;
         ordersPagesRead++;
+        ordersReadHasNext = nextSlot >= 0;
         ordersLastPage = page;
+        if(communityOrderStream!=null)communityOrderStream.page(page,List.copyOf(ordersRead.subList(rowsBefore,ordersRead.size())),System.currentTimeMillis());
         if (ordersFullSweep && rowsOnPage == 0) {
             finishOrders(client, "last page");
             return;
@@ -2495,6 +2527,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
     /** Whether the last full sweep really reached the end of the book. */
     private boolean lastOrdersSweepComplete;
+    private boolean lastOrdersSweepCapped;
+    private boolean lastOrdersPhysicalComplete;
+    public synchronized boolean lastOrdersPhysicalComplete(){return lastOrdersPhysicalComplete;}
+    public synchronized boolean lastOrdersSweepCapped(){return lastOrdersSweepCapped;}
 
     /**
      * True only when a full sweep ended because the book ran out - an empty
@@ -2524,6 +2560,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         lastOrders = List.copyOf(ordersRead);
         lastOrdersSweepComplete = ordersFullSweep
                 && (note.equals("last page") || (note.isEmpty() && ordersPagesRead < ordersPagesWanted));
+        lastOrdersPhysicalComplete = ordersFullSweep && (note.equals("last page") || (note.isEmpty() && !ordersReadHasNext));
+        lastOrdersSweepCapped = dev.doughbay.fabric.hosted.CommunityReadCoverage.capped(
+                ordersFullSweep,lastOrdersSweepComplete,ordersReadHasNext,ordersPagesRead,ordersPagesWanted,note);
+        if(communityOrderStream!=null){
+            communityOrderStream.finish(ordersPagesRead,lastOrdersPhysicalComplete,lastOrdersSweepCapped,System.currentTimeMillis());
+            communityOrderStream=null;
+        }
         complete(client, (ordersFullSweep ? "Order house swept: " : "Order house read: ") + ordersRead.size()
                 + " order(s) on " + ordersPagesRead + " page(s)" + (note.isEmpty() ? "" : " (" + note + ")"));
     }
@@ -2956,6 +2999,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     /** Every ask from others the last probe saw, cheapest first (displayed prices). */
     private List<Long> lastProbeAsks = List.of();
+    private List<Long> lastProbePlainPurchaseUpper=List.of();
+    private java.util.Map<String,Integer> lastProbePurchaseDiagnostics=java.util.Map.of();
+    public synchronized java.util.Map<String,Integer> lastProbePurchaseDiagnostics(){return lastProbePurchaseDiagnostics;}
+    public synchronized List<Long> lastProbePlainPurchaseUpper(){return lastProbePlainPurchaseUpper;}
     /** The page already up when a probe was sent; its rows are not the search's answer. */
     private int probeStaleContainerId = -1;
     private static final int PROBE_EMPTY_SETTLE_TICKS = 20;
@@ -2984,6 +3031,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         opportunity = null;
         operation = Operation.PROBE;
+        communityReadTiming=dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.begin(true,
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.scanCandidate(canonical,Math.max(1,count)),
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.marketScope(),System.nanoTime());
         targetListingKey = "probe:" + canonical + ":" + count;
         targetItemKey = canonical;
         targetItemId = canonical;
@@ -2993,7 +3043,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         targetPriceSpan = 1;
         targetRequiredCount = Math.max(0, count);
         targetSeller = ownName == null ? "" : ownName;
-        lastProbeAsks = List.of();
+        lastProbeAsks = List.of();lastProbePlainPurchaseUpper=List.of();lastProbePurchaseDiagnostics=java.util.Map.of();
+        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.requestMarket(canonical,Math.max(1,count));
         probeStaleContainerId = -1;
         if (client.gui.screen() instanceof AbstractContainerScreen<?> up && client.player != null) {
             // A page left open is closed before the search goes out. Sent over
@@ -3037,6 +3088,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // until clicked. The median of the visible asks is what a buyer
         // actually finds available, so that is what gets undercut.
         List<Long> asks = new ArrayList<>();
+        var plainPurchaseUpper=new ArrayList<Long>();
+        var purchaseDiagnostics=new java.util.TreeMap<String,Integer>();
+        var communityRows=new java.util.ArrayList<com.fasterxml.jackson.databind.node.ObjectNode>();
+        var communityLevels=new java.util.LinkedHashMap<String,com.fasterxml.jackson.databind.node.ObjectNode>();
         for (int menuSlot = 0; menuSlot < container.getMenu().slots.size(); menuSlot++) {
             Slot slot = container.getMenu().slots.get(menuSlot);
             if (slot.container == inventory) continue;
@@ -3049,12 +3104,30 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             PriceEvidence price = authoritativePriceEvidence(tooltip);
             if (!price.sawAuthoritativeField() || price.unclear()) continue;
             asks.add(price.displayed());
+            boolean plain=!ItemDescriptor.of(stack).hasParts()&&!worn(stack);
+            // Public auction rows are anonymous. Our own audited rows can exclude a
+            // possible self listing, but an unmatched row does not prove its seller.
+            String observedKey=ItemDescriptor.of(stack).hasParts()?itemId(stack)+"#"+ItemDescriptor.of(stack).hash():itemId(stack);
+            boolean ownMatch=lastOwnListings.stream().anyMatch(own->own.itemKey().equals(observedKey)
+                    && own.count()==stack.getCount() && own.displayedPrice()<=price.upperBound()
+                    && price.displayed()<=own.priceUpperBound());
+            purchaseDiagnostics.merge("matching_priced_rows",1,Integer::sum);
+            purchaseDiagnostics.merge(!plain?"variant_or_worn":ownMatch?"possible_own_listing":"anonymous_plain_lot",1,Integer::sum);
+            if(dev.doughbay.fabric.hosted.CommunityTradeSimulation.usableAuctionLot(stack.getCount(),targetRequiredCount,
+                    plain,ownMatch)&&price.upperBound()>0)plainPurchaseUpper.add(price.upperBound());
+            var level=dev.doughbay.fabric.hosted.CommunityWire.priceLevel(observedKey,
+                    stack.getCount(),price.displayed(),System.currentTimeMillis(),"probe");
+            if(level!=null)communityLevels.put(level.path("itemKey").asText()+"|"+level.path("unitPrice").asLong(),level);
         }
         // Rows arrive a moment after the page opens; an empty first look is
         // a page still loading, not an empty market.
         if (asks.isEmpty() && ticksInPhase < PROBE_EMPTY_SETTLE_TICKS) return;
         asks.sort(null);
         lastProbeAsks = List.copyOf(asks);
+        lastProbePlainPurchaseUpper=List.copyOf(plainPurchaseUpper);
+        lastProbePurchaseDiagnostics=java.util.Map.copyOf(purchaseDiagnostics);
+        dev.doughbay.fabric.hosted.CommunityObservations.asks(communityRows,System.currentTimeMillis(),System.currentTimeMillis());
+        communityLevels.values().forEach(dev.doughbay.fabric.hosted.CommunityClient.INSTANCE::observe);
         long cheapest = asks.isEmpty() ? 0 : asks.get(0);
         long median = asks.isEmpty() ? 0 : asks.get(asks.size() / 2);
         targetPrice = median;
@@ -6239,6 +6312,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void clearTarget() {
+        if(communityOrderStream!=null){communityOrderStream.abort();communityOrderStream=null;}
+        finishCommunityReadTiming(false);
         resendCommand = null;
         resendCommandAt = 0;
         commandQueuedAt = 0;
@@ -6294,10 +6369,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         confirmationContainerId = -1;
     }
 
+    private void finishCommunityReadTiming(boolean succeeded){
+        var timing=communityReadTiming;communityReadTiming=null;if(timing==null)return;
+        double price=operation==Operation.PROBE&&!lastProbeAsks.isEmpty()?lastProbeAsks.get(0)/(double)Math.max(1,targetCount):0;
+        dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.end(timing,succeeded,price,
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.marketScope(),operation==Operation.ORDERS?ordersPagesRead:0,
+                operation==Operation.ORDERS?ordersRead.size():0,System.nanoTime());
+    }
     private void publishTerminal(TerminalOutcome outcome, String detail) {
         if (operation == Operation.NONE || outcome == null || outcome == TerminalOutcome.NONE) {
             return;
         }
+        finishCommunityReadTiming(outcome==TerminalOutcome.SUCCEEDED);
         terminalSequence++;
         lastTerminalEvent = new TerminalEvent(
                 terminalSequence,

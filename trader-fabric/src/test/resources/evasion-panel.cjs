@@ -4,7 +4,7 @@ const source=html.slice(html.indexOf('async function openEvasion()'),html.indexO
 const nodes=[],ids=new Map();
 function el(tag,cls,text=''){
   const node={tag,className:cls,textContent:text,children:[],style:{},value:'',
-    append(...children){this.children.push(...children);},appendChild(child){this.children.push(child);},
+    append(...children){this.children.push(...children);},prepend(child){this.children.unshift(child);},appendChild(child){this.children.push(child);},
     replaceChildren(...children){this.children=children;},setAttribute(){}};
   Object.defineProperty(node,'id',{set(value){ids.set(value,node);},get(){return [...ids].find(([,n])=>n===node)?.[0];}});
   Object.defineProperty(node,'innerHTML',{set(){throw Error('History text must not become HTML');}});
@@ -16,13 +16,17 @@ const data={enabled:false,guardStatus:'off',pauseRing:128,escapeRing:120,onConta
     mostSeen7d:{who:'Alex',count:3},events:[{at:1000,client:'main',who:'Alex',distance:12,action:'paused'},
       {at:900,client:'alt',who:'<img src=x onerror=alert(1)>',distance:0,action:'Staff Watch: disconnected'}]}};
 const messages=[];
+const actions=[];
 const context=vm.createContext({view:'evasion',own,el,$:id=>ids.get(id),Date,
   api:async()=>{calls++;if(fail)throw Error('offline');return data;},change:async()=>({ok:true}),
+  act:async(id,value)=>{actions.push({id,value});return true;},
   settingRow:()=>el('div','setting','Radius setting'),failed:()=>{throw Error('Evasion page did not render');},
   toast:text=>messages.push(text),button:(cls,text,click)=>Object.assign(el('button',cls,text),{click})});
 vm.runInContext(source,context);
 (async()=>{
   await context.openEvasion();assert(ids.has('evasion-history'));assert.equal(ids.get('evasion-guard-toggle').textContent,'Guard: OFF');
+  assert(ids.get('evasion-shot').src.startsWith('/panel.png?t='));
+  assert.deepEqual(actions,[{id:'page:pick',value:'EVASION'}],'Opening the image must only select its display page');
   assert(nodes.some(n=>n.tag==='td'&&n.textContent==='<img src=x onerror=alert(1)>'));
   assert(nodes.some(n=>n.tag==='td'&&n.textContent==='main'));assert(nodes.some(n=>n.tag==='td'&&n.textContent==='alt'));
   assert(nodes.some(n=>n.textContent==='Radius setting'),'Settings must remain alongside history');

@@ -65,6 +65,16 @@ public final class LocalPanel implements AutoCloseable {
         }
     }
 
+    /** The authenticated panel's own page/assets, also used by the outbound hosted relay. */
+    public static String pageHtml() { return Pages.APP; }
+    public static byte[] asset(String name) {
+        return switch (name) {
+            case "logo" -> bundled("/assets/doughbay/textures/gui/logo.png");
+            case "font" -> bundled("/doughbay/web/Monocraft.ttf");
+            default -> new byte[0];
+        };
+    }
+
     static final int MAX_HEAD = 8 * 1024;
     /** Room for a watch list typed out in full, and no more. */
     static final int MAX_BODY = 64 * 1024;

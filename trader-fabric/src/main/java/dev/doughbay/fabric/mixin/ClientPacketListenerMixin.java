@@ -23,4 +23,9 @@ abstract class ClientPacketListenerMixin {
             ClientboundSetActionBarTextPacket packet, CallbackInfo callbackInfo) {
         DoughBayClient.observeActionBar(packet.text());
     }
+    @Inject(method = "handleTabListCustomisation", at = @At("RETURN"))
+    private void doughbay$communityTab(net.minecraft.network.protocol.game.ClientboundTabListPacket packet, CallbackInfo callbackInfo) {
+        dev.doughbay.fabric.hosted.CommunityRegion.tab(packet.header().getString(),packet.footer().getString());
+    }
+
 }

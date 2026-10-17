@@ -4,6 +4,15 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 — Swarm API and hosted dashboard
+
+- Added the Discord-linked dashboard and per-installation Swarm API opt-in. Participating clients contribute observed markets and passive follow activity and receive shared discovery guidance in the background. Linking a bot to the dashboard includes Swarm contribution and discovery; no second enrollment step is needed. Unlinking leaves the Swarm.
+- Normal trading now uses fresh shared observations to prioritize discovery. Current native price quotes, own-order evidence, sizing, profit/ROI, inventory, capacity and guard checks remain authoritative. Missing or stale service data falls back to normal reads. Duplicate broad discovery is reused only with accepted, recent, complete same-owner peer coverage and fresh owned-state evidence; observed history is never an executable price or an ownership ledger.
+- Dashboard in a hosted bot panel now returns to the website dashboard/sign-in page; the local panel retains account linking. Fixed Report bug remaining on Reading after a removed form control caused a JavaScript error, and made failed submission/preview requests retryable.
+- Normal recovery no longer implicitly writes off missing retained purchases. Real sidebar balance feeds the controller as well as the display, including isolated validation paths.
+- Evasion emergency and optional movement paths respect Disconnect and the selected home/RTP route; an empty home list no longer silently falls back to RTP. Staff Watch's explicitly selected region-switch response remains separate.
+- Retained the current public Analyzer, saved presets, capital charts, report privacy and Evasion-history patches. Added a MultiMC + HeadlessMC guide and per-client mascot telemetry with independent native activity animation and transport-driven antenna send/receive signals. Background request time is not reported as trading downtime; no guaranteed speed or profit uplift is claimed.
+
 ## 2026-10-16 23:42 UTC
 
 - Added named saved presets in Settings: save the current setup, apply an existing copy, rename, copy its Settings code, or explicitly replace/delete it. Saved copies remain independent and survive restarts; empty item lists restore correctly, while account slot counts and follow settings keep their existing import protections.
