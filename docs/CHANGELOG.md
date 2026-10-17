@@ -4,6 +4,28 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 20:02 UTC
+
+- Fixed a bid-planning loop where a fresh Swarm or selected-item order quote triggered another full Your Orders read, allowing the quote to expire before placement. The desk now replans against a still-fresh native own-order book. Missing or stale own-order evidence still requires a read, and native prices, sizing, inventory, spend limits and protective guards remain authoritative.
+
+## 2026-10-17 19:47 UTC
+
+- Manual bug reports can include an anonymous installation key when the reporting service advertises support. The key is a hash of a random local secret, contains no account or machine identifier, and is disclosed in the in-game and web-panel preview. Repeated submissions can now be grouped and throttled without forwarding market credentials. Rate-limit messages ask users to consolidate reports and warn that repeated spam reports will be ignored.
+
+## 2026-10-17 19:41 UTC
+
+- Single-account clients now stamp new automation ledger records with their account, so booked dashboard and Discord metrics can find them. Hosted metrics accept case-only changes in the same account name and continue excluding other accounts and unowned historical records.
+- Evasion can send a direct RTP command for the current region when a fresh server label and current server command suggestions agree. This avoids relying on bare RTP opening a region-selection menu. Unknown or stale region evidence keeps the existing route; configured homes, movement verification and protective disconnect fallback remain unchanged.
+
+## 2026-10-17 19:22 UTC
+
+- Delayed auction sell commands now recheck the selected slot, exact stack and inventory before sending, and synchronize the selected slot with the server. Changed or empty hands retain stock for verification instead of sending a stale sell command.
+- Recovered purchases wait while inventory is unsettled, an operation is busy, a protective escape or transfer is active, or persistence refuses a write. Recovery messages now explain why stock is waiting. New live execution also waits while the player is dead.
+
+## 2026-10-17 18:41 UTC
+
+- Participating clients can share new Staff Watch detections with same-region evidence for the Swarm dashboard sidebar. Reports contain only the public staff name, broad explicitly reported region, detection type and time; they expire after 15 minutes. Global staff-online entries and disappearances alone are excluded. Detections are handed to the existing transport immediately, so a protective game disconnect does not lose an already-observed report. Unlinking or losing participation clears the temporary local feed. Staff Watch controls and alert behavior are unchanged.
+
 ## 2026-10-17 18:18 UTC
 
 - Website Swarm cards now show six estimated standings (sale records per hour, profit per hour/24 hours, revenue per hour/24 hours and 24-hour profit margin), plus an equal-weight overall score and position using available metrics. Collective profit/revenue and your Hive profit share give context. Figures use compact K/M/B notation and rounded-display labels; missing revenue remains unknown or partial until clients report it. No 10-Hive or ledger-coverage wait is required.
