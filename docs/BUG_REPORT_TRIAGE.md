@@ -29,3 +29,9 @@ Updated manual reporters send the capability-gated anonymous installation key. T
 Repeats of the same problem should retain material new evidence under one canonical job. Different problems from one installation remain valid. Distinct confirmed reporters can raise priority within severity bounds; same-installation repeats must not inflate it. Never infer a person from a shared IP, a receiver bot's GitHub author, or generic IOException.
 
 Confirmed financial loss or unsafe exposure changes take priority over popularity. Keep missing data unknown. A released related patch is not confirmation that a particular report is resolved. Do not request unfiltered logs, raw settings, player/home names or credentials to fill these gaps.
+
+## Follow-up — October 17, 22:28 UTC
+
+Controller-level repeat-cycle fixtures reproduce another order-desk stall independently of missing logs: a server-confirmed cancelled row still reserved its market, active slot and unfilled funds, preventing a replacement. Cancelled rows with deliveries also queued repeated collection even after those goods were accounted for, and used the delivered quantity instead of the original requested quantity in the collection key. The patch releases only cancelled unfilled reservations, preserves uncollected-goods holds, and deduplicates/bounds collection attempts with the original key.
+
+Related symptoms: #56, #85, #89, #92. This is a reproduced code defect and a patch for that path, not proof that every report had a cancelled order or the same cause. Their filtered excerpts do not contain that evidence. The existing quote-refresh fix and improved reviewed diagnostics remain included; report-specific confirmation is still required.

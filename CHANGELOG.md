@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 22:28 UTC
+
+- Fixed a repeat-order stall: cancelled orders that remain visible on Your Orders no longer reserve an active bid slot, unfilled funds or the selected Flip market. Goods still owed must be collected before replenishment; active orders and purchase/spend limits remain respected.
+- Cancelled-order collection now uses the original order's requested quantity for its accounting key, queues each owed collection once and respects the retry limit. Already collected goods are not collected again merely because the cancelled row still appears on the page.
+
 ## 2026-10-17 20:53 UTC
 
 - Bug-report previews capture bounded, read-only controller evidence directly: current state and active action, fixed pause/desk/Flip/resume categories, evidence ages, persistence readiness and pending writes, retained exposure counts, caps and anonymous Flip allowances. Missing logs no longer prevent a report; unavailable historical counters are explicitly marked unknown. Names, identifiers, raw messages and settings text remain excluded.
