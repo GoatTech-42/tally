@@ -95,7 +95,7 @@ public final class BugReportScreen extends Screen {
             report = result == null ? "" : payload.preview() + "\n\n" + BugReporterKey.NOTICE + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
-                : BugReportLog.UNAVAILABLE.equals(diagnosticLog)?"Log unavailable; report includes that notice. Send publishes the sanitized details.":"Preview ready. Sanitized diagnostics are attached automatically.";
+                : diagnosticLog.contains(BugReportLog.UNAVAILABLE)?"Historical log unavailable; current controller evidence is included. Review before sending.":"Preview ready. Sanitized diagnostics are attached automatically.";
             if (minecraft.gui.screen() == this) {
                 rebuildWidgets();
                 if (result != null && sendWhenReady) { sendWhenReady = false; send(); }

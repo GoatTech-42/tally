@@ -118,7 +118,7 @@ public final class WebReports {
             result.payload().json(result.log());
             synchronized (WebReports.class) {
                 d.payload = result.payload(); d.log = result.log(); d.busy = false;
-                d.note = BugReportLog.UNAVAILABLE.equals(d.log)?"Log unavailable; the report includes that notice. Nothing uploaded.":"Preview ready; sanitized diagnostics included automatically.";
+                d.note = d.log.contains(BugReportLog.UNAVAILABLE)?"Historical log unavailable; current controller evidence and the availability notice are included. Nothing uploaded.":"Preview ready; sanitized diagnostics included automatically.";
                 if (submit && draft == d)
                     change(Map.of("action","send","id",d.id,"consent","true"),preparation,delivery);
             }
@@ -135,8 +135,8 @@ public final class WebReports {
             var path = net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("logs/latest.log");
             var payload = new BugReportPayload(BugReportBuild.current(), "26.2", BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(description)),
                 BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(expected)), BugReportDiagnostics.readCountersForReport(path));
-            if (!TRANSPORT.supportsLogAttachments("", "").join())
-                throw new IllegalStateException("Log support unavailable. Try again later.");
+            // Preview is local and must work during a reporting-service outage.
+            // Delivery validates capabilities later and retains the frozen draft.
             String log = BugReportEvidence.readForReport(path);
             payload.json(log);
             return new Prepared(payload, log);
