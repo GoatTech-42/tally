@@ -76,6 +76,7 @@
   .bar nav { display: flex; gap: 22px; margin-left: auto; align-items: center; }
   .bar nav a { color: var(--secondary); text-decoration: none; font-size: 15px; }
   .bar nav a:hover { color: var(--text); }
+  .bar nav a.primary { color: #1b1408; }
   .bar nav a.plain { display: none; }
 
   /* ---- buttons ---- */
@@ -168,6 +169,8 @@
     .bar nav a.optional { display: none; }
   }
   @media (max-width: 560px) {
+    .bar .wrap { flex-wrap: wrap; padding-block: 12px; gap: 12px; }
+    .bar nav { width: 100%; margin-left: 0; gap: 10px; justify-content: space-between; }
     body { font-size: 16px; }
     .cards { grid-template-columns: minmax(0, 1fr); }
     .entry { grid-template-columns: minmax(0, 1fr); }
@@ -187,13 +190,12 @@
   <div class="wrap">
     <a href="#top" aria-label="GoNuts, top of page"><img src="assets/logo.png" alt="GoNuts"></a>
     <nav aria-label="Sections">
-      <a href="https://cody-raves.github.io/Gonuts/guide/">Guides</a>
-      <a class="optional" href="#install">Install</a>
-      <a class="optional" href="#discord">Discord</a>
+      <a href="#guides">Guides</a>
       <a class="optional" href="#does">What it does</a>
       <a class="optional" href="#new">What's new</a>
       <a href="https://github.com/cody-raves/Gonuts">GitHub</a>
-      <a class="button primary small" href="https://github.com/cody-raves/Gonuts/releases/latest/download/GoNuts-0.1.0-mc26.2.jar">Download</a>
+      <a class="button small" href="https://github.com/cody-raves/Gonuts/releases/latest/download/GoNuts-0.1.0-mc26.2.jar">Download</a>
+      <a class="button primary small" href="https://gonuts.at/dashboard/">Sign in</a>
     </nav>
   </div>
 </header>
@@ -208,8 +210,9 @@
       <p class="lede">A Fabric mod that reads the market, places buy orders, and lists what it buys. It stays inside the limits you set, and it is off until you turn it on.</p>
       <div class="actions">
         <a class="button primary" href="https://github.com/cody-raves/Gonuts/releases/latest/download/GoNuts-0.1.0-mc26.2.jar">Download for Minecraft 26.2</a>
-        <a class="button" href="#install">Watch the install, 1:45</a>
+        <a class="button" href="https://gonuts.at/dashboard/">Sign in with Discord · Dashboard</a>
       </div>
+      <p class="build">Manage your linked bots on the dashboard. Linking includes contributing public market observations to the Swarm and receiving shared discovery hints. <a href="#guides">Setup guides</a></p>
       <p class="build" id="build" aria-live="polite"></p>
       <p class="build" id="downloads" hidden></p>
       <ul class="facts">
@@ -235,6 +238,16 @@
   </div>
 </section>
 
+<section id="guides">
+  <div class="wrap">
+    <div class="section-head"><div class="label">Guides</div><h2>Install, connect and run your bots</h2><p class="lede">Setup tutorials live here. For your connected clients, use <a href="https://gonuts.at/dashboard/">Sign in / Dashboard</a>.</p></div>
+    <div class="cards">
+      <article class="card"><h3>Written handbook</h3><p>First install, hive setup, panels and troubleshooting.</p><a href="guide/">Read the guides</a></article>
+      <article class="card"><h3>First-install video</h3><p>From download to trading in six steps.</p><a href="#install">Watch the install tutorial</a></article>
+      <article class="card"><h3>Discord-bot setup</h3><p>Configure your own Discord bot and its control panel.</p><a href="#discord">Watch the Discord tutorial</a><a href="guide/#discord">Read the Discord steps</a></article>
+      <article class="card"><h3>MultiMC + HeadlessMC</h3><p>Run a working instance without a game window and verify dashboard access.</p><a href="guide/headless-multimc.html">Set up headless</a></article>
+    </div>
+  </div>
 <section id="install">
   <div class="wrap">
     <div class="section-head">
@@ -251,7 +264,7 @@
         </video>
         <div class="under">
           <span>Your first install, with captions</span>
-          <a href="https://cody-raves.github.io/Gonuts/guide/#start">Prefer to read? The written guide</a>
+          <a href="guide/#start">Prefer to read? The written guide</a>
         </div>
       </div>
       <div>
@@ -303,6 +316,7 @@
   </div>
 </section>
 
+</section><!-- Guides: handbook and setup tutorials -->
 <section id="does">
   <div class="wrap">
     <div class="section-head">
