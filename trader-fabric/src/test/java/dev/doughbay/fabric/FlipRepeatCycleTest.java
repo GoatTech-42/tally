@@ -146,4 +146,53 @@ class FlipRepeatCycleTest {
         assertEquals(List.of(completed,active),verified);
         assertThrows(UnsupportedOperationException.class,()->verified.add(cancelled));
     }
+    @Test void aCollectionRetryDoesNotSkipPastTheOnlyMatchingOrderRow()throws Exception {
+        long now=1000000;var c=controller(now);
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+        ((Map<String,Integer>)get(c,"collectAttempts")).put(ITEM+"|200|64",1);
+        var steps=plan(c,now);
+        assertTrue(steps.stream().anyMatch(s->s.contains("action=COLLECT")&&s.contains("ordinal=0")),
+                "one failed attempt must not mean the next try starts at nonexistent row 2");
+    }
+    @Test void confirmedCollectionClearsOldFailuresForTheNextLotOfTheSameFlip()throws Exception {
+        long now=1000000;var c=controller(now);
+        set(c,"ownOrders",Collections.nCopies(4,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+        ((Map<String,Integer>)get(c,"collectedByKey")).put(ITEM+"|200|64",192);
+        ((Map<String,Integer>)get(c,"collectAttempts")).put(ITEM+"|200|64",3);
+        plan(c,now);
+        // Physical resale is outside this queue/accounting fixture.
+        ((Set<String>)get(c,"setAsideItems")).add(ITEM);
+        completeNext(c,AutomatedExecutionDriver.OperationIntent.COLLECT_ORDER,ITEM,200,1,now+1);
+        assertEquals(0,((Map<String,Integer>)get(c,"collectAttempts")).getOrDefault(ITEM+"|200|64",0));
+        assertEquals(256,((Map<String,Integer>)get(c,"collectedByKey")).get(ITEM+"|200|64"));
+    }
+    @Test void skippingAnAlreadyCollectedHistoricalRowDoesNotSpendTheFailureBudget()throws Exception {
+        long now=1000000;var c=controller(now);
+        set(c,"ownOrders",Collections.nCopies(2,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+        ((Map<String,Integer>)get(c,"collectedByKey")).put(ITEM+"|200|64",64);
+        plan(c,now);
+        failNextEmpty(c,1,now+1);
+        assertEquals(0,((Map<String,Integer>)get(c,"collectAttempts")).getOrDefault(ITEM+"|200|64",0));
+        assertTrue(((Collection<?>)get(c,"deskQueue")).stream().anyMatch(s->s.toString().contains("ordinal=1")));
+    }
+    void failNextEmpty(AutomationSessionController c,long sequence,long now)throws Exception {
+        Object next=((Deque<?>)get(c,"deskQueue")).removeFirst();set(c,"deskStep",next);
+        // Terminal identities increase even when several old rows are skipped.
+        set(get(c,"driver"),"lastTerminalEvent",new AutomatedExecutionDriver.TerminalEvent(sequence,
+                AutomatedExecutionDriver.OperationIntent.COLLECT_ORDER,AutomatedExecutionDriver.TerminalOutcome.ABORTED,
+                "","",ITEM,0,0,"",false,now,"Nothing arrived from the order"));
+        invoke(c,"observeDeskTerminal",new Class[]{net.minecraft.client.Minecraft.class,long.class},null,now);
+    }
+    @Test void sixSuccessiveLotsCanSkipAllHistoricalRowsWithoutPermanentlyExhaustingRetries()throws Exception {
+        long now=1000000,sequence=0;var c=controller(now);
+        ((Set<String>)get(c,"setAsideItems")).add(ITEM);
+        for(int lot=0;lot<6;lot++) {
+            set(c,"ownOrders",Collections.nCopies(lot+1,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+            assertTrue(plan(c,now).stream().anyMatch(s->s.contains("action=COLLECT")),"lot "+lot);
+            for(int old=0;old<lot;old++)failNextEmpty(c,++sequence,++now);
+            completeNext(c,AutomatedExecutionDriver.OperationIntent.COLLECT_ORDER,ITEM,200,++sequence,++now);
+            assertEquals((lot+1)*64,((Map<String,Integer>)get(c,"collectedByKey")).get(ITEM+"|200|64"));
+            assertEquals(0,((Map<String,Integer>)get(c,"collectAttempts")).getOrDefault(ITEM+"|200|64",0));
+        }
+    }
 }
