@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 22:41 UTC
+
+- Fixed Flip collection retries: a failed attempt no longer selects the next order row as though the retry count were a row index. New passes start at the first matching row and skip older collected rows without spending the failure budget.
+- Confirmed collections clear previous failures for that exact order key, including inventory-confirmed collections. Repeated successful Flip lots no longer accumulate a permanent four-attempt collection block; genuinely unsuccessful passes remain bounded and uncollected goods are preserved.
+
 ## 2026-10-17 22:35 UTC
 
 - Fixed a multi-Flip replanning bug: after placing one order, a quote for another item could reuse the older empty own-order book and queue the first order again. A verified native confirmation page now updates the controller's book, reserved funds and slots before replanning.

@@ -4253,6 +4253,7 @@ public final class AutomationSessionController {
             LOGGER.info("DoughBay bid desk: your order for {} shows {} delivered and uncollected and the inventory holds that exact stack; booking at {} each",
                     r.itemId(), pending, r.unitPrice());
             collectedByKey.merge(k, pending, Integer::sum);
+            collectAttempts.remove(k);
             saveCollected();
             consumeFills(r.itemId(), pending);
             return bookCollected(client, now, r.itemId(), pending, r.unitPrice());
@@ -5352,6 +5353,7 @@ public final class AutomationSessionController {
                 BidKey key = new BidKey(step.itemId(), step.unitPrice());
                 bidCollected.merge(key, count, Integer::sum);
                 collectedByKey.merge(orderKey(step.itemId(), step.unitPrice(), step.count()), count, Integer::sum);
+                if (count > 0) collectAttempts.remove(orderKey(step.itemId(), step.unitPrice(), step.count()));
                 saveCollected();
                 if (count > 0) consumeFills(step.itemId(), count);
                 if (count > 0) bookCollected(client, now, step.itemId(), count, step.unitPrice());
@@ -5519,7 +5521,7 @@ public final class AutomationSessionController {
             if (pending > 0 && listablePart && !lotStillSelling
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
-                        "collecting " + pending + " " + r.itemId(), collectAttempts.getOrDefault(k, 0)));
+                        "collecting " + pending + " " + r.itemId(), 0));
             }
             // Closed rows remain on Your Orders after their refund and collection.
             // Only goods still owed reserve this market, not the unfilled quantity
@@ -5530,7 +5532,7 @@ public final class AutomationSessionController {
                         && collectAttempts.getOrDefault(k, 0) < 4) {
                     deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(),
                             r.requested(), r.unitPrice(), "the order was cancelled with goods still on it",
-                            collectAttempts.getOrDefault(k, 0)));
+                            0));
                 }
                 continue;
             }
@@ -5624,7 +5626,7 @@ public final class AutomationSessionController {
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         TAKE_ALL + pending + " " + r.itemId() + " before pulling the order (" + why + ")",
-                        collectAttempts.getOrDefault(k, 0)));
+                        0));
             }
             // A blacklisted item is pulled even in collect-only mode; everything
             // else is only cancelled while the desk is actively bidding.
@@ -5656,7 +5658,7 @@ public final class AutomationSessionController {
                         if (collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                             deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                                     "taking " + pending + " " + r.itemId() + "; nothing more delivered for " + minutes + " min",
-                                    collectAttempts.getOrDefault(k, 0)));
+                                    0));
                         }
                     } else if (quotesQueued < 2 && now - orderQuotedAt.getOrDefault(r.itemId(), 0L) >= nofill) {
                         quotesQueued++;
@@ -7135,7 +7137,6 @@ public final class AutomationSessionController {
      */
     private void collectedNothing(Minecraft client, long now, DeskStep step) {
         String k = orderKey(step.itemId(), step.unitPrice(), step.count());
-        int attempts = collectAttempts.merge(k, 1, Integer::sum);
         int rows = 0;
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
             if (r.itemId().equals(step.itemId()) && r.unitPrice() == step.unitPrice() && r.requested() == step.count()) rows++;
@@ -7146,6 +7147,9 @@ public final class AutomationSessionController {
                     step.why() + " (row " + (step.ordinal() + 2) + ")", step.ordinal() + 1));
             return;
         }
+        // An empty historical row is navigation, not a failed collection.
+        // Count a failed pass only after all matching rows were considered.
+        int attempts = collectAttempts.merge(k, 1, Integer::sum);
         int wanted = deliveredFor(k) - collectedByKey.getOrDefault(k, 0);
         String display = AutomatedExecutionDriver.displayNameFor(step.itemId());
         boolean noticed = fillNoticed.stream().anyMatch(n -> noticeNames(n, display));
@@ -7155,6 +7159,7 @@ public final class AutomationSessionController {
             LOGGER.info("DoughBay bid desk: {} x{} from the order is already in the inventory (collected by hand); booking it",
                     step.itemId(), wanted);
             collectedByKey.merge(k, wanted, Integer::sum);
+            collectAttempts.remove(k);
             saveCollected();
             consumeFills(step.itemId(), wanted);
             bookCollected(client, now, step.itemId(), wanted, step.unitPrice());
