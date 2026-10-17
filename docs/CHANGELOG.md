@@ -11,6 +11,24 @@ About tab.
 - Hosted dashboard can relay the full existing web panel, with bounded replies and expiring requests through the existing controls.
 
 - Added opt-in hosted dashboard pairing under About → Dashboard and in the local web panel, with installation-local credentials, live account telemetry and serialized pause/resume/snapshot controls. Relay outages never stop trading. Shared hives group under a random label; no local path is transmitted.
+## 2026-10-16 23:42 UTC
+
+- Added named saved presets in Settings: save the current setup, apply an existing copy, rename, copy its Settings code, or explicitly replace/delete it. Saved copies remain independent and survive restarts; empty item lists restore correctly, while account slot counts and follow settings keep their existing import protections.
+- Added a local Analyzer tab in the GUI and web panel. It reviews the 24-hour ledger, bankroll, purchase limits, active hive client count, this account's slot capacity and recorded uptime, plus observed opportunities and follow notices. Findings separate measured performance from conditional estimates and can be saved as a suggested preset without applying changes.
+- Analyzer now separates bank, funds committed to observed orders, goods awaiting collection, unlisted stock, auction cost basis and unresolved exposure. A numbered capital chart and sampled timeline include hover details and 1-hour/24-hour/7-day ranges. Asking prices stay separate from realized profit; stale or unverified categories stay unknown. History records locally from installation onward, without reconstructing past balances.
+- Analysis runs locally, dispatches no trades and sends no analytics or settings to a backend. Market suggestions require fresh non-demo observations and sufficient sales evidence. Historical results are not attributed to the current configuration.
+
+## 2026-10-16 23:00 UTC
+
+- Routine auction-watch handoffs now show a neutral "Auction watch finished" notice instead of a red "Execution aborted" warning. The notice explains that no purchase was made and trading continues with orders and existing stock. Actual execution failures still show red error alerts.
+
+## 2026-10-16 20:49 UTC
+
+- Bug reports now include a sanitized Settings code alongside the diagnostic log. It contains approved numeric settings and toggles, including account slot limits, so support can distinguish configuration problems from defects. Home names, player lists, webhooks, Discord identifiers, tokens and all other text settings are excluded. The preview shows the attached code, and retries retain the prepared snapshot.
+
+- Restored the Evasion activity summary and recent hive event history in the web panel alongside its editable settings. History refreshes without discarding unsaved settings and uses the existing name privacy controls.
+
+- Fixed Evasion showing on in Settings while the guard was off. The GUI, web panel and runtime now use one per-client toggle, including after presets, settings-code imports and restarts. Migration preserves an existing off choice and keeps hive accounts independent.
 
 ## 2026-10-16 03:35 UTC
 

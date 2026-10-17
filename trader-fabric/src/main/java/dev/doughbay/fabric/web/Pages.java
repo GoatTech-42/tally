@@ -82,6 +82,7 @@ final class Pages {
             .row select { flex:1 1 100%; max-width:100%; }
             form.out button { min-height:34px; padding:5px 12px; }
             #own { min-width:0; }
+            #evasion-history td:last-child { white-space:normal; min-width:18em; max-width:40em; overflow-wrap:anywhere; }
             .muted { color:var(--muted); }
             .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
             .bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
@@ -343,6 +344,7 @@ final class Pages {
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
               dashboard: { label: 'Dashboard', open: openDashboard },
+              analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
               items: { label: 'Items', open: openItems },
               prices: { label: 'Flips', open: openPrices },
@@ -565,9 +567,10 @@ final class Pages {
                 const data=await api('evasion');
                 if(view!=='evasion')return;
                 const actions=el('div','line');
-                actions.append(button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
+                const guardToggle=button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
                   if((await change('evasion',{action:'guard'}))?.ok)openEvasion();
-                }));
+                });
+                guardToggle.id='evasion-guard-toggle';actions.append(guardToggle);
                 const route=el('select');
                 for(const [value,label] of [['rtp','Random teleport (/rtp)'],['home','Cycle named homes (/home)']]){
                   const option=el('option','',label);option.value=value;route.appendChild(option);
@@ -588,8 +591,122 @@ final class Pages {
                     card.appendChild(settingRow(row));
                   }cards.appendChild(card);
                 }
-                own.replaceChildren(el('h2','','Evasion'),actions,el('label','','Named homes'),homes,save,
+                const activity=el('section','card');activity.id='evasion-history';
+                own.replaceChildren(el('h2','','Evasion'),activity,actions,el('label','','Named homes'),homes,save,
                   el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order; an empty list falls back to /rtp. Hive clients sharing this list need the same home names.'),cards);
+                drawEvasionHistory(data);
+              }catch(e){failed();}
+            }
+            function drawEvasionHistory(data) {
+              if(view!=='evasion')return;
+              const card=$('evasion-history');if(!card)return;
+              const toggle=$('evasion-guard-toggle');if(toggle)toggle.textContent=data.enabled?'Guard: ON':'Guard: OFF';
+              const summary=el('div','line');
+              for(const text of ['Guard: '+data.guardStatus,'Pause ring: '+data.pauseRing+' blocks',
+                'Escape ring: '+data.escapeRing+' blocks','On contact: '+data.onContact])summary.appendChild(el('span','',text));
+              const history=data.history||{};
+              const counts=el('p','muted',history.available?'Triggered 24h: '+history.triggered24h+
+                (history.mostSeen7d?' · Most seen 7d: '+history.mostSeen7d.who+' ×'+history.mostSeen7d.count:''):
+                'History is temporarily unavailable. Settings remain available.');
+              const table=el('table'),head=el('thead'),header=el('tr'),body=el('tbody');
+              for(const text of ['Time','Client','Who','Blocks','What happened'])header.appendChild(el('th','',text));
+              head.appendChild(header);table.append(head,body);
+              for(const event of history.events||[]) {
+                const row=el('tr');
+                for(const text of [new Date(event.at).toLocaleString(),event.client||'',event.who||'',
+                  event.distance>0?String(Math.round(event.distance)):'',event.action||''])row.appendChild(el('td','',text));
+                body.appendChild(row);
+              }
+              const wide=el('div','wide');wide.appendChild(table);
+              const note=el('p','muted',history.available&&!history.events?.length?'No evasion events recorded.':
+                'Latest 100 hive events. Times use your local clock. Guard controls apply to this client.');
+              card.replaceChildren(el('h2','','Evasion activity'),summary,counts,wide,note,
+                button('','Refresh history',refreshEvasionHistory));
+            }
+            let evasionHistoryLoading=false;
+            async function refreshEvasionHistory() {
+              if(view!=='evasion'||evasionHistoryLoading)return;
+              evasionHistoryLoading=true;
+              try{const data=await api('evasion');if(view==='evasion')drawEvasionHistory(data);}
+              catch(e){if(view==='evasion')toast('Could not refresh evasion history. Your settings have been kept.',true);}
+              finally{evasionHistoryLoading=false;}
+            }
+            async function openSavedPresets() {
+              try {
+                const d=await api('savedpresets'); if(!d.ok){toast(d.note,true);return;}
+                const box=el('section','card');box.appendChild(el('h2','title','Saved presets'));
+                box.appendChild(el('p','desc','Save a baseline, experiment, then apply a saved copy. Account slot counts and follow settings stay as they are.'));
+                const name=el('input');name.maxLength=48;name.placeholder='New preset name';name.setAttribute('aria-label','New preset name');box.appendChild(name);
+                box.appendChild(button('pick','Save current as new',async()=>{const r=await change('savedpresets',{action:'save',name:name.value});if(r&&r.ok)openSavedPresets();}));
+                const search=el('input');search.placeholder='Search saved presets';search.setAttribute('aria-label','Search saved presets');box.appendChild(search);
+                const rows=el('div');box.appendChild(rows);
+                for(const p of d.presets||[]){
+                  const row=el('section','card');row.dataset.name=p.name.toLowerCase();row.appendChild(el('h3','title',p.name));
+                  row.appendChild(el('p','muted','Saved '+new Date(p.savedAt).toLocaleString()));
+                  row.appendChild(button('pick','Apply',async()=>{if(confirm('Apply '+p.name+'? Save your current settings first if you want to switch back. Shared settings affect the hive.')){const r=await change('savedpresets',{action:'apply',id:p.id});if(r&&r.ok)openSettings();}}));
+                  row.appendChild(button('','Copy code',()=>codeToClipboard(p.code)));
+                  row.appendChild(button('','Rename',async()=>{const n=prompt('Preset name',p.name);if(n!==null){const r=await change('savedpresets',{action:'rename',id:p.id,name:n});if(r&&r.ok)openSavedPresets();}}));
+                  row.appendChild(button('','Replace with current',async()=>{if(confirm('Overwrite '+p.name+' with your current settings?')){const r=await change('savedpresets',{action:'replace',id:p.id,name:p.name});if(r&&r.ok)openSavedPresets();}}));
+                  row.appendChild(button('','Delete',async()=>{if(confirm('Delete '+p.name+'? Current settings stay unchanged.')){const r=await change('savedpresets',{action:'delete',id:p.id});if(r&&r.ok)openSavedPresets();}}));
+                  rows.appendChild(row);
+                }
+                search.addEventListener('input',()=>{for(const row of rows.children)row.hidden=!row.dataset.name.includes(search.value.toLowerCase());});
+                box.appendChild(button('','Back to settings',openSettings));own.replaceChildren(box);
+              }catch(e){failed();}
+            }
+            async function codeToClipboard(code){
+              try{await navigator.clipboard.writeText(code);toast('Code copied');}
+              catch(e){const area=el('textarea');area.value=code;area.readOnly=true;own.appendChild(area);area.select();toast('Select and copy the code.');}
+            }
+            """.concat("""
+            const CAPITAL={category:0,span:86400000};
+            const CAPITAL_LABELS=['Available bank','Unfilled order funds','Order stock awaiting collection','Collected / unlisted stock','Auction stock at cost','Unreconciled stock at cost'];
+            const CAPITAL_KEYS=['bank','orders','awaitingCollection','unlisted','listed','unresolved'];
+            const CAPITAL_COLORS=['#3987e5','#d95926','#199e70','#ffd966','#c08cff','#9eb6c9'];
+            function capitalMoney(v){return v===null||v===undefined?'unknown':new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(v);}
+            function capitalSvg(tag,attrs={},title=''){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,String(v));if(title){const t=document.createElementNS('http://www.w3.org/2000/svg','title');t.textContent=title;n.appendChild(t);}return n;}
+            function drawCapital(box,report){
+              const c=report.capital;box.replaceChildren(el('h3','title','Where your capital sits — this account'));
+              box.appendChild(el('p','desc','Observed amounts at purchase cost, not net worth. Unknown categories are excluded. Auction asking prices are potential gross revenue, not profit.'));
+              const values=CAPITAL_KEYS.map(k=>c[k]),total=values.reduce((sum,v)=>sum+(Number.isFinite(v)&&v>0?v:0),0);
+              const pie=capitalSvg('svg',{viewBox:'-100 -100 200 200',width:250,height:250,role:'img','aria-label':'Observed capital allocation at cost'});let angle=-Math.PI/2;
+              values.forEach((v,i)=>{if(!Number.isFinite(v)||v<=0||total<=0)return;const slice=v/total,next=angle+slice*2*Math.PI;
+                const title=CAPITAL_LABELS[i]+': '+capitalMoney(v)+' ('+(slice*100).toFixed(1)+'% of known observed amounts)';
+                if(slice>.999999)pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:85,fill:CAPITAL_COLORS[i]},title));
+                else pie.appendChild(capitalSvg('path',{d:'M 0 0 L '+Math.cos(angle)*85+' '+Math.sin(angle)*85+' A 85 85 0 '+(slice>.5?1:0)+' 1 '+Math.cos(next)*85+' '+Math.sin(next)*85+' Z',fill:CAPITAL_COLORS[i]},title));
+                if(slice>.035){const mid=(angle+next)/2,n=capitalSvg('text',{x:Math.cos(mid)*67,y:Math.sin(mid)*67+4,fill:'#111820','text-anchor':'middle','font-size':12});n.textContent=String(i+1);pie.appendChild(n);}angle=next;
+              });
+              pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:42,fill:'#101820'}));const middle=capitalSvg('text',{x:0,y:4,fill:'#c3c2b7','text-anchor':'middle','font-size':12});middle.textContent=total>0?'At cost':'No known amount';pie.appendChild(middle);box.appendChild(pie);
+              values.forEach((v,i)=>box.appendChild(el('p','desc',(i+1)+'. '+CAPITAL_LABELS[i]+': '+capitalMoney(v))));
+              box.appendChild(el('p','desc','Auction asking total: '+capitalMoney(c.asking)+' — potential gross revenue only'));
+              const pick=el('select');pick.setAttribute('aria-label','Capital history category');CAPITAL_LABELS.forEach((label,i)=>{const o=el('option','',label);o.value=i;pick.appendChild(o);});pick.value=CAPITAL.category;pick.addEventListener('change',()=>{CAPITAL.category=Number(pick.value);drawCapital(box,report);});box.appendChild(pick);
+              const range=el('select');range.setAttribute('aria-label','Capital history time range');[[3600000,'1 hour'],[86400000,'24 hours'],[604800000,'7 days']].forEach(([v,label])=>{const o=el('option','',label);o.value=v;range.appendChild(o);});range.value=CAPITAL.span;range.addEventListener('change',()=>{CAPITAL.span=Number(range.value);drawCapital(box,report);});box.appendChild(range);
+              const points=(report.capitalHistory||[]).filter(p=>p.at>=c.at-CAPITAL.span&&p.at<=c.at),key=CAPITAL_KEYS[CAPITAL.category];
+              if(points.length<2)box.appendChild(el('p','muted','History is collecting. At least two snapshots are needed.'));
+              else{const max=Math.max(1,...points.map(p=>Number.isFinite(p[key])?p[key]:0));const plot=capitalSvg('svg',{viewBox:'0 0 560 190',width:560,height:190,role:'img','aria-label':CAPITAL_LABELS[CAPITAL.category]+' sampled capital history'});plot.style.maxWidth='100%';
+                plot.appendChild(capitalSvg('rect',{x:0,y:0,width:560,height:190,fill:'#101820'}));
+                points.forEach(p=>{if(!Number.isFinite(p[key]))return;const px=35+(p.at-(c.at-CAPITAL.span))/CAPITAL.span*510,h=Math.max(1,p[key]/max*145),source=CAPITAL.category===0?p.bankAt:CAPITAL.category<3?p.ordersAt:p.stockAt;
+                  plot.appendChild(capitalSvg('rect',{x:px-1,y:160-h,width:3,height:h,fill:CAPITAL_COLORS[CAPITAL.category]},'Snapshot '+new Date(p.at).toLocaleString()+': '+CAPITAL_LABELS[CAPITAL.category]+' '+capitalMoney(p[key])+'; source read '+(source?new Date(source).toLocaleString():'unknown')));});
+                const top=capitalSvg('text',{x:6,y:13,fill:'#c3c2b7','font-size':11});top.textContent=capitalMoney(max);plot.appendChild(top);box.appendChild(plot);
+              }
+              box.appendChild(el('p','muted',report.capitalHistoryStatus||'History starts when recording begins.'));
+              for(const note of c.notes||[])box.appendChild(el('p','muted',note));
+            }
+            async function openAnalyzer(){
+              try{
+                const d=await api('analyzer'),box=el('section','card');box.appendChild(el('h2','title','Local settings analyzer'));
+                box.appendChild(el('p','desc',d.note||''));
+                box.appendChild(button('pick','Analyze local data',async()=>{const r=await change('analyzer',{});if(r&&r.ok){openAnalyzer();setTimeout(()=>{if(view==='analyzer')openAnalyzer();},1500);}}));
+                box.appendChild(button('','Refresh report',openAnalyzer));
+                const report=d.report;
+                if(report){
+                  if(report.capital){const capital=el('section','card');box.appendChild(capital);drawCapital(capital,report);}
+                  for(const line of report.baseline||[])box.appendChild(el('p','desc',line));
+                  for(const f of report.findings||[]){const card=el('section','card');card.appendChild(el('h3','title',f.title));card.appendChild(el('p','desc','Evidence: '+f.evidence));card.appendChild(el('p','desc','Suggested experiment: '+f.suggestion));card.appendChild(el('p','muted','Estimate: '+f.estimate));box.appendChild(card);}
+                  if(Object.keys(report.numbers||{}).length||Object.keys(report.lists||{}).length)box.appendChild(button('pick','Save suggested preset',async()=>{const n=prompt('Name for this suggested preset');if(n!==null)await change('savedpresets',{action:'save',source:'proposal',name:n});}));
+                  box.appendChild(button('','Copy report',()=>codeToClipboard(JSON.stringify(report,null,2))));
+                }
+                if(view==='analyzer')own.replaceChildren(box);
               }catch(e){failed();}
             }
             async function openSettings() {
@@ -774,6 +891,7 @@ final class Pages {
                 try { codeShow((await api('code')).code || '', false); } catch (e) { toast(SILENT, true); }
               }));
               bar.appendChild(button('', 'Paste a code', () => codeShow('', true)));
+              bar.appendChild(button('', 'Saved presets', openSavedPresets));
               const cards = el('div', 'cards');
               for (const g of d.groups || []) {
                 const card = el('section', 'card');
@@ -1254,10 +1372,11 @@ final class Pages {
               refresh();
               if (view === 'staff') openStaff();
               if (view === 'dashboard') openDashboard();
+              if (view === 'evasion') refreshEvasionHistory();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
               if (++ticks % 4 !== 0) return;
               if (view === 'rivals') openRivals();
               if (view === 'prices') openPrices();
             }, 5000);
-            """ + "</script></body></html>";
+            """) + "</script></body></html>";
 }

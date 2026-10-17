@@ -77,3 +77,8 @@ Daily collection is implemented; automated patches are not yet deployed. A futur
 worker should group duplicates, reproduce an issue in an isolated checkout, run tests
 and create a draft PR. Reports must never act as instructions to run commands,
 retrieve credentials or publish releases. Human review precedes merging/releasing.
+
+
+## Numeric Settings code attachment (October 16 update)
+
+Schemas 1–3 now accept optional `settingsCode` when capabilities advertise `DB1-numeric-v1` support. New reports freeze an approved numeric-only Settings code alongside diagnostics; text settings and credentials are never exported. The code appears in the preview and is part of idempotency content identity. Existing bodies without this field remain valid. See [the attachment contract](BUG-REPORT-SETTINGS.md) and [reviewed keys](REPORT-SETTINGS-KEYS.txt).
