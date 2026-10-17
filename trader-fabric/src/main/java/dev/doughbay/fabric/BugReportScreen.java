@@ -92,7 +92,7 @@ public final class BugReportScreen extends Screen {
             } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
             collecting = false; payload = result == null ? null : result.payload(); diagnosticLog = result == null ? "" : result.log();
-            report = result == null ? "" : payload.preview() + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
+            report = result == null ? "" : payload.preview() + "\n\n" + BugReporterKey.NOTICE + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
                 : BugReportLog.UNAVAILABLE.equals(diagnosticLog)?"Log unavailable; report includes that notice. Send publishes the sanitized details.":"Preview ready. Sanitized diagnostics are attached automatically.";
@@ -129,7 +129,7 @@ public final class BugReportScreen extends Screen {
         g.fill(0, 0, width, height, 0xE0050910);
         int x = left() + 12, w = panelWidth() - 24;
         g.text(font, "REPORT A BUG", x, 12, UiTheme.GOLD);
-        g.text(font, "Send publishes to GitHub. Only sanitized diagnostics are attached.", x, 23, UiTheme.MUTED);
+        g.text(font, "Send publishes diagnostics and an anonymous report-grouping key.", x, 23, UiTheme.MUTED);
         g.text(font, "What happened? (Do not include names or private chat)", x, 33, UiTheme.TEXT);
         g.text(font, "What did you expect?", x, 70, UiTheme.TEXT);
         if(issueUrl.isEmpty())g.text(font,UiTheme.fit(font,!capabilityResolved?"Checking sanitized log support...":attachmentReady

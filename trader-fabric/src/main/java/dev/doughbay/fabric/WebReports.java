@@ -51,7 +51,7 @@ public final class WebReports {
         root.put("notice", visible ? "An error occurred. A sanitized report is ready to prepare, review and send." : "");
         if (draft != null) {
             root.put("id", draft.id); root.put("busy", draft.busy); root.put("note", draft.note);
-            root.put("preview", draft.payload == null ? "" : draft.payload.preview() + "\n\nSanitized diagnostic excerpt:\n" + draft.log);
+            root.put("preview", draft.payload == null ? "" : draft.payload.preview() + "\n\n" + BugReporterKey.NOTICE + "\n\nSanitized diagnostic excerpt:\n" + draft.log);
             root.put("issueUrl", draft.url); root.put("retryAt", draft.retryAt);
         }
         return root.toString();

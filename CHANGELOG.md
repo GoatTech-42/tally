@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 19:47 UTC
+
+- Manual bug reports can include an anonymous installation key when the reporting service advertises support. The key is a hash of a random local secret, contains no account or machine identifier, and is disclosed in the in-game and web-panel preview. Repeated submissions can now be grouped and throttled without forwarding market credentials. Rate-limit messages ask users to consolidate reports and warn that repeated spam reports will be ignored.
+
 ## 2026-10-17 19:41 UTC
 
 - Single-account clients now stamp new automation ledger records with their account, so booked dashboard and Discord metrics can find them. Hosted metrics accept case-only changes in the same account name and continue excluding other accounts and unowned historical records.

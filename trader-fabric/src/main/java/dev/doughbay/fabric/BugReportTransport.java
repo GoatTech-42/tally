@@ -48,10 +48,23 @@ public final class BugReportTransport {
         return request(payload, key, token, "");
     }
     static HttpRequest request(BugReportPayload payload, String key, String token, String diagnosticLog) {
+        return request(payload,key,token,diagnosticLog,"");
+    }
+    static HttpRequest request(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter) {
         if (key == null || !key.matches("[A-Za-z0-9_-]{8,64}")) throw new IllegalArgumentException("Invalid report retry identifier");
-        return HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
+        var builder=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type", "application/json")
-            .header("Idempotency-Key", key).POST(HttpRequest.BodyPublishers.ofByteArray(payload.json(diagnosticLog))).build();
+            .header("Idempotency-Key", key);
+        if(reporter!=null&&!reporter.isEmpty()) {
+            if(!reporter.matches("[0-9a-f]{64}"))throw new IllegalArgumentException("Invalid anonymous report key");
+            builder.header("X-GoNuts-Reporter",reporter);
+        }
+        return builder.POST(HttpRequest.BodyPublishers.ofByteArray(payload.json(diagnosticLog))).build();
+    }
+    static boolean advertisesReporterKey(com.fasterxml.jackson.databind.JsonNode capabilities) {
+        var key=capabilities.path("reporterKey");
+        return key.path("supported").asBoolean(false)&&key.path("optional").asBoolean(false)
+                &&key.path("header").asText().equals("X-GoNuts-Reporter")&&key.path("pattern").asText().equals("[0-9a-f]{64}");
     }
     static HttpRequest automaticRequest(BugReportPayload payload, String key, String diagnosticLog,
             AutomaticReportMetadata automatic, com.fasterxml.jackson.databind.JsonNode capabilities) {
@@ -114,18 +127,18 @@ public final class BugReportTransport {
         return CompletableFuture.supplyAsync(() -> {
             try { return automaticCapabilities(); }
             catch (Exception e) { return JSON.createObjectNode(); }
-        }).thenCompose(capabilities -> {
+        }).thenComposeAsync(capabilities -> {
             if (diagnosticLog != null && !diagnosticLog.isEmpty() && !advertisesLogSupport(capabilities))
                 return CompletableFuture.completedFuture(new Result(false,"Report service capabilities unavailable. Retry this prepared report later.","",0));
             if (payload.settingsCode() != null && !payload.settingsCode().isEmpty() && !advertisesSettingsSupport(capabilities))
                 return CompletableFuture.completedFuture(new Result(false,"Settings attachment support unavailable. Keep this prepared report and retry later.","",0));
-            return sendSupported(payload,key,token,diagnosticLog);
+            return sendSupported(payload,key,token,diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"");
         });
     }
 
-    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog) {
+    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter) {
         try {
-            return http.sendAsync(request(payload, key, token, diagnosticLog), HttpResponse.BodyHandlers.ofInputStream())
+            return http.sendAsync(request(payload, key, token, diagnosticLog,reporter), HttpResponse.BodyHandlers.ofInputStream())
                 .thenApplyAsync(response -> {
                     try (var body = response.body()) {
                         CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
@@ -152,7 +165,7 @@ public final class BugReportTransport {
         if (code == 429) {
             long seconds = 3600;
             try { seconds = Math.max(1, Math.min(86400, Long.parseLong(retryAfter.strip()))); } catch (Exception ignored) { }
-            return new Result(false, "Report limit reached. Try again after " + seconds + " seconds.", "", now + seconds * 1000);
+            return new Result(false, "Please consolidate your bugs into one report. Repeated spam reports will be ignored. Try again after " + seconds + " seconds.", "", now + seconds * 1000);
         }
         return new Result(false, switch (code) {
             case 400 -> "The receiver rejected the form. Check its text and prepare it again.";
