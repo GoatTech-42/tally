@@ -16,9 +16,13 @@ public final class DashboardMetrics {
             root.putObject("sales");root.putObject("purchases");
             for(int hours:new int[]{1,24}) {
                 String key=hours==1?"h1":"h24";long from=at-hours*3_600_000L;
-                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COALESCE(SUM(realized_profit),0) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? AND closed_at>? AND closed_at<=?")) {
+                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COALESCE(SUM(realized_profit),0),COUNT(realized_profit) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? AND closed_at>? AND closed_at<=?")) {
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);
-                    try(ResultSet r=p.executeQuery()){r.next();((ObjectNode)root.get("sales")).put(key,DashboardProtocol.count(r.getLong(1)));((ObjectNode)root.get("profit")).put(key,DashboardProtocol.money(Math.round(r.getDouble(2))));}
+                    try(ResultSet r=p.executeQuery()){
+                        r.next();double profit=r.getDouble(2);
+                        if(!Double.isFinite(profit)||r.getLong(1)!=r.getLong(3))throw new IllegalStateException("Incomplete booked profit data");
+                        ((ObjectNode)root.get("sales")).put(key,DashboardProtocol.count(r.getLong(1)));((ObjectNode)root.get("profit")).put(key,DashboardProtocol.money(Math.round(profit)));
+                    }
                 }
                 try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*) FROM positions WHERE mode='REAL' AND client=? AND purchased_at>? AND purchased_at<=?")) {
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);

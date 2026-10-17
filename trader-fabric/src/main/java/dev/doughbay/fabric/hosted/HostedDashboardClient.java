@@ -34,11 +34,12 @@ public final class HostedDashboardClient {
     private long capturedAt,nextConnect,connectedAt,lastPing,lastTelemetry,metricsAt;private volatile long epoch;private long lastReceived;
     private int attempts;private boolean connecting,welcome;
     private ObjectNode metrics;private String lastShape="";
+    private Path rankDirectory;private SwarmRankCoverage rankCoverage;private String rankAccount="",rankingSalt="",publishedAccountId="";
     private CompletableFuture<Void> writes=CompletableFuture.completedFuture(null);private int pendingWrites;private boolean forceTelemetry;
     private HostedDashboardClient(){}
     public View view(){return view;}
     public synchronized void start(Path game,Path shared,Path db,String currentBuild) {
-        if(started)return;started=true;store=new DashboardStore(game);hivePanel=new DashboardHive(shared);database=db;build=DashboardProtocol.build(currentBuild);
+        if(started)return;started=true;store=new DashboardStore(game);hivePanel=new DashboardHive(shared);database=db;build=DashboardProtocol.build(currentBuild);rankDirectory=game.resolve("gonuts-dashboard/rank-coverage");
         worker.execute(()->{
             try{hive=DashboardStore.hive(shared);link=store.load();if(link!=null){view=new View(true,false,false,link.name,"Checking link",0);nextConnect=0;}}
             catch(Exception e){view=new View(false,false,false,"","Could not load private dashboard settings",0);}
@@ -82,6 +83,7 @@ public final class HostedDashboardClient {
         catch(Exception e){return System.currentTimeMillis()+60_000;}
     }
     public synchronized void unlink(){
+        SwarmRank.clear();
         if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","Removing local link...",0);
         CommunityClient.INSTANCE.dashboardUnlinked();
         worker.execute(()->{
@@ -90,12 +92,12 @@ public final class HostedDashboardClient {
             catch(Exception e){view=new View(false,false,false,"","Disconnected, but could not remove the local credential file",0);}
         });
     }
-    public void reconnect(){if(!started||!view.linked()||view.busy())return;worker.execute(()->{epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
+    public void reconnect(){if(!started||!view.linked()||view.busy())return;SwarmRank.clear();worker.execute(()->{rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
     /** Called on the client thread: only reads already-held figures, never SQL or networking. */
     public void tick(Minecraft client){
         CommunityClient.INSTANCE.dashboardLinked(view.linked());
         long now=System.currentTimeMillis();String account=DoughBayClient.account();panelAccount=account;CommunityClient.INSTANCE.account(account);CommunityRegion.tick(client);CommunityClient.INSTANCE.connected(CommunityRegion.donut(client));CommunityPerformance.INSTANCE.tick(CommunityRegion.donut(client),System.nanoTime());
-        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;}
+        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;SwarmRank.clear();}
         var controller=DoughBayClient.automationSessionController();
         var session=controller.snapshot();
         var terminal=DoughBayClient.executionDriver().lastTerminalEvent();
@@ -182,12 +184,14 @@ public final class HostedDashboardClient {
             if(type.equals("welcome")){
                 if(welcome||j.path("protocol").asInt()!=1||j.path("installationId").asLong()!=link.installationId||!j.path("commands").isArray())throw new IllegalArgumentException();
                 for(var action:j.path("commands"))if(!DashboardProtocol.CAPABILITIES.contains(action.asText()))throw new IllegalArgumentException();
+                rankingSalt=j.path("rankingSalt").asText("");SwarmRank.clear();publishedAccountId="";
                 welcome=true;commands.connected(own);view=new View(true,true,false,link.name,"Online",0);publish(true);return;
             }
             if(!welcome)throw new IllegalArgumentException();
             if(type.equals("panel"))panel.receive(own,j,()->epochs.get()==own&&welcome,
                     reply->worker.execute(()->{if(epochs.get()==own&&welcome)send(reply);}));
             else if(type.equals("command"))command(own,j);
+            else if(type.equals("swarm_rank"))SwarmRank.receive(j,publishedAccountId,System.currentTimeMillis());
             else if(!type.equals("pong")&&!type.equals("error"))throw new IllegalArgumentException();
         }catch(Exception e){failed("Dashboard protocol error; retrying");}
     }
@@ -229,8 +233,26 @@ public final class HostedDashboardClient {
     }
     private void publish(boolean force) {
         long now=System.currentTimeMillis();forceTelemetry|=force;var captured=latest;if(captured==null||now-lastTelemetry<1000)return;
-        if(now-metricsAt>=15_000||!metricsAccount.equals(captured.account())){metricsAt=now;metricsAccount=captured.account();try{metrics=DashboardMetrics.read(database,captured.account(),now);}catch(Exception e){metrics=null;}}
+        if(now-metricsAt>=15_000||!metricsAccount.equals(captured.account())){
+            metricsAt=now;metricsAccount=captured.account();
+            try{
+                metrics=DashboardMetrics.read(database,captured.account(),now);
+                // The private local filename uses an independent hash; only owner-salted ids go over the wire.
+                if(!rankAccount.equals(captured.account())){
+                    rankAccount=captured.account();SwarmRank.clear();
+                    String local=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(rankAccount.toLowerCase(java.util.Locale.ROOT).getBytes(StandardCharsets.UTF_8)));
+                    rankCoverage=new SwarmRankCoverage(rankDirectory.resolve(local+".json"));
+                }
+                metrics.put("metricsAt",now);
+                double coverage=rankCoverage.observe(now);
+                if(Math.abs(metrics.path("profit").path("h24").asDouble())<1_000_000_000_000L&&metrics.path("sales").path("h24").asLong()<1_000_000)
+                    ((ObjectNode)metrics.get("profit")).put("h24Coverage",coverage);
+            }catch(Exception e){metrics=null;if(rankCoverage!=null)rankCoverage.gap();SwarmRank.clear();}
+        }
         var j=captured.telemetry().deepCopy();if(metrics!=null)j.setAll(metrics);
+        String identity=SwarmRank.accountId(rankingSalt,captured.account());
+        if(!identity.equals(publishedAccountId)){SwarmRank.clear();publishedAccountId=identity;}
+        if(metrics!=null&&!identity.isEmpty())j.put("accountId",identity);
         var shape=j.deepCopy();shape.remove("at");String encoded=shape.toString();
         if(!forceTelemetry&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
         send(j);lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
@@ -250,6 +272,7 @@ public final class HostedDashboardClient {
         }));
     }
     private void failed(String message){
+        SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);
         if(socket!=null)socket.abort();socket=null;connecting=false;welcome=false;
         long now=System.currentTimeMillis();if(connectedAt>0&&now-connectedAt>=60_000)attempts=0;connectedAt=0;
@@ -257,6 +280,7 @@ public final class HostedDashboardClient {
         if(link!=null)view=new View(true,false,false,link.name,message,nextConnect);
     }
     private void revoked(){
+        SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);if(socket!=null)socket.abort();socket=null;link=null;welcome=false;connecting=false;
         try{store.forget();view=new View(false,false,false,"","Link revoked; pair with a new code",0);}
         catch(Exception e){view=new View(false,false,false,"","Link revoked; could not remove local credential file",0);}
@@ -275,7 +299,7 @@ public final class HostedDashboardClient {
         @Override public CompletionStage<?> onClose(WebSocket ws,int code,String reason){worker.execute(()->{
             if(epochs.get()!=own)return;
             if(code==4401||code==4403){revoked();return;}
-            if(code==4409){epochs.incrementAndGet();commands.disconnected(own);panel.disconnected(own);socket=null;welcome=false;connecting=false;nextConnect=Long.MAX_VALUE;view=new View(true,false,false,link.name,"Another process owns this link; reconnect only if intentional",0);return;}
+            if(code==4409){SwarmRank.clear();rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(own);panel.disconnected(own);socket=null;welcome=false;connecting=false;nextConnect=Long.MAX_VALUE;view=new View(true,false,false,link.name,"Another process owns this link; reconnect only if intentional",0);return;}
             failed("Dashboard offline; reconnecting");
         });return null;}
         @Override public void onError(WebSocket ws,Throwable error){worker.execute(()->{if(epochs.get()==own)failed("Dashboard connection failed; retrying");});}
