@@ -6,6 +6,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 class BugReportTransportTest {
+    private static byte[] capabilitiesOfSize(int size) {
+        String body = "{\"schemaVersions\":[1,2],\"maxBodyBytes\":32768,\"diagnosticLog\":{\"supported\":true,\"schemaVersion\":2,\"maxBytes\":8192,\"maxLines\":200,\"maxLineChars\":500}}";
+        return (body + " ".repeat(size - body.length())).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+    @Test void manualCapabilityGateAcceptsExpandedReceiverMetadata() throws Exception {
+        // The production receiver grew past 4 KiB when richer diagnostics were advertised.
+        for (int size : new int[]{4096, 6298, 8192}) {
+            var document = BugReportTransport.readCapabilities(200,
+                    new java.io.ByteArrayInputStream(capabilitiesOfSize(size)));
+            assertTrue(BugReportTransport.advertisesLogSupport(document), "capability bytes=" + size);
+        }
+    }
+    @Test void capabilityDocumentRemainsBoundedAndRequiresSuccess() {
+        assertThrows(java.io.IOException.class, () -> BugReportTransport.readCapabilities(200,
+                new java.io.ByteArrayInputStream(capabilitiesOfSize(8193))));
+        assertThrows(java.io.IOException.class, () -> BugReportTransport.readCapabilities(503,
+                new java.io.ByteArrayInputStream(capabilitiesOfSize(6298))));
+        assertThrows(java.io.IOException.class, () -> BugReportTransport.readCapabilities(200,
+                new java.io.ByteArrayInputStream("not json".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+    }
     @Test void existingBugAttachmentsNeverFallBackToNewIssueOrAnotherOrigin() throws Exception {
         var c=new ObjectMapper().readTree("{\"relatedIssue\":{\"supported\":true,\"route\":\"/v1/bugs/{issue}/evidence\"}}");
         assertTrue(BugReportTransport.advertisesRelatedIssue(c));

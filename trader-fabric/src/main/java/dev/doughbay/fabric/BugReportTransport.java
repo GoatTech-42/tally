@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 public final class BugReportTransport {
     private static final URI ENDPOINT = URI.create("https://gonuts.at/v1/bugs");
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final int MAX_CAPABILITY_BYTES = 8192;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NEVER).build();
     public record Result(boolean filed, String message, String issueUrl, long retryAtMillis) { }
     public record AutomaticResult(Result result, boolean permanent) { }
@@ -21,9 +22,7 @@ public final class BugReportTransport {
         var response = http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(15, TimeUnit.SECONDS);
         try (var stream = response.body()) {
             CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> { try { stream.close(); } catch(Exception ignored) {} });
-            byte[] bytes = stream.readNBytes(8193);
-            if (response.statusCode()!=200 || bytes.length>8192) throw new java.io.IOException("Capabilities unavailable");
-            return JSON.readTree(bytes);
+            return readCapabilities(response.statusCode(), stream);
         }
     }
     /** Runs on the report daemon only. The caller validates its frozen outbox before calling. */
@@ -87,11 +86,16 @@ public final class BugReportTransport {
         return http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).thenApplyAsync(response -> {
             try (var stream = response.body()) {
                 CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
-                byte[] bytes = stream.readNBytes(4097);
-                if (response.statusCode() != 200 || bytes.length > 4096) return false;
-                return advertisesLogSupport(JSON.readTree(bytes));
+                return advertisesLogSupport(readCapabilities(response.statusCode(), stream));
             } catch (Exception e) {return false;}
         }).orTimeout(15, TimeUnit.SECONDS).exceptionally(e -> false);
+    }
+    /** Both manual and automatic reporting must accept the same bounded capability document. */
+    static com.fasterxml.jackson.databind.JsonNode readCapabilities(int status, java.io.InputStream stream)
+            throws java.io.IOException {
+        byte[] bytes = stream.readNBytes(MAX_CAPABILITY_BYTES + 1);
+        if (status != 200 || bytes.length > MAX_CAPABILITY_BYTES) throw new java.io.IOException("Capabilities unavailable");
+        return JSON.readTree(bytes);
     }
     static boolean advertisesSettingsSupport(com.fasterxml.jackson.databind.JsonNode body) {
         var settings = body.path("settingsCode");
