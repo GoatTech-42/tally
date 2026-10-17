@@ -160,6 +160,7 @@ public class DoughBayClient implements ClientModInitializer {
         AUTOMATION_SESSION.setRestStore(config.directory().resolve("market-rests.txt"));
         AUTOMATION_SESSION.setLedgerPath(config.databasePath());
         Tuning.load(config.directory());
+        SavedPresets.load(config.directory());
         StaffWatchReport.start(config.directory(), DoughBayClient::account);
         AUTOMATIC_REPORTS = new AutomaticReportService(
                 net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
@@ -179,6 +180,7 @@ public class DoughBayClient implements ClientModInitializer {
         EVASION = new EvasionGuard(config.directory().resolve("evasion.txt"));
         EvasionGuard.setLedger(config.databasePath());
         LEDGER_STATS = new LedgerStatsProvider(config.databasePath());
+        CapitalHistory.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir());
         // The audit baseline: the balance at the last slot check, carried
         // forward by receipted sales, purchases and payouts since. Positions
         // lately booked as returned come along so the check can take back any
