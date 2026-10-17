@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 23:45 UTC
+
+- Fixed the in-game Send report button staying disabled even when reporting is available. Manual and automatic report checks now share the same bounded 8 KiB capability reader; the receiver's expanded diagnostic metadata no longer trips an outdated 4 KiB limit. Unsupported responses and reporting cooldowns remain enforced.
+
 ## 2026-10-17 22:47 UTC
 
 - Flip collections now match the original requested quantity as well as item and price. An old differently sized order at the same price no longer steals the collection target or credits the wrong order key. Refused requests leave the current row target unchanged.
