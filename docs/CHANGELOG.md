@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 18:07 UTC
+
+- Linked clients now report optional gross booked sales revenue for rolling one-hour and 24-hour windows to support anonymous collective Swarm estimates. Revenue uses completed real sales, stays separate from profit and sale-record counts, and remains unknown when ledger sale prices are incomplete. Reading is local and read-only; no trades or settings changes are dispatched.
+
 ## 2026-10-17 17:56 UTC
 
 - Swarm rankings now give an estimated position among active contributing Hives with available reported 24-hour profit. Removed the 10-Hive minimum and 90% coverage wait; two Hives are enough. A Hive uses available bot data and may be partial. Ties share a rank; other users identities and figures stay private.
