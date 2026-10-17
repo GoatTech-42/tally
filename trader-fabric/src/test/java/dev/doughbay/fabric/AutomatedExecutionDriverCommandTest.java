@@ -14,6 +14,31 @@ class AutomatedExecutionDriverCommandTest {
     private final FakeTransport transport = new FakeTransport();
 
     @Test
+    void queuedSaleCannotUseAnEmptyOrChangedHandAfterTheDelay() throws Exception {
+        activateListing();
+        set("lastCommandSentAt",100_000L);
+        driver.sendCommand(transport,"ah sell 20000",100_100,600);
+        transport.listingBlocker="Listing stack changed before dispatch; no sell command sent";
+        assertThrows(IllegalStateException.class,()->driver.dispatchPendingCommand(transport,100_600));
+        assertTrue(transport.sent.isEmpty());
+        assertEquals(100_000L,driver.lastCommandSentAt());
+        clearOperation();
+        assertEquals(NONE,driver.dispatchPendingCommand(transport,120_000));
+    }
+
+    @Test
+    void listingHandRequiresSameSlotStackComponentsAndUnchangedInventory() {
+        assertTrue(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,64,true,false,false,128,128));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,0,true,false,false,128,64));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,7,64,64,true,false,false,128,128));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,64,false,false,false,128,128));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,64,true,true,false,128,128));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,64,true,false,true,128,128));
+        assertFalse(AutomatedExecutionDriver.listingHandUnchanged(8,8,64,64,true,false,false,128,64),
+                "a late receipt cannot make an already removed stack safe to list again");
+    }
+
+    @Test
     void sellRetriesHonorLongServerBackoffWithoutTimingOutInTheQueue() throws Exception {
         activateListing();
         transport.holdUntil = 220_000;
@@ -190,9 +215,11 @@ class AutomatedExecutionDriverCommandTest {
         boolean stickyMenu;
         int closes;
         long holdUntil;
+        String listingBlocker;
         final List<String> sent = new ArrayList<>();
         public boolean menuOpen() { return menu; }
         public long notBeforeMillis() { return holdUntil; }
+        public String listingBlocker() { return listingBlocker; }
         public void closeMenu() { closes++; if (!stickyMenu) menu = false; }
         public void send(String command) { sent.add(command); }
     }

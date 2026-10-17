@@ -3260,6 +3260,10 @@ public final class AutomationSessionController {
             Position next = recoveredQueue.stream()
                     .filter(p -> !retailWaiting(p, now) || retailStackDue(client, p, now)).findFirst().orElse(null);
             if (next != null) {
+                var guard=dev.doughbay.fabric.DoughBayClient.evasionGuard();
+                String waiting=queuedStockBlocker(now,safeInventoryContext(client),guard!=null&&guard.triggered(),
+                        authorizationBlocker(client));
+                if(waiting!=null){detail="Recovered stock remains queued: "+waiting;return;}
                 recoveredQueue.remove(next);
                 // A recovered purchase whose item is nowhere in the inventory is a
                 // ghost from an earlier session - a lost buy, or a denied item that
@@ -3290,7 +3294,7 @@ public final class AutomationSessionController {
                     return;
                 }
                 pauseInternal("Recovered purchase #" + next.positionId() + " (" + next.itemKey() + " x" + next.quantity()
-                        + ") is next; listing it");
+                        + ") is not verified in inventory; no listing sent, stock record retained for reconciliation");
                 return;
             }
         }
@@ -11979,20 +11983,44 @@ public final class AutomationSessionController {
     }
 
     boolean mayAutoListRecoveredPurchase(long now) {
+        var guard=dev.doughbay.fabric.DoughBayClient.evasionGuard();
+        return mayAutoListRecoveredPurchase(now,guard!=null&&guard.triggered(),now<limboUntil,
+                persistence!=null&&persistence.status().refusalOutstanding());
+    }
+
+    String queuedStockBlocker(long now,boolean inventorySafe,boolean danger,String environment) {
+        if(pausedByPlayer)return "explicit player stop";
+        if(staffTransferHold||danger)return "protective escape or region transfer is active";
+        if(now<limboUntil)return "server restart hold";
+        if(driver.operationIntent()!=AutomatedExecutionDriver.OperationIntent.NONE)return "waiting for the current operation";
+        if(!inventorySafe)return "waiting for a settled player inventory";
+        if(persistence!=null&&persistence.status().refusalOutstanding())return "durable write refused; reconciliation required";
+        return environment;
+    }
+
+    boolean mayAutoListRecoveredPurchase(long now,boolean danger,boolean restarting,boolean refusedWrite) {
         return !pausedByPlayer && (armed || autoResumeOn())
+                && !staffTransferHold && !danger && !restarting && !refusedWrite
                 && state == State.PAUSED && recoveredSession && sessionOpen
                 && now - stateChangedAtMillis >= 5_000;
     }
 
     private void autoListRecoveredPurchase(Minecraft client, long now) {
         if (!mayAutoListRecoveredPurchase(now)) return;
-        if (!purchasedStackInHand(client)) return;
-        if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return;
+        if (!purchasedStackInHand(client)) {
+            detail="PAUSED: recovered purchase is not verified in inventory; stock and exposure retained for reconciliation";
+            return;
+        }
+        if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
+            detail="PAUSED: waiting for the current operation before preparing recovered stock";
+            return;
+        }
         if (policy == null) {
             policy = dev.doughbay.fabric.DoughBayClient.continuousPolicy();
-            if (policy == null) return;
+            if (policy == null) {detail="PAUSED: recovered stock retained; a valid trading policy is unavailable";return;}
         }
-        if (authorizationBlocker(client) != null) return;
+        String blocker=authorizationBlocker(client);
+        if (blocker != null) {detail="PAUSED: recovered stock retained; "+blocker;return;}
         listPurchasedStackInHand(client, now, "Recovered purchase found in the inventory after a restart");
     }
 

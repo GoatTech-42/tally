@@ -10,6 +10,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RecoveredPurchaseStopTest {
     @Test
+    void queuedStockWaitsBeforeTakingOwnershipWhileInventoryOrProtectionIsBusy() throws Exception {
+        var controller=recoveredController();set(controller,"armed",true);
+        assertNull(controller.queuedStockBlocker(10_000,true,false,null));
+        assertNotNull(controller.queuedStockBlocker(10_000,false,false,null));
+        assertNotNull(controller.queuedStockBlocker(10_000,true,true,null));
+        assertEquals("authorization unavailable",controller.queuedStockBlocker(10_000,true,false,"authorization unavailable"));
+        set(controller,"staffTransferHold",true);
+        assertNotNull(controller.queuedStockBlocker(10_000,true,false,null));
+    }
+    @Test
+    void recoveredStockCannotRestartTradingThroughDangerTransferRestartOrRefusedPersistence() throws Exception {
+        var controller=recoveredController();set(controller,"armed",true);
+        assertTrue(controller.mayAutoListRecoveredPurchase(10_000,false,false,false));
+        assertFalse(controller.mayAutoListRecoveredPurchase(10_000,true,false,false));
+        assertFalse(controller.mayAutoListRecoveredPurchase(10_000,false,true,false));
+        assertFalse(controller.mayAutoListRecoveredPurchase(10_000,false,false,true));
+        set(controller,"staffTransferHold",true);
+        assertFalse(controller.mayAutoListRecoveredPurchase(10_000,false,false,false));
+    }
+    @Test
     void playerStopOverridesRecoveredStockAutoResumeEvenAfterItsDelay() throws Exception {
         var controller = recoveredController();
         double previous = Tuning.get("session.auto_resume");

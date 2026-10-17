@@ -4129,6 +4129,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private long pendingCommandGap;
     private long pendingCommandHoldUntil;
     private String lastDispatchedCommand = "";
+    private ItemStack listingCommandStack = ItemStack.EMPTY;
+    private int listingCommandSlot = -1;
     private static final long COMMAND_QUEUE_TIMEOUT_MILLIS = 45_000L;
 
     // A small transport boundary lets the real scheduling path be tested
@@ -4138,6 +4140,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         void closeMenu();
         void send(String command);
         default long notBeforeMillis() { return 0; }
+        default String listingBlocker() { return null; }
     }
 
     private CommandTransport commandTransport(Minecraft client) {
@@ -4145,8 +4148,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             public boolean menuOpen() { return AutomatedExecutionDriver.menuOpen(client); }
             public void closeMenu() { closeAuctionScreen(client); }
             public long notBeforeMillis() { return ServerStrain.commandNotBeforeMillis(); }
+            public String listingBlocker() { return listingCommandBlocker(client); }
             public void send(String command) {
-                CommandSendProbe.verify(command, () -> client.getConnection().sendCommand(command));
+                CommandSendProbe.verify(command, () -> {
+                    if(operation == Operation.LIST && command.startsWith("ah sell "))
+                        client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(listingCommandSlot));
+                    client.getConnection().sendCommand(command);
+                });
             }
         };
     }
@@ -4325,6 +4333,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void dispatchCommand(CommandTransport transport, String command, long now) {
+        if(operation == Operation.LIST && command.startsWith("ah sell ")) {
+            String blocker=transport.listingBlocker();
+            if(blocker!=null)throw new IllegalStateException(blocker);
+        }
         transport.send(command);
         long queuedMillis = resendCommand == null ? 0 : Math.max(0, now - commandQueuedAt);
         lastCommandSentAt = now;
@@ -4339,6 +4351,21 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     enum PendingDispatch { NONE, WAITING, SENT, EXPIRED }
+
+    static boolean listingHandUnchanged(int expectedSlot,int selectedSlot,int expectedCount,int heldCount,
+                                        boolean sameComponents,boolean receipt,boolean confirmed,
+                                        int beforeCount,int currentCount) {
+        return expectedSlot>=0&&expectedSlot<9&&selectedSlot==expectedSlot&&expectedCount>0
+                &&heldCount==expectedCount&&sameComponents&&!receipt&&!confirmed&&currentCount==beforeCount;
+    }
+    private String listingCommandBlocker(Minecraft client) {
+        if(client==null||client.player==null||client.getConnection()==null)return "Listing world is unavailable; no sell command sent";
+        var inventory=client.player.getInventory();var held=inventory.getSelectedItem();
+        return listingHandUnchanged(listingCommandSlot,inventory.getSelectedSlot(),targetCount,held.getCount(),
+                !held.isEmpty()&&ItemStack.isSameItemSameComponents(held,listingCommandStack),
+                !listingReceipt.isEmpty(),phase==Phase.WAITING_FOR_COMPLETION,inventoryCountBefore,countInventory(client,targetItemId))
+                ?null:"Listing stack changed before dispatch; no sell command sent; inventory must be verified again";
+    }
 
     PendingDispatch dispatchPendingCommand(CommandTransport transport, long now) {
         if (resendCommand == null) return PendingDispatch.NONE;
@@ -4610,6 +4637,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         confirmationCaptureTaken = false;
         lastCapturePath = null;
 
+        listingCommandStack = selected.copy();
+        listingCommandSlot = client.player.getInventory().getSelectedSlot();
+
         String command = "ah sell " + price;
         try {
             sendCommand(client, command);
@@ -4699,6 +4729,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         clickedScreenSignature = "";
         confirmationContainerId = -1;
 
+        listingCommandStack = selected.copy();
+        listingCommandSlot = client.player.getInventory().getSelectedSlot();
         String command = "ah sell " + price;
         try {
             sendCommand(client, command);
@@ -6312,6 +6344,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void clearTarget() {
+        listingCommandStack = ItemStack.EMPTY;
+        listingCommandSlot = -1;
         if(communityOrderStream!=null){communityOrderStream.abort();communityOrderStream=null;}
         finishCommunityReadTiming(false);
         resendCommand = null;
@@ -6426,6 +6460,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (client == null || client.player == null || client.getConnection() == null) {
             return "Join a server before starting live execution";
         }
+        if(!client.player.isAlive())return "Respawn before live execution; trading is held while the player is dead";
         if (client.gameMode == null) {
             return "Minecraft's multiplayer interaction controller is unavailable";
         }
