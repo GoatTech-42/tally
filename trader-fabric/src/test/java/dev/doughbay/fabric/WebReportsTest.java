@@ -8,6 +8,23 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WebReportsTest {
+    @Test void attachingToAnExistingBugRequiresReviewedPreviewAndBindsTheTarget() throws Exception {
+        WebReports.Preparation preparation=(d,e,l)->new WebReports.Prepared(new BugReportPayload("0.1.2","26.2",d,e,BugReportDiagnostics.counters(""),""),"fixed evidence");
+        var calls=new ArrayList<String>();
+        WebReports.Delivery delivery=(p,k,l)->{calls.add(k);return CompletableFuture.completedFuture(new BugReportTransport.Result(true,"Attached","https://github.com/cody-raves/Gonuts/issues/92",0));};
+        var fields=Map.of("action","submit","relatedIssue","92","description","Another client has this failure","expected","The action completes","consent","true");
+        assertFalse(JSON.readTree(WebReports.change(fields,preparation,delivery)).path("ok").asBoolean());
+        var preview=new java.util.HashMap<>(fields);preview.put("action","prepare");
+        assertTrue(JSON.readTree(WebReports.change(preview,preparation,delivery)).path("ok").asBoolean());awaitReady();
+        var ready=JSON.readTree(WebReports.data());assertEquals(92,ready.path("relatedIssue").asInt());
+        assertTrue(ready.path("preview").asText().contains("Attach to existing bug #92"));
+        String id=ready.path("id").asText();
+        assertFalse(JSON.readTree(WebReports.change(Map.of("action","send","id",id,"consent","true"),preparation,delivery)).path("ok").asBoolean());
+        assertTrue(calls.isEmpty());
+        assertTrue(JSON.readTree(WebReports.change(Map.of("action","send","id",id,"reviewed","true"),preparation,delivery)).path("ok").asBoolean());
+        assertEquals(1,calls.size());
+        WebReports.change(Map.of("action","send","id",id,"reviewed","true"),preparation,delivery);assertEquals(1,calls.size());
+    }
     private static final ObjectMapper JSON = new ObjectMapper();
     @Test void reviewIsRequiredAndRetriesReuseFrozenBodyWhileOldPreviewsCannotSend() throws Exception {
         var calls = new ArrayList<String>();

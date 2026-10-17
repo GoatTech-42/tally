@@ -51,8 +51,13 @@ public final class BugReportTransport {
         return request(payload,key,token,diagnosticLog,"");
     }
     static HttpRequest request(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter) {
+        return request(payload,key,token,diagnosticLog,reporter,0);
+    }
+    static HttpRequest request(BugReportPayload payload,String key,String token,String diagnosticLog,String reporter,int relatedIssue) {
+        if(relatedIssue<0)throw new IllegalArgumentException("Invalid related issue");
         if (key == null || !key.matches("[A-Za-z0-9_-]{8,64}")) throw new IllegalArgumentException("Invalid report retry identifier");
-        var builder=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
+        URI endpoint=relatedIssue==0?ENDPOINT:URI.create(ENDPOINT+"/"+relatedIssue+"/evidence");
+        var builder=HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(25))
             .header("Content-Type", "application/json")
             .header("Idempotency-Key", key);
         if(reporter!=null&&!reporter.isEmpty()) {
@@ -124,21 +129,31 @@ public final class BugReportTransport {
         return send(payload, key, apiBaseUrl, token, "");
     }
     public CompletableFuture<Result> send(BugReportPayload payload, String key, String apiBaseUrl, String token, String diagnosticLog) {
+        return sendRelated(payload,key,diagnosticLog,0);
+    }
+    public CompletableFuture<Result> sendRelated(BugReportPayload payload,String key,String diagnosticLog,int relatedIssue) {
+        if(relatedIssue<0)return CompletableFuture.completedFuture(new Result(false,"Invalid related issue.","",0));
         return CompletableFuture.supplyAsync(() -> {
             try { return automaticCapabilities(); }
             catch (Exception e) { return JSON.createObjectNode(); }
         }).thenComposeAsync(capabilities -> {
+            if(relatedIssue>0&&!advertisesRelatedIssue(capabilities))
+                return CompletableFuture.completedFuture(new Result(false,"Attaching evidence is unavailable. Keep this preview and retry later; no new issue was created.","",0));
             if (diagnosticLog != null && !diagnosticLog.isEmpty() && !advertisesLogSupport(capabilities))
                 return CompletableFuture.completedFuture(new Result(false,"Report service capabilities unavailable. Retry this prepared report later.","",0));
             if (payload.settingsCode() != null && !payload.settingsCode().isEmpty() && !advertisesSettingsSupport(capabilities))
                 return CompletableFuture.completedFuture(new Result(false,"Settings attachment support unavailable. Keep this prepared report and retry later.","",0));
-            return sendSupported(payload,key,token,diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"");
+            return sendSupported(payload,key,"",diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"",relatedIssue);
         });
     }
 
-    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter) {
+    static boolean advertisesRelatedIssue(com.fasterxml.jackson.databind.JsonNode capabilities) {
+        return capabilities.path("relatedIssue").path("supported").asBoolean(false)
+                &&capabilities.path("relatedIssue").path("route").asText().equals("/v1/bugs/{issue}/evidence");
+    }
+    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter,int relatedIssue) {
         try {
-            return http.sendAsync(request(payload, key, token, diagnosticLog,reporter), HttpResponse.BodyHandlers.ofInputStream())
+            return http.sendAsync(request(payload, key, token, diagnosticLog,reporter,relatedIssue), HttpResponse.BodyHandlers.ofInputStream())
                 .thenApplyAsync(response -> {
                     try (var body = response.body()) {
                         CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
@@ -146,12 +161,26 @@ public final class BugReportTransport {
                         });
                         byte[] bytes = body.readNBytes(16385);
                         if (bytes.length > 16384) return new Result(false, "Unexpected receiver reply. Retry later.", "", 0);
-                        return interpret(response.statusCode(), new String(bytes, java.nio.charset.StandardCharsets.UTF_8),
-                            response.headers().firstValue("Retry-After").orElse(""), System.currentTimeMillis());
+                        String text=new String(bytes,java.nio.charset.StandardCharsets.UTF_8);
+                        String retry=response.headers().firstValue("Retry-After").orElse("");
+                        return relatedIssue==0?interpret(response.statusCode(),text,retry,System.currentTimeMillis())
+                                :interpretEvidence(response.statusCode(),text,retry,System.currentTimeMillis(),relatedIssue);
                     } catch (Exception e) { return new Result(false, "Receiver reply unavailable. Retry later with this report.", "", 0); }
                 }).orTimeout(30, TimeUnit.SECONDS)
                 .exceptionally(e -> new Result(false, "Connection failed. Retry this report; its retry identifier is retained.", "", 0));
         } catch (Exception e) { return CompletableFuture.completedFuture(new Result(false, "Report could not be sent. Nothing was uploaded.", "", 0)); }
+    }
+    static Result interpretEvidence(int code,String body,String retry,long now,int issue) {
+        if(code==200||code==201) {
+            try {
+                var reply=JSON.readTree(body);
+                String url="https://github.com/cody-raves/Gonuts/issues/"+issue;
+                if(issue<=0||reply.path("issue").asInt()!=issue||!reply.path("attached").asBoolean()||!reply.path("url").asText().equals(url))throw new IllegalArgumentException();
+                return new Result(true,"Diagnostics attached to the existing bug; no new issue created.",url,0);
+            }catch(Exception e){return new Result(false,"Unexpected attachment reply. Keep this preview and retry later.","",0);}
+        }
+        if(code==404)return new Result(false,"That bug is closed or no longer canonical. Refresh the tracker before attaching.","",0);
+        return interpret(code,body,retry,now);
     }
     static Result interpret(int code, String body, String retryAfter, long now) {
         if (code == 200 || code == 201) {

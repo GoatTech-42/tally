@@ -28,7 +28,11 @@ final class Pages {
             * { box-sizing: border-box; }
             body { margin:0; background:var(--background); color:var(--text);
               font: 16px/1.45 "GoNuts Pixel", "Monocraft", ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
-            main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
+            main { width:100%; max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
+            main img, main svg, main canvas { max-width:100%; }
+            .work > *, .body, .split > *, .detail > *, .card { min-width:0; }
+            input, select, button, pre { max-width:100%; }
+            pre { white-space:pre-wrap; overflow-wrap:anywhere; }
             .panel { background:var(--surface); border:1px solid var(--edge); border-radius:7px;
               box-shadow: 2px 3px 0 rgba(0,0,0,.31); }
             .label { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
@@ -75,7 +79,7 @@ final class Pages {
             .body { padding:10px; }
             .wide { overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--inset);
               border:1px solid var(--edge); border-radius:4px; padding:6px; }
-            #shot { display:block; width:100%; min-width:720px; height:auto; }
+            #shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
             #evasion-shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
             #notice { min-height:22px; margin:8px 2px 2px; color:var(--secondary); overflow-wrap:anywhere; }
             .row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
@@ -191,6 +195,23 @@ final class Pages {
             .door button { width:100%; margin-top:10px; }
             .door p { color:var(--secondary); font-size:13px; }
             .door .bad { color:var(--bad); }
+            @media (max-width:859px) {
+              nav { flex-wrap:wrap; overflow:visible; }
+              nav button, nav a { flex:1 1 130px; white-space:normal; overflow-wrap:anywhere; }
+              button { white-space:normal; overflow-wrap:anywhere; }
+              .wide { max-width:100%; }
+              .bug-row .card { padding:8px; overflow-wrap:anywhere; }
+            }
+            @media (max-width:480px) {
+              main { padding:8px 10px 24px; }
+              header { gap:8px; padding:8px; }
+              #clock { flex:1 1 100%; }
+              .body { padding:8px; }
+              .cards { columns:1; }
+              .setline { flex-wrap:wrap; }
+              .val.long { max-width:100%; white-space:normal; }
+              .line input { width:100%; }
+            }
             """;
 
     private static final String HEAD = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
@@ -469,6 +490,43 @@ final class Pages {
                   button('', 'Dismiss', async () => { await change('reports', {action:'dismiss', incident:reportData.incident}); await reportNotice(); }));
               } catch (e) { /* Panel status must continue when report status is unavailable. */ }
             }
+            async function renderBugTracker(box, onAffected) {
+              const title = el('h3', '', 'Known bugs — check before reporting');
+              const state = el('p','muted','Loading the shared bug tracker…');
+              const rows = el('div');
+              const all = el('a','','View all bugs and affected-user votes');
+              all.href='https://gonuts.at/dashboard/bugs';all.target='_blank';all.rel='noopener noreferrer';
+              box.replaceChildren(title,state,rows,all);
+              try {
+                const response=await fetch('https://gonuts.at/dashboard/api/public/bugs',{credentials:'omit',signal:AbortSignal.timeout(5000)});
+                if(!response.ok)throw new Error('unavailable');
+                const text=await response.text();if(text.length>262144)throw new Error('too large');
+                const data=JSON.parse(text);if(!data.available||!data.snapshot)throw new Error('unavailable');
+                const stats=data.snapshot.stats||{},day=stats.last24h||{},totals=stats.totals||{};
+                const count=v=>Number.isSafeInteger(v)&&v>=0?String(v):'unknown';
+                state.textContent='Last 24h: '+count(day.newReports)+' reported · '+count(day.patchAvailable)+' with patches · '+count(day.confirmedResolved)+' confirmed resolved · '+count(day.unresolved)+' unresolved. Current unresolved: '+count(totals.unresolved)+'.'+(data.stale?' Snapshot is stale.':'');
+                const items=Array.isArray(data.snapshot.items)?data.snapshot.items:[];
+                const active=items.filter(i=>Number.isSafeInteger(i.issue)&&i.issue>0&&!['resolved','feature','closed_unfixed'].includes(i.status));
+                for(const item of active.slice(0,8)) {
+                  const row=el('div','bug-row');row.style.position='relative';row.style.padding='8px';row.style.borderBottom='1px solid var(--edge)';
+                  const brief=button('', '#'+item.issue+' '+String(item.summary||'Bug report').slice(0,100),()=>{tip.hidden=!tip.hidden;});
+                  brief.style.textAlign='left';brief.setAttribute('aria-expanded','false');
+                  const label=el('span','muted',' '+String(item.status||'unknown').replaceAll('_',' '));
+                  const tip=el('div','card');tip.hidden=true;tip.setAttribute('role','note');
+                  tip.textContent='Symptom: '+String(item.summary||'Awaiting triage').slice(0,240)+' · Cause: '+String(item.cause||'Not established').slice(0,180)+' · Patch: '+String(item.patch||'Not confirmed').slice(0,100)+' · Status: '+String(item.status||'unknown').replaceAll('_',' ');
+                  const toggle=show=>{tip.hidden=!show;brief.setAttribute('aria-expanded',String(show));};
+                  row.onmouseenter=()=>toggle(true);row.onmouseleave=()=>{if(!row.contains(document.activeElement))toggle(false);};
+                  brief.onfocus=()=>toggle(true);row.onfocusout=()=>setTimeout(()=>{if(!row.contains(document.activeElement))toggle(false);},0);
+                  brief.onclick=()=>toggle(tip.hidden);
+                  const affected=button('','I’m affected too',()=>onAffected(item.issue));
+                  const tally=item.affected||{};
+                  const votes=el('span','muted',' '+count(tally.people)+' users · '+count(tally.installations)+' installation reports');
+                  row.append(brief,label,affected,votes,tip);rows.appendChild(row);
+                }
+                if(!active.length)rows.appendChild(el('p','muted','No active bugs in this snapshot.'));
+                const time=new Date(data.generatedAt||data.snapshot.generatedAt);if(!isNaN(time))box.appendChild(el('p','muted','Updated '+time.toLocaleString()));
+              } catch(e) {state.textContent='Bug tracker unavailable. You can still report a new problem; counts are unknown.';}
+            }
             async function openReports() {
               clearTimeout(reportTimer);
               if (view !== 'reports') return;
@@ -490,11 +548,17 @@ final class Pages {
               const status = el('p', '', ''), preview = el('pre', '', '');
               preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
               let preparedId = '', blockedId = '', changedSinceSend = true;
-              const fields = action => ({action, description:description.value, expected:expected.value, consent:'true'});
-              const send = button('', 'Send report', async () => {
+              let relatedIssue=Number.isSafeInteger(reportData.relatedIssue)&&reportData.relatedIssue>0?reportData.relatedIssue:0;
+              const related=el('p','muted',relatedIssue?'Attach diagnostics to existing bug #'+relatedIssue+' — no new issue.':'New bug report');
+              const resetRelated=button('', 'Report a different bug',()=>{relatedIssue=0;related.textContent='New bug report';send.textContent='Send report';changed();});
+              const tracker=el('section','card');
+              const fields = action => ({action, description:description.value, expected:expected.value, consent:'true',relatedIssue:String(relatedIssue)});
+              const send = button('', relatedIssue?'Attach reviewed diagnostics':'Send report', async () => {
                 clearTimeout(reportTimer);
                 send.disabled = true; changedSinceSend = false;
-                const result = await change('reports', fields('submit'));
+                const form=relatedIssue?{action:'send',id:preparedId,reviewed:'true'}:fields('submit');
+                if(relatedIssue&&!preparedId){status.textContent='Preview and review these diagnostics before attaching.';send.disabled=false;return;}
+                const result = await change('reports', form);
                 if (!result || !result.ok) {
                   status.textContent = result?.note || 'Report request failed. Please try again.';
                   send.disabled = false; changedSinceSend = true; return;
@@ -523,7 +587,7 @@ final class Pages {
                   const d = await api('reports'); reportData = d;
                   status.textContent = d.note || '';
                   prepare.disabled = !!d.busy;
-                  if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy) {
+                  if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy && (d.relatedIssue||0)===relatedIssue) {
                     preparedId = d.id; preview.textContent = d.preview;
                   }
                   send.disabled = !!d.busy || !changedSinceSend && !!d.issueUrl || Date.now() < (d.retryAt || 0);
@@ -532,8 +596,9 @@ final class Pages {
                 } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
                 reportTimer = setTimeout(poll, 1500);
               }
-              own.replaceChildren(el('h2', '', 'Report bug'), feature, featureHelp, privacy, el('label', '', 'What happened?'), description,
+              own.replaceChildren(el('h2', '', 'Report bug'), tracker, related, resetRelated, feature, featureHelp, privacy, el('label', '', 'What happened?'), description,
                 el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches diagnostics automatically, then publishes them to GitHub.'), send, prepare, status, preview, link);
+              renderBugTracker(tracker,issue=>{relatedIssue=issue;related.textContent='Attach diagnostics to existing bug #'+issue+' — no new issue.';send.textContent='Attach reviewed diagnostics';if(!description.value)description.value='I am also affected by bug #'+issue+'. ';if(!expected.value)expected.value='This issue should be fixed for my client too.';changed();prepare.click();});
               poll();
             }
 
