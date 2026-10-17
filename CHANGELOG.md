@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 22:47 UTC
+
+- Flip collections now match the original requested quantity as well as item and price. An old differently sized order at the same price no longer steals the collection target or credits the wrong order key. Refused requests leave the current row target unchanged.
+- Cancelling an order skips completed/cancelled historical rows and targets an active order. If a delivery arrives during cancellation, the desk rereads Your Orders before collecting instead of creating a zero-quantity collection key.
+
 ## 2026-10-17 22:41 UTC
 
 - Fixed Flip collection retries: a failed attempt no longer selects the next order row as though the retry count were a row index. New passes start at the first matching row and skip older collected rows without spending the failure budget.

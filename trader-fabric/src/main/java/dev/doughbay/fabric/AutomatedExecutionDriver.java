@@ -776,6 +776,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 ? List.copyOf(rows) : null;
     }
 
+    static boolean matchesOwnOrder(OwnOrderRow row, String item, long unit, int requested) {
+        return row.itemId().equals(item) && row.unitPrice() == unit
+                && (requested <= 0 || row.requested() == requested);
+    }
+
+    static boolean matchesOwnOrder(OwnOrderRow row, String item, long unit, int requested, boolean activeOnly) {
+        return matchesOwnOrder(row, item, unit, requested)
+                && (!activeOnly || !row.alreadyCancelled() && row.remaining() > 0);
+    }
+
     // "768 requested", and from a thousand up "1.2K requested": an order of
     // 1,280 is shown abbreviated, and a pattern that took digits only left
     // every large order unparsed - invisible to the desk, never collected.
@@ -832,6 +842,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownNavigationReopens = 0;
         ownOrdersArrivalNoted = false;
         ownTargetUnitPrice = unitPrice;
+        ownMatchOrdinal = 0;
+        ownMatchRequested = 0;
         placeConfirmed = false;
         lastPlacementOrders = null;
         placeReceipt = "";
@@ -906,11 +918,20 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * nothing more is coming and all of it is taken.
      */
     public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int ordinal, boolean wholeStacksOnly) {
-        ownMatchOrdinal = Math.max(0, ordinal);
+        return collectOrder(itemId, unitPrice, 0, ordinal, wholeStacksOnly);
+    }
+
+    /** A known requested quantity keeps collection on the controller's exact order-accounting key. */
+    public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
+                                                     int ordinal, boolean wholeStacksOnly) {
         ExecutionResult result = beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
                 "Collecting " + shortName(itemId) + " delivered to your order");
-        collectWholeStacksOnly = wholeStacksOnly;
-        ownTargetFinished = false;
+        if (result.ok()) {
+            ownMatchOrdinal = Math.max(0, ordinal);
+            ownMatchRequested = Math.max(0, requested);
+            collectWholeStacksOnly = wholeStacksOnly;
+            ownTargetFinished = false;
+        }
         return result;
     }
 
@@ -921,6 +942,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private boolean ownTargetFinished;
 
     private int ownMatchOrdinal;
+    private int ownMatchRequested;
     private int wrongPageReopens;
     private int listingScanRestarts;
     private int ownNavClickedAt;
@@ -954,7 +976,6 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice) {
-        ownMatchOrdinal = 0;
         return beginOwnOrdersOperation(Operation.CANCEL_ORDER, itemId, 0, unitPrice,
                 "Cancelling your bid on " + shortName(itemId));
     }
@@ -1213,7 +1234,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     continue;
                 }
                 rows.add(row);
-                if (row.itemId().equals(targetItemId) && row.unitPrice() == ownTargetUnitPrice) {
+                if (matchesOwnOrder(row, targetItemId, ownTargetUnitPrice, ownMatchRequested,
+                        operation == Operation.CANCEL_ORDER)) {
                     if (matchSlot < 0 && matchesSeen == ownMatchOrdinal) {
                         matchSlot = menuSlot;
                         ownTargetTooltip = List.copyOf(tooltipLines(client, stack));

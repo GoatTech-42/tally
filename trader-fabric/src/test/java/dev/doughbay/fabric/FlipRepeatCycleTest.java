@@ -195,4 +195,26 @@ class FlipRepeatCycleTest {
             assertEquals(0,((Map<String,Integer>)get(c,"collectAttempts")).getOrDefault(ITEM+"|200|64",0));
         }
     }
+    @Test void collectingASmallerReplacementDoesNotMatchAnOlderLargerOrderAtTheSamePrice() {
+        var old=new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,128,200,128,100000);
+        var current=new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000);
+        assertFalse(AutomatedExecutionDriver.matchesOwnOrder(old,ITEM,200,64));
+        assertTrue(AutomatedExecutionDriver.matchesOwnOrder(current,ITEM,200,64));
+        assertTrue(AutomatedExecutionDriver.matchesOwnOrder(old,ITEM,200,0),"legacy callers can omit quantity");
+    }
+    @Test void aFillDuringCancelRequiresFreshOrdersInsteadOfCollectingUnderAZeroQuantityKey()throws Exception {
+        long now=1000000;var c=controller(now);
+        Class<?> action=Class.forName(c.getClass().getName()+"$DeskAction");
+        Object cancel=Arrays.stream(action.getEnumConstants()).filter(v->v.toString().equals("CANCEL")).findFirst().orElseThrow();
+        Class<?> type=Class.forName(c.getClass().getName()+"$DeskStep");
+        var constructor=type.getDeclaredConstructor(action,String.class,int.class,long.class,String.class,int.class,long.class);
+        constructor.setAccessible(true);set(c,"deskStep",constructor.newInstance(cancel,ITEM,0,200L,"fixture",0,0L));
+        set(get(c,"driver"),"lastTerminalEvent",new AutomatedExecutionDriver.TerminalEvent(1,
+                AutomatedExecutionDriver.OperationIntent.CANCEL_ORDER,AutomatedExecutionDriver.TerminalOutcome.ABORTED,
+                "","",ITEM,0,0,"",false,now,AutomatedExecutionDriver.FILL_WAITING));
+        invoke(c,"observeDeskTerminal",new Class[]{net.minecraft.client.Minecraft.class,long.class},null,now);
+        var queued=((Collection<?>)get(c,"deskQueue")).stream().map(Object::toString).toList();
+        assertTrue(queued.getFirst().contains("action=READ"));
+        assertFalse(queued.stream().anyMatch(s->s.contains("action=COLLECT")),"the requested order size is not known yet");
+    }
 }
