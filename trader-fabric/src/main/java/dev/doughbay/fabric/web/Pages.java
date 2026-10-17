@@ -474,6 +474,10 @@ final class Pages {
               if (view !== 'reports') return;
               await reportNotice();
               if (view !== 'reports') return;
+              const feature = el('a', '', 'Feature request');
+              feature.href = 'https://github.com/cody-raves/Gonuts/issues/new?template=feature-request.yml';
+              feature.target = '_blank'; feature.rel = 'noopener noreferrer';
+              const featureHelp = el('p', 'muted', 'Have an idea instead of a bug? Feature request opens the same public GitHub form as the in-game button. Nothing from this report is attached.');
               const description = el('textarea'), expected = el('textarea');
               description.maxLength = expected.maxLength = 1500;
               description.rows = 5; expected.rows = 3;
@@ -528,7 +532,7 @@ final class Pages {
                 } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
                 reportTimer = setTimeout(poll, 1500);
               }
-              own.replaceChildren(el('h2', '', 'Report bug'), privacy, el('label', '', 'What happened?'), description,
+              own.replaceChildren(el('h2', '', 'Report bug'), feature, featureHelp, privacy, el('label', '', 'What happened?'), description,
                 el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches diagnostics automatically, then publishes them to GitHub.'), send, prepare, status, preview, link);
               poll();
             }
