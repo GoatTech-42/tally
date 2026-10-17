@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 19:41 UTC
+
+- Single-account clients now stamp new automation ledger records with their account, so booked dashboard and Discord metrics can find them. Hosted metrics accept case-only changes in the same account name and continue excluding other accounts and unowned historical records.
+- Evasion can send a direct RTP command for the current region when a fresh server label and current server command suggestions agree. This avoids relying on bare RTP opening a region-selection menu. Unknown or stale region evidence keeps the existing route; configured homes, movement verification and protective disconnect fallback remain unchanged.
+
 ## 2026-10-17 19:22 UTC
 
 - Delayed auction sell commands now recheck the selected slot, exact stack and inventory before sending, and synchronize the selected slot with the server. Changed or empty hands retain stock for verification instead of sending a stale sell command.

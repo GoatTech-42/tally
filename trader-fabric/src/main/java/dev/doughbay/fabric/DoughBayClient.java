@@ -335,16 +335,15 @@ public class DoughBayClient implements ClientModInitializer {
         // after: recovery runs long before the player exists in a world, and a
         // second client that loaded with no owner would adopt the first's
         // whole book. The signed-in account is known from launch.
-        if (multiClient()) {
-            try {
-                String account = net.minecraft.client.Minecraft.getInstance().getUser().getName();
-                if (account != null && !account.isBlank()) {
-                    automationPersistence.setClient(account);
-                    LOGGER.info("DoughBay: this client trades as {}; it manages only its own positions", account);
-                }
-            } catch (RuntimeException e) {
-                LOGGER.warn("DoughBay could not read the signed-in account: {}", e.toString());
+        // Solo clients need the same owner stamp: dashboard and Discord metrics are account-scoped.
+        try {
+            String account = net.minecraft.client.Minecraft.getInstance().getUser().getName();
+            if (account != null && !account.isBlank()) {
+                automationPersistence.setClient(account);
+                LOGGER.info("DoughBay: this client trades as {}; it manages only its own positions", account);
             }
+        } catch (RuntimeException e) {
+            LOGGER.warn("DoughBay could not read the signed-in account: {}", e.toString());
         }
         AUTOMATION_SESSION.setPersistence(automationPersistence);
         automationPersistence.start();
@@ -640,7 +639,7 @@ public class DoughBayClient implements ClientModInitializer {
             if (RIVALS != null && client.player != null) RIVALS.setOwnName(client.player.getName().getString());
             // Set at startup from the signed-in account; kept in step here in
             // case the account changed under us.
-            if (automationPersistence != null && client.player != null && multiClient()) {
+            if (automationPersistence != null && client.player != null) {
                 automationPersistence.setClient(client.player.getName().getString());
             }
             // A container on screen is proof the world is serving again: the

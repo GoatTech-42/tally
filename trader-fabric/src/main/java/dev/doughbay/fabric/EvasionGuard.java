@@ -1153,6 +1153,7 @@ public final class EvasionGuard {
                 return;
             }
             String command = SafeHomes.teleportCommand(useHomes);
+            if(command.equals("rtp"))command=dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.evasionRtpCommand();
             if (command.isEmpty()) {
                 leave(client, "Evasion: no configured home available; disconnecting without RTP");
                 return;
@@ -1225,6 +1226,7 @@ public final class EvasionGuard {
             return;
         }
         String command = SafeHomes.teleportCommand(Tuning.get("evasion.use_homes") >= .5);
+        if(command.equals("rtp"))command=dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.evasionRtpCommand();
         if (command.isEmpty()) { wanderAt = 0; return; }
         wanderAt = now + jitteredWander(every);
         teleportFrom = client.player.position();

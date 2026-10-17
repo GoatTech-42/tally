@@ -23,6 +23,8 @@ final class StaffRegionEscapeController {
     private final Consumer<String> disconnect;
     private volatile List<String> regions = List.of();
     private volatile int discoveryId = -1;
+    private volatile Object discoveryConnection;
+    private volatile long regionsAt;
     private final RegionArrivalProof arrival = new RegionArrivalProof();
     private long nextDiscovery;
     private volatile long requestedAt;
@@ -119,8 +121,10 @@ final class StaffRegionEscapeController {
             }
             if (event.packet instanceof ClientboundCommandSuggestionsPacket reply && reply.id() == discoveryId) {
                 discoveryId = -1;
+                if(mc().getConnection()!=discoveryConnection)return;
                 regions = reply.toSuggestions().getList().stream().map(s -> s.getText().toLowerCase(java.util.Locale.ROOT).strip())
                     .filter(ALLOWED::contains).distinct().toList();
+                regionsAt=System.currentTimeMillis();
                 event.setCancelled(true);
             }
         });
@@ -132,12 +136,22 @@ final class StaffRegionEscapeController {
         if (paused && mc().player != null && DoughBayClient.automationSessionController().safeToLeave()
                 && mc().player.containerMenu != mc().player.inventoryMenu
                 && mc().player.containerMenu.getCarried().isEmpty()) mc().player.closeContainer();
-        if (enabled && mc().getConnection() != null && mc().level != null && System.currentTimeMillis() >= nextDiscovery) {
+        boolean evasionRtp=mc().getCurrentServer()!=null&&DonutServer.matches(mc().getCurrentServer().ip)
+                &&!mc().hasSingleplayerServer()&&dev.doughbay.fabric.Tuning.get("evasion.enabled")>=.5
+                &&dev.doughbay.fabric.Tuning.get("evasion.escape")==1
+                &&dev.doughbay.fabric.Tuning.get("evasion.use_homes")<.5;
+        if ((enabled||evasionRtp) && mc().getConnection() != null && mc().level != null && System.currentTimeMillis() >= nextDiscovery) {
             nextDiscovery = System.currentTimeMillis() + 30_000;
             discoveryId = IDS.incrementAndGet();
+            discoveryConnection=mc().getConnection();
             mc().getConnection().send(new ServerboundCommandSuggestionPacket(discoveryId, "rtp "));
         }
         flow.tick(enabled);
     }
-    void cancel() { flow.cancel(); regions = List.of(); discoveryId = -1; nextDiscovery = 0; }
+    String evasionRtpCommand() {
+        long age=System.currentTimeMillis()-regionsAt;
+        if(mc().getConnection()!=discoveryConnection||age<0||age>90_000)return "rtp";
+        return dev.doughbay.fabric.EvasionRtpCommand.resolve(dev.doughbay.fabric.hosted.CommunityRegion.current(mc()),regions);
+    }
+    void cancel() { flow.cancel(); regions = List.of(); discoveryId = -1; nextDiscovery = 0; discoveryConnection=null;regionsAt=0; }
 }
