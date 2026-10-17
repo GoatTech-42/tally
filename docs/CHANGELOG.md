@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 11:58 UTC
+
+- Added Feature request beside Report bug in the local and hosted web panel. It opens the same public GitHub feature-request form as the in-game button, without attaching bug-report diagnostics.
+
 ## 2026-10-17 10:54 UTC
 
 - Evasion now shows one activity view: the native picture with recent events, followed by the original guard, route, homes and tuning controls. The duplicate text activity table appears only if the picture cannot load, and returns to hidden after a successful refresh.
