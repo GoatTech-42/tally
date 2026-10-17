@@ -4,7 +4,7 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
-## 2026-10-17 — Swarm API and hosted dashboard
+## 2026-10-17 09:46 UTC
 
 - Added the Discord-linked dashboard and per-installation Swarm API opt-in. Participating clients contribute observed markets and passive follow activity and receive shared discovery guidance in the background. Linking a bot to the dashboard includes Swarm contribution and discovery; no second enrollment step is needed. Unlinking leaves the Swarm.
 - Normal trading now uses fresh shared observations to prioritize discovery. Current native price quotes, own-order evidence, sizing, profit/ROI, inventory, capacity and guard checks remain authoritative. Missing or stale service data falls back to normal reads. Duplicate broad discovery is reused only with accepted, recent, complete same-owner peer coverage and fresh owned-state evidence; observed history is never an executable price or an ownership ledger.
