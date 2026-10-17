@@ -83,6 +83,7 @@ public final class HostedDashboardClient {
         catch(Exception e){return System.currentTimeMillis()+60_000;}
     }
     public synchronized void unlink(){
+        SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();
         if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","Removing local link...",0);
         CommunityClient.INSTANCE.dashboardUnlinked();
@@ -92,12 +93,13 @@ public final class HostedDashboardClient {
             catch(Exception e){view=new View(false,false,false,"","Disconnected, but could not remove the local credential file",0);}
         });
     }
-    public void reconnect(){if(!started||!view.linked()||view.busy())return;SwarmRank.clear();worker.execute(()->{rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
+    public void reconnect(){if(!started||!view.linked()||view.busy())return;SwarmRank.clear();SwarmStaffSightings.INSTANCE.clear();worker.execute(()->{rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
     /** Called on the client thread: only reads already-held figures, never SQL or networking. */
     public void tick(Minecraft client){
         CommunityClient.INSTANCE.dashboardLinked(view.linked());
         long now=System.currentTimeMillis();String account=DoughBayClient.account();panelAccount=account;CommunityClient.INSTANCE.account(account);CommunityRegion.tick(client);CommunityClient.INSTANCE.connected(CommunityRegion.donut(client));CommunityPerformance.INSTANCE.tick(CommunityRegion.donut(client),System.nanoTime());
-        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;SwarmRank.clear();}
+        if(activity==null||!activityAccount.equals(account)){activity=new DashboardActivityCounters(now);activityAccount=account;SwarmRank.clear();SwarmStaffSightings.INSTANCE.clear();}
+        if(!CommunityClient.INSTANCE.sharingStaffSightings(now))SwarmStaffSightings.INSTANCE.clear();
         var controller=DoughBayClient.automationSessionController();
         var session=controller.snapshot();
         var terminal=DoughBayClient.executionDriver().lastTerminalEvent();
@@ -253,6 +255,7 @@ public final class HostedDashboardClient {
         String identity=metrics==null?"":SwarmRank.accountId(rankingSalt,captured.account());
         if(!identity.equals(publishedAccountId)){SwarmRank.clear();publishedAccountId=identity;}
         if(metrics!=null&&!identity.isEmpty())j.put("accountId",identity);
+        j.set("staffSightings",SwarmStaffSightings.INSTANCE.snapshot(CommunityClient.INSTANCE.sharingStaffSightings(now),now));
         var shape=j.deepCopy();shape.remove("at");String encoded=shape.toString();
         if(!forceTelemetry&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
         send(j);lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
@@ -272,6 +275,7 @@ public final class HostedDashboardClient {
         }));
     }
     private void failed(String message){
+        SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);
         if(socket!=null)socket.abort();socket=null;connecting=false;welcome=false;
@@ -280,6 +284,7 @@ public final class HostedDashboardClient {
         if(link!=null)view=new View(true,false,false,link.name,message,nextConnect);
     }
     private void revoked(){
+        SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
         long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);if(socket!=null)socket.abort();socket=null;link=null;welcome=false;connecting=false;
         try{store.forget();view=new View(false,false,false,"","Link revoked; pair with a new code",0);}

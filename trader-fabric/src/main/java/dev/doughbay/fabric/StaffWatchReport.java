@@ -49,6 +49,11 @@ public final class StaffWatchReport {
     public static synchronized void record(long at,String name,Event event){record(at,name,event,false);}
     public static synchronized void record(long at,String name,Event event,boolean sameRegion) {
         if(at<=0 || name==null || !name.matches("[A-Za-z0-9_]{1,16}") || event==null)return;
+        long sharedNow=System.currentTimeMillis();
+        dev.doughbay.fabric.hosted.SwarmStaffSightings.INSTANCE.observe(name,
+                dev.doughbay.fabric.hosted.CommunityRegion.current(net.minecraft.client.Minecraft.getInstance()),
+                event.name(),at,sameRegion,
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.sharingStaffSightings(sharedNow),sharedNow);
         var existing=pending.stream().filter(e->e.name().equalsIgnoreCase(name)&&e.event().equals(event.name())&&e.scope().equals(region)&&Math.abs(e.at()-at)<2000).findFirst();
         if(existing.isPresent()) {
             var prior=existing.get();

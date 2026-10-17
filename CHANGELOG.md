@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 18:41 UTC
+
+- Participating clients can share new Staff Watch detections with same-region evidence for the Swarm dashboard sidebar. Reports contain only the public staff name, broad explicitly reported region, detection type and time; they expire after 15 minutes. Global staff-online entries and disappearances alone are excluded. Unlinking or losing participation clears the temporary local feed. Staff Watch controls and alert behavior are unchanged.
+
 ## 2026-10-17 18:18 UTC
 
 - Website Swarm cards now show six estimated standings (sale records per hour, profit per hour/24 hours, revenue per hour/24 hours and 24-hour profit margin), plus an equal-weight overall score and position using available metrics. Collective profit/revenue and your Hive profit share give context. Figures use compact K/M/B notation and rounded-display labels; missing revenue remains unknown or partial until clients report it. No 10-Hive or ledger-coverage wait is required.
