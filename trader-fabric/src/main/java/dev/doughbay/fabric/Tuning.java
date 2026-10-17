@@ -500,12 +500,10 @@ public final class Tuning {
                     + "actually filling now. Clamped so it is a nudge, not a lever, and needs a market to have a real daily "
                     + "shape before it counts. Off by default; it changes which markets are scanned (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
-            new Setting("recovery.auto_reset_min", "Recovery", "Auto force-reset a wedged session after",
-                    "If a recovered position gets stuck past every automatic recovery - an exact-book scan that keeps "
-                    + "being refused, a checkpoint that never lands - the session sits PAUSED and does nothing. After this "
-                    + "many minutes wedged (well past any real recovery, which takes seconds), force-reset it: abandon the "
-                    + "stuck exposure, clear the lock, and scan fresh. The held items stay in the inventory and re-list on "
-                    + "the next sweep, so nothing is lost but the ledger's memory of them. 0 turns it off", 10, 0, 120, Kind.MINUTES),
+            new Setting("recovery.auto_reset_min", "Recovery", "Warn about a blocked recovery after",
+                    "After this many minutes with unresolved recovered exposure, report that audited recovery is required. "
+                    + "Elapsed time never abandons stock, clears exposure or pending checkpoints, or starts trading. "
+                    + "Normal verified recovery can continue. The legacy setting key is retained; 0 disables the warning", 10, 0, 120, Kind.MINUTES),
             new Setting("evasion.enabled", "Evasion", "Evasion",
                     "Watch for players and get out of the way. Off means the session never pauses or teleports for "
                     + "anyone, whatever the rings below say (1 on, 0 off)",

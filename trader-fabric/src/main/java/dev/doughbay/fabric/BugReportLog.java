@@ -17,6 +17,14 @@ public final class BugReportLog {
     private static final Pattern FRAME = Pattern.compile("^\\s*at (?:[\\w.]+//)?(dev\\.doughbay\\.[A-Za-z0-9_.$]+)\\(([A-Za-z0-9_$]+\\.java):(\\d{1,6})\\)\\s*$");
     private static final Pattern SQLITE = Pattern.compile("\\b(SQLITE_(?:BUSY_SNAPSHOT|BUSY|LOCKED|ERROR|CONSTRAINT|CORRUPT|IOERR|FULL|READONLY))\\b");
     private static final Set<String> ERRORS = Set.of("SQLiteException", "IllegalStateException", "IllegalArgumentException", "NullPointerException", "IOException", "SocketException", "TimeoutException", "ConnectException");
+    private static final java.util.Map<String,String> PAUSE_REASONS = java.util.Map.ofEntries(
+            java.util.Map.entry("Timed out reconciling the sale notice with active listings", "SALE_RECONCILIATION_TIMEOUT"),
+            java.util.Map.entry("Timed out reconciling the new active listing", "LISTING_RECONCILIATION_TIMEOUT"),
+            java.util.Map.entry("Recovered purchase", "RECOVERED_PURCHASE_HOLD"),
+            java.util.Map.entry("Multiple distinct exact sale notices", "SALE_NOTICE_AMBIGUOUS"),
+            java.util.Map.entry("Post-sale exact coverage is internally ambiguous", "SALE_COVERAGE_AMBIGUOUS"),
+            java.util.Map.entry("Post-sale own-listing state is ambiguous", "OWN_LISTING_AMBIGUOUS"),
+            java.util.Map.entry("A different exact own listing appeared after the sale notice", "OWN_LISTING_CHANGED"));
     public static final String UNAVAILABLE = "Filtered GoNuts diagnostic excerpt; messages, identities and locations omitted.\nSample: diagnostic log unavailable on this client.";
     private BugReportLog() { }
     /** Every report gets filtered evidence or a fixed availability marker, never raw exception/path text. */
@@ -35,6 +43,7 @@ public final class BugReportLog {
     }
     public static String sanitize(String text) {
         var lines = new ArrayDeque<String>();
+        String previousState = null;
         for (String raw : text.split("\\R")) {
             if (raw.contains("[CHAT]") || raw.contains("Authorization") || raw.contains("Bearer ")) continue;
             var frame = FRAME.matcher(raw);
@@ -53,7 +62,20 @@ public final class BugReportLog {
                 var time = TIME.matcher(raw);
                 String prefix = time.find() ? "[" + time.group(1) + "] " : "";
                 var state = STATE.matcher(raw);
-                if (state.find()) out = prefix + "automation state=" + state.group(1);
+                if (state.find()) {
+                    String current = state.group(1);
+                    String reason = "";
+                    if (current.equals("PAUSED") || current.equals("STOPPED")) {
+                        reason = " reason=" + PAUSE_REASONS.entrySet().stream()
+                                .filter(e -> detailStartsWith(raw, state.end(), e.getKey()))
+                                .map(java.util.Map.Entry::getValue).findFirst().orElse("UNCLASSIFIED");
+                    }
+                    String identity = current + reason;
+                    if (!identity.equals(previousState)) out = prefix + "automation state=" + identity;
+                    previousState = identity;
+                }
+                else if (raw.contains("DoughBay bid desk: bid placed:")) out = prefix + "order placement completed";
+                else if (raw.contains("DoughBay automation: recovery remains blocked after")) out = prefix + "recovery prolonged hold; exposure retained";
                 else if (raw.contains("DoughBay bid desk:") && raw.contains("did not complete: ABORTED")) out = prefix + "order action did not complete";
                 else if (raw.contains("Client disconnected with reason:") || raw.contains("GoNuts connection lost:")) out = prefix + "connection ended (reason omitted)";
                 else if (raw.contains("DoughBay Evasion:") && raw.contains("escaping")) out = prefix + "evasion escape triggered (identity/location omitted)";
@@ -72,5 +94,10 @@ public final class BugReportLog {
             }
         }
         return "Filtered GoNuts diagnostic excerpt; messages, identities and locations omitted.\nSample: last 256 KiB, up to 100 recognized events/frames.\n" + String.join("\n", lines);
+    }
+    private static boolean detailStartsWith(String raw, int offset, String expected) {
+        String detail = raw.substring(offset).stripLeading();
+        if (detail.startsWith(":")) detail = detail.substring(1).stripLeading();
+        return detail.startsWith(expected);
     }
 }
