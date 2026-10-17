@@ -76,6 +76,7 @@ final class Pages {
             .wide { overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--inset);
               border:1px solid var(--edge); border-radius:4px; padding:6px; }
             #shot { display:block; width:100%; min-width:720px; height:auto; }
+            #evasion-shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
             #notice { min-height:22px; margin:8px 2px 2px; color:var(--secondary); overflow-wrap:anywhere; }
             .row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
             .row button { flex:1 1 auto; }
