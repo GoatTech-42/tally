@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-17 20:53 UTC
+
+- Bug-report previews capture bounded, read-only controller evidence directly: current state and active action, fixed pause/desk/Flip/resume categories, evidence ages, persistence readiness and pending writes, retained exposure counts, caps and anonymous Flip allowances. Missing logs no longer prevent a report; unavailable historical counters are explicitly marked unknown. Names, identifiers, raw messages and settings text remain excluded.
+- The report panel shows compact known-bug rows and 24-hour report/patch/confirmed-resolution/unresolved counts from the shared cached tracker. Hover, keyboard focus or tap reveals a brief synopsis. “I'm affected too” prepares reviewed diagnostics for the existing bug; attachments use an advertised fixed receiver route and never silently fall back to creating another issue.
+- Mobile panels now scale the complete activity picture to the viewport, wrap navigation and controls, and reflow narrow settings cards in portrait and landscape. The website navigation links to the shared bug tracker. Existing running clients are not automatically restarted or upgraded.
+
 ## 2026-10-17 20:26 UTC
 
 - A prolonged recovery hold no longer automatically force-resets unresolved exposure outside Swarm mode. Stock records, spend accounting and pending checkpoints stay intact; the existing recovery timer now warns that audited recovery is required. Native verified recovery can continue, and elapsed time never starts trading or writes off a position.

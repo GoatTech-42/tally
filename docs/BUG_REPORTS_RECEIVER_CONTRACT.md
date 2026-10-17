@@ -26,6 +26,18 @@ Six required fields: schemaVersion, build, minecraftVersion, description, expect
 
 The excerpt is generated from recognized diagnostic events and verified dev.doughbay frames. Chat, player identities, credentials, addresses, paths and foreign frames are omitted. The receiver filters again. Reports are public GitHub issues; explicit local review/consent remains required.
 
+## Current controller evidence and existing-bug attachments
+
+Updated clients prepend `Controller context (fixed keys, no identities)` and bounded `ctx key=value` lines to the existing schema 2 diagnosticLog. The original body keys and limits remain unchanged. These are read-only snapshots, not commands. Ages are milliseconds; -1 means unavailable/future evidence. `captured_at_ms` anchors the ages at preview preparation, and retries retain the same frozen evidence.
+
+Fields cover state/mode/reason category, whether trading was armed/requested/manually paused, active driver/desk action, queue and own-order counts, own-order/sale-notice ages, recent desk/Flip/resume category and age, persistence load/refusal/accepted/durable generations, pending controller writes, retained/uncertain exposure counts, tracked status, committed spend and caps. At most six Flip entries expose anonymous numbered total/budget/bought/spent counters, never item names or raw settings. A remembered gate is explicitly labelled “last” and aged; it is not proof that the same gate still blocks trading.
+
+`historical_counters_available=false` means the legacy zero counters are placeholders, not evidence that no errors occurred. Current context remains available independently of log extraction. Unknown causes stay unclassified. The receiver must accept only named numeric/boolean fields and exact known enum values; an arbitrary `ctx password=secret` or unknown enum is not a valid context line.
+
+When capabilities advertise `relatedIssue.supported=true` and the exact route `/v1/bugs/{issue}/evidence`, reviewed manual diagnostics can POST the unchanged schema 2 body to `https://gonuts.at/v1/bugs/{issue}/evidence`. The retry key and optional anonymous reporter header are retained. This adds evidence to an open canonical bug, not a new issue or job. A success must name that exact issue and its trusted repository URL; absent support fails without creating a new issue. The panel requires a reviewed preview before attaching.
+
+The public tracker is `https://gonuts.at/dashboard/bugs`; its cached read-only JSON is `/dashboard/api/public/bugs`. Authenticated affected-user votes are distinct from anonymous installation acknowledgements. A related patch is not a confirmed resolution, and duplicate/test closures must not count as fixes. Tracker summaries are rendered as text, and reporting still works when the tracker is unavailable.
+
 ## Capabilities
 
 Advertises schemaVersions, maxBodyBytes, maxTextChars, diagnosticLog limits, states, counters, idempotencyKey format and configured readiness. It also advertises requiresAuthentication:false, idempotencyScope:"global" and deployed quota values. Missing attachment support leaves schema1 reporting available; it is not a reason to request a user token.

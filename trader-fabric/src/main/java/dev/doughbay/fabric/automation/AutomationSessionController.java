@@ -2749,6 +2749,45 @@ public final class AutomationSessionController {
                 currentLifetimeRuntime, openListings.size());
     }
 
+    /** Read-only bounded report evidence; no names, identifiers, raw messages or settings text. */
+    public synchronized String bugReportContext(long now) {
+        var out=new StringBuilder("Controller context (fixed keys, no identities)\n");
+        out.append("ctx captured_at_ms=").append(now).append('\n');
+        out.append("ctx state=").append(state.name()).append(" state_age_ms=").append(reportAge(now,stateChangedAtMillis))
+                .append(" mode=").append(runMode.name()).append(" reason_category=").append(dev.doughbay.fabric.BugReportReason.classify(detail)).append('\n');
+        out.append("ctx armed=").append(armed).append(" session_open=").append(sessionOpen).append(" paused_by_player=").append(pausedByPlayer)
+                .append(" pause_resumable=").append(pauseResumable).append(" policy_ready=").append(policy!=null).append('\n');
+        out.append("ctx recovered_session=").append(recoveredSession).append(" recovered_exposure_count=").append(recoveredExposureCount())
+                .append(" uncertain_active=").append(uncertainExposure.active()).append(" tracked_status=")
+                .append(trackedPosition==null?"NONE":trackedPosition.status().name()).append(" parked_listings=").append(openListings.size()).append('\n');
+        out.append("ctx driver_action=").append(driver.operationIntent().name()).append(" desk_action=").append(deskStep==null?"NONE":deskStep.action().name())
+                .append(" queued_steps=").append(deskQueue.size()).append(" own_orders_count=").append(ownOrders.size()).append('\n');
+        out.append("ctx own_orders_age_ms=").append(reportAge(now,ownOrdersReadAt)).append(" sale_notice_age_ms=").append(reportAge(now,saleNoticeObservedAtMillis))
+                .append(" last_desk_gate=").append(reportDeskGate).append(" last_desk_gate_age_ms=").append(reportAge(now,reportDeskGateAt)).append('\n');
+        out.append("ctx last_flip_gate=").append(reportFlipGate).append(" last_flip_gate_age_ms=").append(reportAge(now,reportFlipGateAt))
+                .append(" only_price_list=").append(ownOnly()).append('\n');
+        out.append("ctx last_resume_gate=").append(reportResumeGate).append(" last_resume_gate_age_ms=").append(reportAge(now,reportResumeGateAt)).append('\n');
+        var status=persistence==null?null:persistence.status();
+        out.append("ctx persistence_state=").append(status==null?"UNAVAILABLE":status.loadState().name())
+                .append(" recovery_applied=").append(recoveryApplied).append(" pending_controller_checkpoint=").append(hasPendingControllerPersistence())
+                .append(" write_refused=").append(status!=null&&status.refusalOutstanding()).append('\n');
+        out.append("ctx accepted_generation=").append(status==null?-1:status.lastAcceptedGeneration()).append(" durable_generation=")
+                .append(status==null?-1:status.lastDurableGeneration()).append(" pending_age_ms=").append(reportAge(now,pendingPersistenceSince)).append('\n');
+        out.append("ctx committed_spend=").append(committedSpend).append(" spend_cap=").append(policy==null?-1:effectiveSpendCap())
+                .append(" purchase_cap=").append(policy==null?-1:effectivePurchaseCap()).append(" trades_started=").append(tradesStarted).append('\n');
+        int index=0;
+        for(var own:dev.doughbay.fabric.OwnPrices.all()) {
+            if(++index>6)break;
+            long[] bought=ownBought.getOrDefault(ownBoughtKey(own),new long[2]);
+            out.append("ctx flip").append(index).append("_total=").append(own.total())
+                    .append(" flip").append(index).append("_bought=").append(bought[0])
+                    .append(" flip").append(index).append("_budget=").append(own.budget())
+                    .append(" flip").append(index).append("_spent=").append(bought[1]).append('\n');
+        }
+        return out.toString();
+    }
+    private static long reportAge(long now,long at) {return at<=0||now<at?-1:now-at;}
+
     private void synchronizePersistenceRecovery() {
         if (persistence == null) {
             persistenceStatus = "FAILED â€” automation persistence is not connected";
@@ -4726,8 +4765,15 @@ public final class AutomationSessionController {
     /** How often each gate turned the desk away, so a starved desk is visible. */
     private final java.util.Map<String, Integer> deskGate = new java.util.LinkedHashMap<>();
     private long deskGateAt;
+    private String reportDeskGate="NONE",reportFlipGate="NONE";
+    private long reportDeskGateAt,reportFlipGateAt;
+    private String reportResumeGate="NOT_ATTEMPTED";
+    private long reportResumeGateAt;
+    private void reportResumeGate(String code,long now) {reportResumeGate=code;reportResumeGateAt=now;}
 
     private boolean deskBlocked(String gate) {
+        reportDeskGate=dev.doughbay.fabric.BugReportReason.classify(gate);
+        reportDeskGateAt=System.currentTimeMillis();
         bump(deskGate, gate);
         return false;
     }
@@ -6577,6 +6623,8 @@ public final class AutomationSessionController {
 
     /** Why an item on the player's list is not being ordered just now, said once every five minutes. */
     private void ownPriceNote(String itemId, String reason, long now) {
+        reportFlipGate=dev.doughbay.fabric.BugReportReason.classify(reason);
+        reportFlipGateAt=now;
         if (now - ownPriceNotedAt.getOrDefault(itemId, 0L) < 5 * 60_000L) return;
         ownPriceNotedAt.put(itemId, now);
         LOGGER.info("DoughBay your prices: no order for {} just now: {}", itemId, reason);
@@ -12107,11 +12155,12 @@ public final class AutomationSessionController {
     /** Evasion calls this only after its own all-clear wait, without operator force-reset paths. */
     public synchronized ExecutionResult resumeAfterEvasion() {
         if (!restartRecoveryMayResume()) {
+            reportResumeGate("NO_RESUMABLE_SESSION",System.currentTimeMillis());
             return ExecutionResult.refused("No internally paused running session is available");
         }
-        if (serverRestarting()) return ExecutionResult.refused("The restart world is not verified yet");
+        if (serverRestarting()) {reportResumeGate("WORLD_RECOVERY_HOLD",System.currentTimeMillis());return ExecutionResult.refused("The restart world is not verified yet");}
         String blocked = persistenceStartBlocker();
-        if (blocked != null) return ExecutionResult.refused("Evasion resume is waiting for persistence: " + blocked);
+        if (blocked != null) {reportResumeGate("PERSISTENCE_WAIT",System.currentTimeMillis());return ExecutionResult.refused("Evasion resume is waiting for persistence: " + blocked);}
         autoResumeInternalPause(Minecraft.getInstance(), System.currentTimeMillis(), true, true);
         return state == State.PAUSED
                 ? ExecutionResult.refused("Waiting for safe inventory, exposure and server reconciliation")
@@ -12122,12 +12171,16 @@ public final class AutomationSessionController {
                                          boolean connectionRecoveryOwned, boolean evasionOwned) {
         // A session recovered from disk has no policy until the player presses
         // Resume; only pauses raised while running are resumed here.
-        if (!armed) return;
-        if (state != State.PAUSED || pausedByPlayer || !sessionOpen || policy == null) return;
+        if (!armed) {reportResumeGate("NOT_ARMED",now);return;}
+        if (state != State.PAUSED || pausedByPlayer || !sessionOpen || policy == null) {
+            reportResumeGate(pausedByPlayer?"PLAYER_PAUSE":policy==null?"POLICY_UNAVAILABLE":!sessionOpen?"SESSION_CLOSED":"NOT_PAUSED",now);
+            return;
+        }
         // A write the ledger refused is not retried on a timer. Listing again
         // would hand it the identical refused row, and that is what spent two
         // hours bouncing between PAUSED and PREPARING_LIST with nothing sold.
         if (persistence != null && persistence.status().refusalOutstanding()) {
+            reportResumeGate("PERSISTENCE_REFUSED",now);
             detail = "PAUSED: a durable automation write was refused ("
                     + persistence.status().detail() + "); it is not retried automatically";
             return;
@@ -12135,21 +12188,23 @@ public final class AutomationSessionController {
         // Evasion owns the timing of its own resume: never while somebody is
         // still near, however long the internal-pause clock says it has been.
         dev.doughbay.fabric.EvasionGuard evasion = dev.doughbay.fabric.DoughBayClient.evasionGuard();
-        if (evasion != null && evasion.triggered() && !evasionOwned) return;
+        if (evasion != null && evasion.triggered() && !evasionOwned) {reportResumeGate("PROTECTIVE_HOLD",now);return;}
         if (now - stateChangedAtMillis >= INTERNAL_PAUSE_RESUME_MILLIS() && purchasedStackInHand(client)
                 && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
                 && authorizationBlocker(client) == null) {
             listPurchasedStackInHand(client, now, "Purchase still in the inventory after a pause");
+            reportResumeGate("RETAINED_STOCK_RECOVERY",now);
             return;
         }
-        if (recoveredExposureRemains()) return;
+        if (recoveredExposureRemains()) {reportResumeGate("EXPOSURE_HOLD",now);return;}
         if (!connectionRecoveryOwned && detail != null && detail.contains("Join a server")
                 && dev.doughbay.fabric.Tuning.get("session.resume_after_leave") < 0.5) {
             // Leaving the server is the player's doing; the session waits for Resume.
             pauseResumable = true;
+            reportResumeGate("PLAYER_LEFT_SERVER",now);
             return;
         }
-        if (now - stateChangedAtMillis < INTERNAL_PAUSE_RESUME_MILLIS()) return;
+        if (now - stateChangedAtMillis < INTERNAL_PAUSE_RESUME_MILLIS()) {reportResumeGate("COOLDOWN",now);return;}
         // A restart hold outlasts the ordinary internal-pause timer, and until
         // now nothing here said so: the server announced it was restarting, the
         // session paused for the ten minutes that hold is worth, and ninety
@@ -12157,10 +12212,11 @@ public final class AutomationSessionController {
         // attempting an auction that was not there - a hundred and fifty-four
         // aborts in one restart, with bought stock left sitting unlisted in the
         // inventory because every listing attempt timed out too.
-        if (serverRestarting()) return;
-        if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return;
+        if (serverRestarting()) {reportResumeGate("WORLD_RECOVERY_HOLD",now);return;}
+        if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {reportResumeGate("DRIVER_BUSY",now);return;}
         String blocker = authorizationBlocker(client);
-        if (blocker != null) return;
+        if (blocker != null) {reportResumeGate("AUTHORIZATION_HOLD",now);return;}
+        reportResumeGate("RESUMING",now);
         LOGGER.info("DoughBay automation: auto-resuming after an internal pause: {}", detail);
         uncertainExposure = AutomationUncertainExposure.none();
         clearPendingCandidate();

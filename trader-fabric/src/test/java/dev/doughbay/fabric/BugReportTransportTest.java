@@ -6,6 +6,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 class BugReportTransportTest {
+    @Test void existingBugAttachmentsNeverFallBackToNewIssueOrAnotherOrigin() throws Exception {
+        var c=new ObjectMapper().readTree("{\"relatedIssue\":{\"supported\":true,\"route\":\"/v1/bugs/{issue}/evidence\"}}");
+        assertTrue(BugReportTransport.advertisesRelatedIssue(c));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)c.path("relatedIssue")).put("route","https://other.invalid/collect");
+        assertFalse(BugReportTransport.advertisesRelatedIssue(c));
+        var request=BugReportTransport.request(payload(),"retry_1234","private-credential","diagnostics","",92);
+        assertEquals("https://gonuts.at/v1/bugs/92/evidence",request.uri().toString());
+        assertFalse(request.headers().map().containsKey("Authorization"));
+        assertTrue(BugReportTransport.interpretEvidence(200,"{\"issue\":92,\"url\":\"https://github.com/cody-raves/Gonuts/issues/92\",\"attached\":true}","",0,92).filed());
+        assertFalse(BugReportTransport.interpretEvidence(200,"{\"issue\":89,\"url\":\"https://github.com/cody-raves/Gonuts/issues/89\",\"attached\":true}","",0,92).filed());
+    }
     private static BugReportPayload payload() {
         return new BugReportPayload("0.1.1-staffwatch+26.2", "26.2", "A listing did not complete", "It should finish",
             BugReportDiagnostics.counters("DoughBay automation [SCANNING]: private message\nSQLiteException: private")).withoutSettings();

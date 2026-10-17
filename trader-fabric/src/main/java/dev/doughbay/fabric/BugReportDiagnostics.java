@@ -35,6 +35,11 @@ public final class BugReportDiagnostics {
             return counters(text);
         }
     }
+    /** Missing log evidence must not prevent reporting current controller facts. */
+    public static Map<String,Object> readCountersForReport(Path path) {
+        try {return readCounters(path);}
+        catch(IOException | RuntimeException e){return counters("");}
+    }
     static String summarize(String text) {
         return format(counters(text));
     }

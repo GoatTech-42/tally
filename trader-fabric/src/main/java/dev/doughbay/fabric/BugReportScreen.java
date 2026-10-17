@@ -86,8 +86,8 @@ public final class BugReportScreen extends Screen {
             try {
                 String version = BugReportBuild.current();
                 var next = new BugReportPayload(version, "26.2", description, expectation,
-                    BugReportDiagnostics.readCounters(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")));
-                String excerpt = BugReportLog.readForReport(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log"));
+                    BugReportDiagnostics.readCountersForReport(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log")));
+                String excerpt = BugReportEvidence.readForReport(FabricLoader.getInstance().getGameDir().resolve("logs/latest.log"));
                 next.json(excerpt); return new Prepared(next, excerpt);
             } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
@@ -95,7 +95,7 @@ public final class BugReportScreen extends Screen {
             report = result == null ? "" : payload.preview() + "\n\n" + BugReporterKey.NOTICE + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
-                : BugReportLog.UNAVAILABLE.equals(diagnosticLog)?"Log unavailable; report includes that notice. Send publishes the sanitized details.":"Preview ready. Sanitized diagnostics are attached automatically.";
+                : diagnosticLog.contains(BugReportLog.UNAVAILABLE)?"Historical log unavailable; current controller evidence is included. Review before sending.":"Preview ready. Sanitized diagnostics are attached automatically.";
             if (minecraft.gui.screen() == this) {
                 rebuildWidgets();
                 if (result != null && sendWhenReady) { sendWhenReady = false; send(); }
