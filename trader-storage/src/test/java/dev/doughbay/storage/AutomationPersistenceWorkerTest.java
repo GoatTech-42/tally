@@ -19,6 +19,25 @@ class AutomationPersistenceWorkerTest {
     Path tempDir;
 
     @Test
+    void singleAccountCheckpointKeepsItsOwnerForPanelMetrics() throws Exception {
+        Path file = tempDir.resolve("solo.db");
+        var worker = new AutomationPersistenceWorker(file);
+        worker.setClient("Account");
+        worker.start();
+        await(() -> worker.status().ready());
+        long generation = worker.submit(checkpoint());
+        await(() -> worker.status().durable(generation));
+        worker.close();
+        await(() -> worker.status().loadState() == AutomationPersistencePort.LoadState.CLOSED);
+        try (var database = new Database(file);
+             var query = database.connection().createStatement();
+             var rows = query.executeQuery("SELECT client FROM positions WHERE position_id=42")) {
+            assertTrue(rows.next());
+            assertEquals("Account", rows.getString(1));
+        }
+    }
+
+    @Test
     void databaseIsOpenedOffCallerAndGenerationAcknowledgesDurability() throws Exception {
         Path file = tempDir.resolve("market.db");
         AutomationPersistenceWorker worker = new AutomationPersistenceWorker(file);

@@ -20,7 +20,7 @@ public final class DashboardMetrics {
             root.putObject("sales");root.putObject("purchases");
             for(int hours:new int[]{1,24}) {
                 String key=hours==1?"h1":"h24";long from=at-hours*3_600_000L;
-                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COALESCE(SUM(realized_profit),0),COUNT(realized_profit) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? AND closed_at>? AND closed_at<=?")) {
+                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COALESCE(SUM(realized_profit),0),COUNT(realized_profit) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? COLLATE NOCASE AND closed_at>? AND closed_at<=?")) {
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);
                     try(ResultSet r=p.executeQuery()){
                         r.next();double profit=r.getDouble(2);
@@ -30,7 +30,7 @@ public final class DashboardMetrics {
                 }
                 // Gross booked sales, not cash balance or the count of sold position records.
                 // Old/incomplete ledgers omit revenue; missing values are never reported as zero.
-                if(hasSalePrice)try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COUNT(sale_price),COUNT(CASE WHEN sale_price>=0 THEN 1 END),COALESCE(SUM(sale_price),0) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? AND closed_at>? AND closed_at<=?")){
+                if(hasSalePrice)try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),COUNT(sale_price),COUNT(CASE WHEN sale_price>=0 THEN 1 END),COALESCE(SUM(sale_price),0) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? COLLATE NOCASE AND closed_at>? AND closed_at<=?")){
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);
                     try(ResultSet r=p.executeQuery()){
                         r.next();double revenue=r.getDouble(4);
@@ -40,7 +40,7 @@ public final class DashboardMetrics {
                         }
                     }
                 }
-                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*) FROM positions WHERE mode='REAL' AND client=? AND purchased_at>? AND purchased_at<=?")) {
+                try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*) FROM positions WHERE mode='REAL' AND client=? COLLATE NOCASE AND purchased_at>? AND purchased_at<=?")) {
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);
                     try(ResultSet r=p.executeQuery()){r.next();((ObjectNode)root.get("purchases")).put(key,DashboardProtocol.count(r.getLong(1)));}
                 }

@@ -7,6 +7,24 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.*;
 class DashboardMetricsTest {
  @TempDir Path root;
+ @Test void accountCaseChangesStillRefreshOnlyThatAccountsBookedSales() throws Exception {
+  Path db=root.resolve("case.db");long now=100_000_000;
+  try(var c=new org.sqlite.JDBC().connect("jdbc:sqlite:"+db,new Properties());var s=c.createStatement()){
+   s.execute("CREATE TABLE positions(mode TEXT,status TEXT,client TEXT,closed_at INTEGER,purchased_at INTEGER,realized_profit REAL,sale_price INTEGER)");
+   s.execute("INSERT INTO positions VALUES ('REAL','SOLD','Account',99999000,99999000,52,200),('REAL','SOLD','ACCOUNT',99999000,99999000,48,200),('REAL','SOLD','other',99999000,99999000,999,999),('REAL','SOLD','',99999000,99999000,888,888)");
+  }
+  var first=DashboardMetrics.read(db,"account",now);
+  assertEquals(100,first.path("profit").path("h1").asLong());
+  assertEquals(400,first.path("revenue").path("h1").asLong());
+  assertEquals(2,first.path("sales").path("h1").asInt());
+  assertEquals(2,first.path("purchases").path("h1").asInt());
+  try(var c=new org.sqlite.JDBC().connect("jdbc:sqlite:"+db,new Properties());var s=c.createStatement()){
+   s.execute("INSERT INTO positions VALUES ('REAL','SOLD','Account',100000000,100000000,20,100)");
+  }
+  var refreshed=DashboardMetrics.read(db,"aCcOuNt",now+1);
+  assertEquals(120,refreshed.path("profit").path("h1").asLong());
+  assertEquals(3,refreshed.path("sales").path("h1").asInt());
+ }
  @Test void profitWindowsUseRealCompletedSalesForExactlyOneAccount() throws Exception {
   Path db=root.resolve("metrics.db");long now=100_000_000;
   try(var c=new org.sqlite.JDBC().connect("jdbc:sqlite:"+db,new Properties());var s=c.createStatement()){

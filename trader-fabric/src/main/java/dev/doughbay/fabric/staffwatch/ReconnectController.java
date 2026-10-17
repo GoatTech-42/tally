@@ -28,6 +28,7 @@ public final class ReconnectController {
   public void connect(String address){var server=target;if(server==null||!address.equals(server.ip))server=new ServerData("Staff Watch",address,ServerData.Type.OTHER);automaticAttempt=true;try{ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()),mc(),ServerAddress.parseString(address),server,false,null);}finally{automaticAttempt=false;}}
  },schedule);
  private final StaffRegionEscapeController regionEscape = new StaffRegionEscapeController(this::disconnectNow);
+ public String evasionRtpCommand(){return regionEscape.evasionRtpCommand();}
  private ReconnectController(){}
  public void alert(String watcher){
   var config=WatchConfig.get();
