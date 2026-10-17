@@ -22,7 +22,7 @@ public final class SwarmRank {
         var r=frame.path("rank");
         if(r.path("unavailable").asBoolean()) {
             String reason=r.path("reason").asText();
-            if(Set.of("insufficient_group","stale_snapshot","no_booked_source","low_coverage","not_contributing","invalid_data").contains(reason))current=new Result(0,0,now,now+90_000,reason);
+            if(Set.of("insufficient_group","stale_snapshot","no_booked_source","low_coverage","not_contributing","invalid_data","contribution_check_unavailable").contains(reason))current=new Result(0,0,now,now+90_000,reason);
             return;
         }
         if(!r.path("metric").asText().equals("booked_realized_profit")||r.path("windowHours").asInt()!=24)return;
@@ -31,7 +31,13 @@ public final class SwarmRank {
         long ttl=r.path("freshnessSeconds").asLong();
         if(p<0||p>100||n<10||n>1_000_000||at<=0||at>now+5000||now-at>90_000||ttl<1||ttl>90||at+ttl*1000<=now
                 ||Math.abs((double)r.path("yourFigure").asLong())>1_000_000_000_000L||r.path("yourBookedSaleRecords").asLong()<0)return;
-        current=new Result((int)p,(int)n,at,at+ttl*1000,"");
+        long expiry=at+ttl*1000;
+        if(r.has("expiresAt")){
+            if(!r.path("expiresAt").isIntegralNumber()||!r.path("expiresAt").canConvertToLong())return;
+            expiry=Math.min(expiry,r.path("expiresAt").asLong());
+        }
+        if(expiry<=now)return;
+        current=new Result((int)p,(int)n,at,expiry,"");
     }
     public static List<String[]> rows(long now) {
         var r=current;

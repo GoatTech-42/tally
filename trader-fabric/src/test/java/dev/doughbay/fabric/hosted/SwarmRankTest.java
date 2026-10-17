@@ -58,4 +58,14 @@ class SwarmRankTest {
         var unavailable=frame();var r=(com.fasterxml.jackson.databind.node.ObjectNode)unavailable.get("rank");r.removeAll();r.put("unavailable",true).put("reason","insufficient_group");
         SwarmRank.receive(unavailable,ID,NOW);assertEquals("Needs 10 qualified active Hives",SwarmRank.rows(NOW).getFirst()[1]);
     }
+    @Test void constituentExpiryCanShortenButNeverExtendResultTtl(){
+        var f=frame();var r=(com.fasterxml.jackson.databind.node.ObjectNode)f.get("rank");
+        r.put("expiresAt",NOW+1000);SwarmRank.receive(f,ID,NOW);
+        assertTrue(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
+        assertFalse(SwarmRank.rows(NOW+1000).getFirst()[1].contains("75%"));
+        r.put("expiresAt",NOW+60_000);SwarmRank.receive(f,ID,NOW);
+        assertFalse(SwarmRank.rows(NOW+5000).getFirst()[1].contains("75%"));
+        r.put("expiresAt",NOW-1);SwarmRank.receive(f,ID,NOW);
+        assertFalse(SwarmRank.rows(NOW).getFirst()[1].contains("75%"));
+    }
 }
