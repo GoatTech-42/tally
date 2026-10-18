@@ -17,6 +17,7 @@ public final class HiveSetup {
     private HiveSetup() {}
 
     public static boolean active() { return active != null; }
+    static String activeId() { return active == null ? "" : active.id(); }
     public static Path sharedDirectoryOr(Path fallback) { return active == null ? fallback : Path.of(active.directory()); }
 
     /** A broken link must not quietly create another ledger and start trading against it. */
