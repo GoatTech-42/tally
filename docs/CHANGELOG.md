@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 17:02 UTC
+
+- Release PR #124: Included preset hover explanations. Client artifact published October 18 at 10:02:58 Los Angeles time (17:02:58 UTC); separate from PR #119.
+- Hover the preset selector or Apply button in Settings, Auction or Orders to see what Careful, Aggressive, Overnight and Default change before applying them. Keyboard focus also exposes the help.
+- Explanations cover purchase/exposure limits, pacing and bundled feature changes; Overnight explicitly calls out its 32-block Evasion radius and unchanged purchase cap, while Default warns that it resets all numeric settings. Browsing does not apply changes; presets do not start trading or guarantee profit.
+- Preset values and trading behavior are unchanged. Public client SHA256: `613f6e4c9aa8a103e6e80f0813e7c15a98aa9f5f18e60521e61a190261622d99`.
+
 ## 2026-10-18 16:18 UTC
 
 - Release PR #119: Startup reliability and attached fault diagnostics. Published October 18 at 09:18 Los Angeles time. This is a separate update from PR #117 below; the former 09:07 label was an incorrect draft timestamp, not another published release.
