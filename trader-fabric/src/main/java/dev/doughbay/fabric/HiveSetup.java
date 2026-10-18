@@ -22,11 +22,19 @@ public final class HiveSetup {
 
     /** A broken link must not quietly create another ledger and start trading against it. */
     static Path resolve(Path game, Path fallback) throws IOException {
+        return resolve(game,fallback,null,false);
+    }
+    static Path resolve(Path game,Path fallback,String account) throws IOException {
+        return resolve(game,fallback,account,true);
+    }
+    private static Path resolve(Path game,Path fallback,String account,boolean production) throws IOException {
+        HiveCombine.completePending(game);
         Path pointer = game.resolve(POINTER);
         if (!Files.exists(pointer)) { active = null; return fallback; }
         Membership actual = validate(read(pointer));
         active = actual;
-        return Path.of(actual.directory());
+        if(production){HiveCombine.hold(Path.of(actual.directory()));register(actual);}
+        return HiveCombine.configuration(actual,account==null?actual.owner():account);
     }
 
     static Membership read(Path file) throws IOException {
@@ -34,7 +42,7 @@ public final class HiveSetup {
             throw new IOException("Hive setup file is missing or invalid. Restore the shared folder before starting GoNuts.");
         try {
             Membership m = JSON.readValue(Files.readString(file), Membership.class);
-            if (m.version() != 1 || m.id() == null || m.directory() == null || m.owner() == null
+            if ((m.version() != 1 && m.version() != 2) || m.id() == null || m.directory() == null || m.owner() == null
                     || !m.owner().matches("[A-Za-z0-9_.-]{1,32}")) throw new IOException("Invalid hive setup file");
             UUID.fromString(m.id());
             if (!Path.of(m.directory()).isAbsolute()) throw new IOException("Hive folder must be absolute");
@@ -43,6 +51,10 @@ public final class HiveSetup {
     }
 
     static Membership validate(Membership m) throws IOException {
+        return validate(m,0);
+    }
+    private static Membership validate(Membership m,int depth) throws IOException {
+        if(depth>8)throw new IOException("Invalid combined hive chain");
         Path directory = Path.of(m.directory()).toRealPath();
         Membership stored = read(directory.resolve(MANIFEST));
         if (!stored.id().equals(m.id()) || !stored.owner().equals(m.owner())
@@ -50,7 +62,9 @@ public final class HiveSetup {
         requireLocalLedger(directory);
         if (!Files.isRegularFile(directory.resolve("doughbay.db")))
             throw new IOException("Shared trading database is missing; no new database was created");
-        return new Membership(1, m.id(), directory.toString(), m.owner());
+        Membership normalized=new Membership(m.version(), m.id(), directory.toString(), m.owner());
+        Membership combined=HiveCombine.follow(normalized);
+        return combined.id().equals(m.id())?normalized:validate(combined,depth+1);
     }
 
     static void requireLocalLedger(Path directory) throws IOException {
@@ -97,7 +111,7 @@ public final class HiveSetup {
         Membership m = decode(code);
         Path destination = Path.of(m.directory());
         if (Files.exists(game.resolve(POINTER))) {
-            Membership existing = read(game.resolve(POINTER));
+            Membership existing = configured(game);
             if (!existing.id().equals(m.id())) throw new IOException("This instance is already linked to another hive. Its link was kept.");
             validate(existing);
             return m;
@@ -136,6 +150,24 @@ public final class HiveSetup {
 
     static Membership configured(Path game) throws IOException {
         return Files.exists(game.resolve(POINTER)) ? validate(read(game.resolve(POINTER))) : null;
+    }
+    private static Path registry(){return Path.of(System.getProperty("user.home"),".gonuts","local-hives");}
+    static void register(Membership m) {
+        try {
+            if(net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()
+                    && (Boolean.getBoolean("gonuts.hive.preview.discovery")||Boolean.getBoolean("gonuts.hive.preview.combine")))return;
+            Files.createDirectories(registry());Path file=registry().resolve(m.id()+".json");
+            if(!Files.exists(file))writeNew(file,m);
+        }catch(Exception ignored){/* Optional discovery cannot affect a valid hive. */}
+    }
+    static java.util.List<Membership> localHives(String exceptId) {
+        var result=new java.util.LinkedHashMap<String,Membership>();
+        try(var files=Files.list(registry())) {
+            for(Path file:files.filter(p->p.getFileName().toString().matches("[a-f0-9-]{36}\\.json")).limit(64).toList()) {
+                try{if(Files.isSymbolicLink(file))continue;Membership m=validate(read(file));if(!m.id().equals(exceptId))result.put(m.id(),m);}catch(Exception ignored){}
+            }
+        }catch(Exception ignored){}
+        return result.values().stream().sorted(java.util.Comparator.comparing(Membership::owner)).toList();
     }
 
     private static void writePointer(Path game, Membership m) throws IOException {
