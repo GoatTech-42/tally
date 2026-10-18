@@ -2976,6 +2976,17 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * many slots are in use.
      */
     public synchronized ExecutionResult auditOwnListings() {
+        return auditOwnListings(true);
+    }
+
+    /** Recovery reads all own pages without collecting or changing any listing. */
+    public synchronized ExecutionResult auditOwnListingsForRecovery() {
+        return auditOwnListings(false);
+    }
+
+    private boolean auditCollectUnsold = true;
+
+    private ExecutionResult auditOwnListings(boolean collectUnsold) {
         if (!authorizedExecutionEnabled) {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
@@ -2988,6 +2999,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(unavailable);
         }
         opportunity = null;
+        auditCollectUnsold = collectUnsold;
         operation = Operation.AUDIT;
         targetListingKey = "audit:own";
         targetItemKey = "";
@@ -3317,7 +3329,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // Collected on the way through, one at a time. This page has not been
         // recorded yet, so reading it again with the row gone costs nothing
         // and keeps the count honest.
-        if (Tuning.get("slots.collect_unsold") >= 0.5 && auditCollects < 12) {
+        if (auditCollectUnsold && Tuning.get("slots.collect_unsold") >= 0.5 && auditCollects < 12) {
             for (int menuSlot = 0; menuSlot < container.getMenu().slots.size(); menuSlot++) {
                 Slot slot = container.getMenu().slots.get(menuSlot);
                 if (slot.container == inventory) continue;

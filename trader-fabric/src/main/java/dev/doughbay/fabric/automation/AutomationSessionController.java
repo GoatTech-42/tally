@@ -147,6 +147,10 @@ public final class AutomationSessionController {
     private long manualResolutionEvidenceAt;
     private String manualResolutionEvidence = "";
     private boolean manualResolutionEvidenceReady;
+    private boolean manualNativeRecovery;
+    private boolean manualNativeAuditPending;
+    private long manualNativeAuditStartedAt, manualNativeNextAuditAt;
+    private final RecoveryListingEvidence manualNativeEvidence = new RecoveryListingEvidence();
 
     private volatile boolean continuousAuthorizationEnabled;
     private volatile boolean auctionFeesConfirmed;
@@ -1542,6 +1546,7 @@ public final class AutomationSessionController {
     public synchronized CoverageRequest coverageRequest() {
         if (manualResolutionFirstConfirmedAt > 0
                 && manualResolutionCoverageBoundary > 0) {
+            if (manualNativeRecovery) return CoverageRequest.none();
             String itemId = recoveredExposureItemId();
             long boundary = manualResolutionEvidenceReady
                     ? manualResolutionEvidenceAt : manualResolutionCoverageBoundary;
@@ -1788,6 +1793,7 @@ public final class AutomationSessionController {
 
     /** Stops this controller and the driver before either can advance again. */
     public synchronized void emergencyStop() {
+        if (manualResolutionPersistenceGeneration <= 0) clearManualResolution();
         dev.doughbay.fabric.staffwatch.ManualRegionTransfer.cancel();
         pausedByPlayer = true;
         armed = false;
@@ -1814,6 +1820,7 @@ public final class AutomationSessionController {
     }
 
     public synchronized void stop() {
+        if (manualResolutionPersistenceGeneration <= 0) clearManualResolution();
         experimentPauseAtIdle=false;
         if (isolatedOrderRetry.pending()) isolatedJob("cancelled","operator_stop");
         isolatedOrderRetry.cancel();
@@ -2048,8 +2055,14 @@ public final class AutomationSessionController {
         manualResolutionEvidence = "";
         manualResolutionEvidenceReady = false;
         manualResolutionPersistenceGeneration = 0;
+        manualNativeRecovery = dev.doughbay.fabric.KeylessFeed.active();
+        manualNativeAuditPending = false;
+        manualNativeNextAuditAt = 0;
+        manualNativeEvidence.begin(now);
         clearCoverageEvidence();
-        detail = "Recovery step 1 recorded; requesting two later complete exact-book scans";
+        detail = manualNativeRecovery
+                ? "Recovery step 1 recorded; close the panel for two fresh checks of your auction listings"
+                : "Recovery step 1 recorded; requesting two later complete exact-book scans";
         return ExecutionResult.awaitingPlayer(detail);
     }
 
@@ -2096,7 +2109,9 @@ public final class AutomationSessionController {
                 manualResolutionFirstConfirmedAt,
                 now,
                 evidenceAt,
-                manualResolutionEvidence + "; final later exact-book recheck also clean",
+                manualResolutionEvidence + (manualNativeRecovery
+                        ? "; final later own-listings recheck also clean"
+                        : "; final later exact-book recheck also clean"),
                 "Second explicit recovery confirmation; exposure retained until durable ACK");
         manualResolutionPersistenceGeneration = persistence.submitManualResolution(
                 resolution, resolvedCheckpoint);
@@ -2908,6 +2923,7 @@ public final class AutomationSessionController {
      * the two-scan reconciliation that stalls on the API.
      */
     private void autoReleaseUnclickedRecoveredIntent(Minecraft client) {
+        if (manualResolutionFirstConfirmedAt > 0) return;
         if (state != State.PAUSED || !recoveredSession || !uncertainExposure.active()) return;
         if (!"BUYING".equals(uncertainExposure.phase())) return;
         if (client == null || client.player == null || client.level == null) return;
@@ -3104,9 +3120,67 @@ public final class AutomationSessionController {
         }
     }
 
+    private void updateNativeManualResolutionEvidence(Minecraft client, long now) {
+        if (client == null || client.player == null || client.level == null) return;
+        if (manualNativeAuditPending) {
+            var event = nextTerminal(AutomatedExecutionDriver.OperationIntent.AUDIT);
+            if (event == null) return;
+            manualNativeAuditPending = false;
+            boolean success = event.intent() == AutomatedExecutionDriver.OperationIntent.AUDIT
+                    && event.outcome() == AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED;
+            boolean matching = driver.lastOwnListings().stream()
+                    .anyMatch(row -> row.itemId().equals(recoveredExposureItemId()));
+            boolean observationsReady = manualNativeEvidence.accept(
+                    manualNativeAuditStartedAt, event.occurredAtMillis(),
+                    success && event.occurredAtMillis() <= now
+                            && now - event.occurredAtMillis() <= policy.maximumSnapshotAgeMillis(),
+                    driver.lastOwnListingsUnreadable(),
+                    !inventoryContainsItem(client, recoveredExposureItemId()), matching);
+            manualResolutionEvidenceReady = observationsReady
+                    && manualNativeEvidence.finalBlocker(now, policy.maximumSnapshotAgeMillis()) == null;
+            manualNativeNextAuditAt = now + 2_000;
+            if (manualResolutionEvidenceReady) {
+                manualResolutionEvidenceAt = manualNativeEvidence.readyAt();
+                manualResolutionEvidence = "No matching inventory; two complete zero-unreadable in-game own-listings audits found no matching item";
+                detail = manualNativeEvidence.finalBlocker(now, policy.maximumSnapshotAgeMillis()) == null
+                        ? "Recovery evidence ready; use the separate second confirmation button"
+                        : "Two own-listings checks are clean; waiting for the final fresh recheck";
+            } else if (observationsReady) {
+                detail = "Two own-listings checks are clean; waiting for the final fresh recheck";
+            } else {
+                detail = success && !matching && driver.lastOwnListingsUnreadable() == 0
+                        ? "Recovery: first clean own-listings check captured; waiting for the second"
+                        : "Recovery: matching stock, unreadable listings or an incomplete check; exposure retained";
+            }
+            return;
+        }
+        if (manualResolutionEvidenceReady
+                && manualNativeEvidence.finalBlocker(now, policy.maximumSnapshotAgeMillis() / 2) == null) return;
+        if (now < manualNativeNextAuditAt || authorizationBlocker(client) != null) return;
+        if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return;
+        if (!safeInventoryContext(client)) {
+            detail = "Recovery: close the panel with an empty cursor so your auction listings can be checked";
+            return;
+        }
+        awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
+        var result = driver.auditOwnListingsForRecovery();
+        if (!result.ok()) {
+            manualNativeNextAuditAt = now + 2_000;
+            detail = "Recovery: own-listings check could not start; exposure retained";
+            return;
+        }
+        manualNativeAuditStartedAt = now;
+        manualNativeAuditPending = true;
+        detail = "Recovery: checking all pages of your own auction listings";
+    }
+
     private void updateManualResolutionEvidence(Minecraft client,
                                                 MarketWatcher.Snapshot snapshot,
                                                 long now) {
+        if (manualNativeRecovery) {
+            updateNativeManualResolutionEvidence(client, now);
+            return;
+        }
         String itemId = recoveredExposureItemId();
         if (itemId.isBlank()) {
             detail = "Recovery evidence blocked: exact item identity is unavailable";
@@ -12177,7 +12251,7 @@ public final class AutomationSessionController {
     }
 
     boolean mayAutoListRecoveredPurchase(long now,boolean danger,boolean restarting,boolean refusedWrite) {
-        return !pausedByPlayer && (armed || autoResumeOn())
+        return manualResolutionFirstConfirmedAt <= 0 && !pausedByPlayer && (armed || autoResumeOn())
                 && !staffTransferHold && !danger && !restarting && !refusedWrite
                 && state == State.PAUSED && recoveredSession && sessionOpen
                 && now - stateChangedAtMillis >= 5_000;
@@ -13055,6 +13129,9 @@ public final class AutomationSessionController {
         manualResolutionEvidenceAt = 0;
         manualResolutionEvidence = "";
         manualResolutionEvidenceReady = false;
+        manualNativeRecovery = false;
+        manualNativeAuditPending = false;
+        manualNativeEvidence.begin(0);
     }
 
     private int recoveredExposureCount() {
@@ -13127,6 +13204,16 @@ public final class AutomationSessionController {
 
     private String manualResolutionCoverageBlocker(
             Minecraft client, MarketWatcher.Snapshot snapshot, long now) {
+        if (manualNativeRecovery) {
+            if (client == null || client.player == null || client.level == null)
+                return "live inventory is unavailable";
+            if (client.player.containerMenu != client.player.inventoryMenu
+                    || !client.player.containerMenu.getCarried().isEmpty())
+                return "a container or carried item prevents inventory verification";
+            if (inventoryContainsItem(client, recoveredExposureItemId()))
+                return "matching inventory is still present";
+            return manualNativeEvidence.finalBlocker(now, policy.maximumSnapshotAgeMillis());
+        }
         if (snapshot == null || snapshot.demo()) return "real snapshot is unavailable";
         String snapshotBlocker = liveSnapshotBlocker(snapshot, now);
         if (snapshotBlocker != null) return snapshotBlocker;

@@ -9,6 +9,22 @@ import java.lang.reflect.Field;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RecoveredPurchaseStopTest {
+    @Test void explicitRecoveryChecksOwnThePauseAndStopCancelsTheirAuthorization() throws Exception {
+        var controller = recoveredController();
+        set(controller, "armed", true);
+        set(controller, "manualResolutionFirstConfirmedAt", 100L);
+        set(controller, "manualResolutionCoverageBoundary", 100L);
+        set(controller, "manualNativeRecovery", true);
+        set(controller, "committedSpend", 3072889L);
+        assertFalse(controller.mayAutoListRecoveredPurchase(10_000, false, false, false),
+                "automatic purchase recovery must not steal the manual audit terminal");
+        assertFalse(controller.coverageRequest().requested(),
+                "keyless manual recovery must not wait for an API-only full-book request");
+        var clear = controller.getClass().getDeclaredMethod("clearManualResolution");
+        clear.setAccessible(true); clear.invoke(controller);
+        assertEquals(3072889L, controller.snapshot().committedSpend());
+        assertTrue(controller.mayAutoListRecoveredPurchase(10_000, false, false, false));
+    }
     @Test void rejectedPlayerResumeRetainsTheExplicitStop() throws Exception {
         var controller = recoveredController();
         set(controller, "pausedByPlayer", true);
