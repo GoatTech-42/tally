@@ -6734,6 +6734,15 @@ public final class AutomationSessionController {
                 if (unit <= 0) {
                     ownPriceNote(id, "the best order for it pays " + standing + " each, and being over that would pass your "
                             + own.buy(), now);
+                    // A ceiling rejection must not pin a Flip to the old
+                    // market price for the ordinary 15-minute quote lifetime.
+                    // Refresh on a later desk pass, rate-limited like the
+                    // initial quote. The fresh result must still fit the cap.
+                    if (now - quoted[1] >= 60_000L
+                            && now - orderQuotedAt.getOrDefault(id, 0L) >= 60_000L
+                            && deskQueue.stream().noneMatch(st -> st.action() == DeskAction.QUOTE && st.itemId().equals(id))) {
+                        deskQueue.addLast(new DeskStep(DeskAction.QUOTE, id, 0, 0, OWN_QUOTE + shortId(id)));
+                    }
                     continue;
                 }
             }
