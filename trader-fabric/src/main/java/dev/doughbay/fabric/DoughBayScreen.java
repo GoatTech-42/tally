@@ -915,7 +915,15 @@ public final class DoughBayScreen extends Screen {
             }
             case PAUSED -> {
                 label = "▶ Resume";
-                if (session.recoveredSession() || AUTOMATION_SESSION.recoverableInHand()) {
+                if (session.recoveredSession() && session.unresolvedExposure()
+                        && !AUTOMATION_SESSION.recoverableInHand()) {
+                    label = "Resolve recovery";
+                    action = () -> {
+                        tab = Tab.AUTOMATION;
+                        automationMode = AutomationMode.CONTINUOUS;
+                        rebuildWidgets();
+                    };
+                } else if (session.recoveredSession() || AUTOMATION_SESSION.recoverableInHand()) {
                     action = () -> {
                         ExecutionResult result = AUTOMATION_SESSION.resumeRecoveredSession(DoughBayClient.continuousPolicy());
                         driverMessage = result.detail();
@@ -4216,7 +4224,7 @@ public final class DoughBayScreen extends Screen {
         String label = switch (stage) {
             case "FIRST_CONFIRMATION_REQUIRED" -> geometry.compact()
                     ? "Step 1: inspected" : "STEP 1 — I inspected inventory + auction externally";
-            case "EVIDENCE_SCANNING" -> "Waiting for two complete exact-book scans…";
+            case "EVIDENCE_SCANNING" -> "Close panel: waiting for complete recovery checks…";
             case "SECOND_CONFIRMATION_REQUIRED" -> geometry.compact()
                     ? "Step 2: confirm" : "STEP 2 — Confirm no item and no own listing";
             case "AUDIT_WRITE_PENDING" -> "Writing immutable recovery audit…";

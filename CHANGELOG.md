@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 17:21 UTC
+
+- Release PR #127: Fix API-free recovery waiting indefinitely for unavailable API auction-book scans.
+- Recovery now checks the player's own in-game auction listings after the first explicit inspection confirmation. Two complete clean checks and a later fresh recheck are required before the separate final confirmation; interrupted, unreadable or matching-stock evidence retains the hold.
+- Recovery checks do not buy, list, cancel or collect items. Recorded stock, session caps and the durable audit requirement remain intact. The header now opens Resolve recovery instead of repeatedly refusing Resume.
+- Reports #120/#123 remain open for reporter confirmation; this release fixes the demonstrated recovery deadlock without claiming every recovery pause is resolved.
+
 ## 2026-10-18 17:02 UTC
 
 - Release PR #124: Included preset hover explanations. Client artifact published October 18 at 10:02:58 Los Angeles time (17:02:58 UTC); separate from PR #119.
