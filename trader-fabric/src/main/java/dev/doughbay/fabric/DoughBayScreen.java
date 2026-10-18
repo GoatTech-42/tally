@@ -3108,14 +3108,20 @@ public final class DoughBayScreen extends Screen {
         if(tab!=Tab.EVASION){
             int presetY=controlsTop+2+(ui.innerWidth()<270?24:0);
             int presetX=ui.innerWidth()<270?ui.innerLeft():ui.innerRight()-176;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Preset: "+settingsPreset),b->{
+            var presetButton = CockpitButton.builder(Component.literal("Preset: "+settingsPreset),b->{
                 var choices=new ArrayList<>(Tuning.PRESETS.keySet());choices.add("Default");
                 settingsPreset=choices.get((choices.indexOf(settingsPreset)+1)%choices.size());rebuildWidgets();
-            }).bounds(presetX,presetY,120,18).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Apply"),b->{
+            }).bounds(presetX,presetY,120,18).build();
+            presetButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal(Tuning.presetDescription(settingsPreset))));
+            addRenderableWidget(presetButton);
+            var applyPresetButton = CockpitButton.builder(Component.literal("Apply"),b->{
                 int n=Tuning.applyPreset(settingsPreset);settingsMessage=settingsPreset+" preset: "+n+" setting(s) changed";
                 selectedSetting=null;rebuildWidgets();
-            }).bounds(presetX+124,presetY,52,18).build());
+            }).bounds(presetX+124,presetY,52,18).build();
+            applyPresetButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                    Component.literal(Tuning.presetDescription(settingsPreset))));
+            addRenderableWidget(applyPresetButton);
         }
         if (tab == Tab.EVASION) {
             EvasionGuard guard = DoughBayClient.evasionGuard();
