@@ -1050,6 +1050,36 @@ public final class Tuning {
                 java.util.Map.entry("evasion.radius_blocks", 32.0), java.util.Map.entry("underdog.max_targets", 10.0)));
     }
 
+    /** Player-facing help for the included presets; selecting one does not apply it. */
+    public static String presetDescription(String name) {
+        String summary = switch (name) {
+            case "Careful" -> "Smaller purchases and slower pacing.\n"
+                    + "Per-purchase cap: 5%; money out at once: 50%.\n"
+                    + "Up to 2 listings per market; 1 for large trades.\n"
+                    + "Longer pauses, stricter spill ROI and quiet-hour demand.\n"
+                    + "Disables rival mirroring and boxes; limits underdog targets to 4.";
+            case "Aggressive" -> "Larger exposure and quicker pacing than Careful.\n"
+                    + "Per-purchase cap: 8%; money out at once: 80%.\n"
+                    + "Up to 5 listings per market; 2 for large trades.\n"
+                    + "Shorter pauses, lower spill ROI and quiet-hour demand thresholds.\n"
+                    + "Enables rival mirroring and boxes; allows 20 underdog targets and 10 extra quiet-market slots.";
+            case "Overnight" -> "Slower repricing for longer sessions.\n"
+                    + "Money out at once: 70%; up to 3 listings per market.\n"
+                    + "Action gaps: 2–6 seconds; repricing starts after 15/30/45 minutes by tier.\n"
+                    + "Enables rival mirroring; 10 underdog targets; quiet-hour demand threshold: 25%.\n"
+                    + "Changes the Evasion radius to 32 blocks.\n"
+                    + "Leaves your per-purchase cap unchanged; does not enable auto-resume.";
+            case "Default" -> "Resets ALL numeric settings to their shipped defaults, across every category.\n"
+                    + "This includes limits, pacing, protection settings and feature toggles.\n"
+                    + "Save a preset first if you want to restore your current setup.";
+            default -> "No included preset selected.";
+        };
+        return name + "\n" + summary + "\n\n"
+                + ("Default".equals(name) ? "" : "Only this preset's bundled settings change; other settings stay as they are.\n")
+                + "Click the preset name to browse. Click Apply to change global settings.\n"
+                + "A preset does not start trading or guarantee profit.";
+    }
+
     /** Applies a preset by name; "Default" resets every numeric setting. Returns how many settings changed. */
     public static synchronized int applyPreset(String name) {
         int changed = 0;
