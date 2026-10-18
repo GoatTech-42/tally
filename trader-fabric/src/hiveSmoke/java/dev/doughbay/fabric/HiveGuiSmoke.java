@@ -18,8 +18,9 @@ public final class HiveGuiSmoke implements ClientModInitializer {
   if(mc.level!=null)throw new IllegalStateException("Hive preview must remain offline");
   if(phase==0&&ticks>100){
    mc.options.pauseOnLostFocus=false;mc.options.guiScale().set(2);mc.resizeGui();
-   var screen=new DoughBayScreen(DoughBayClient.watcher());screen.selectHive();mc.gui.setScreen(Boolean.getBoolean("gonuts.hive.preview.discovery")?new HiveDiscoveryScreen(screen):screen);phase=1;ticks=0;
+   var screen=new DoughBayScreen(DoughBayClient.watcher());screen.selectHive();mc.gui.setScreen(Boolean.getBoolean("gonuts.hive.preview.combine")?new HiveCombineScreen(screen,"preview only"):Boolean.getBoolean("gonuts.hive.preview.discovery")?new HiveDiscoveryScreen(screen):screen);phase=1;ticks=0;
   }else if(phase==1&&ticks>30){
+   if(Boolean.getBoolean("gonuts.hive.preview.combine")){capture(mc,"hive-combine-review.png");press(mc,"Back without changes");phase=5;ticks=0;return;}
    if(Boolean.getBoolean("gonuts.hive.preview.discovery")){
     capture(mc,"hive-discovery.png");press(mc,"Review setup");phase=4;ticks=0;return;
    }
@@ -40,6 +41,8 @@ public final class HiveGuiSmoke implements ClientModInitializer {
     Files.writeString(Path.of("invite.txt"),mc.keyboardHandler.getClipboard());
    }
    phase=2;ticks=0;
+  }else if(phase==5&&ticks>30){
+   capture(mc,"hive-combine-panel.png");Files.writeString(Path.of("hive-combine-gui-success.txt"),"Combine review rendered; Back returned to Hive setup without queuing or changing data.");phase=3;mc.stop();
   }else if(phase==4&&ticks>30){
    if(!(mc.gui.screen() instanceof DoughBayScreen))throw new IllegalStateException("Review did not open GoNuts");
    capture(mc,"hive-discovery-review.png");

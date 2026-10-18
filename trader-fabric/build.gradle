@@ -157,6 +157,7 @@ if (project.hasProperty('hiveScreenshots')) {
   runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/hive-preview-' + (project.hasProperty('hiveJoinPreview') ? 'join' : 'source')
   vmArg '-Dgonuts.hive.preview.join=' + project.hasProperty('hiveJoinPreview')
   if (project.hasProperty('hiveDiscoveryPreview')) vmArg '-Dgonuts.hive.preview.discovery=true'
+  if (project.hasProperty('hiveCombinePreview')) vmArg '-Dgonuts.hive.preview.combine=true'
   programArgs '--width', '1920', '--height', '1200'
  }
 }

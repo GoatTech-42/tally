@@ -20,7 +20,7 @@ final class HiveDiscovery {
     static void start(Path game) {
         try {
             if(net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment()
-                    && Boolean.getBoolean("gonuts.hive.preview.discovery")) return;
+                    && (Boolean.getBoolean("gonuts.hive.preview.discovery")||Boolean.getBoolean("gonuts.hive.preview.combine"))) return;
             current = new HiveDiscovery(Path.of(System.getProperty("user.home"), ".gonuts", "local-presence"),
                     game.resolve("gonuts-hive-discovery.json"), game.toRealPath().toString(),
                     DoughBayClient.account(), HiveSetup.activeId());
