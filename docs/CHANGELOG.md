@@ -1,11 +1,12 @@
 # GoNuts changelog
 
-What each build changed, newest first. Times are UTC. The mod shows these in
+What each published update changed, newest first. Times are UTC publication times, not development start times. Each release keeps its own entry. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
-## 2026-10-18 16:07 UTC
+## 2026-10-18 16:18 UTC
 
+- Release PR #119: Startup reliability and attached fault diagnostics. Published October 18 at 09:18 Los Angeles time. This is a separate update from PR #117 below; the former 09:07 label was an incorrect draft timestamp, not another published release.
 - Fixed shared-history startup reading item stack components before Minecraft had bound them. An unavailable item now waits for a later normal feed pass; it cannot restart local keyless analysis or substitute a guessed stack size. Ready supported markets can still seed normally.
 - The order desk now shows the screen/container/cursor reason when waiting for safe inventory, instead of leaving an unrelated scanning message visible. The safety gate remains enforced and player screens are not closed automatically.
 - Bug report attachments now include session elapsed time, queued action, current UI blocker and the last non-panel blocker, plus a bounded latest-fault stage/type/count/age and verified GoNuts frames. The same capture feeds in-game, local-web and already-opted-in automatic reports; fault evidence survives a missing/rotated log during this process. Exception messages, names, paths, credentials and raw settings are excluded. Existing consent and send controls remain.
@@ -13,6 +14,7 @@ About tab.
 
 ## 2026-10-18 15:45 UTC
 
+- Release PR #117: Two-step setup, Auction/Orders tabs, tutorials and Swarm history warm-up.
 - Added a two-step in-game setup: Choose limits, then Review & Start. It preserves existing installs' normal entry screen, offers optional Swarm/protection pages, and starts only after an explicit final action through existing recovery and trade gates.
 - Added main Auction and Orders tabs, retaining the same settings in Settings and the order book inside Orders. Settings now has Auction, Orders, General and All categories in game and in the local web panel.
 - Added optional tutorials for Swarm, Evasion/Staff Watch, items, Flips, orders, updates and bug reports. Staff Watch explains that a same-server spectator detection does not prove staff are watching you.
