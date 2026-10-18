@@ -4,6 +4,13 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 12:05 UTC
+
+- Fixed recovered stock getting stuck behind an idle auction or server dialog until the long liveness timer expired. Recovery now closes the known stray page promptly and identifies other blocking screens or cursor activity; player screens and safety holds remain protected. Reports #105 and #108.
+- Fixed recovered-purchase listing checks becoming permanently disabled after one attempt or carrying a previous purchase's attempted flag into the next recovery. Interrupted reads retry at a bounded interval, already-listed stock is adopted after its checkpoint is accepted, and other recovered positions remain queued. Report #106.
+- Staff Watch's display-only HUD no longer runs ImGui's desktop mouse/cursor updates while rendering. Minecraft keeps ownership of cursor behavior, including when trading in the background after Alt-Tab. Report #107.
+- Swarm connection failures now back off the whole transport pump, including account registration, and display the failed request stage and safe failure category or HTTP status. Server retry delays are respected. This improves diagnosis of #109; its original connection failure is not yet established.
+
 ## 2026-10-18 02:11 UTC
 
 - Removed the hidden purchase-focus list. Items Include/Exclude now controls item eligibility consistently for new purchases, orders and targeted price lookups. Existing purchase-focus selections migrate into Include and Track, alongside existing selections; explicit exclusions remain enforced. The migration keeps a backup and does not repeat after later Items edits. Older saved presets and Settings codes convert on import too. Price, profit, spending, inventory and safety checks remain enforced.

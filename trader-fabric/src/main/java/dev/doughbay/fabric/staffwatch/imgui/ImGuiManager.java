@@ -28,7 +28,9 @@ public final class ImGuiManager {
 
     private void init() {
         // HeadlessMC must never enter native ImGui setup: its GL calls are stubs.
-        glfw = new ImGuiImplGlfw();
+        // This is a draw-only HUD. Minecraft owns the desktop cursor even
+        // while menus open/close in an unfocused background window.
+        glfw = new HudGlfwBackend();
         gl3 = new ImGuiImplGl3();
         ImGui.createContext();
         ImGui.getIO().setIniFilename(null);

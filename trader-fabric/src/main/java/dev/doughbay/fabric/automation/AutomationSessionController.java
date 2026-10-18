@@ -3296,9 +3296,17 @@ public final class AutomationSessionController {
                     .filter(p -> !retailWaiting(p, now) || retailStackDue(client, p, now)).findFirst().orElse(null);
             if (next != null) {
                 var guard=dev.doughbay.fabric.DoughBayClient.evasionGuard();
-                String waiting=queuedStockBlocker(now,safeInventoryContext(client),guard!=null&&guard.triggered(),
+                String waiting=queuedStockBlocker(now,true,guard!=null&&guard.triggered(),
                         authorizationBlocker(client));
                 if(waiting!=null){detail="Recovered stock remains queued: "+waiting;return;}
+                if (!safeInventoryContext(client)) {
+                    if (client != null && client.player != null
+                            && client.player.containerMenu.getCarried().isEmpty()
+                            && client.player.inventoryMenu.getCarried().isEmpty()
+                            && closeStrayAuctionPage(client)) return;
+                    detail = "Recovered stock remains queued: " + guiBlockerDescription(client);
+                    return;
+                }
                 recoveredQueue.remove(next);
                 // A recovered purchase whose item is nowhere in the inventory is a
                 // ghost from an earlier session - a lost buy, or a denied item that
@@ -11924,7 +11932,8 @@ public final class AutomationSessionController {
 
     /** After a restart: the recovered purchase is in the inventory, so list it. */
     private boolean recoveryAuditPending;
-    private boolean recoveryAuditTried;
+    private long recoveryAuditPositionId = -1;
+    private final RecoveryAuditRetry recoveryAuditRetry = new RecoveryAuditRetry();
 
     /**
      * A recovered purchase that is not in the inventory was very likely
@@ -11934,7 +11943,7 @@ public final class AutomationSessionController {
      * there, adopt it as listed at the price shown and carry on.
      */
     private void autoAdoptRecoveredListing(Minecraft client, long now) {
-        if (pausedByPlayer) return;
+        if (!mayAutoListRecoveredPurchase(now)) return;
         // A fresh start is never armed, so on a bot meant to run itself this
         // check never ran and a purchase not in the inventory held the whole
         // session until somebody looked. With auto-resume on, the standing
@@ -11944,6 +11953,10 @@ public final class AutomationSessionController {
         if (client == null || client.player == null || client.level == null) return;
         if (now - stateChangedAtMillis < 5_000) return;
         if (purchasedStackInHand(client)) return;
+        if (recoveryAuditPending && recoveryAuditPositionId != trackedPosition.positionId()) {
+            recoveryAuditPending = false;
+            recoveryAuditRetry.reset();
+        }
         if (recoveryAuditPending) {
             AutomatedExecutionDriver.TerminalEvent event = nextTerminal(AutomatedExecutionDriver.OperationIntent.AUDIT);
             if (event == null) return;
@@ -11951,6 +11964,7 @@ public final class AutomationSessionController {
             if (event.intent() != AutomatedExecutionDriver.OperationIntent.AUDIT
                     || event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
                 LOGGER.info("DoughBay automation: recovery check of your listings did not complete: {}", event.detail());
+                detail = "PAUSED: auction listing check interrupted; retrying shortly, stock and exposure retained";
                 return;
             }
             for (AutomatedExecutionDriver.OwnListingRow row : driver.lastOwnListings()) {
@@ -11958,19 +11972,27 @@ public final class AutomationSessionController {
                 Position listed = new Position(trackedPosition.positionId(), trackedPosition.mode(), trackedPosition.itemKey(),
                         trackedPosition.bucket(), trackedPosition.quantity(), trackedPosition.purchasePrice(), row.displayedPrice(),
                         trackedPosition.purchasedAt(), now, 0, 0, Double.NaN, PositionStatus.LISTED);
+                long generation = persistence.submit(checkpoint(sessionOpen, State.PAUSED.name(), listed,
+                        AutomationUncertainExposure.none(), "Recovered purchase found listed on the page; adopted"));
+                if (generation <= 0) {
+                    detail = "PAUSED: listed purchase could not be saved; stock and exposure retained";
+                    return;
+                }
                 openListings.add(listed);
                 trackedPosition = null;
                 positionValuation = null;
-                recoveredOpenPositions = List.of();
-                recoveredSession = false;
+                recoveredOpenPositions = recoveredOpenPositions.stream()
+                        .filter(p -> p.positionId() != listed.positionId()).toList();
+                if (!recoveredOpenPositions.isEmpty()) trackedPosition = recoveredOpenPositions.getFirst();
+                recoveredSession = trackedPosition != null || !armed;
                 pauseResumable = false;
                 uncertainExposure = AutomationUncertainExposure.none();
-                persistence.submit(checkpoint(sessionOpen, State.SCANNING.name(), listed,
-                        AutomationUncertainExposure.none(), "Recovered purchase found listed on the page; adopted"));
                 LOGGER.info("DoughBay automation: recovered purchase #{} ({} x{}) was already listed at {}; adopted",
                         listed.positionId(), listed.itemKey(), listed.quantity(), row.displayedPrice());
                 reconciliationStatus = openListings.size() + " listing(s) open; buying continues";
-                transition(State.SCANNING, "Recovered purchase was already listed; adopted, scanning");
+                transition(recoveredSession ? State.PAUSED : State.SCANNING,
+                        "Recovered purchase was already listed; adopted"
+                                + (recoveredSession ? "; waiting for remaining recovery checks" : ", scanning"));
                 return;
             }
             // A delivery whose receipt came in late looks exactly like a lost
@@ -11997,7 +12019,7 @@ public final class AutomationSessionController {
                     + " is neither in the inventory nor listed; resolve it below";
             return;
         }
-        if (recoveryAuditTried) return;
+        if (!recoveryAuditRetry.ready(trackedPosition.positionId(), now)) return;
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return;
         if (policy == null) {
             policy = dev.doughbay.fabric.DoughBayClient.continuousPolicy();
@@ -12012,13 +12034,14 @@ public final class AutomationSessionController {
         }
         if (!safeInventoryContext(client)) return;
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
-        recoveryAuditTried = true;
+        recoveryAuditRetry.attempt(trackedPosition.positionId(), now);
         ExecutionResult result = driver.auditOwnListings();
         if (!result.ok()) {
             detail = "Could not check your listings for the recovered purchase: " + result.detail();
             return;
         }
         recoveryAuditPending = true;
+        recoveryAuditPositionId = trackedPosition.positionId();
         detail = "Recovered purchase not in the inventory; checking your auction listings for it";
     }
 
@@ -12043,7 +12066,7 @@ public final class AutomationSessionController {
         positionValuation = null;
         recoveredOpenPositions = recoveredOpenPositions.stream()
                 .filter(x -> x.positionId() != p.positionId()).toList();
-        recoveryAuditTried = false;
+        recoveryAuditRetry.reset();
         recoveryAuditPending = false;
         if (!recoveredOpenPositions.isEmpty()) trackedPosition = recoveredOpenPositions.getFirst();
         // A written-off phantom must not leave its uncertain-exposure flag
