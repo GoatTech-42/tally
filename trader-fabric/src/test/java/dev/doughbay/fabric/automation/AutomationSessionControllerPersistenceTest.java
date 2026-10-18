@@ -18,6 +18,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class AutomationSessionControllerPersistenceTest {
 
+    @Test void collectedBatchRetainsBothStacksAndAllCostBeforeListing() throws Exception {
+        checkCollectedBatch(false);
+    }
+
+    @Test void rejectedBatchWriteStillRetainsEveryDeliveredStackWithoutDispatch() throws Exception {
+        checkCollectedBatch(true);
+    }
+
+    private void checkCollectedBatch(boolean rejected) throws Exception {
+        net.minecraft.SharedConstants.tryDetectVersion();
+        net.minecraft.server.Bootstrap.bootStrap();
+        double singles = dev.doughbay.fabric.Tuning.get("list.singles");
+        try {
+        dev.doughbay.fabric.Tuning.set("list.singles", 0);
+        var persistence = new FakePersistence();
+        persistence.rejectSubmissions = rejected;
+        var c = new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(persistence);
+        setField(c, "policy", policy());
+        setField(c, "state", AutomationSessionController.State.BID_DESK);
+        var method = AutomationSessionController.class.getDeclaredMethod("bookCollectedBatch",
+                net.minecraft.client.Minecraft.class, long.class, String.class, long.class, java.util.List.class);
+        method.setAccessible(true);
+        assertEquals(!rejected, method.invoke(c, null, 1000L, "minecraft:stone", 100L,
+                CollectedStacks.split(128, 64, 12800, 100)));
+        var queued = (java.util.List<dev.doughbay.core.model.Position>) field(c, "recoveredQueue");
+        assertEquals(2, queued.size());
+        assertEquals(128, queued.stream().mapToInt(dev.doughbay.core.model.Position::quantity).sum());
+        assertEquals(12800, queued.stream().mapToLong(dev.doughbay.core.model.Position::purchasePrice).sum());
+        assertEquals(12800L, field(c, "committedSpend"));
+        assertEquals(2, queued.stream().map(dev.doughbay.core.model.Position::positionId).distinct().count());
+        assertEquals(null, field(c, "trackedPosition"), "booking must not dispatch a listing");
+        assertEquals(rejected ? AutomationSessionController.State.PAUSED : AutomationSessionController.State.SCANNING,
+                field(c, "state"));
+        } finally {
+            dev.doughbay.fabric.Tuning.set("list.singles", singles);
+        }
+    }
+
     @Test
     void normalResumeNeverForceResetsARecoveredPurchaseMissingInHandEvidence() throws Exception {
         var persistence=new FakePersistence();

@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 13:00 UTC
+
+- Fixed order collections containing multiple inventory stacks being reduced to one booked stack. Every delivered stack and its acquisition cost is now retained and queued before listing; a partial fill still waiting on the order does not hide stock already collected. Refused persistence keeps the batch paused for reconciliation. Report #112.
+- Accepted Start and Resume requests now clear the previous explicit-stop flag so queued stock can proceed through normal safety gates. Rejected Resume requests retain that stop; protective holds, inventory proof and spending limits remain enforced.
+
 ## 2026-10-18 12:05 UTC
 
 - Fixed recovered stock getting stuck behind an idle auction or server dialog until the long liveness timer expired. Recovery now closes the known stray page promptly and identifies other blocking screens or cursor activity; player screens and safety holds remain protected. Reports #105 and #108.

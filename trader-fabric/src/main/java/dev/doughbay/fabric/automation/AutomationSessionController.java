@@ -1764,6 +1764,7 @@ public final class AutomationSessionController {
             return ExecutionResult.refused(
                     "Automation persistence rejected the session checkpoint; execution remains locked");
         }
+        pausedByPlayer = false;
         transition(State.SCANNING, requestedMode == RunMode.SINGLE
                 ? "Single trade armed; waiting for durable session checkpoint"
                 : "Continuous session armed; waiting for durable session checkpoint");
@@ -1895,12 +1896,14 @@ public final class AutomationSessionController {
                         "Buffered sale evidence is too old to reconcile automatically");
             }
             armed=true;
+            pausedByPlayer = false;
             transition(State.MONITORING, "Resumed monitoring the one exact listed position");
             return ExecutionResult.awaitingPlayer(detail);
         }
         if (pausedFromState == State.SCANNING
                 && pendingOpportunity == null && !hasUnresolvedPosition()) {
             armed=true;
+            pausedByPlayer = false;
             transition(State.SCANNING, "Resumed scanning fresh signals");
             return ExecutionResult.awaitingPlayer(detail);
         }
@@ -1958,6 +1961,7 @@ public final class AutomationSessionController {
                     return ExecutionResult.refused("The execution driver is not idle");
                 }
                 armed = true;
+                pausedByPlayer = false;
                 long now = System.currentTimeMillis();
                 if (purchasedStackInHand(client)) {
                     recoveredSession = false;
@@ -1997,6 +2001,7 @@ public final class AutomationSessionController {
             return ExecutionResult.refused(
                     "Recovered-session resume could not be queued durably");
         }
+        pausedByPlayer = false;
         transition(State.SCANNING,
                 "Recovered caps retained; waiting for durable resume checkpoint");
         return ExecutionResult.awaitingPlayer(detail);
@@ -4606,7 +4611,6 @@ public final class AutomationSessionController {
 
     /** A player Resume from the key: clears the player pause and resumes the right way. */
     public synchronized ExecutionResult resumeFromPlayer() {
-        pausedByPlayer = false;
         if (recoveredSession) {
             return resumeRecoveredSession(dev.doughbay.fabric.DoughBayClient.continuousPolicy());
         }
@@ -7705,6 +7709,30 @@ public final class AutomationSessionController {
     }
 
     private boolean bookCollected(Minecraft client, long now, String itemId, int count, long unitPrice, long cost) {
+        if (count <= 0) return false;
+        var parts = CollectedStacks.split(count, fullStack(itemId), cost, unitPrice);
+        var first = parts.getFirst();
+        if (parts.size() == 1)
+            return bookCollectedStack(client, now, itemId, first.count(), unitPrice, first.cost(), false);
+        return bookCollectedBatch(client, now, itemId, unitPrice, parts);
+    }
+
+    private boolean bookCollectedBatch(Minecraft client, long now, String itemId, long unitPrice,
+                                       List<CollectedStacks.Part> parts) {
+        // Retain the whole receipt before the normal queued-stock gate may
+        // dispatch a listing. A rejected write must not discard the rest of
+        // a delivery that has already left the order house.
+        boolean accepted = true;
+        for (var part : parts) {
+            if (!bookCollectedStack(client, now, itemId, part.count(), unitPrice, part.cost(), true))
+                accepted = false;
+        }
+        if (accepted) transition(State.SCANNING, "Collected batch queued for verified inventory listing");
+        return accepted;
+    }
+
+    private boolean bookCollectedStack(Minecraft client, long now, String itemId, int count,
+                                       long unitPrice, long cost, boolean queued) {
         // Every route that adopts a stack from the inventory ends here - the
         // bid desk's own reconciliation, the owed-order sweep, the stray-stack
         // rescue - so this is the one place worth guarding. Without it, giving
@@ -7753,7 +7781,7 @@ public final class AutomationSessionController {
                 baseItemId(itemId).replace("minecraft:", "").replace('_', ' '), count, unitPrice);
         // Account for every unit in the physical stack, including units whose
         // delivery notices were missed. Never treat a merged remainder as free.
-        if (retailTarget <= 0 && !hasRetailStock(itemId) && unlistedPurchaseSlot(client, itemId, count) < 0) {
+        if (!queued && retailTarget <= 0 && !hasRetailStock(itemId) && unlistedPurchaseSlot(client, itemId, count) < 0) {
             int slot = largestStackSlot(client, itemId);
             if (slot >= 0) {
                 int merged = client.player.getInventory().getNonEquipmentItems().get(slot).getCount();
@@ -7810,11 +7838,25 @@ public final class AutomationSessionController {
         }
         tradesStarted++;
         committedSpend = Math.addExact(committedSpend, cost);
-        trackedPosition = new Position(allocatePositionId(), "REAL", itemId, StackBucket.of(count), count,
+        Position collected = new Position(allocatePositionId(), "REAL", itemId, StackBucket.of(count), count,
                 cost, target, now, 0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
         LOGGER.info("DoughBay bid desk: collected {} x{} at {} each ({} total); listing it", itemId, count, unitPrice, cost);
-        if (retailTarget > 0) retailLots.put(trackedPosition.positionId(),
-                new RetailLot(trackedPosition.positionId(), trackedPosition.positionId(), retailTarget));
+        RetailLot lot = retailTarget > 0
+                ? new RetailLot(collected.positionId(), collected.positionId(), retailTarget) : null;
+        if (lot != null) retailLots.put(collected.positionId(), lot);
+        if (queued) {
+            recoveredQueue.add(collected);
+            var checkpoint = checkpoint(sessionOpen, state.name(), collected, uncertainExposure,
+                    "Additional collected stack queued for listing");
+            long generation = lot == null ? persistence.submit(checkpoint)
+                    : persistence.submitRetail(checkpoint, lot, null, null);
+            if (generation <= 0) {
+                pauseInternal("Could not persist an additional collected stack; stock and cost retained");
+                return false;
+            }
+            return true;
+        }
+        trackedPosition = collected;
         listPurchasedStackInHand(client, now, "Collected from your bid");
         return true;
     }
