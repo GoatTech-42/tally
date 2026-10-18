@@ -4,6 +4,14 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 19:56 UTC
+
+- Release PR #133: Combine two accidentally separate single-account hives on the same computer through an explicit review and queued offline import. Select Use existing hive or paste the other hive’s code; creating another separate hive now warns when one is already known.
+- Both original ledgers and settings folders are kept. A new validated shared ledger imports supported histories, remaps position references and deduplicates matching sale receipts; each member keeps separate settings, presets, safety preferences, account records, session caps and recovery state.
+- Update both instances, queue from the second account, close BOTH instances completely, then start the requesting instance first. Start the other after import completes and refresh the website dashboard. Nothing is traded, started, cleared or reset by this setup.
+- Running clients, conflicting receipts, payroll/loan records, unsupported schemas and existing multi-member groups block the import. Interrupted switching cannot silently create divergent ledgers; a queued import can be cancelled before switching begins.
+- Verified with 1,310 tests, zero failures/errors and one skip, plus an offline rendered review/navigation check. No new Swarm security policy or backend changes are included.
+
 ## 2026-10-18 19:11 UTC
 
 - Release PR #131: GoNuts now offers Hive setup when it detects a different running GoNuts account in another instance on the same computer. Both instances need this update for local detection.

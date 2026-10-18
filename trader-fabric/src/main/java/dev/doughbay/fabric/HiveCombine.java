@@ -14,6 +14,7 @@ final class HiveCombine {
     private static final Map<Path,Lease> HELD=new HashMap<>();
     static volatile String startupMessage="";
     record Plan(int version,HiveSetup.Membership first,HiveSetup.Membership second,HiveSetup.Membership combined) {}
+    record Verified(Plan plan,String ledgerSha256) {}
     private HiveCombine() {}
     static synchronized void hold(Path folder) throws IOException {
         Path real=folder.toRealPath();if(HELD.containsKey(real))return;
@@ -90,13 +91,17 @@ final class HiveCombine {
                 HiveLedgerImport.combine(a.resolve("doughbay.db"),p.first().owner(),b.resolve("doughbay.db"),p.second().owner(),out.resolve("doughbay.db"));
                 profile(a,out,p.first().owner());profile(b,out,p.second().owner());
                 Files.copy(a.resolve("config.json"),out.resolve("config.json"));
+                copyIfPresent(a.resolve("web-panel.json"),out.resolve("web-panel.json"));
                 var rootConfig=(com.fasterxml.jackson.databind.node.ObjectNode)JSON.readTree(Files.readAllBytes(out.resolve("config.json")));
                 rootConfig.put("databasePath","doughbay.db");Files.write(out.resolve("config.json"),JSON.writeValueAsBytes(rootConfig));
                 writeNew(out.resolve("hive.json"),p.combined());
-                writeNew(out.resolve("hive-combine-verified.json"),p);
+                try(var files=Files.walk(out)) {
+                    for(Path file:files.filter(Files::isRegularFile).toList())force(file);
+                }
+                writeNew(out.resolve("hive-combine-verified.json"),new Verified(p,sha(out.resolve("doughbay.db"))));
             } else {
-                Plan verified=JSON.readValue(Files.readAllBytes(out.resolve("hive-combine-verified.json")),Plan.class);
-                if(!verified.equals(p))throw new IOException("Interrupted combination does not match this request");
+                Verified verified=JSON.readValue(Files.readAllBytes(out.resolve("hive-combine-verified.json")),Verified.class);
+                if(!verified.plan().equals(p)||!verified.ledgerSha256().equals(sha(out.resolve("doughbay.db"))))throw new IOException("Interrupted combination does not match its verified ledger");
             }
             // Publish only after a complete verified import. Both redirects remain unusable until the final commit marker.
             redirect(a,p);redirect(b,p);guardOldBuilds(a);guardOldBuilds(b);
@@ -115,15 +120,20 @@ final class HiveCombine {
     private static void guardOldBuilds(Path root) throws IOException {
         Path manifest=root.resolve("hive.json");var original=HiveSetup.read(manifest);if(original.version()==2)return;
         Path backup=root.resolve("hive-before-combine.json");if(!Files.exists(backup))Files.copy(manifest,backup);
+        force(backup);
         Path temp=Files.createTempFile(root,"hive-guard-",".tmp");
         try {
             Files.write(temp,JSON.writeValueAsBytes(new HiveSetup.Membership(2,original.id(),original.directory(),original.owner())));
+            force(temp);
             Files.move(temp,manifest,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
         }finally{Files.deleteIfExists(temp);}
     }
     private static void profile(Path source,Path out,String owner) throws Exception {
         Path destination=out.resolve("member-profiles").resolve(owner.toLowerCase(Locale.ROOT));Files.createDirectories(destination);
-        for(String name:List.of("config.json","tuning.json","secret.dat"))copyIfPresent(source.resolve(name),destination.resolve(name));
+        for(String name:List.of("config.json","tuning.json","secret.dat","saved-presets.json","appearance.json",
+                "probe.json","homes.json","shelf.json","discord.json","web-panel.json","tutorial-progress.json",
+                "evasion.txt","market-rests.txt","follow-list.txt","follow-events.tsv","markets-last.txt"))
+            copyIfPresent(source.resolve(name),destination.resolve(name));
         Path config=destination.resolve("config.json");var j=JSON.readTree(Files.readAllBytes(config));
         if(!(j instanceof com.fasterxml.jackson.databind.node.ObjectNode obj))throw new IOException("Invalid source settings");
         obj.put("databasePath",out.resolve("doughbay.db").toString());
@@ -131,6 +141,14 @@ final class HiveCombine {
         for(String file:AccountRecords.FILES) {
             Path own=source.resolve("accounts").resolve(owner).resolve(file);
             copyIfPresent(Files.exists(own)?own:source.resolve(file),destination.resolve(file));
+        }
+        Path followState=source.resolve("accounts").resolve(owner).resolve("follow-state.tsv");
+        if(!Files.exists(followState))followState=source.resolve("follow-state.tsv");
+        if(Files.exists(followState)) {
+            Path own=destination.resolve("accounts").resolve(owner);Files.createDirectories(own);
+            // Creating this folder must not suppress AccountRecords' first-start migration.
+            for(String file:AccountRecords.FILES)copyIfPresent(destination.resolve(file),own.resolve(file));
+            copyIfPresent(followState,own.resolve("follow-state.tsv"));
         }
     }
     private static void copyIfPresent(Path source,Path destination) throws IOException {
@@ -175,7 +193,13 @@ final class HiveCombine {
     private static void writeNew(Path file,Object value) throws IOException {
         // Complete temp file then atomically claim the destination; never replace an existing source or receipt.
         Path temp=Files.createTempFile(file.getParent(),"hive-combine-",".tmp");
-        try{Files.write(temp,JSON.writerWithDefaultPrettyPrinter().writeValueAsBytes(value));Files.move(temp,file);}
+        try{Files.write(temp,JSON.writerWithDefaultPrettyPrinter().writeValueAsBytes(value));force(temp);Files.move(temp,file);}
         finally{Files.deleteIfExists(temp);}
+    }
+    private static void force(Path file) throws IOException {try(var c=FileChannel.open(file,StandardOpenOption.WRITE)){c.force(true);}}
+    private static String sha(Path file) throws Exception {
+        var digest=java.security.MessageDigest.getInstance("SHA-256");
+        try(var in=Files.newInputStream(file)){byte[] buffer=new byte[65536];int count;while((count=in.read(buffer))!=-1)digest.update(buffer,0,count);}
+        return HexFormat.of().formatHex(digest.digest());
     }
 }

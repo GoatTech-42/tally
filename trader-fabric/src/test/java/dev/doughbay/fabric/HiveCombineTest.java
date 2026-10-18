@@ -15,6 +15,10 @@ class HiveCombineTest {
         Files.writeString(dir.resolve("config.json"),"{\"continuousMaxSessionSpend\":"+cap+"}");
         Files.writeString(dir.resolve("tuning.json"),"{\"evasion.radius_blocks\":"+cap+",\"prices.own\":\"stone 1 2\"}");
         Files.writeString(dir.resolve("orders-collected.txt"),owner+"-own-record");
+        Files.writeString(dir.resolve("saved-presets.json"),"{\"fixture\":"+cap+"}");
+        Files.writeString(dir.resolve("evasion.txt"),owner.equals("Alice")?"on":"off");
+        Files.writeString(dir.resolve("market-rests.txt"),owner+"-rest");
+        Files.writeString(dir.resolve("follow-state.tsv"),owner+"-follow");
         try(var db=new Database(dir.resolve("doughbay.db"));var s=db.connection().createStatement()) {
             s.execute("INSERT INTO positions(position_id,mode,item_key,stack_bucket,quantity,purchase_price,target_price,status,client) VALUES(100,'LIVE','stone','X64',64,100,200,'PURCHASED','"+owner+"')");
         }
@@ -26,13 +30,25 @@ class HiveCombineTest {
     }
     @Test void twoExistingHivesSwitchTogetherWithSeparateProfilesAndUntouchedLedgers() throws Exception {
         var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
+        var json=new com.fasterxml.jackson.databind.ObjectMapper();
+        Path originalConfig=Path.of(a.directory()).resolve("config.json");
+        var originalSettings=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(Files.readAllBytes(originalConfig));
+        originalSettings.put("databasePath",Path.of(a.directory()).resolve("doughbay.db").toString());
+        Files.write(originalConfig,json.writeValueAsBytes(originalSettings));
         byte[] first=Files.readAllBytes(Path.of(a.directory()).resolve("doughbay.db")),second=Files.readAllBytes(Path.of(b.directory()).resolve("doughbay.db"));
         HiveCombine.complete(p,root.resolve("no-presence"));
         assertEquals(p.combined(),HiveSetup.configured(root.resolve("Alice")));assertEquals(p.combined(),HiveSetup.configured(root.resolve("Bob")));
         assertArrayEquals(first,Files.readAllBytes(Path.of(a.directory()).resolve("doughbay.db")));assertArrayEquals(second,Files.readAllBytes(Path.of(b.directory()).resolve("doughbay.db")));
         Path alice=HiveCombine.configuration(p.combined(),"Alice"),bob=HiveCombine.configuration(p.combined(),"Bob");
         assertTrue(Files.readString(alice.resolve("config.json")).contains("111"));assertTrue(Files.readString(bob.resolve("config.json")).contains("222"));
+        assertEquals(Path.of(p.combined().directory()).resolve("doughbay.db").toString(),json.readTree(Files.readAllBytes(alice.resolve("config.json"))).path("databasePath").asText());
+        assertEquals(Path.of(a.directory()).resolve("doughbay.db").toString(),json.readTree(Files.readAllBytes(originalConfig)).path("databasePath").asText());
         assertEquals("Alice-own-record",Files.readString(alice.resolve("orders-collected.txt")));assertEquals("Bob-own-record",Files.readString(bob.resolve("orders-collected.txt")));
+        assertTrue(Files.readString(alice.resolve("saved-presets.json")).contains("111"));assertTrue(Files.readString(bob.resolve("saved-presets.json")).contains("222"));
+        assertEquals("on",Files.readString(alice.resolve("evasion.txt")));assertEquals("off",Files.readString(bob.resolve("evasion.txt")));
+        assertEquals("Bob-rest",Files.readString(bob.resolve("market-rests.txt")));
+        assertEquals("Bob-follow",Files.readString(bob.resolve("accounts/Bob/follow-state.tsv")));
+        assertEquals("Bob-own-record",Files.readString(bob.resolve("accounts/Bob/orders-collected.txt")));
         assertEquals(2,HiveSetup.read(Path.of(a.directory()).resolve("hive.json")).version());
         assertEquals(1,HiveSetup.read(Path.of(a.directory()).resolve("hive-before-combine.json")).version());
         HiveCombine.complete(p,root.resolve("no-presence")); // committed retry is idempotent
@@ -84,5 +100,29 @@ class HiveCombineTest {
             try(var c=FileChannel.open(lock,StandardOpenOption.READ,StandardOpenOption.WRITE)){assertNull(c.tryLock());}
             peer.getOutputStream().close();assertTrue(peer.waitFor(10,java.util.concurrent.TimeUnit.SECONDS));assertEquals(0,peer.exitValue());
         }finally{peer.destroyForcibly();}
+    }
+    @Test void interruptedCombinationRejectsChangedStagedLedger() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
+        HiveCombine.complete(p,root.resolve("no-presence"));
+        Path out=Path.of(p.combined().directory());
+        Files.delete(out.resolve("hive-combine-ready.json"));
+        try(var db=new Database(out.resolve("doughbay.db"));var s=db.connection().createStatement()) {
+            s.execute("UPDATE positions SET quantity=1");
+        }
+        assertThrows(Exception.class,()->HiveCombine.complete(p,root.resolve("no-presence")));
+        assertFalse(Files.exists(out.resolve("hive-combine-ready.json")));
+        assertThrows(Exception.class,()->HiveSetup.configured(root.resolve("Alice")));
+        try(var db=new Database(Path.of(a.directory()).resolve("doughbay.db"));var s=db.connection().createStatement();var r=s.executeQuery("SELECT quantity FROM positions")) {
+            assertTrue(r.next());assertEquals(64,r.getInt(1));
+        }
+    }
+    @Test void queuedCombinationCanBeCancelledWithoutChangingEitherHive() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);
+        HiveCombine.queue(root.resolve("Bob"),HiveSetup.code(a));
+        assertEquals(a,HiveSetup.configured(root.resolve("Alice")));assertEquals(b,HiveSetup.configured(root.resolve("Bob")));
+        HiveCombine.cancelPending(root.resolve("Bob"));
+        assertFalse(Files.exists(root.resolve("Bob/gonuts-hive-combine.json")));
+        HiveCombine.completePending(root.resolve("Bob"));
+        assertEquals(a,HiveSetup.configured(root.resolve("Alice")));assertEquals(b,HiveSetup.configured(root.resolve("Bob")));
     }
 }

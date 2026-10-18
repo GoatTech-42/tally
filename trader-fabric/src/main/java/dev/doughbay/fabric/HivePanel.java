@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 /** Copy from the first instance, paste into the second. Applied only after restart. */
 final class HivePanel {
-    private static final String DISCONNECT_HELP = "Disconnect from the server, then open Multiplayer > GoNuts hive. Create the code in the instance whose history you want to keep; paste it in a second instance on this same PC. Restart each instance after linking.";
+    private static final String DISCONNECT_HELP = "Disconnect from the server, then open Multiplayer > GoNuts hive. Select an existing hive or paste its code and review combining. Close BOTH instances completely, then start the requesting instance first. Both histories and separate settings are preserved.";
     private int x,y,w,bottom;
     private String note = "", input = "";
     private HiveSetup.Membership member;
