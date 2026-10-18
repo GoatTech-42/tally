@@ -467,6 +467,7 @@ public class DoughBayClient implements ClientModInitializer {
         dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.start(
                 net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(),config.directory(),config.databasePath(),BugReportBuild.current());
         ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE::tick);
+        HiveDiscovery.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir());
         dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
         dev.doughbay.fabric.staffwatch.ManualRegionTransfer.init();
         ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.staffwatch.ManualRegionTransfer::tick);
@@ -913,6 +914,7 @@ public class DoughBayClient implements ClientModInitializer {
         // front of the screen they just opened, never raised unasked.
         UpdateCheck.Notice notice = UpdateCheck.takeNotice();
         net.minecraft.client.gui.screens.Screen entry=TutorialProgress.takeInitialOffer()?new QuickStartScreen(main):main;
+        if (HiveDiscovery.takeOffer()!=null) entry=new HiveDiscoveryScreen(entry);
         client.gui.setScreen(switch (notice) {
             case NONE -> entry;
             case REAL -> new UpdateScreen(entry, UpdateScreen.Mode.UPDATE);

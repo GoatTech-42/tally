@@ -1,0 +1,33 @@
+package dev.doughbay.fabric;
+
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+
+/** Offered only during deliberate panel navigation; never takes over an active trading screen. */
+final class HiveDiscoveryScreen extends Screen {
+    private final Screen parent;
+    private int scroll,maxScroll;
+    HiveDiscoveryScreen(Screen parent) { super(Component.literal("Another GoNuts account detected")); this.parent=parent; }
+    @Override protected void init() {
+        DoughBayClient.automationSessionController().setPanelOpen(true);
+        int w=Math.min(480,width-24),x=(width-w)/2,y=height-86;
+        addRenderableWidget(CockpitButton.builder(Component.literal("Review setup"),b->DoughBayClient.openHiveSetup()).bounds(x,y,w,22).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("Not now"),b->onClose()).bounds(x,y+28,(w-6)/2,22).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("Don't ask again"),b->{HiveDiscovery.dismissAll();onClose();}).bounds(x+(w+6)/2,y+28,(w-6)/2,22).build());
+    }
+    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt) {
+        g.fill(0,0,width,height,0xF0050910); int w=Math.min(480,width-24),x=(width-w)/2,y=24;
+        for(var line:font.split(getTitle(),w)){g.text(font,line,x,y,UiTheme.GOLD);y+=14;}
+        y+=14;int top=y;
+        String text="Another running GoNuts account was detected on this computer. Would you like to review linking them into a hive?\n\nNothing has been linked or changed. Setup happens offline and takes effect after restart. Existing histories are not merged by the current setup wizard: a member with history is kept separate. Review the requirements before choosing a source instance.\n\nThis notice appears once per newly detected account when you open GoNuts, never over a trade. Hive is local sharing; the community Swarm is separate.";
+        g.enableScissor(x,top,x+w,Math.max(top,height-94));
+        for(var line:font.split(Component.literal(text),w)){g.text(font,line,x,y-scroll,UiTheme.TEXT);y+=13;}
+        maxScroll=Math.max(0,y-(height-94));
+        g.disableScissor();super.extractRenderState(g,mx,my,dt);
+    }
+    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*26)));return true;}
+    @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
+    @Override public boolean isPauseScreen(){return false;}
+}

@@ -18,8 +18,11 @@ public final class HiveGuiSmoke implements ClientModInitializer {
   if(mc.level!=null)throw new IllegalStateException("Hive preview must remain offline");
   if(phase==0&&ticks>100){
    mc.options.pauseOnLostFocus=false;mc.options.guiScale().set(2);mc.resizeGui();
-   var screen=new DoughBayScreen(DoughBayClient.watcher());screen.selectHive();mc.gui.setScreen(screen);phase=1;ticks=0;
+   var screen=new DoughBayScreen(DoughBayClient.watcher());screen.selectHive();mc.gui.setScreen(Boolean.getBoolean("gonuts.hive.preview.discovery")?new HiveDiscoveryScreen(screen):screen);phase=1;ticks=0;
   }else if(phase==1&&ticks>30){
+   if(Boolean.getBoolean("gonuts.hive.preview.discovery")){
+    capture(mc,"hive-discovery.png");press(mc,"Review setup");phase=4;ticks=0;return;
+   }
    capture(mc,"hive-before.png");
    if(HiveSetup.active()){
     var config=DoughBayClient.activeConfig();
@@ -37,6 +40,10 @@ public final class HiveGuiSmoke implements ClientModInitializer {
     Files.writeString(Path.of("invite.txt"),mc.keyboardHandler.getClipboard());
    }
    phase=2;ticks=0;
+  }else if(phase==4&&ticks>30){
+   if(!(mc.gui.screen() instanceof DoughBayScreen))throw new IllegalStateException("Review did not open GoNuts");
+   capture(mc,"hive-discovery-review.png");
+   Files.writeString(Path.of("hive-discovery-success.txt"),"Discovery notice rendered offline; Review navigated to Hive setup without creating or joining a hive.");phase=3;mc.stop();
   }else if(phase==2&&ticks>30){
    capture(mc,joining?"hive-joined.png":"hive-created.png");
    var member=HiveSetup.configured(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir());

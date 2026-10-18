@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 19:11 UTC
+
+- Release PR #131: GoNuts now offers Hive setup when it detects a different running GoNuts account in another instance on the same computer. Both instances need this update for local detection.
+- The notice appears during deliberate panel opening, never over an active trade. Choose Review setup, Not now, or Don't ask again; dismissed accounts stay dismissed across restarts.
+- Discovery stays on this computer and excludes stale records, duplicate windows for the same account, and accounts already sharing the same hive. It does not send account names or instance paths to a server.
+- Review opens the existing offline setup screen. No automatic linking, disconnects, restarts, database merges or settings imports are included in this update; existing-history merging remains separate work.
+
 ## 2026-10-18 19:00 UTC
 
 - Release PR #130: Explain Hive setup requirements for report #129. Create/Join now respond with the offline setup instructions instead of appearing unresponsive while connected.
