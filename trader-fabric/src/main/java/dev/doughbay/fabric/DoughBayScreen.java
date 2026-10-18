@@ -53,6 +53,7 @@ public final class DoughBayScreen extends Screen {
     private enum Tab {
         OVERVIEW("Dashboard"),
         SWARM("Swarm"),
+        AUCTION("Auction"),
         OPPORTUNITIES("Opportunities"),
         MARKETS("Markets"),
         SEARCH("Search"),
@@ -62,7 +63,7 @@ public final class DoughBayScreen extends Screen {
         ANALYZER("Analyzer"),
         RIVALS("Rivals"),
         ORDERS("Orders"),
-        AUTOMATION("Autopilot"),
+        AUTOMATION("Trade"),
         EVASION("Evasion"),
         ACTIVITY("Activity"),
         STAFF_WATCH("Staff Watch"),
@@ -74,6 +75,7 @@ public final class DoughBayScreen extends Screen {
         PAYROLL("Payroll"),
         SETTINGS("Settings"),
         APPEARANCE("Appearance"),
+        TUTORIALS("Tutorials"),
         ABOUT("About");
 
         final String label;
@@ -544,6 +546,10 @@ public final class DoughBayScreen extends Screen {
     }
     /** Settings tab: the row being edited, its draft text, scroll, and row hit boxes {top, bottom, index}. */
     private String selectedSetting;
+    private SettingsSection settingsSection = SettingsSection.AUCTION;
+    private net.minecraft.client.gui.screens.Screen tutorialReturn;
+    private boolean ordersSettingsMode=true;
+    private String settingsPreset = "Careful";
     private String settingDraft = "";
     private EditBox settingField;
     private EditBox settingsSearchField;
@@ -646,18 +652,27 @@ public final class DoughBayScreen extends Screen {
         UiLayout ui = layout();
 
         int columns = ui.navColumns();
+        if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof QuickStartScreen?"Return to setup":"Return to tutorial"),b->{
+            var guide=tutorialReturn;tutorialReturn=null;Minecraft.getInstance().gui.setScreen(guide);
+        }).bounds(ui.innerRight()-158,ui.contentTop()-(tab==Tab.ORDERS?52:26),158,20).build());
         int gap = 4;
         int buttonWidth = ui.sidebar() > 0 ? ui.sidebar() - 20
                 : (ui.innerWidth() - gap * (columns - 1)) / columns;
         int i = 0;
         for (Tab value : Tab.values()) {
             // Six Trade entries, six Operations entries, then six Workspace entries.
-            int groupSpace = i >= 13 ? 32 : i >= 7 ? 16 : 0;
+            int groupSpace = i >= 14 ? 32 : i >= 8 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
                     : ui.tabY() + (i / columns) * 22;
             Button button = CockpitButton.builder(Component.literal(value.label), ignored -> {
+                if(value==Tab.AUTOMATION&&showLiveTradingSetup()){
+                    Minecraft.getInstance().gui.setScreen(new QuickStartScreen(this));return;
+                }
+                if(value==Tab.TUTORIALS){
+                    Minecraft.getInstance().gui.setScreen(tutorialReturn!=null?tutorialReturn:new TutorialScreen(this,false));return;
+                }
                 if(value==Tab.SWARM&&ui.bottom()-ui.contentTop()<128){
                     Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
                 }
@@ -689,6 +704,17 @@ public final class DoughBayScreen extends Screen {
             ((CockpitButton) button).navigation(value == tab);
             addRenderableWidget(button);
             i++;
+        }
+
+        if(tab==Tab.ORDERS){
+            int w=Math.min(140,(ui.innerWidth()-6)/2),y=ui.contentTop()-24;
+            for(boolean settings:new boolean[]{true,false}){
+                var button=CockpitButton.builder(Component.literal(settings?"Order settings":"Order book"),b->{
+                    ordersSettingsMode=settings;selectedSetting=null;settingsSearch="";settingsScroll=0;rebuildWidgets();
+                }).bounds(ui.innerLeft()+(settings?0:w+6),y,w,20).build();
+                if(button instanceof CockpitButton c)c.navigation(ordersSettingsMode==settings);
+                addRenderableWidget(button);
+            }
         }
 
         initGlobalSessionButton(ui);
@@ -852,7 +878,7 @@ public final class DoughBayScreen extends Screen {
             initItemsWidgets(ui);
         } else if (tab == Tab.FLIPS) {
             initFlipsWidgets(ui);
-        } else if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
+        } else if (settingsPage()) {
             initSettingsWidgets(ui);
         } else if (tab == Tab.PAYROLL) {
             initPayrollWidgets(ui);
@@ -883,8 +909,9 @@ public final class DoughBayScreen extends Screen {
         boolean active = true;
         switch (session.state()) {
             case STOPPED -> {
-                label = "▶ Start";
-                action = () -> handleSessionStart(AutomationSessionController.RunMode.CONTINUOUS);
+                label = showLiveTradingSetup()?"Set up trading":"▶ Start";
+                action = showLiveTradingSetup()?()->Minecraft.getInstance().gui.setScreen(new QuickStartScreen(this))
+                        :()->handleSessionStart(AutomationSessionController.RunMode.CONTINUOUS);
             }
             case PAUSED -> {
                 label = "▶ Resume";
@@ -1008,13 +1035,20 @@ public final class DoughBayScreen extends Screen {
             case ANALYZER -> analyzerPanel.render(graphics, font, mouseX, mouseY, pendingTooltip);
             case RIVALS -> renderRivals(graphics, ui, mouseX, mouseY);
             case SETTINGS -> renderSettings(graphics, ui, mouseX, mouseY);
+            case AUCTION -> renderSettings(graphics, ui, mouseX, mouseY);
             case EVASION -> renderSettings(graphics, ui, mouseX, mouseY);
             case PAYROLL -> renderPayroll(graphics, ui, mouseX, mouseY);
-            case ORDERS -> renderOrders(graphics, current, ui, mouseX, mouseY);
+            case ORDERS -> {if(ordersSettingsMode)renderSettings(graphics,ui,mouseX,mouseY);else renderOrders(graphics,current,ui,mouseX,mouseY);}
             case AUTOMATION -> renderAutomation(graphics, current, ui);
             case DIAGNOSTICS -> renderDiagnostics(graphics, current, ui);
             case LOGS -> renderLogs(graphics, ui);
             case ABOUT -> renderAbout(graphics, current, ui);
+            case TUTORIALS -> { }
+        }
+
+        if(tutorialReturn!=null){
+            int y=ui.contentTop()-(tab==Tab.ORDERS?53:27);
+            graphics.text(font,truncate(tutorialReturn instanceof QuickStartScreen?"Setup · review, then return":"Tutorial page · review the controls, then continue",Math.max(0,ui.innerWidth()-164)),ui.innerLeft(),y+7,GOLD);
         }
 
         // Widgets are extracted after the cards they sit on. Gui render states
@@ -1058,8 +1092,8 @@ public final class DoughBayScreen extends Screen {
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
         graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
-        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 215, MUTED);
-        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 357, MUTED);
+        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 236, MUTED);
+        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 378, MUTED);
         graphics.text(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
@@ -1140,6 +1174,55 @@ public final class DoughBayScreen extends Screen {
         scroll = 0;
         pageScrollPixels = 0;
         rebuildWidgets();
+    }
+
+    void openTutorialTarget(String target,TutorialScreen guide){
+        openGuidedTarget(target,guide);
+    }
+    void openSetupTarget(String target,QuickStartScreen setup){openGuidedTarget(target,setup);}
+    private void openGuidedTarget(String target,net.minecraft.client.gui.screens.Screen guide){
+        if(target.equals("bugs")){Minecraft.getInstance().gui.setScreen(new BugReportScreen(guide));return;}
+        tutorialReturn=guide;selectedSetting=null;settingsSearch="";settingsScroll=0;
+        Tab destination=switch(target){
+            case "evasion" -> Tab.EVASION;
+            case "staff" -> Tab.STAFF_WATCH;
+            case "items" -> Tab.ITEMS;
+            case "flips" -> Tab.FLIPS;
+            case "swarm" -> Tab.SWARM;
+            case "auction" -> Tab.AUCTION;
+            case "orders" -> Tab.ORDERS;
+            case "updates" -> Tab.SETTINGS;
+            default -> Tab.AUTOMATION;
+        };
+        if(target.equals("auction"))settingsSection=SettingsSection.AUCTION;
+        if(target.equals("orders")){settingsSection=SettingsSection.ORDERS;ordersSettingsMode=true;}
+        if(target.equals("updates")){settingsSection=SettingsSection.GENERAL;settingsSearch="update.";}
+        tab=destination;
+        Minecraft.getInstance().gui.setScreen(this);
+    }
+    void endTutorialNavigation(){tutorialReturn=null;}
+
+    ExecutionResult startQuickTrading(long perTrade,long perSession){
+        return QuickStartFlow.start(perTrade,perSession,this::quickStartHold,(trade,session)->{
+            String failure=DoughBayClient.setDonutAutomation(true,trade,session,currentServerIdentity(Minecraft.getInstance()));
+            if(failure.isBlank())try{Tuning.setLocalBatch(java.util.Map.of("buy.scale_with_bank",0.0));}
+            catch(java.io.IOException e){return "Limits saved, but this bot's fixed-budget preference could not be saved. Trading has not started.";}
+            return failure;
+        },()->{
+            String blocked=sessionStartBlocker(snapshot());
+            return blocked!=null?ExecutionResult.refused(blocked):AUTOMATION_SESSION.start(DoughBayClient.continuousPolicy(),AutomationSessionController.RunMode.CONTINUOUS);
+        });
+    }
+    String quickStartHold(){
+            var session=AUTOMATION_SESSION.snapshot();
+            if(session.state()!=AutomationSessionController.State.STOPPED||session.recoveredSession()
+                    ||session.unresolvedExposure()||AUTOMATION_SESSION.recoverableInHand())
+                return "An existing or recovered session needs review in Trade; its positions and caps are kept.";
+            if(!session.persistenceStatus().startsWith("READY"))return "Recovery storage is not ready; wait or inspect Trade.";
+            if(DRIVER.operationIntent()!=AutomatedExecutionDriver.OperationIntent.NONE||DRIVER.inspect().armed())return "The driver is active; review Trade first.";
+            if(DoughBayClient.collector())return "This bot is configured to scan only; it cannot start trading.";
+            String server=currentServerIdentity(Minecraft.getInstance());
+            return server==null||!server.contains("donutsmp")?"Join the supported DonutSMP server before starting.":null;
     }
 
     private void renderOverview(GuiGraphicsExtractor g, MarketWatcher.Snapshot snapshot,
@@ -2984,15 +3067,34 @@ public final class DoughBayScreen extends Screen {
         return v == Math.rint(v) ? String.valueOf((long) v) : String.format(Locale.ROOT, "%.2f", v);
     }
 
+    private boolean settingsPage(){
+        return tab==Tab.SETTINGS||tab==Tab.AUCTION||tab==Tab.EVASION||tab==Tab.ORDERS&&ordersSettingsMode;
+    }
+
     private void initSettingsWidgets(UiLayout ui) {
         settingField = null;
+        if(tab==Tab.AUCTION)settingsSection=SettingsSection.AUCTION;
+        if(tab==Tab.ORDERS)settingsSection=SettingsSection.ORDERS;
+        int controlsTop = ui.contentTop();
+        if(tab==Tab.SETTINGS){
+            int gap=4,w=(ui.innerWidth()-gap*3)/4,i=0;
+            for(var section:SettingsSection.values()){
+                Button button=CockpitButton.builder(Component.literal(section.label),b->{
+                    settingsSection=section;selectedSetting=null;settingsSearch="";settingsScroll=0;
+                    settingRowBounds.clear();settingRowKeys.clear();rebuildWidgets();
+                }).bounds(ui.innerLeft()+i++*(w+gap),controlsTop+2,w,20).build();
+                if(button instanceof CockpitButton cockpit)cockpit.navigation(settingsSection==section);
+                addRenderableWidget(button);
+            }
+            controlsTop+=26;
+        }
         // A search box on the title line: with this many settings, typing a few
         // letters is faster than reading down the cards.
-        int searchW = Math.min(200, Math.max(120, ui.innerWidth() / 3));
-        settingsSearchField = new EditBox(this.font, ui.innerLeft(), ui.contentTop() + 2, searchW, 16,
+        int searchW = tab!=Tab.EVASION?Math.min(200,Math.max(70,ui.innerWidth()-186)):Math.min(200, Math.max(120, ui.innerWidth() / 3));
+        settingsSearchField = new EditBox(this.font, ui.innerLeft(), controlsTop + 2, searchW, 16,
                 Component.literal("Search settings"));
         settingsSearchField.setMaxLength(48);
-        settingsSearchField.setHint(Component.literal("Search settings..."));
+        settingsSearchField.setHint(Component.literal(tab!=Tab.EVASION?"Search "+settingsSection.label+"...":"Search settings..."));
         settingsSearchField.setValue(settingsSearch);
         settingsSearchField.setResponder(value -> {
             settingsSearch = value;
@@ -3000,12 +3102,21 @@ public final class DoughBayScreen extends Screen {
         });
         addRenderableWidget(settingsSearchField);
         if (settingsSearchFocused) setFocused(settingsSearchField);
-        // Presets on the title line, right-aligned: Default plus the named bundles.
+        // Presets change global settings, whichever entry point opened this editor.
         int px = ui.innerRight();
         int py = ui.contentTop() + 3;
-        java.util.List<String> names = new ArrayList<>(Tuning.PRESETS.keySet());
-        java.util.Collections.reverse(names);
-        names.add("Default");
+        if(tab!=Tab.EVASION){
+            int presetY=controlsTop+2+(ui.innerWidth()<270?24:0);
+            int presetX=ui.innerWidth()<270?ui.innerLeft():ui.innerRight()-176;
+            addRenderableWidget(CockpitButton.builder(Component.literal("Preset: "+settingsPreset),b->{
+                var choices=new ArrayList<>(Tuning.PRESETS.keySet());choices.add("Default");
+                settingsPreset=choices.get((choices.indexOf(settingsPreset)+1)%choices.size());rebuildWidgets();
+            }).bounds(presetX,presetY,120,18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("Apply"),b->{
+                int n=Tuning.applyPreset(settingsPreset);settingsMessage=settingsPreset+" preset: "+n+" setting(s) changed";
+                selectedSetting=null;rebuildWidgets();
+            }).bounds(presetX+124,presetY,52,18).build());
+        }
         if (tab == Tab.EVASION) {
             EvasionGuard guard = DoughBayClient.evasionGuard();
             addRenderableWidget(CockpitButton.builder(Component.literal(guard != null && guard.enabled() ? "Guard: ON" : "Guard: OFF"), b -> {
@@ -3016,16 +3127,6 @@ public final class DoughBayScreen extends Screen {
             addRenderableWidget(CockpitButton.builder(Component.literal(Tuning.get("evasion.use_homes") >= .5 ? "Teleport: /home" : "Teleport: /rtp"), b -> {
                 Tuning.set("evasion.use_homes", Tuning.get("evasion.use_homes") >= .5 ? 0 : 1); rebuildWidgets();
             }).bounds(px - 128, py, 128, 18).build());
-        }
-        for (String name : tab == Tab.EVASION ? List.<String>of() : names) {
-            int w = this.font.width(name) + 16;
-            px -= w + 4;
-            addRenderableWidget(CockpitButton.builder(Component.literal(name), ignored -> {
-                int n = Tuning.applyPreset(name);
-                settingsMessage = name + " preset: " + n + " setting(s) changed";
-                selectedSetting = null;
-                rebuildWidgets();
-            }).bounds(px, py, w, 18).build());
         }
         if (selectedSetting == null) {
             if (tab == Tab.EVASION) return;
@@ -3131,6 +3232,10 @@ public final class DoughBayScreen extends Screen {
     /** Whether the settings search hides a row; matches on key, label or description. */
     private boolean settingHidden(String key, String label, String desc) {
         if (tab == Tab.EVASION && (key.equals("evasion.enabled") || key.equals("evasion.use_homes"))) return true;
+        if(tab!=Tab.EVASION){
+            String group=isListSetting(key)||key.startsWith("key.")?"Items":Tuning.setting(key).group();
+            if(!settingsSection.includes(key,group))return true;
+        }
         if (settingsSearch.isBlank()) return false;
         String q = settingsSearch.strip().toLowerCase(Locale.ROOT);
         return !(key.toLowerCase(Locale.ROOT).contains(q)
@@ -3151,10 +3256,15 @@ public final class DoughBayScreen extends Screen {
         String hint = selectedSetting == null
                 ? "click a row to edit  ·  presets on the right"
                 : "type a value, then Apply";
-        graphics.text(this.font, truncate((tab == Tab.EVASION ? "Evasion" : "Settings  ·  " + hint), Math.max(0, width - searchW - 12 - (tab == Tab.EVASION ? 244 : 0))),
+        if(tab==Tab.EVASION) graphics.text(this.font, truncate("Evasion", Math.max(0, width - searchW - 12 - 244)),
                 x + searchW + 8, top, GOLD);
 
         int listTopY = top + 16;
+        if(tab!=Tab.EVASION){
+            int descriptionY=ui.contentTop()+(tab==Tab.SETTINGS?50:24)+(width<270?24:0);
+            graphics.text(this.font,truncate(settingsSection.description,width),x,descriptionY,MUTED);
+            listTopY=descriptionY+15;
+        }
         int listBottomY;
         if (selectedSetting == null) {
             // Leave the bottom strip for the Copy / Import settings-code row.
@@ -6477,7 +6587,7 @@ public final class DoughBayScreen extends Screen {
             return true;
         }
 
-        if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
+        if (settingsPage()) {
             for (int i = 0; i < settingRowBounds.size(); i++) {
                 int[] b = settingRowBounds.get(i);
                 if (event.y() >= b[0] && event.y() < b[1] && event.x() >= b[3] && event.x() < b[4]) {
@@ -6684,7 +6794,7 @@ public final class DoughBayScreen extends Screen {
             pageScrollPixels = clamp(next, 0, maxPageScrollPixels);
             return true;
         }
-        if (tab == Tab.SETTINGS || tab == Tab.EVASION) {
+        if (settingsPage()) {
             settingsScroll = clamp(settingsScroll - (int) Math.signum(deltaY) * 24, 0, Math.max(0, settingsMaxScroll));
             return true;
         }
@@ -6791,6 +6901,8 @@ public final class DoughBayScreen extends Screen {
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;
+        if(tutorialReturn!=null)headerHeight+=28;
+        if(tab==Tab.ORDERS)headerHeight+=26;
         return new UiLayout(left, top, left + panelWidth, top + panelHeight, inset,
                 headerHeight, top + 52, 20, sidebar, columns);
     }

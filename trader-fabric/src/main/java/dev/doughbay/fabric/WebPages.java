@@ -257,6 +257,7 @@ public final class WebPages {
                 double v = Tuning.get(s.key());
                 ObjectNode row = rows.addObject();
                 row.put("key", s.key());
+                row.put("section", SettingsSection.of(s.key(),s.group()).name());
                 row.put("label", s.label());
                 row.put("description", s.description());
                 row.put("value", v);
@@ -278,6 +279,7 @@ public final class WebPages {
             ObjectNode row = lists.addObject();
             String value = Tuning.text(l.key());
             row.put("key", l.key());
+            row.put("section", SettingsSection.of(l.key(),"Items").name());
             row.put("label", l.label());
             row.put("description", l.description());
             row.put("local", Tuning.thisClientOnly(l.key()));

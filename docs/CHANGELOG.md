@@ -4,6 +4,15 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 15:45 UTC
+
+- Added a two-step in-game setup: Choose limits, then Review & Start. It preserves existing installs' normal entry screen, offers optional Swarm/protection pages, and starts only after an explicit final action through existing recovery and trade gates.
+- Added main Auction and Orders tabs, retaining the same settings in Settings and the order book inside Orders. Settings now has Auction, Orders, General and All categories in game and in the local web panel.
+- Added optional tutorials for Swarm, Evasion/Staff Watch, items, Flips, orders, updates and bug reports. Staff Watch explains that a same-server spectator detection does not prove staff are watching you.
+- Added bounded shared completed-sale history bootstrap for thin keyless databases with contribution and guidance enabled. Imports retain original quantities, times and prices, require sufficient samples and recent evidence, and never create owned trades, profit or live orders. Unsupported, stale or unavailable coverage falls back to local collection. Native live reads and trade gates remain enforced.
+- Fixed local web Swarm joining when a valid dashboard IPC status exceeded the old 4 KiB reader limit. Status reads now accept the existing 32 KiB protocol bound and publish a compact safe summary; action requests retain their 4 KiB limit and freshness checks.
+- Website companion changes: ranking updates retain stats, unconnected owners see an explanation, and both bot cards and Swarm rank/statistics use two columns on desktop and one column on narrow screens.
+
 ## 2026-10-18 14:45 UTC
 
 - Fixed an escape teleport remaining unsent behind an idle Auction House or Orders page. Evasion can now close a recognized trading page with an empty cursor, then dispatch through the existing command pacing and safety gates. Active operations, confirmations, unknown containers and server holds remain protected.

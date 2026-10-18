@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Shadow-only market integration. No method can skip a scan, change a price or submit a game action. */
+/** Shared discovery and completed-sale history; native live reads and execution gates remain authoritative. */
 public final class CommunityClient {
     public static final CommunityClient INSTANCE=new CommunityClient();
     private final ScheduledExecutorService worker=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"gonuts-community");t.setDaemon(true);return t;});
@@ -20,6 +20,38 @@ public final class CommunityClient {
     private final java.util.concurrent.ConcurrentHashMap<String,Cached> cache=new java.util.concurrent.ConcurrentHashMap<>();
     private record Cached(JsonNode answer,long received,long expires,String region){}
     private volatile Set<String> discoveryMarkets=Set.of();
+    private volatile Set<String> warmupMarkets=Set.of();
+    private Set<String> warmupRequested=Set.of();
+    private String warmupCursor="",warmupAccount="";
+    private long warmupAsOf,warmupWindowStart,warmupEpoch,nextWarmup;
+    private int warmupPages;
+    private final Map<String,dev.doughbay.core.model.Sale> warmupRows=new LinkedHashMap<>();
+    private record HistoryBatch(List<dev.doughbay.core.model.Sale> rows,String account,long epoch){}
+    private volatile HistoryBatch warmupBatch;
+    private volatile String warmupStatus="Local collection; shared history not requested";
+    private volatile int warmupImported;
+    public void refreshWarmupMarkets(Set<String> markets){
+        warmupMarkets=Set.copyOf(markets.stream().filter(k->k.matches("[a-z0-9_.-]+:[a-z0-9_./-]+\\|[1-9][0-9]?"))
+                .sorted().limit(50).toList());
+    }
+    /** Runs on the existing market worker with its database connection, never the game or network thread. */
+    public int seedWarmup(dev.doughbay.storage.Database db,long now)throws java.sql.SQLException{
+        var batch=warmupBatch;if(batch==null)return 0;
+        java.util.function.BooleanSupplier allowed=()->enabled&&eligible&&connected&&guidanceConsent
+                &&marketScope().equals("net-donut")&&batch.epoch()==generation.get()&&batch.account().equals(account);
+        if(!allowed.getAsBoolean()){warmupBatch=null;return 0;}
+        int minimum=(int)Math.max(dev.doughbay.fabric.Tuning.get("warmup.samples"),dev.doughbay.fabric.Tuning.get("orders.bid_min_samples"));
+        int imported;
+        try{imported=CommunityHistoryBootstrap.seed(db,batch.rows(),now,minimum,allowed);}
+        catch(java.sql.SQLException|RuntimeException e){
+            warmupBatch=null;warmupMarkets=Set.of();
+            warmupStatus="Shared history could not be saved; collecting locally";return 0;
+        }
+        warmupImported+=imported;warmupBatch=null;warmupMarkets=Set.of();
+        warmupStatus=imported>0?"Imported "+imported+" shared completed-sale observations; live checks still required"
+                :"Shared history had no sufficiently fresh, covered market; collecting locally";
+        return imported;
+    }
     private long nextDiscoveryRefresh;
     private volatile long discoveryRefreshes,discoveryResponses,discoveryConsultations,discoveryPlansWithHints,discoveryBidPlans,discoveryChecks;
     private volatile ObjectNode lastDiscoveryUse=DashboardProtocol.JSON.createObjectNode();
@@ -156,6 +188,7 @@ public final class CommunityClient {
             .put("lastUpload",lastUpload).put("lastQuery",lastQuery).put("accepted",accepted).put("rejected",rejected).put("dropped",dropped)
             .put("lastUploadScope",lastUploadScope).put("lastQueryScope",lastQueryScope).put("region",marketScope()).put("marketScope",marketScope()).put("observerShard",CommunityRegion.current()).put("comparisons",compared).put("usable",usable).put("wouldReplace",wouldReplace).put("agreements",agreements);
         value.put("requestStage",requestStage).put("lastHttpStatus",lastHttpStatus).put("needsRenewal",credentialRejected);
+        value.putObject("warmup").put("status",warmupStatus).put("importedObservations",warmupImported).put("historicalOnly",true);
         value.set("productionDiscovery",productionDiscovery.deepCopy());
         var feed=value.putObject("discoveryFeed").put("requestedMarkets",discoveryMarkets.size()).put("refreshRequests",discoveryRefreshes)
                 .put("responsesAccepted",discoveryResponses).put("plannerConsultations",discoveryConsultations)
@@ -362,6 +395,49 @@ public final class CommunityClient {
         }
         if(now>=nextQuery&&queryBackoff.allowed(now)){nextQuery=now+2_000;query(now);}
         if(now>=nextUpload){nextUpload=now+10_000;upload(now);}
+        if(eligible&&guidanceConsent&&!warmupMarkets.isEmpty()&&warmupBatch==null&&now>=nextWarmup&&queryBackoff.allowed(now)){
+            nextWarmup=now+2_000;queryWarmup(now);
+        }
+    }
+    private void queryWarmup(long now)throws Exception{
+        var wanted=warmupMarkets;long own=generation.get();String owner=account;
+        if(!wanted.equals(warmupRequested)||warmupEpoch!=own||!warmupAccount.equals(owner)){
+            warmupRequested=wanted;warmupEpoch=own;warmupAccount=owner;warmupAsOf=0;warmupCursor="";warmupPages=0;warmupRows.clear();
+        }
+        warmupStatus="Loading shared completed-sale history; local collection continues";
+        String path=historyPath(wanted,warmupCursor);
+        try{
+            var response=request("GET",path,null,true);
+            if(own!=generation.get()||!owner.equals(account)||!enabled||!eligible||!wanted.equals(warmupMarkets))return;
+            if(response.statusCode()!=200){
+                if(response.statusCode()==401||response.statusCode()==403)refuseCredential(response.statusCode());
+                throw new IllegalArgumentException("Shared history unavailable");
+            }
+            var page=CommunityHistoryBootstrap.decode(json(response),wanted,System.currentTimeMillis(),warmupAsOf);
+            if(warmupAsOf>0&&warmupWindowStart!=page.windowStart())throw new IllegalArgumentException("History window changed");
+            warmupWindowStart=page.windowStart();
+            warmupAsOf=page.asOf();warmupPages++;
+            for(var row:page.sales()){
+                var old=warmupRows.putIfAbsent(row.transactionHash(),row);
+                if(old!=null&&!old.equals(row))throw new IllegalArgumentException("Conflicting history id");
+            }
+            if(warmupRows.size()>50_000||warmupPages>64||!page.next().isEmpty()&&page.next().equals(warmupCursor))throw new IllegalArgumentException("Unbounded history snapshot");
+            warmupCursor=page.next();
+            if(warmupCursor.isEmpty()){
+                warmupBatch=new HistoryBatch(List.copyOf(warmupRows.values()),owner,own);warmupRows.clear();
+                warmupStatus="Shared history received; validating on the market worker";
+                var watcher=dev.doughbay.fabric.DoughBayClient.watcher();if(watcher!=null)watcher.sharedHistoryReady();
+            }
+        }catch(Exception e){
+            warmupRequested=Set.of();warmupRows.clear();warmupCursor="";warmupAsOf=0;nextWarmup=now+60_000;
+            warmupStatus="Shared history unavailable; collecting locally";
+            // Optional bootstrap failure never stops contributions, discovery or local trading.
+        }
+    }
+    static String historyPath(Set<String> wanted,String cursor){
+        // Omit since on every page: the service binds the frozen default window to the cursor.
+        String path="sales/history?region=net-donut&limit=1000&items="+URLEncoder.encode(String.join(",",new TreeSet<>(wanted)),StandardCharsets.UTF_8);
+        return cursor.isEmpty()?path:path+"&after="+URLEncoder.encode(cursor,StandardCharsets.UTF_8);
     }
     private void enroll()throws Exception{
         requestStage="enrollment";lastHttpStatus=0;

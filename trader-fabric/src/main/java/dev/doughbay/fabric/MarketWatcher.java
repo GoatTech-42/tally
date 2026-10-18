@@ -32,6 +32,8 @@ import java.util.regex.Pattern;
 public final class MarketWatcher {
 
     private static final long POLL_INTERVAL_MILLIS = 30_000;
+    private boolean sharedHistoryPending;
+    public void sharedHistoryReady(){synchronized(workMonitor){sharedHistoryPending=true;workMonitor.notifyAll();}}
     private static final int BOOTSTRAP_PAGES = 10;
     /**
      * Transaction pages fetched per poll once history is healthy. Two pages is
@@ -663,6 +665,14 @@ public final class MarketWatcher {
                 setStatus(flipsOnly?"KEYLESS: Flips only; general market scans disabled":"Starting keyless mode: learning auction-to-order prices from history...");
                 KeylessFeed feed = new KeylessFeed(config.databasePath());
                 feed.prepare(db);
+                boolean needsSharedSeed=dev.doughbay.fabric.hosted.CommunityHistoryBootstrap.needsSeed(db);
+                var bootstrapMarkets=new java.util.TreeSet<String>();
+                if(needsSharedSeed)for(String item:scannedItemIds){
+                    if(!CommodityRegistry.DEFAULT_COMMODITIES.contains(item)||!Tuning.itemAllowed(item))continue;
+                    var type=net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(item));
+                    if(type!=null)bootstrapMarkets.add(item+"|"+Math.max(1,type.getDefaultMaxStackSize()));
+                }
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshWarmupMarkets(bootstrapMarkets);
                 DoughBayClient.LOGGER.info("DoughBay keyless: running without the Donut API ({} price ratios)",
                         feed.ratioCount());
                 long until = retryApi ? System.currentTimeMillis() + KEYLESS_API_RETRY_MILLIS : Long.MAX_VALUE;
@@ -683,6 +693,7 @@ public final class MarketWatcher {
                         hive.refresh(KEYLESS_ROLL_CALL_BUDGET, signedInPlayerName(), DoughBayClient.clientMode());
                     }
                     feed.ingest(db, now);
+                    dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.seedWarmup(db,now);
                     List<MarketStats> markets = service.marketStatsFromHistory(now, MARKET_DISPLAY_MINIMUM_SALES);
                     long balance = SidebarBalance.current();
                     long signalCap = balance > 0
@@ -706,6 +717,7 @@ public final class MarketWatcher {
                     awaitWork(now + KEYLESS_POLL_MILLIS);
                 }
             } finally {
+                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshWarmupMarkets(Set.of());
                 KeylessFeed.setActive(false);
             }
         }
@@ -1064,8 +1076,10 @@ public final class MarketWatcher {
     private void awaitWork(long nextFullSweepAt) throws InterruptedException {
         synchronized (workMonitor) {
             if (!running || pendingCoverageRequest != null) return;
+            if(sharedHistoryPending){sharedHistoryPending=false;return;}
             long remaining = nextFullSweepAt - System.currentTimeMillis();
             if (remaining > 0) workMonitor.wait(remaining);
+            sharedHistoryPending=false;
         }
     }
 

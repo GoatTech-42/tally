@@ -310,6 +310,7 @@ public final class DoughBayConfig {
             }
 
             Path configFile = dir.resolve("config.json");
+            TutorialProgress.initialize(dir,Files.exists(configFile)||Files.exists(dir.resolve("doughbay.db"))||Files.exists(dir.resolve("tuning.json")));
             // A fresh install writes the DonutSMP-ready defaults and then reads
             // them like any other config. Writing without reading used to leave
             // the very first launch on the hardcoded fallbacks, so a new player

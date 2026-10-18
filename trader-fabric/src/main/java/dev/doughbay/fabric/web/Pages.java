@@ -366,6 +366,8 @@ final class Pages {
             // ---- the pages down the side: the pictures the mod draws, and the panel's own
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
+              auction: { label: 'Auction', open: async()=>{S.section='AUCTION';await openSettings();} },
+              orders: { label: 'Orders', open: async()=>{S.section='ORDERS';await openSettings();} },
               dashboard: { label: 'Dashboard', open: openDashboard },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
@@ -420,8 +422,8 @@ final class Pages {
                 if (o.value === 'EVASION') { mine('evasion'); continue; }
                 // The Flips picture is the Your prices page here, which edits the whole list.
                 if (o.value === 'FLIPS') continue;
-                if (o.value === 'TUNE') { mine('items'); mine('prices'); mine('settings'); continue; }
-                add(o.value === 'ITEMS' ? 'Item profit' : o.label, !view && o.default, () => {
+                if (o.value === 'TUNE') { mine('auction'); mine('orders'); mine('items'); mine('prices'); mine('settings'); continue; }
+                add(o.value === 'ITEMS' ? 'Item profit' : o.value === 'ORDERS' ? 'Order book' : o.label, !view && o.default, () => {
                   if (view) show('');
                   act('page:pick', o.value);
                 });
@@ -477,7 +479,7 @@ final class Pages {
             }
 
             // ---- Settings: every setting the screen in game has, changed where it stands
-            const S = { data: null, q: '', open: '' };
+            const S = { data: null, q: '', open: '', section: 'AUCTION' };
             let reportData = {}, reportTimer;
             async function reportNotice() {
               try {
@@ -795,7 +797,7 @@ final class Pages {
             async function openSettings() {
               try {
                 S.data = await api('settings');
-                if (view === 'settings') drawSettings();
+                if (['settings','auction','orders'].includes(view)) drawSettings();
               } catch (e) { failed(); }
             }
             function sift() {
@@ -804,7 +806,7 @@ final class Pages {
               for (const card of own.querySelectorAll('.card')) {
                 let shown = 0;
                 for (const row of card.querySelectorAll('.set')) {
-                  const hit = !q || row.dataset.hay.includes(q);
+                  const hit = (S.section==='ALL'||row.dataset.section===S.section) && (!q || row.dataset.hay.includes(q));
                   row.hidden = !hit;
                   if (hit) shown++;
                 }
@@ -883,6 +885,7 @@ final class Pages {
             }
             function settingRow(row) {
               const wrap = el('div', 'set');
+              wrap.dataset.section = row.section || 'GENERAL';
               wrap.dataset.hay = (row.label + ' ' + row.key + ' ' + row.description).toLowerCase();
               const line = el('div', 'setline');
               const name = button('setname', row.label, () => unfold(row, wrap));
@@ -912,13 +915,20 @@ final class Pages {
               const d = S.data;
               if (!d) return;
               const bar = el('div', 'bar');
+              const sections=el('div','bar');
+              sections.hidden=view!=='settings';
+              for(const [value,label] of [['AUCTION','Auction'],['ORDERS','Orders'],['GENERAL','General'],['ALL','All']]){
+                const pick=button(value===S.section?'go':'',label,()=>{S.section=value;S.open='';S.q='';drawSettings();});
+                pick.setAttribute('aria-pressed',String(value===S.section));sections.appendChild(pick);
+              }
               const q = el('input');
               q.type = 'search';
-              q.placeholder = 'Search settings...';
+              q.placeholder = 'Search this section...';
               q.value = S.q;
               q.setAttribute('aria-label', 'Search settings');
               q.addEventListener('input', () => { S.q = q.value; sift(); });
               bar.appendChild(q);
+              if(view!=='settings')bar.appendChild(button('','All settings',()=>show('settings')));
               const preset = el('select');
               preset.setAttribute('aria-label', 'Apply a preset');
               const first = el('option', '', 'Apply a preset');
@@ -990,7 +1000,7 @@ final class Pages {
               const none = el('p', 'muted');
               none.id = 'nomatch';
               none.hidden = true;
-              own.replaceChildren(bar, codeBox, none, cards);
+              own.replaceChildren(sections,el('p','muted','Auction: buying and listings. Orders: bids, fills and delivery. General: shared limits, pacing, updates and display. All: search everything.'),bar, codeBox, none, cards);
               sift();
             }
 
@@ -1234,7 +1244,9 @@ final class Pages {
                 document.getElementById('dashboard-name').disabled=!current.available||current.busy||current.linked;
                 for(const id of ['dashboard-reconnect','dashboard-unlink'])document.getElementById(id).disabled=!current.available||current.busy||!current.linked;
                 const contribution=current.community||{};
-                document.getElementById('dashboard-community-enable').disabled=!current.available||!current.linked||(contribution.enabled&&contribution.guidanceEnabled);
+                const healthy=contribution.enabled&&contribution.guidanceEnabled&&contribution.enrolled&&contribution.eligible&&!contribution.needsRenewal;
+                document.getElementById('dashboard-community-enable').disabled=!current.available||current.busy||!current.linked||healthy;
+                document.getElementById('dashboard-community-enable').textContent=contribution.needsRenewal?'Renew Swarm membership':'Retry Swarm connection';
                 document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
                 document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
               } catch(e){failed();}

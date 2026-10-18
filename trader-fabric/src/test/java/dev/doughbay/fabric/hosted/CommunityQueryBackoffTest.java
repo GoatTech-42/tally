@@ -19,5 +19,6 @@ class CommunityQueryBackoffTest {
         assertFalse(CommunityQueryBackoff.query("POST","observations"));
         assertFalse(CommunityQueryBackoff.query("GET","me"));
         assertFalse(CommunityQueryBackoff.query("GET","capabilities"));
+        assertTrue(CommunityQueryBackoff.query("GET","sales/history?region=net-donut"));
     }
 }

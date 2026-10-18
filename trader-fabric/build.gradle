@@ -177,6 +177,22 @@ if (project.hasProperty('evasionScreenshots')) {
 }
 tasks.named('jar') { exclude '**/EvasionGuiSmoke*.class' }
 
+// Separate offline GUI preview. Never packaged or run against a real bot's game directory.
+if (project.hasProperty('tutorialScreenshots')) {
+ sourceSets.main.java.srcDir 'src/tutorialSmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.TutorialGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/tutorial-preview'
+  programArgs '--width', '1280', '--height', '900'
+ }
+}
+tasks.named('jar') { exclude '**/TutorialGuiSmoke*.class' }
+
 // Isolated offline Region Map verification; excluded from production builds.
 if (project.hasProperty('regionMapScreenshots')) {
  sourceSets.main.java.srcDir 'src/regionMapSmoke/java'

@@ -105,8 +105,9 @@ final class SwarmPanel {
         row=paragraph(g,font,uploaded<=0?"Waiting for the first accepted upload.":"Last accepted upload: "+Math.max(0,(now-uploaded)/1000)+" seconds ago",row,UiTheme.SECONDARY);
         row=paragraph(g,font,"Shared guidance: "+(!swarm.path("enabled").asBoolean()?"not connected":!swarm.path("guidanceEnabled").asBoolean()?"off — use Retry to join":swarm.path("eligible").asBoolean()?"active":"waiting for accepted contribution"),row,UiTheme.SECONDARY);
         row=paragraph(g,font,"WHY JOIN?",row,UiTheme.GOLD);
+        row=paragraph(g,font,"Startup history: "+swarm.path("warmup").path("status").asText("Local collection"),row,UiTheme.SECONDARY);
         row=paragraph(g,font,"More eyes on the market. Your bot contributes observations to a shared database and uses other bots' recent prices, order levels and follow activity to find markets worth checking sooner.",row,UiTheme.TEXT);
-        row=paragraph(g,font,"Less repeated discovery. Fresh, complete shared coverage can reduce duplicate scans. Your bot still checks live prices, its own orders and inventory before trading. Profit is not guaranteed.",row,UiTheme.SECONDARY);
+        row=paragraph(g,font,"Less startup reading. A thin keyless database can use fresh shared completed-sale history when enough distinct observations cover a market. Missing coverage falls back to local collection. Your bot still checks live prices, its own orders and inventory before trading. Profit is not guaranteed.",row,UiTheme.SECONDARY);
         row=paragraph(g,font,"Linking enables remote control and Swarm contribution. Shared observations can include public market-player names and payment parties. Keep the five-minute pairing code private. One bot is enough; local Hive setup is optional.",row,UiTheme.MUTED);
         contentHeight=row-y+8;g.disableScissor();
         if(maxScroll()>0)g.text(font,scroll<maxScroll()?"Scroll for benefits, connection details & Swarm stats":"Scroll up for linking controls",x+8,bottom+3,UiTheme.MUTED);

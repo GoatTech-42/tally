@@ -911,11 +911,12 @@ public class DoughBayClient implements ClientModInitializer {
         // A newer build the player has not been asked about yet is put in
         // front of the screen they just opened, never raised unasked.
         UpdateCheck.Notice notice = UpdateCheck.takeNotice();
+        net.minecraft.client.gui.screens.Screen entry=TutorialProgress.takeInitialOffer()?new QuickStartScreen(main):main;
         client.gui.setScreen(switch (notice) {
-            case NONE -> main;
-            case REAL -> new UpdateScreen(main, UpdateScreen.Mode.UPDATE);
-            case CHANGED -> new UpdateScreen(main, UpdateScreen.Mode.CHANGED);
-            case SAMPLE -> new UpdateScreen(main, UpdateScreen.Mode.SAMPLE);
+            case NONE -> entry;
+            case REAL -> new UpdateScreen(entry, UpdateScreen.Mode.UPDATE);
+            case CHANGED -> new UpdateScreen(entry, UpdateScreen.Mode.CHANGED);
+            case SAMPLE -> new UpdateScreen(entry, UpdateScreen.Mode.SAMPLE);
         });
     }
 
