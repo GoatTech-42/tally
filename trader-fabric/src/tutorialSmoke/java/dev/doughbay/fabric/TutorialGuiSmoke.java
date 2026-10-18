@@ -19,7 +19,9 @@ public final class TutorialGuiSmoke implements ClientModInitializer {
    case 2->{capture(mc,"quick-start-review.png");main.openTutorialTarget("auction",guide);}
    case 3->{capture(mc,"settings-auction.png");main.openTutorialTarget("orders",guide);}
    case 4->{capture(mc,"settings-orders.png");mc.gui.setScreen(new TutorialScreen(main,false));}
-   case 5->{capture(mc,"tutorial-library.png");Files.writeString(Path.of("tutorial-preview-success.txt"),"Offline two-step setup, tutorials and main Auction/Orders tabs rendered; no server joined or Start pressed");mc.stop();}
+   case 5->{capture(mc,"tutorial-library.png");
+    if(!DoughBayClient.watcher().snapshot().status().startsWith("KEYLESS:"))throw new IllegalStateException("Local keyless analysis did not publish while offline");
+    Files.writeString(Path.of("tutorial-preview-success.txt"),"Offline keyless analysis published while item components were unbound; two-step setup/tutorials rendered; no server joined or Start pressed");mc.stop();}
   }
  }catch(Throwable e){try{Files.writeString(Path.of("tutorial-preview-error.txt"),e.toString());}catch(Exception ignored){}mc.stop();}}
  private void capture(Minecraft mc,String name)throws Exception{

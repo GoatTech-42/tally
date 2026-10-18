@@ -2230,6 +2230,7 @@ public final class AutomationSessionController {
 
     /** Called once per client tick, after the global B-key stop has been drained. */
     public synchronized void tick(Minecraft client, MarketWatcher.Snapshot marketSnapshot) {
+        reportInventory.observe(inventoryBlockerCode(client),System.currentTimeMillis());
         controllerTick++;
         // Observe actual balance before the stopped read-only paths return.
         // This preserves configured percentage caps; it does not increase them.
@@ -2309,6 +2310,7 @@ public final class AutomationSessionController {
                     return;
                 }
             } catch (RuntimeException e) {
+                dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.PREPARE_INVENTORY,e,System.currentTimeMillis());
                 pauseInternal("Could not finish inventory preparation; no new operation was started");
                 return;
             }
@@ -2742,7 +2744,14 @@ public final class AutomationSessionController {
     public synchronized SessionSnapshot snapshot() {
         long currentSessionRuntime = currentSessionActiveMillis();
         long currentLifetimeRuntime = currentLifetimeActiveMillis();
-        return new SessionSnapshot(state, runMode, detail, trackedPosition,
+        String visibleDetail=detail;
+        if((state==State.SCANNING||state==State.MONITORING)&&!deskQueue.isEmpty()
+                &&driver.operationIntent()==AutomatedExecutionDriver.OperationIntent.NONE
+                &&reportDeskGate.equals("INVENTORY_SAFETY")&&System.currentTimeMillis()-reportDeskGateAt<2000){
+            String blocker=reportInventory.blockerText();
+            if(blocker!=null)visibleDetail="Bid desk waiting: "+blocker;
+        }
+        return new SessionSnapshot(state, runMode, visibleDetail, trackedPosition,
                 pendingOpportunity == null ? "" : pendingOpportunity.listing().listingKey(),
                 boundListingKey, reconciliationStatus,
                 tradesStarted, committedSpend, attemptedListingKeys.size(),
@@ -2757,6 +2766,9 @@ public final class AutomationSessionController {
     public synchronized String bugReportContext(long now) {
         var out=new StringBuilder("Controller context (fixed keys, no identities)\n");
         out.append("ctx captured_at_ms=").append(now).append('\n');
+        out.append("ctx session_elapsed_ms=").append(reportAge(now,sessionStartedAtMillis)).append(" queued_action=")
+                .append(deskQueue.isEmpty()?"NONE":deskQueue.peekFirst().action().name()).append('\n');
+        out.append(reportInventory.report(now));
         out.append("ctx state=").append(state.name()).append(" state_age_ms=").append(reportAge(now,stateChangedAtMillis))
                 .append(" mode=").append(runMode.name()).append(" reason_category=").append(dev.doughbay.fabric.BugReportReason.classify(detail)).append('\n');
         out.append("ctx armed=").append(armed).append(" session_open=").append(sessionOpen).append(" paused_by_player=").append(pausedByPlayer)
@@ -5072,7 +5084,10 @@ public final class AutomationSessionController {
                 detail = "Closing the GoNuts screen for the bid desk";
                 return true;
             }
-            if (!safeInventoryContext(client)) return deskBlocked("not a safe moment");
+            if (!safeInventoryContext(client)) {
+                detail="Bid desk waiting for safe inventory: "+guiBlockerDescription(client);
+                return deskBlocked("not a safe moment");
+            }
         }
         if (now < deskSettleUntilMillis && !onOrdersPage) {
             // The server is still closing the last order's pages. A /orders
@@ -12379,6 +12394,20 @@ public final class AutomationSessionController {
         // you were reading it. Now it waits until you close the panel yourself
         // (an open panel just fails safeInventoryContext, so the desk holds).
         return false;
+    }
+
+    private final dev.doughbay.fabric.InventoryBlockerEvidence reportInventory=new dev.doughbay.fabric.InventoryBlockerEvidence();
+    private static dev.doughbay.fabric.InventoryBlockerEvidence.Code inventoryBlockerCode(Minecraft client){
+        if(client==null||client.player==null||client.gameMode==null)return dev.doughbay.fabric.InventoryBlockerEvidence.Code.NO_WORLD;
+        Screen open=client.gui.screen();
+        if(open!=null){
+            String type=open.getClass().getName();
+            if(type.equals("dev.doughbay.fabric.BugReportScreen"))return dev.doughbay.fabric.InventoryBlockerEvidence.Code.REPORT_SCREEN;
+            if(type.startsWith("dev.doughbay.fabric."))return dev.doughbay.fabric.InventoryBlockerEvidence.Code.GONUTS_PANEL;
+        }
+        if(!client.player.containerMenu.getCarried().isEmpty())return dev.doughbay.fabric.InventoryBlockerEvidence.Code.CURSOR;
+        if(client.player.containerMenu!=client.player.inventoryMenu)return dev.doughbay.fabric.InventoryBlockerEvidence.Code.SERVER_CONTAINER;
+        return open!=null?dev.doughbay.fabric.InventoryBlockerEvidence.Code.PLAYER_SCREEN:dev.doughbay.fabric.InventoryBlockerEvidence.Code.CLEAR;
     }
 
     private boolean safeInventoryContext(Minecraft client) {

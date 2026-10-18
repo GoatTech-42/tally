@@ -44,6 +44,7 @@ public final class CommunityClient {
         int imported;
         try{imported=CommunityHistoryBootstrap.seed(db,batch.rows(),now,minimum,allowed);}
         catch(java.sql.SQLException|RuntimeException e){
+            dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.COMMUNITY_HISTORY,e,System.currentTimeMillis());
             warmupBatch=null;warmupMarkets=Set.of();
             warmupStatus="Shared history could not be saved; collecting locally";return 0;
         }
@@ -430,6 +431,7 @@ public final class CommunityClient {
             }
         }catch(Exception e){
             warmupRequested=Set.of();warmupRows.clear();warmupCursor="";warmupAsOf=0;nextWarmup=now+60_000;
+            dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.COMMUNITY_HISTORY,e,System.currentTimeMillis());
             warmupStatus="Shared history unavailable; collecting locally";
             // Optional bootstrap failure never stops contributions, discovery or local trading.
         }

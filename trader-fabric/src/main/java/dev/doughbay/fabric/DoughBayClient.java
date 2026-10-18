@@ -600,6 +600,7 @@ public class DoughBayClient implements ClientModInitializer {
                         }
                     }
                 } catch (RuntimeException e) {
+                    FaultTrace.INSTANCE.record(FaultTrace.Stage.CONTROLLER_TICK,e,System.currentTimeMillis());
                     LOGGER.error("DoughBay automation tick failed; pausing", e);
                     try {
                         AUTOMATION_SESSION.pause("Internal error: " + e.getMessage() + " (see the log)");

@@ -63,3 +63,9 @@ Caddy access logging is disabled for report routes. Proxy logs do not contain bo
 ## Verification
 
 VPS tests covered public submissions, authentication boundaries, hostile excerpts, concurrent retries,409 conflicts, header spoofing and quotas. Local GUI test issue9 used a fresh install with no API token and a custom market URL, attached a filtered excerpt, required consent, offered Open issue and replayed to the same issue. Test issue9 was closed.
+
+## Fault context extension (October 18)
+
+The existing schema2 `diagnosticLog` (and schema3 automatic attachment) carries additional fixed `ctx` fields: `session_elapsed_ms`, `queued_action`, `inventory_blocker`, `prior_inventory_blocker`, `prior_inventory_blocker_age_ms`, `fault_stage`, `fault_type`, `fault_age_ms`, `fault_count`. Ages are integer milliseconds, -1 unknown; counts are nonnegative. Faults retain at most four verified compiled GoNuts frames and no raw throwable or message. Current controller+fault context is bounded at4KiB within the unchanged8KiB/200-line/500-character attachment limits. Opening GoNuts/report screens preserves the prior non-panel UI category and its evidence age; that category may be stale and is never an all-clear. Last fault is process-local evidence, not a claim that a previously observed exception is still active.
+
+In-game manual, local-web manual, existing-issue evidence, and opted-in automatic reporting use the shared evidence capture. Preview and the actual outbound body include the same frozen attachment. The receiver and worker must retain valid typed fields through storage/rendering/triage, while rejecting unknown enum values, duplicates and private strings. No synthetic public issue should be filed to test this pipeline.
