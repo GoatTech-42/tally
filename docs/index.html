@@ -542,12 +542,13 @@
     more.hidden = all || entries.length <= FIRST;
   }
 
-  // The root changelog is also bundled in the client. Read that canonical
-  // GitHub file so a release cannot leave this page on an older docs copy.
-  fetch("https://raw.githubusercontent.com/cody-raves/Gonuts/main/CHANGELOG.md", { cache: "no-store" })
+  // Read the changelog shipped with this site first. A per-load query avoids
+  // a CDN serving a previous release even when the browser cache is disabled.
+  var notesRequest = "?published=" + Date.now();
+  fetch("CHANGELOG.md" + notesRequest, { cache: "no-store" })
     .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
     .catch(function () {
-      return fetch("CHANGELOG.md", { cache: "no-store" })
+      return fetch("https://raw.githubusercontent.com/cody-raves/Gonuts/main/CHANGELOG.md" + notesRequest, { cache: "no-store" })
         .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); });
     })
     .then(function (text) {
