@@ -41,6 +41,25 @@ class FlipRepeatCycleTest {
         invoke(c,"planDesk",new Class[]{MarketWatcher.Snapshot.class,long.class},snapshot(now),now);
         return ((Collection<?>)get(c,"deskQueue")).stream().map(Object::toString).toList();
     }
+    @Test void aCeilingRejectedQuoteIsRefreshedInsteadOfBlockingForFifteenMinutes()throws Exception {
+        long now=1000000;var c=controller(now);
+        ((Map<String,long[]>)get(c,"orderQuotes")).put(ITEM,new long[]{950,now-90000});
+        ((Map<String,Long>)get(c,"orderQuotedAt")).put(ITEM,now-90000);
+        var rejected=plan(c,now);
+        assertFalse(rejected.stream().anyMatch(s->s.contains("action=PLACE")),"950+100 must not exceed the configured 1000 ceiling");
+        assertTrue(rejected.stream().anyMatch(s->s.contains("action=QUOTE")),"recheck a rejected market instead of reusing it for 15 minutes");
+        completeNext(c,AutomatedExecutionDriver.OperationIntent.ORDER_QUOTE,ITEM,100,1,now+1);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).stream().anyMatch(s->s.toString().contains("action=PLACE")&&s.toString().contains("unitPrice=200")),
+                "a fresh lower native quote allows the next order within the same ceiling");
+    }
+    @Test void aFreshCeilingRejectionDoesNotSpamQuotesOrRaiseTheLimit()throws Exception {
+        long now=1000000;var c=controller(now);
+        ((Map<String,long[]>)get(c,"orderQuotes")).put(ITEM,new long[]{950,now-1000});
+        ((Map<String,Long>)get(c,"orderQuotedAt")).put(ITEM,now-1000);
+        var steps=plan(c,now);
+        assertFalse(steps.stream().anyMatch(s->s.contains("action=PLACE")||s.contains("action=QUOTE")));
+        assertTrue(c.bugReportContext(now).contains("last_flip_gate=TOP_BID_CEILING"));
+    }
     @Test void freshQuotePlansTheFirstOrderAndAnotherAfterTheCollectedOrderIsGone()throws Exception {
         long now=1000000;var c=controller(now);
         assertTrue(plan(c,now).stream().anyMatch(s->s.contains("action=PLACE")));

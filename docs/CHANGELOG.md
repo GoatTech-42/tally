@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 00:26 UTC
+
+- Flip entries blocked by their maximum buy price now recheck an old best-bid quote on a later desk pass instead of keeping the rejection for the normal 15-minute quote lifetime. Rechecks are rate-limited to once per minute per item; a fresh lower bid can allow the next order while the configured buy ceiling and all execution gates remain enforced.
+
 ## 2026-10-17 23:45 UTC
 
 - Fixed the in-game Send report button staying disabled even when reporting is available. Manual and automatic report checks now share the same bounded 8 KiB capability reader; the receiver's expanded diagnostic metadata no longer trips an outdated 4 KiB limit. Unsupported responses and reporting cooldowns remain enforced.
