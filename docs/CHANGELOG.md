@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 02:11 UTC
+
+- Removed the hidden purchase-focus list. Items Include/Exclude now controls item eligibility consistently for new purchases, orders and targeted price lookups. Existing purchase-focus selections migrate into Include and Track, alongside existing selections; explicit exclusions remain enforced. The migration keeps a backup and does not repeat after later Items edits. Older saved presets and Settings codes convert on import too. Price, profit, spending, inventory and safety checks remain enforced.
+
 ## 2026-10-18 00:26 UTC
 
 - Flip entries blocked by their maximum buy price now recheck an old best-bid quote on a later desk pass instead of keeping the rejection for the normal 15-minute quote lifetime. Rechecks are rate-limited to once per minute per item; a fresh lower bid can allow the next order while the configured buy ceiling and all execution gates remain enforced.

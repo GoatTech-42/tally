@@ -418,6 +418,24 @@ public final class SettingsCode {
         }
         if (root == null || !root.hasNonNull("v")) return Result.failed("not a settings code");
 
+        // Saved presets use this same importer. Old codes must not silently
+        // discard their only selection or recreate a hidden purchase filter.
+        if (root.path("t") instanceof ObjectNode oldTexts && oldTexts.has(ItemSelectionMigration.LEGACY)) {
+            ObjectNode selection = oldTexts.deepCopy();
+            if (!selection.has("items.allow")) selection.put("items.allow", Tuning.text("items.allow"));
+            if (!selection.has("watch.tracked")) selection.put("watch.tracked", Tuning.text("watch.tracked"));
+            selection.put("watch.tracked_managed", root.path("n").path("watch.tracked_managed").asDouble(Tuning.get("watch.tracked_managed")));
+            boolean selected = !oldTexts.path(ItemSelectionMigration.LEGACY).asText("").isBlank();
+            Tuning.migrateItemSelection(selection);
+            oldTexts.remove(ItemSelectionMigration.LEGACY);
+            if (selected) {
+                oldTexts.set("items.allow", selection.get("items.allow"));
+                oldTexts.set("watch.tracked", selection.get("watch.tracked"));
+                ObjectNode numbers = root.path("n") instanceof ObjectNode n ? n : ((ObjectNode) root).putObject("n");
+                numbers.put("watch.tracked_managed", 1);
+            }
+        }
+
         int applied = 0;
         int skipped = 0;
         int kept = 0;

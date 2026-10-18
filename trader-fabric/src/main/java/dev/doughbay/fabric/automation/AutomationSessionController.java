@@ -5101,7 +5101,7 @@ public final class AutomationSessionController {
             return true;
         }
         if (step.action() == DeskAction.PLACE && !dev.doughbay.fabric.Tuning.buyingAllowed(step.itemId())) {
-            LOGGER.info("DoughBay bid desk: dropped planned bid for {}: outside buy focus or no longer allowed", step.itemId());
+            LOGGER.info("DoughBay bid desk: dropped planned bid for {}: no longer allowed by Items", step.itemId());
             deskReadDue = true;
             detail = "Bid desk: dropped a bid outside the current market focus";
             return true;
@@ -5548,9 +5548,7 @@ public final class AutomationSessionController {
             // its order went out kept its bid open until it filled or aged off,
             // so a freshly blacklisted item like a trident still traded. Pull it.
             boolean denied = !dev.doughbay.fabric.Tuning.itemAllowed(r.itemId());
-            boolean outsideFocus = !denied && !dev.doughbay.fabric.Tuning.buyingAllowed(r.itemId());
             String why = denied ? "no longer allowed (blacklisted)"
-                    : outsideFocus ? "outside the new-purchase market focus"
                     : r.remaining() == 0 ? "filled"
                     : now - placedAt > maxAge ? "unfilled for " + ((now - placedAt) / 3_600_000L) + " h"
                     : ceilingUnit > 0 && r.unitPrice() > ceilingUnit ? "market moved under the bid (" + ceilingUnit + " each now)"
@@ -5558,7 +5556,7 @@ public final class AutomationSessionController {
             // An order at a price the player set is theirs to change, not
             // ours: it is pulled only when it is no longer the price they set.
             dev.doughbay.fabric.OwnPrices.Entry priced = ownPrice(r.itemId());
-            if (priced != null && !denied && !outsideFocus) {
+            if (priced != null && !denied) {
                 // The page abbreviates the price, so it cannot be compared
                 // to the last coin. Where we placed the order ourselves we
                 // know what it is really at; otherwise the page is believed
@@ -5718,7 +5716,7 @@ public final class AutomationSessionController {
             if (hasRetailStock(m.itemKey())) { bump(why, "retail stock already held"); continue; }
             if (bidItems.contains(m.itemKey())) { bump(why, "bid already out"); continue; }
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
-            if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemKey())) { bump(why, "not allowed or outside buy focus"); continue; }
+            if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemKey())) { bump(why, "not allowed by Items"); continue; }
             if (ownPrice(m.itemKey()) != null) { bump(why, "on your own price list"); continue; }
             if (siblingsMarket(m.itemKey())) { bump(why, "the other account's market"); continue; }
             // Single-item statistics on cheap goods are polluted by "sales" that
@@ -6688,7 +6686,7 @@ public final class AutomationSessionController {
             if (!knownItem(id)) { ownPriceNote(id, "the game has no item by that name", now); continue; }
             if (deskBadItems.contains(id)) { ownPriceNote(id, "the server refuses an order for it", now); continue; }
             if (!dev.doughbay.fabric.Tuning.buyingAllowed(id)) {
-                ownPriceNote(id, "it is not among the markets in the new-purchase focus", now);
+                ownPriceNote(id, "it is not allowed by Items", now);
                 continue;
             }
             if (own.singles() && hasRetailStock(id)) {

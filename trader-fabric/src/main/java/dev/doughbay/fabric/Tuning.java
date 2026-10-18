@@ -947,10 +947,6 @@ public final class Tuning {
                     + "restart. Empty falls back to the tracked commodities set in config.json."),
             new ListSetting("items.allow", "Only trade these items",
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
-            new ListSetting("items.buy_focus", "Focus new purchases on these markets",
-                    "Only buy or place new orders for these items. Existing purchases, deliveries and listings are still "
-                    + "collected, sold and repriced under the normal allow/deny rules. Unfilled orders outside the focus "
-                    + "are cancelled. Empty keeps normal market selection. Use =item for one exact item."),
             new ListSetting("items.deny", "Never trade these items",
                     "Comma-separated item names or ids that are always skipped. A name covers everything ending in it "
                     + "(glass is every stained glass too); =glass is that one item alone."),
@@ -1170,15 +1166,14 @@ public final class Tuning {
         return itemSet("items.allow").isEmpty() || setMatches("items.allow", id);
     }
 
-    /** Buying focus never prevents selling stock already owned. */
+    /** The Items tab's include/exclude choices are the sole item-selection gate. */
     public static boolean buyingAllowed(String itemId) {
-        return itemAllowed(itemId)
-                && (itemSet("items.buy_focus").isEmpty() || setMatches("items.buy_focus", normalizeItem(itemId)));
+        return itemAllowed(itemId);
     }
 
-    /** Keep prices fresh for owned stock even after its market leaves the buy focus. */
+    /** Price lookups use the same visible Items filter; owned stock never bypasses exclusions. */
     public static boolean priceCheckAllowed(String itemId, boolean stockHeld) {
-        return buyingAllowed(itemId) || stockHeld && itemAllowed(itemId);
+        return itemAllowed(itemId);
     }
 
     static {
@@ -1312,6 +1307,21 @@ public final class Tuning {
             if (!Files.exists(f)) return;
             JsonNode root = new ObjectMapper().readTree(Files.readString(f, StandardCharsets.UTF_8));
             if (root == null || !root.isObject()) return;
+            if (migrateItemSelection((ObjectNode) root)) {
+                Path backup = f.resolveSibling("tuning.before-item-selection-migration.json");
+                try { Files.copy(f, backup); }
+                catch (java.nio.file.FileAlreadyExistsException alreadyBackedUp) { /* another hive client migrated first */ }
+                Path fresh = Files.createTempFile(f.getParent(), "item-selection-", ".tmp");
+                try {
+                    Files.writeString(fresh, new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(root), StandardCharsets.UTF_8);
+                    try {
+                        Files.move(fresh, f, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                        Files.move(fresh, f, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } finally { Files.deleteIfExists(fresh); }
+                seenModifiedAt = modifiedAt(f);
+            }
             Iterator<Map.Entry<String, JsonNode>> it = root.fields();
             int loaded = 0;
             while (it.hasNext()) {
@@ -1340,6 +1350,21 @@ public final class Tuning {
             // Even a fresh/missing shared file must load the account's own limits.
             loadLocalOverrides();
         }
+    }
+
+    static boolean migrateItemSelection(ObjectNode root) {
+        if (!root.has(ItemSelectionMigration.LEGACY)) return false;
+        java.util.Collection<String> configured = java.util.List.of();
+        boolean inGame = false;
+        try {
+            DoughBayConfig cfg = DoughBayClient.activeConfig();
+            if (cfg != null) { configured = cfg.trackedCommodities(); inGame = true; }
+        } catch (Throwable unavailable) { /* isolated settings tests */ }
+        java.util.Collection<String> catalog = java.util.List.of();
+        try {
+            if (inGame) catalog = net.minecraft.core.registries.BuiltInRegistries.ITEM.keySet().stream().map(Object::toString).toList();
+        } catch (Throwable unavailable) { /* configured/exact IDs still migrate */ }
+        return ItemSelectionMigration.migrate(root, configured, catalog);
     }
 
     /**
@@ -1537,6 +1562,7 @@ public final class Tuning {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode existing = Files.exists(f) ? mapper.readTree(Files.readString(f, StandardCharsets.UTF_8)) : null;
             ObjectNode root = existing instanceof ObjectNode object ? object : mapper.createObjectNode();
+            root.remove(ItemSelectionMigration.LEGACY);
             // Write every registered setting, value or default, so a key can
             // never silently fall out of the file and revert on the next load.
             // Omitting the ones still at default is how settings.json kept
