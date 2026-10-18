@@ -23,6 +23,13 @@ class BugReportContextTest {
         assertTrue(c.bugReportContext(100000).contains("own_orders_age_ms=-1"));
         assertTrue(c.bugReportContext(100000).contains("sale_notice_age_ms=-1"));
     }
+    @Test void sessionElapsedAndQueueContextDoNotDependOnCurrentStateAge()throws Exception{
+        var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        set(c,"sessionStartedAtMillis",1000L);set(c,"stateChangedAtMillis",90000L);
+        String context=c.bugReportContext(100000);
+        assertTrue(context.contains("session_elapsed_ms=99000 queued_action=NONE"));
+        assertTrue(context.contains("state_age_ms=10000"));assertTrue(context.contains("inventory_blocker=NOT_CAPTURED"));
+    }
     @Test void aResumeRefusalHasItsOwnFixedReasonRatherThanGenericPaused() {
         var c=new AutomationSessionController(new AutomatedExecutionDriver());
         assertFalse(c.resumeAfterEvasion().ok());

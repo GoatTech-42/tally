@@ -587,6 +587,7 @@ public final class MarketWatcher {
         int apiFailures = 0;
         try {
             while (running) {
+                FaultTrace.Stage faultStage=FaultTrace.Stage.MARKET_API;
                 try {
                     // feed.keyless: 0 the API only, 1 keyless only, 2 (the
                     // default) the API while it answers and keyless when it
@@ -597,6 +598,7 @@ public final class MarketWatcher {
                     String key = config.apiKey();
                     boolean noKey = key == null || key.isBlank();
                     if (FlipsMode.only() || mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
+                        faultStage=FaultTrace.Stage.MARKET_KEYLESS;
                         runKeyless(mode == 2 && !noKey);
                         failures = 0;
                         apiFailures = 0;
@@ -609,6 +611,7 @@ public final class MarketWatcher {
                     Thread.currentThread().interrupt();
                     return;
                 } catch (Exception e) {
+                    FaultTrace.INSTANCE.record(faultStage,e,System.currentTimeMillis());
                     failures++;
                     if (!KeylessFeed.active()) apiFailures++;
                     long wait = Math.min(120_000L, 15_000L * failures);
@@ -665,14 +668,6 @@ public final class MarketWatcher {
                 setStatus(flipsOnly?"KEYLESS: Flips only; general market scans disabled":"Starting keyless mode: learning auction-to-order prices from history...");
                 KeylessFeed feed = new KeylessFeed(config.databasePath());
                 feed.prepare(db);
-                boolean needsSharedSeed=dev.doughbay.fabric.hosted.CommunityHistoryBootstrap.needsSeed(db);
-                var bootstrapMarkets=new java.util.TreeSet<String>();
-                if(needsSharedSeed)for(String item:scannedItemIds){
-                    if(!CommodityRegistry.DEFAULT_COMMODITIES.contains(item)||!Tuning.itemAllowed(item))continue;
-                    var type=net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(item));
-                    if(type!=null)bootstrapMarkets.add(item+"|"+Math.max(1,type.getDefaultMaxStackSize()));
-                }
-                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshWarmupMarkets(bootstrapMarkets);
                 DoughBayClient.LOGGER.info("DoughBay keyless: running without the Donut API ({} price ratios)",
                         feed.ratioCount());
                 long until = retryApi ? System.currentTimeMillis() + KEYLESS_API_RETRY_MILLIS : Long.MAX_VALUE;
@@ -693,6 +688,13 @@ public final class MarketWatcher {
                         hive.refresh(KEYLESS_ROLL_CALL_BUDGET, signedInPlayerName(), DoughBayClient.clientMode());
                     }
                     feed.ingest(db, now);
+                    if(dev.doughbay.fabric.hosted.CommunityHistoryBootstrap.needsSeed(db)){
+                        var bootstrapMarkets=dev.doughbay.fabric.hosted.CommunityBootstrapMarkets.ready(scannedItemIds,Tuning::itemAllowed,item->{
+                            var type=net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(item));
+                            return type==null?0:type.getDefaultMaxStackSize();
+                        });
+                        dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshWarmupMarkets(bootstrapMarkets);
+                    }else dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.refreshWarmupMarkets(Set.of());
                     dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.seedWarmup(db,now);
                     List<MarketStats> markets = service.marketStatsFromHistory(now, MARKET_DISPLAY_MINIMUM_SALES);
                     long balance = SidebarBalance.current();

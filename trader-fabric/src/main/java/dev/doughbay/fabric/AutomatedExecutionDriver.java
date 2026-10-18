@@ -4922,6 +4922,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             if (dispatch == PendingDispatch.WAITING || dispatch == PendingDispatch.SENT) return;
         } catch (RuntimeException e) {
+            FaultTrace.INSTANCE.record(FaultTrace.Stage.DRIVER_COMMAND,e,System.currentTimeMillis());
             abort(client, "Could not dispatch queued command /" + resendCommand + ": " + e.getMessage());
             return;
         }
@@ -5612,6 +5613,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     ContainerInput.QUICK_MOVE, client.player);
             return true;
         } catch (RuntimeException e) {
+            FaultTrace.INSTANCE.record(FaultTrace.Stage.DRIVER_CLICK,e,System.currentTimeMillis());
             DoughBayClient.LOGGER.error("DoughBay container shift-click failed", e);
             return false;
         }
@@ -5736,6 +5738,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     client.player);
             return true;
         } catch (RuntimeException e) {
+            FaultTrace.INSTANCE.record(FaultTrace.Stage.DRIVER_CLICK,e,System.currentTimeMillis());
             DoughBayClient.LOGGER.error("DoughBay container click failed", e);
             return false;
         }
