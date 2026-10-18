@@ -1889,8 +1889,7 @@ public final class AutomationSessionController {
                         "Maximum hold time already elapsed; inspect the position manually");
             }
             if (bufferedSaleNotice != null
-                    && (saleNoticeObservedAtMillis <= 0
-                    || now - saleNoticeObservedAtMillis > policy.maximumSnapshotAgeMillis())) {
+                    && reconciliationTimedOut(saleNoticeObservedAtMillis, now)) {
                 pauseResumable = false;
                 return ExecutionResult.refused(
                         "Buffered sale evidence is too old to reconcile automatically");
@@ -11099,7 +11098,7 @@ public final class AutomationSessionController {
             return;
         }
 
-        if (now - listingReconciliationStartedAt > policy.maximumSnapshotAgeMillis()) {
+        if (reconciliationTimedOut(listingReconciliationStartedAt, now)) {
             pauseInternal("Timed out reconciling the new active listing");
             return;
         }
@@ -11196,8 +11195,7 @@ public final class AutomationSessionController {
                                             long now) {
         if (bufferedSaleNotice == null || trackedPosition == null
                 || trackedPosition.status() != PositionStatus.LISTED) return;
-        if (saleNoticeObservedAtMillis <= 0
-                || now - saleNoticeObservedAtMillis > policy.maximumSnapshotAgeMillis()) {
+        if (reconciliationTimedOut(saleNoticeObservedAtMillis, now)) {
             pauseInternal("Timed out reconciling the sale notice with active listings");
             return;
         }
@@ -11252,6 +11250,15 @@ public final class AutomationSessionController {
             return;
         }
         finalizeReconciledSale(now);
+    }
+
+    private boolean reconciliationTimedOut(long startedAt, long now) {
+        // One fresh-snapshot age cannot budget an entire reconciliation:
+        // an in-flight feed read may finish first, then two consecutive exact
+        // scans are required. Bound that work to three ages without relaxing
+        // the age, ownership or stability checks on any individual scan.
+        return startedAt <= 0 || now < startedAt
+                || now - startedAt > Math.multiplyExact(3L, policy.maximumSnapshotAgeMillis());
     }
 
     private void finalizeReconciledSale(long now) {

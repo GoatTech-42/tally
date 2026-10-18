@@ -4,6 +4,10 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 13:06 UTC
+
+- Fixed listing and sale reconciliation using one snapshot's freshness limit as the deadline for an entire multi-scan operation. The bounded wait now allows an in-flight read followed by two consecutive exact scans; every scan still has to meet the original freshness, ownership and stability checks. Missing proof still pauses with the position and cost retained. Report #34.
+
 ## 2026-10-18 13:00 UTC
 
 - Fixed order collections containing multiple inventory stacks being reduced to one booked stack. Every delivered stack and its acquisition cost is now retained and queued before listing; a partial fill still waiting on the order does not hide stock already collected. Refused persistence keeps the batch paused for reconciliation. Report #112.
