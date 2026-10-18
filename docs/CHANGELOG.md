@@ -4,7 +4,7 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
-## 2026-10-18 19:03 UTC
+## 2026-10-18 19:00 UTC
 
 - Release PR #130: Explain Hive setup requirements for report #129. Create/Join now respond with the offline setup instructions instead of appearing unresponsive while connected.
 - The Hive tab shows the Multiplayer > GoNuts hive route, source-history guidance and hover/keyboard help. Hive links instances on the same PC; joining the community Swarm does not need a hive code.
