@@ -5,6 +5,38 @@ import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DashboardHiveTest {
  @TempDir Path root;
+ @Test void largeLegacyStatusStillAllowsSelectedSwarmRetryWhileRequestsStaySmall() throws Exception {
+  var target=new DashboardHive(root);var host=new DashboardHive(root);long now=System.currentTimeMillis();
+  target.publish("fixture",new HostedDashboardClient.View(true,true,false,"Fixture","Online",0),now);
+  Path status=root.resolve("dashboard-local-ipc").resolve(DashboardHive.id("fixture")+".status");
+  var value=(com.fasterxml.jackson.databind.node.ObjectNode)DashboardProtocol.JSON.readTree(Files.readAllBytes(status));
+  var community=(com.fasterxml.jackson.databind.node.ObjectNode)value.get("community");
+  community.put("enabled",false).put("needsRenewal",true).put("status","Membership needs renewal");
+  community.putObject("orderShadow").put("diagnostic","x".repeat(6000));
+  Files.write(status,DashboardProtocol.JSON.writeValueAsBytes(value));assertTrue(Files.size(status)>4096);
+  assertNotNull(host.status("fixture",now));
+  assertTrue(host.status("fixture",now).path("community").path("needsRenewal").asBoolean());
+  assertFalse(host.status("fixture",now).path("community").has("orderShadow"));
+  assertTrue(host.post("fixture","community_enable","","",now));
+  assertEquals("community_enable",target.take("fixture",now).path("action").asText());
+  assertNull(host.status("fixture",now+DashboardHive.FRESH_MS+1));
+  assertTrue(host.post("fixture","community_enable","","",now));
+  Path request=root.resolve("dashboard-local-ipc").resolve(DashboardHive.id("fixture")+".request");
+  var body=(com.fasterxml.jackson.databind.node.ObjectNode)DashboardProtocol.JSON.readTree(Files.readAllBytes(request));
+  body.put("padding","x".repeat(5000));Files.write(request,DashboardProtocol.JSON.writeValueAsBytes(body));
+  assertNull(target.take("fixture",now));
+  community.put("padding","x".repeat(DashboardProtocol.MAX_BYTES));
+  Files.write(status,DashboardProtocol.JSON.writeValueAsBytes(value));assertNull(host.status("fixture",now));
+ }
+ @Test void compactCommunityStatusExcludesDiagnosticsAndBoundsText() {
+  var source=DashboardProtocol.JSON.createObjectNode().put("enabled",true).put("needsRenewal",true)
+      .put("accepted",42).put("status","s".repeat(1000)).put("credential","never copy");
+  source.putObject("orderCoverage").put("rows",5000);
+  var summary=DashboardHive.communitySummary(source);
+  assertEquals(42,summary.path("accepted").asInt());assertTrue(summary.path("needsRenewal").asBoolean());
+  assertEquals(240,summary.path("status").asText().length());assertFalse(summary.has("credential"));
+  assertFalse(summary.has("orderCoverage"));
+ }
  private static HostedDashboardClient.View unlinked(){return new HostedDashboardClient.View(false,false,false,"","Not linked",0);}
  @Test void routesOnlyToSelectedClientConsumesOnceAndNeverSharesCredential() throws Exception {
   var host=new DashboardHive(root);var a=new DashboardHive(root);var b=new DashboardHive(root);long now=System.currentTimeMillis();

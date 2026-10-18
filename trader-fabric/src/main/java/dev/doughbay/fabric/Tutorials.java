@@ -1,0 +1,41 @@
+package dev.doughbay.fabric;
+
+import java.util.List;
+
+/** Plain-language lessons with navigation targets, never configuration or trading actions. */
+final class Tutorials {
+    record Step(String title,String explanation,String target,String action){}
+    record Course(String id,String title,List<Step> steps){}
+    static final Step UPDATES=new Step("Keep GoNuts current",
+        "About shows your installed build and update status. Update checking shows a notice when a newer public build is available. With auto-update enabled, a checked download is staged and installed when the game closes; the running bot is not replaced mid-session. Review the notice and changelog. Choose when to close and reopen the game. You can tune update checks and auto-update in Settings > General.","updates","Open update settings");
+    static final Step EVASION=new Step("Choose your escape protection",
+        "Evasion reacts to nearby players and danger. Review the guard, trigger distance, escape route and reconnect behavior before trading. A home route needs homes that already exist on the server. RTP may require a server menu or warm-up; a blocked escape may disconnect protectively. A tutorial does not turn the guard on, change its distances or test a teleport. Read each setting and choose what suits your server.","evasion","Open Evasion");
+    static final Step STAFF=new Step("Understand Staff Watch",
+        "A qualified local spectator detection means a staff member was detected spectating on the same server. It does not verify that they are watching you. Read the alert's evidence: an online entry or uncertain signal is not the same as a local spectator detection. Review detection and region-escape options on Staff Watch. Shared sightings can be old or from another region; absence of a report is not an all-clear.","staff","Open Staff Watch");
+    static final Step ITEMS=new Step("Choose your items",
+        "Items lets you choose the markets GoNuts may work with. Search for an item, inspect its list membership and use the allow, deny and watch controls deliberately. An allow list limits what can trade; deny excludes unwanted items. A tracked item is something to watch, not an instruction to buy it. Start with markets you understand. Item variants, stack sizes and current prices still matter.","items","Open Items");
+    static final Step AUCTION=new Step("Tune auction trading",
+        "The main Auction tab collects buying limits, listings, repricing and item settings. The same controls remain in Settings > Auction. Read the explanation before applying a change. Settings > General contains shared session limits and pacing. Keep spending and listing limits within the balance and inventory room you intend to use. Opening this page does not apply a preset or start a session.","auction","Open Auction settings");
+    static final Step ORDERS=new Step("Tune buy orders and delivery",
+        "The main Orders tab opens order settings for slots, sizing, bids, fills, collection and delivery. The same controls remain in Settings > Orders. Money committed to an order is still money in use. Partly filled orders may leave stock to collect and money outstanding. Choose Order book within Orders to review current orders; do not assume a missing row means a fill or a cancellation. Shared observations help discovery; your own orders and fresh live quotes decide actions.","orders","Open Orders settings");
+    static final Step FLIPS=new Step("Use the Flips page",
+        "Flips helps compare buying and selling opportunities. Search for the exact item and stack, inspect the available prices and activity, and review the proposed costs and resale assumptions. A displayed spread is an estimate, not guaranteed profit or a completed trade. Current availability, fees, sale speed, inventory and caps can prevent a trade. Recheck before choosing an action.","flips","Open Flips");
+    static final Step SWARM=new Step("Link your bot and join the Swarm",
+        "Joining is optional for local trading. In Swarm, open the website and sign in, choose Link client, copy its five-minute code, then paste it into this bot and link. Use a separate code for each bot. Linking enables the hosted remote dashboard and Swarm contribution. Public market and follow observations are shared; read the consent details. Keep codes private. A refused membership can be renewed with Retry Swarm connection. Solo trading still works without joining.","swarm","Open Swarm linking");
+    static final Step SHARED=new Step("Why join? Less repeated reading",
+        "Other contributors collect public market information while they trade. With contribution and guidance enabled, a thin keyless database can import recent completed-sale history for supported plain-item markets. Enough distinct sales and recent evidence are required; shared asks never become completed sales. This can shorten initial warm-up and reduce repeated market reading, leaving more time available for buying and selling when trade checks pass. The service is not guaranteed to cover every market or always be fresh. The bot falls back to local collection when needed. Your live prices, inventory, own orders and safety gates remain authoritative. Joining does not guarantee profit, purchases or an instant start.","swarm","See Swarm status");
+    static final Step BUGS=new Step("Send a useful bug report",
+        "Open About > Report bug. Explain what happened, what you expected and the steps that reproduce it. Include when it happened, your build and the exact error or blocked-action reason. Use Preview to review the collected diagnostic report before sending; keep credentials, pairing codes and private information out. Use the report's issue link to check replies and published fixes. Search existing reports first. Feature requests have their own button; test and placeholder reports should not be submitted.","bugs","Open bug report form");
+    static final Step READY=new Step("Review, then decide to trade",
+        "Check that you are on the intended server, your item choices and limits are correct, protection settings are understood and the bot reports no unresolved recovery or exposure. Open Trade to read its current readiness and any blocked-action reason. Start is your choice: finishing this tutorial does not arm trading, change caps, clear positions or resume a paused bot. Stop and investigate any blocker rather than bypassing it.","autopilot","Review Trade");
+    static final List<Course> COURSES=List.of(
+        new Course("setup","Quick start · two steps",List.of(AUCTION,READY)),
+        new Course("swarm","Link to the Swarm",List.of(SWARM,SHARED)),
+        new Course("protection","Evasion & Staff Watch",List.of(EVASION,STAFF)),
+        new Course("items","Choose items",List.of(ITEMS,AUCTION)),
+        new Course("flips","Explore Flips",List.of(FLIPS,AUCTION)),
+        new Course("orders","Use buy orders",List.of(ORDERS)),
+        new Course("updates","Updates & notifications",List.of(UPDATES)),
+        new Course("bugs","Report a bug",List.of(BUGS)));
+    private Tutorials(){}
+}

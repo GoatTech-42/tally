@@ -48,7 +48,7 @@ final class StaffWatchPanel {
   g.enableScissor(x,top,x+w,bottom);
   UiTheme.panel(g,x,y,w,218,UiTheme.SURFACE);
   text(g,font,"STAFF WATCH",x+10,y+10,UiTheme.GOLD);
-  text(g,font,"Donut SMP staff panels at top center; warnings appear below.",x+10,y+25,UiTheme.SECONDARY);
+  text(g,font,"A staff spectator detection does not prove they are watching you.",x+10,y+25,UiTheme.SECONDARY);
   text(g,font,"DONUT SMP — click to choose Main / East / West",x+10,y+148,UiTheme.TEXT);
   text(g,font,c.regionSwitch?"First alert: switch region. Same staff within 2 min: disconnect.":"Staff alert: disconnect immediately; wait 5–10 min before rejoining.",x+10,y+190,UiTheme.MUTED);
   text(g,font,message,x+10,y+204,error?UiTheme.BAD:UiTheme.GOOD);

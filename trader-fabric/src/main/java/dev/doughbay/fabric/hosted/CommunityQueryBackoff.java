@@ -15,6 +15,6 @@ final class CommunityQueryBackoff {
     }
     static boolean query(String method,String path) {
         return method.equals("GET") && (path.startsWith("market/") || path.startsWith("market?") || path.equals("markets")
-            || path.startsWith("markets?") || path.startsWith("orders/"));
+            || path.startsWith("markets?") || path.startsWith("orders/") || path.startsWith("sales/history?"));
     }
 }

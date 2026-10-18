@@ -6,7 +6,11 @@ and session control stay visible above the content.
 In the default **Observe** mode every tab is view-only, so you can explore the
 whole interface without a single trade being possible.
 
-The Dashboard opens first, with realized profit, active listings, a profit
+A new install opens **Choose limits, then Review & Start**. Existing installs keep their normal entry screen. **Set up trading** reopens the two-step setup; **Tutorials** contains optional lessons for Swarm, protections, items, Flips, orders, updates and bug reports. Opening a lesson never starts trading.
+
+**Auction** and **Orders** are main navigation tabs with direct access to their settings. The same settings remain under **Settings** (Auction, Orders, General, All). Orders also contains an **Order book** subtab.
+
+The Dashboard shows realized profit, active listings, a profit
 chart, the top opportunities, and recent activity. The ledger always shows real
 records, even when market opportunities use explicitly labeled demo data.
 
@@ -74,9 +78,9 @@ The order house, a buy-order book no public API exposes. This tab shows your
 standing bids, what has been collected and delivered, and the depth of the book,
 so you can trade the demand side as well as the listings.
 
-## Autopilot
+## Trade
 
-The trading controls, and the only tab that can arm anything. It has three
+The trading controls; the reviewed quick-start flow also provides an explicit Start action. It has three
 sub-modes:
 
 - **Continuous:** the live buy, relist, and track engine, with the session

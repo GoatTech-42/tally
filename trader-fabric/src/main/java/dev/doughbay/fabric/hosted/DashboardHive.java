@@ -13,6 +13,7 @@ public final class DashboardHive {
     private final Path root;
     private final String run=UUID.randomUUID().toString();
     public static final long FRESH_MS=15_000, REQUEST_MS=30_000;
+    private static final int REQUEST_BYTES=4096, STATUS_BYTES=DashboardProtocol.MAX_BYTES;
     public DashboardHive(Path shared){root=shared.resolve("dashboard-local-ipc");}
     public static String id(String account){
         try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(account.toLowerCase(java.util.Locale.ROOT).getBytes(StandardCharsets.UTF_8)));}
@@ -25,17 +26,32 @@ public final class DashboardHive {
         finally{Files.deleteIfExists(temp);}
     }
     private ObjectNode read(Path path) throws Exception {
-        if(!Files.isRegularFile(path)||Files.size(path)>4096)return null;
+        return read(path,REQUEST_BYTES);
+    }
+    private ObjectNode read(Path path,int limit) throws Exception {
+        if(!Files.isRegularFile(path)||Files.size(path)>limit)return null;
         var value=DashboardProtocol.JSON.readTree(Files.readAllBytes(path));return value instanceof ObjectNode node?node:null;
+    }
+    static ObjectNode communitySummary(com.fasterxml.jackson.databind.JsonNode value) {
+        var out=DashboardProtocol.JSON.createObjectNode();
+        for(String key:Set.of("enabled","guidanceEnabled","enrolled","eligible","needsRenewal",
+                "accepted","rejected","lastHttpStatus","status")) {
+            var item=value.get(key);
+            if(item!=null&&item.isValueNode())out.set(key,item.isTextual()
+                    ?DashboardProtocol.JSON.getNodeFactory().textNode(item.asText().substring(0,Math.min(240,item.asText().length())))
+                    :item);
+        }
+        return out;
     }
     public void publish(String account,HostedDashboardClient.View view,long now) throws Exception {
         if(account==null||account.isBlank())return;
         write(root.resolve(id(account)+".status"),DashboardProtocol.JSON.createObjectNode().put("at",now)
             .put("run",run).put("linked",view.linked()).put("online",view.online()).put("busy",view.busy()).put("name",view.name())
-            .put("status",view.status()).put("retryAt",view.retryAt()).set("community",CommunityClient.INSTANCE.view()));
+            .put("status",view.status()).put("retryAt",view.retryAt()).set("community",communitySummary(CommunityClient.INSTANCE.view())));
     }
     public ObjectNode status(String account,long now){
-        try{var value=read(root.resolve(id(account)+".status"));if(value==null||now-value.path("at").asLong()>FRESH_MS||value.path("at").asLong()>now+5000)return null;return value;}
+        try{var value=read(root.resolve(id(account)+".status"),STATUS_BYTES);if(value==null||now-value.path("at").asLong()>FRESH_MS||value.path("at").asLong()>now+5000)return null;
+            value.set("community",communitySummary(value.path("community")));return value;}
         catch(Exception e){return null;}
     }
     public synchronized boolean post(String account,String action,String code,String name,long now) throws Exception {
