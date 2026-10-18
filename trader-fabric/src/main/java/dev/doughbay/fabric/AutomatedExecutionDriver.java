@@ -4177,6 +4177,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         void send(String command);
         default long notBeforeMillis() { return 0; }
         default String listingBlocker() { return null; }
+        default boolean escapeMenuMayClose() { return false; }
     }
 
     private CommandTransport commandTransport(Minecraft client) {
@@ -4185,6 +4186,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             public void closeMenu() { closeAuctionScreen(client); }
             public long notBeforeMillis() { return ServerStrain.commandNotBeforeMillis(); }
             public String listingBlocker() { return listingCommandBlocker(client); }
+            public boolean escapeMenuMayClose() {
+                if (client == null || client.player == null) return false;
+                if (!(client.gui.screen() instanceof AbstractContainerScreen<?> container)) return false;
+                return AutomatedExecutionDriver.escapeMenuMayClose(container.getTitle().getString(),
+                        client.player.containerMenu.getCarried().isEmpty()
+                                && client.player.inventoryMenu.getCarried().isEmpty());
+            }
             public void send(String command) {
                 CommandSendProbe.verify(command, () -> {
                     if(operation == Operation.LIST && command.startsWith("ah sell "))
@@ -4453,6 +4461,28 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     /** Commands from payroll and evasion, waiting for the gap after whatever went out last. */
     private final java.util.ArrayDeque<String> externalCommands = new java.util.ArrayDeque<>();
+    private final java.util.Set<String> escapeCommands = new java.util.HashSet<>();
+
+    /** An idle trading page may be dismissed for an escape, never an unknown container or confirmation. */
+    static boolean escapeMenuMayClose(String title, boolean cursorEmpty) {
+        if (!cursorEmpty || title == null) return false;
+        String lower = title.toLowerCase(Locale.ROOT);
+        return !lower.contains("confirm") && (lower.contains("auction") || lower.contains("orders")
+                || lower.contains("deliver"));
+    }
+
+    public synchronized void sendEscapeWhenClear(Minecraft client, String command) {
+        sendEscapeWhenClear(commandTransport(client), command, System.currentTimeMillis(),
+                client != null && client.getConnection() != null);
+    }
+
+    void sendEscapeWhenClear(CommandTransport transport, String command, long now, boolean connected) {
+        if (!connected || isTeleport(command)) return;
+        // Escape ownership is explicit: payroll must never gain permission to close a menu.
+        if (!(command.equals("rtp") || command.startsWith("rtp ") || command.startsWith("home "))) return;
+        if (escapeCommands.add(command)) externalCommands.addFirst(command);
+        drainExternalCommands(transport, now);
+    }
 
     /**
      * The one door for a command from outside the driver. Noting a send was
@@ -4532,6 +4562,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized boolean withdrawExternal(String command) {
+        escapeCommands.remove(command);
         return externalCommands.remove(command);
     }
 
@@ -4546,8 +4577,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (now < transport.notBeforeMillis()) return;
         if (now - lastCommandSentAt < commandGapMillis()) return;
         // Background work never owns a menu, including a late confirmation.
-        if (transport.menuOpen()) return;
+        if (transport.menuOpen()) {
+            if (escapeCommands.contains(externalCommands.peekFirst()) && transport.escapeMenuMayClose()) {
+                transport.closeMenu();
+                // Wait for a later tick to observe the menu actually closed before sending.
+            }
+            return;
+        }
         String command = externalCommands.pollFirst();
+        escapeCommands.remove(command);
         if (isTeleport(command)) {
             DoughBayClient.LOGGER.warn(
                     "DoughBay dropped queued /{}: teleports leave this server's connection one-way", command);

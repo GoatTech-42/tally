@@ -4,6 +4,11 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 14:45 UTC
+
+- Fixed an escape teleport remaining unsent behind an idle Auction House or Orders page. Evasion can now close a recognized trading page with an empty cursor, then dispatch through the existing command pacing and safety gates. Active operations, confirmations, unknown containers and server holds remain protected.
+- Cancelled or expired escape requests are removed from the queue so they cannot teleport later. Escape diagnostics distinguish a command that was never sent from a dispatched teleport that did not complete, and notifications no longer claim an escape succeeded at request time.
+
 ## 2026-10-18 13:56 UTC
 
 - Added a top-level Swarm tab and a Dashboard shortcut for linking a bot to the website. The in-game flow explains sign-in, the five-minute code, optional bot label and the single Link dashboard & join Swarm action; linked bots show their dashboard and reconnection controls.

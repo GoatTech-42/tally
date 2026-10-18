@@ -7,6 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EvasionHealthTest {
     @Test
+    void warmupNeedsTheRequestedCommandToHaveActuallyDispatched() {
+        assertFalse(EvasionGuard.escapeDispatched("rtp west", 100_000, "rtp west", 99_999));
+        assertFalse(EvasionGuard.escapeDispatched("rtp west", 100_000, "home other", 101_000));
+        assertFalse(EvasionGuard.escapeDispatched("", 100_000, "", 101_000));
+        assertTrue(EvasionGuard.escapeDispatched("rtp west", 100_000, "rtp west", 101_000));
+    }
+    @Test
     void healthArrivingAfterAJoinIsNotAHit() {
         // Joined believing in full health, told 4.5 a moment later: not damage.
         assertFalse(EvasionGuard.tookDamage(20f, 4.5f, 300));

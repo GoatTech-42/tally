@@ -333,6 +333,7 @@ public final class EvasionGuard {
     }
 
     private volatile long teleportedAt;
+    private String escapeCommand = "";
     /** When the next unprompted move is due; zero until the first one is scheduled. */
     private long wanderAt;
     private volatile net.minecraft.world.phys.Vec3 teleportFrom;
@@ -416,6 +417,7 @@ public final class EvasionGuard {
 
     void tick(Minecraft client, AutomationSessionController session) {
         if (!enabled()) {
+            clearEscapeRequest();
             triggered = false;
             clearSinceMillis = 0;
             return;
@@ -442,7 +444,10 @@ public final class EvasionGuard {
             return;
         }
 
-        if (client.player == null || client.level == null) return;
+        if (client.player == null || client.level == null) {
+            clearEscapeRequest();
+            return;
+        }
         if (client.getCurrentServer() != null) lastServer = client.getCurrentServer();
         witherWatch(client, session, now);
         airWatch(client, session, now);
@@ -498,6 +503,7 @@ public final class EvasionGuard {
             double moved = teleportFrom == null ? 0 : client.player.position().distanceTo(teleportFrom);
             double enough = SafeHomes.lastUsedAt() > teleportedAt - 2000 ? 8 : 100;
             if (moved > enough) {
+                clearQueuedEscape();
                 // Landed in water. On a flooded server the bot ends up submerged,
                 // where it cannot see or reach the auction and slowly drowns, so
                 // /rtp again for dry ground - up to a few tries, in case the whole
@@ -554,11 +560,12 @@ public final class EvasionGuard {
             // decision came a second or more earlier, and counting from there
             // is what called a teleport dead before the server had seen it.
             long sentAt = DoughBayClient.executionDriver().lastEscapeSentAt();
-            long since = sentAt >= teleportedAt ? sentAt : teleportedAt;
-            boolean unsent = sentAt < teleportedAt;
+            boolean dispatched = escapeDispatched(escapeCommand, teleportedAt,
+                    DoughBayClient.executionDriver().lastEscapeCommand(), sentAt);
+            long since = dispatched ? sentAt : teleportedAt;
+            boolean unsent = !dispatched;
             if ((!unsent && now - since > teleportWaitMillis()) || (unsent && now - teleportedAt > teleportWaitMillis() + 10_000)) {
-                teleportedAt = 0;
-                teleportFrom = null;
+                clearEscapeRequest();
                 if (wandering) {
                     // Nobody is about; a move-on that did not take is not
                     // worth the connection. Try again next time round.
@@ -567,9 +574,14 @@ public final class EvasionGuard {
                     note("", 0, "move-on did not take; stayed put");
                     return;
                 }
-                DoughBayClient.LOGGER.warn("DoughBay evasion: the teleport did not move us in {} s; leaving instead",
-                        teleportWaitMillis() / 1000);
-                leave(client, "Evasion: the teleport did not take; leaving the server");
+                if (unsent) {
+                    DoughBayClient.LOGGER.warn("DoughBay evasion: escape command could not be dispatched safely; leaving instead");
+                    leave(client, "Evasion: escape command was not sent; leaving the server");
+                } else {
+                    DoughBayClient.LOGGER.warn("DoughBay evasion: the teleport did not move us in {} s after dispatch; leaving instead",
+                            teleportWaitMillis() / 1000);
+                    leave(client, "Evasion: the teleport did not take; leaving the server");
+                }
                 return;
             }
             return;   // still waiting on the teleport; do nothing else
@@ -1160,16 +1172,17 @@ public final class EvasionGuard {
             }
             teleportFrom = client.player.position();
             teleportedAt = System.currentTimeMillis();
+            escapeCommand = command;
             String home = command.startsWith("home ") ? command.substring(5) : "";
             String message = "Evasion: " + lastIntruder + " came too close; "
                     + (home.isEmpty() ? "teleporting away" : "going to home '" + home + "'");
             DoughBayClient.LOGGER.info("DoughBay {}", message);
             client.player.sendSystemMessage(Component.literal("[GoNuts]" + message));
-            reportEscape(client, "Escaped: " + lastIntruder + " came too close",
-                    home.isEmpty() ? "teleported away" : "went to home '" + home + "'", lastIntruder);
-            DoughBayClient.executionDriver().sendWhenClear(client, command);
+            reportEscape(client, "Escape requested: " + lastIntruder + " came too close",
+                    "waiting for teleport", lastIntruder);
+            DoughBayClient.executionDriver().sendEscapeWhenClear(client, command);
         } catch (RuntimeException e) {
-            teleportedAt = 0;
+            clearEscapeRequest();
             DoughBayClient.LOGGER.warn("DoughBay evasion could not teleport: {}", e.toString());
         }
     }
@@ -1231,9 +1244,10 @@ public final class EvasionGuard {
         wanderAt = now + jitteredWander(every);
         teleportFrom = client.player.position();
         teleportedAt = now;
+        escapeCommand = command;
         wandering = true;
         DoughBayClient.LOGGER.info("DoughBay evasion: moving on with nobody about; /{}", command);
-        DoughBayClient.executionDriver().sendWhenClear(client, command);
+        DoughBayClient.executionDriver().sendEscapeWhenClear(client, command);
     }
 
     /**
@@ -1251,6 +1265,7 @@ public final class EvasionGuard {
      * login.
      */
     private void leave(Minecraft client, String reason) {
+        clearEscapeRequest();
         wandering = false;
         note(lastIntruder, 0, "left the server");
         try {
@@ -1267,6 +1282,21 @@ public final class EvasionGuard {
             leaveWanted = false;
             DoughBayClient.LOGGER.warn("DoughBay evasion could not leave cleanly: {}", e.toString());
         }
+    }
+
+    static boolean escapeDispatched(String requested, long requestedAt, String sent, long sentAt) {
+        return requested != null && !requested.isEmpty() && requested.equals(sent) && sentAt >= requestedAt;
+    }
+
+    private void clearQueuedEscape() {
+        if (!escapeCommand.isEmpty()) DoughBayClient.executionDriver().withdrawExternal(escapeCommand);
+        escapeCommand = "";
+    }
+
+    private void clearEscapeRequest() {
+        clearQueuedEscape();
+        teleportedAt = 0;
+        teleportFrom = null;
     }
 
     /**
