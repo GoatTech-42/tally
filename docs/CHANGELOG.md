@@ -4,6 +4,12 @@ What each build changed, newest first. Times are UTC. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-18 13:56 UTC
+
+- Added a top-level Swarm tab and a Dashboard shortcut for linking a bot to the website. The in-game flow explains sign-in, the five-minute code, optional bot label and the single Link dashboard & join Swarm action; linked bots show their dashboard and reconnection controls.
+- Swarm now explains the shared database benefits, live-check limits and contribution details in the GUI. It shows current contribution status, accepted uploads, estimated Hive rank, reported booked profit, active Hive/bot counts and shared-market coverage where available. Expired or withheld figures stay unavailable, rather than becoming zero or remaining on screen.
+- Fixed Swarm HTTP 401/403 recovery after unlinking and re-pairing. Retry renews a refused or legacy disabled membership through the currently linked dashboard instead of reusing the revoked credential. A new explicit pairing also renews its membership. Pending uploads are retained during authentication refusal; server admission checks and retry delays remain enforced.
+
 ## 2026-10-18 13:06 UTC
 
 - Fixed listing and sale reconciliation using one snapshot's freshness limit as the deadline for an entire multi-scan operation. The bounded wait now allows an in-flight read followed by two consecutive exact scans; every scan still has to meet the original freshness, ownership and stability checks. Missing proof still pauses with the position and cost retained. Report #34.

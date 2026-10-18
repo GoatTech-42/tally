@@ -46,11 +46,13 @@ public final class DoughBayScreen extends Screen {
 
     private final ProxyPanel proxyPanel = new ProxyPanel();
     private final HivePanel hivePanel = new HivePanel();
+    private final SwarmPanel swarmPanel = new SwarmPanel();
 
     private final AnalyzerPanel analyzerPanel = new AnalyzerPanel();
 
     private enum Tab {
         OVERVIEW("Dashboard"),
+        SWARM("Swarm"),
         OPPORTUNITIES("Opportunities"),
         MARKETS("Markets"),
         SEARCH("Search"),
@@ -650,12 +652,15 @@ public final class DoughBayScreen extends Screen {
         int i = 0;
         for (Tab value : Tab.values()) {
             // Six Trade entries, six Operations entries, then six Workspace entries.
-            int groupSpace = i >= 12 ? 32 : i >= 6 ? 16 : 0;
+            int groupSpace = i >= 13 ? 32 : i >= 7 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
                     : ui.tabY() + (i / columns) * 22;
             Button button = CockpitButton.builder(Component.literal(value.label), ignored -> {
+                if(value==Tab.SWARM&&ui.bottom()-ui.contentTop()<128){
+                    Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
+                }
                 tab = value;
                 if (value == Tab.STATS && !statsModeInitialized) {
                     initializeStatsMode(snapshot());
@@ -696,7 +701,7 @@ public final class DoughBayScreen extends Screen {
             int aboutX = ui.innerRight() - 8;
             int aboutCardTop=ui.contentTop()+8;
             int aboutCardHeight=(ui.bottom()-10-aboutCardTop-8)/2;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Dashboard"),b->Minecraft.getInstance().gui.setScreen(new DashboardScreen(this)))
+            addRenderableWidget(CockpitButton.builder(Component.literal("Link bot / Swarm"),b->navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+9,aboutCardTop+aboutCardHeight-25,Math.max(40,Math.min(150,aboutCard-18)),18).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Report bug"), b ->
                     Minecraft.getInstance().gui.setScreen(new BugReportScreen(this)))
@@ -719,6 +724,8 @@ public final class DoughBayScreen extends Screen {
         }
 
         if (tab == Tab.OVERVIEW) {
+            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Link bot / Swarm"), b -> navigate(Tab.SWARM))
+                    .bounds(ui.innerLeft()+286,ui.contentTop()+69,120,22).build());
             if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Preview HUD"), b -> {
                 DoughBayClient.previewHud();
                 onClose();
@@ -829,6 +836,8 @@ public final class DoughBayScreen extends Screen {
             staffWatchPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
         } else if (tab == Tab.PROXIES) {
             proxyPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),this::addRenderableWidget,this::rebuildWidgets);
+        } else if (tab == Tab.SWARM) {
+            swarmPanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget);
         } else if (tab == Tab.HIVE) {
             hivePanel.init(font,ui.innerLeft(),ui.contentTop(),ui.innerWidth(),ui.bottom()-16,this::addRenderableWidget,this::rebuildWidgets);
         } else if (tab == Tab.ANALYZER) {
@@ -983,6 +992,7 @@ public final class DoughBayScreen extends Screen {
             case REGION_MAP -> regionMapPanel.render(graphics, font, ui.innerLeft(), ui.contentTop(), ui.innerWidth(), ui.bottom() - 16);
             case PROXIES -> proxyPanel.render(graphics,font);
             case HIVE -> hivePanel.render(graphics,font);
+            case SWARM -> swarmPanel.render(graphics,font);
             case OPPORTUNITIES -> {
                 if (selected == null) {
                     renderOpportunities(graphics, current, ui, mouseX, mouseY);
@@ -1048,8 +1058,8 @@ public final class DoughBayScreen extends Screen {
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
         graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
-        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 194, MUTED);
-        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 336, MUTED);
+        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 215, MUTED);
+        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 357, MUTED);
         graphics.text(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
@@ -1122,6 +1132,9 @@ public final class DoughBayScreen extends Screen {
     private final List<SignalHit> overviewSignals = new ArrayList<>();
 
     private void navigate(Tab destination) {
+        if(destination==Tab.SWARM&&layout().bottom()-layout().contentTop()<128){
+            Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
+        }
         tab = destination;
         selected = null;
         scroll = 0;
@@ -6660,6 +6673,7 @@ public final class DoughBayScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        if(tab==Tab.SWARM&&swarmPanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.ANALYZER&&analyzerPanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.APPEARANCE&&appearancePanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.STAFF_WATCH&&staffWatchPanel.scroll(mouseX,mouseY,deltaY))return true;
@@ -6773,7 +6787,7 @@ public final class DoughBayScreen extends Screen {
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
         // Fit the actual last sidebar button plus its group spacing and bottom margin.
-        int sidebar = panelWidth >= 680 && panelHeight >= Math.max(499, 126 + (Tab.values().length - 1) * 21) ? 144 : 0;
+        int sidebar = panelWidth >= 680 && panelHeight >= Math.max(499, 142 + (Tab.values().length - 1) * 21) ? 144 : 0;
         int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
         int rows = (Tab.values().length + columns - 1) / columns;
         int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;

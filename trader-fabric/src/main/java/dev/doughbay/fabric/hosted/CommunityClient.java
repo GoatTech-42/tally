@@ -73,6 +73,7 @@ public final class CommunityClient {
     private volatile String measurementStatus="Starting";
     private final java.util.concurrent.ConcurrentHashMap<String,Long> rejectionCodes=new java.util.concurrent.ConcurrentHashMap<>();
     private CommunityStore store;private volatile String credential="";private String contributor="",registeredAccount="";
+    private volatile boolean credentialRejected;
     private Map<CommunityOrderReceipt,Integer> pendingReceipts=Map.of();
     private ObjectNode pending;private Set<String> types=Set.of();private long nextUpload,nextQuery,nextCapabilities,nextStatus;private boolean serviceEnabled;private int failures;
     private CommunityClient(){}
@@ -81,7 +82,8 @@ public final class CommunityClient {
         worker.execute(()->{
             try{var config=store.read("settings.json");if(config!=null){enabled=config.path("enabled").asBoolean();guidanceConsent=config.path("guidanceEnabled").asBoolean(false);linkConsentApplied=config.path("linkConsentApplied").asBoolean(false);credential=config.path("credential").asText();contributor=config.path("contributorId").asText();registeredAccount=config.path("account").asText();
                 if(!credential.isEmpty()&&!credential.matches("gnc1_[A-Za-z0-9_-]{43}"))throw new IllegalArgumentException();}
-                pending=store.read("pending.json");enrolled=!credential.isEmpty();status=enabled?"Starting Swarm":"Off";
+                credentialRejected=config!=null&&config.path("credentialRejected").asBoolean();
+                pending=store.read("pending.json");enrolled=!credential.isEmpty();status=credentialRejected?"Swarm membership needs renewal; use Retry Swarm connection":enabled?"Starting Swarm":"Off";
             }catch(Exception e){enabled=false;credential="";status="Could not load private community settings";}
             finally{configReady=true;}
         });
@@ -116,7 +118,22 @@ public final class CommunityClient {
     public void dashboardUnlinked(){linkConsentApplied=false;disableSharing();}
     public boolean guidanceEnabled(){return guidanceEnabled(HostedDashboardClient.INSTANCE.view().linked());}
     boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
-    public void enable(){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;enabled=true;guidanceConsent=true;generation.incrementAndGet();status="Enabling Swarm contribution and discovery";worker.execute(()->{try{save();nextCapabilities=nextUpload=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}
+    public void enable(){enable(false);}
+    private void enable(boolean freshPairing){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;generation.incrementAndGet();status="Connecting Swarm through your linked dashboard";worker.execute(()->{try{if(freshPairing){credentialRejected=true;linkConsentApplied=true;}renewRejectedCredential();enabled=true;guidanceConsent=true;save();nextCapabilities=nextUpload=nextStatus=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}
+    /** A new explicit pairing must not inherit an earlier installation's membership. */
+    public void dashboardPaired(){enable(true);}
+    boolean renewRejectedCredential(){
+        if(!credentialRejected&&enabled)return false;
+        credential="";contributor="";registeredAccount="";enrolled=false;eligible=false;credentialRejected=false;
+        return true;
+    }
+    void refuseCredential(int code)throws Exception{
+        if(code!=401&&code!=403)throw new IllegalArgumentException("Not a credential refusal");
+        enabled=false;eligible=false;credentialRejected=true;
+        SwarmRank.clear();
+        status="Swarm membership refused (HTTP "+code+"). Use Retry Swarm connection to renew through your linked dashboard.";
+        save();
+    }
     public void disable(){
         if(HostedDashboardClient.INSTANCE.view().linked()){status="Swarm participation is included with the dashboard; unlink to leave";return;}
         disableSharing();
@@ -126,7 +143,7 @@ public final class CommunityClient {
         try{save();acknowledgeOrderBatch(false);store.remove("pending.json");pending=null;unenroll();}catch(Exception e){status="Off; waiting to remove server enrollment";}
     });}
     private void save()throws Exception{store.write("settings.json",DashboardProtocol.JSON.createObjectNode().put("enabled",enabled).put("guidanceEnabled",guidanceConsent).put("linkConsentApplied",linkConsentApplied).put("consent",CommunityWire.CONSENT)
-            .put("credential",credential).put("contributorId",contributor).put("account",registeredAccount));}
+            .put("credential",credential).put("contributorId",contributor).put("account",registeredAccount).put("credentialRejected",credentialRejected));}
     private volatile ObjectNode isolatedOrderJob=DashboardProtocol.JSON.createObjectNode();
     public void publishIsolatedOrderJob(ObjectNode state){isolatedOrderJob=state.deepCopy();}
     public void discardOrderShadow(long id){var cycle=shadowCycles.remove(id);if(cycle!=null)cycle.future().cancel(false);}
@@ -138,7 +155,7 @@ public final class CommunityClient {
         var value=DashboardProtocol.JSON.createObjectNode().put("enabled",enabled).put("guidanceEnabled",guidanceConsent).put("enrolled",enrolled).put("eligible",eligible).put("shadow",!guidanceConsent).put("status",status)
             .put("lastUpload",lastUpload).put("lastQuery",lastQuery).put("accepted",accepted).put("rejected",rejected).put("dropped",dropped)
             .put("lastUploadScope",lastUploadScope).put("lastQueryScope",lastQueryScope).put("region",marketScope()).put("marketScope",marketScope()).put("observerShard",CommunityRegion.current()).put("comparisons",compared).put("usable",usable).put("wouldReplace",wouldReplace).put("agreements",agreements);
-        value.put("requestStage",requestStage).put("lastHttpStatus",lastHttpStatus);
+        value.put("requestStage",requestStage).put("lastHttpStatus",lastHttpStatus).put("needsRenewal",credentialRejected);
         value.set("productionDiscovery",productionDiscovery.deepCopy());
         var feed=value.putObject("discoveryFeed").put("requestedMarkets",discoveryMarkets.size()).put("refreshRequests",discoveryRefreshes)
                 .put("responsesAccepted",discoveryResponses).put("plannerConsultations",discoveryConsultations)
@@ -322,7 +339,7 @@ public final class CommunityClient {
     private void pump()throws Exception{
         long now=System.currentTimeMillis();savePerformance(now);
         if(!serviceRetry.ready(now))return;
-        if(!enabled){if(!credential.isEmpty()&&now>=nextUpload){nextUpload=now+60_000;unenroll();}return;}
+        if(!enabled){if(credentialRejected)return;if(!credential.isEmpty()&&now>=nextUpload){nextUpload=now+60_000;unenroll();}return;}
         if(!HostedDashboardClient.INSTANCE.view().linked())return;
         if(now>=nextCapabilities){nextCapabilities=now+60_000;var response=request("GET","capabilities",null,false);if(response.statusCode()!=200){serviceEnabled=false;networkSupported=false;status="Swarm capabilities unavailable (HTTP "+response.statusCode()+"); local scanning continues";return;}
             var c=json(response);serviceEnabled=c.path("enabled").asBoolean()&&java.util.stream.StreamSupport.stream(c.path("schemas").spliterator(),false).anyMatch(v->v.isInt()&&v.asInt()==1);var supported=new HashSet<String>();for(var type:c.path("types"))supported.add(type.asText());types=Set.copyOf(supported);networkSupported=serviceEnabled&&CommunityBatches.networkAdvertised(c);}
@@ -337,7 +354,7 @@ public final class CommunityClient {
         if(now>=nextStatus){
             nextStatus=now+60_000;var response=request("GET","me",null,true);
             if(response.statusCode()==200)eligible=json(response).path("eligible").asBoolean();
-            else if(response.statusCode()==401||response.statusCode()==403){enabled=false;save();status="Community access refused; local scanning continues";return;}
+            else if(response.statusCode()==401||response.statusCode()==403){refuseCredential(response.statusCode());return;}
         }
         validation(now);
         if(!discoveryMarkets.isEmpty()&&now>=nextDiscoveryRefresh&&queryBackoff.allowed(now)) {
@@ -350,12 +367,14 @@ public final class CommunityClient {
         requestStage="enrollment";lastHttpStatus=0;
         if(!HostedDashboardClient.INSTANCE.view().linked()){status="Link this client to the dashboard first";return;}
         long own=generation.get();var body=DashboardProtocol.JSON.createObjectNode().put("schema",1).put("build",DashboardProtocol.build(build)).put("consent",CommunityWire.CONSENT);
-        body.putArray("observerAccounts").add(account);var response=HostedDashboardClient.INSTANCE.enrollCommunity(body).get(20,TimeUnit.SECONDS);
+        String enrolledAccount=account;
+        body.putArray("observerAccounts").add(enrolledAccount);var response=HostedDashboardClient.INSTANCE.enrollCommunity(body).get(20,TimeUnit.SECONDS);
         lastHttpStatus=response.statusCode();
-        if(response.statusCode()!=200&&response.statusCode()!=201){if(response.statusCode()==429)serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));status="Enrollment refused (HTTP "+response.statusCode()+"); local scanning continues";return;}
+        if(own!=generation.get()||!enabled)return;
+        if(response.statusCode()!=200&&response.statusCode()!=201){if(response.statusCode()==401||response.statusCode()==403){refuseCredential(response.statusCode());return;}if(response.statusCode()==429)serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));status="Enrollment refused (HTTP "+response.statusCode()+"); local scanning continues";return;}
         var j=json(response);String secret=j.path("credential").asText(),id=j.path("contributorId").asText();
         if(!secret.matches("gnc1_[A-Za-z0-9_-]{43}")||!id.matches("c_[A-Za-z0-9_-]{12}"))throw new IllegalArgumentException();
-        credential=secret;contributor=id;registeredAccount=account;save();enrolled=true;if(!enabled){unenroll();return;}status="Enrolled in Swarm; live checks retained";nextUpload=0;
+        credential=secret;contributor=id;registeredAccount=enrolledAccount;save();enrolled=true;if(!enabled){unenroll();return;}status="Enrolled in Swarm; live checks retained";nextUpload=0;
     }
     private void unenroll()throws Exception{
         if(credential.isEmpty()){status="Off";return;}
@@ -369,15 +388,17 @@ public final class CommunityClient {
             var body=packed.body();if(body.path("records").isEmpty())return;
             pending=DashboardProtocol.JSON.createObjectNode().put("key",UUID.randomUUID().toString().replace("-","")).set("body",body);pendingReceipts=packed.receipts();store.write("pending.json",pending);
         }
+        requestStage="observation upload";lastHttpStatus=0;
         long own=generation.get();var body=(ObjectNode)pending.path("body");body.put("sentAt",System.currentTimeMillis());
         var request=HttpRequest.newBuilder(CommunityWire.BASE.resolve("observations")).timeout(java.time.Duration.ofSeconds(10)).header("Authorization","Bearer "+credential)
                 .header("Content-Type","application/json").header("Idempotency-Key",pending.path("key").asText()).POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
         dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(request,HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()==200||response.statusCode()==202)dev.doughbay.fabric.SwarmActivity.received();if(!enabled||generation.get()!=own)return;
-        int code=response.statusCode();if(code>=400)lastServiceFailure=System.currentTimeMillis();
+        int code=response.statusCode();lastHttpStatus=code;if(code>=400)lastServiceFailure=System.currentTimeMillis();
         if(code==200||code==202){var result=json(response);if(!result.path("replay").asBoolean())accepted+=result.path("accepted").asLong();rejected+=result.path("rejected").size();for(var failure:result.path("rejected")){String reason=failure.path("code").asText();if(reason.matches("[a-z_]{1,48}")&&rejectionCodes.size()<32)rejectionCodes.merge(reason,1L,Long::sum);}eligible=result.path("eligible").asBoolean();lastUpload=System.currentTimeMillis();lastUploadScope=body.path("region").asText();failures=0;status="Shadow active; local scanning unchanged";acknowledgeOrderBatch(CommunityOrderReceipt.successfulBatch(result,body.path("records").size()));clearPending();}
         else if(code==429){nextUpload=System.currentTimeMillis()+retryAfter(response);status="Upload rate limited; local scanning continues";}
         else if(code>=500){nextUpload=System.currentTimeMillis()+Math.min(600_000,10_000L<<Math.min(6,failures++));status="Upload retry pending; local scanning continues";}
-        else{rejected+=body.path("records").size();acknowledgeOrderBatch(false);clearPending();status="Upload refused (HTTP "+code+"); local scanning continues";if(code==401||code==403){enabled=false;save();}}
+        else if(code==401||code==403){refuseCredential(code);}
+        else{rejected+=body.path("records").size();acknowledgeOrderBatch(false);clearPending();status="Upload refused (HTTP "+code+"); local scanning continues";}
     }
     private void clearPending()throws Exception{store.remove("pending.json");pending=null;}
     private void query(long now)throws Exception{
@@ -409,5 +430,5 @@ public final class CommunityClient {
         }
         lastQueryScope="net-donut";discoveryResponses++;
     }
-    private static long retryAfter(HttpResponse<?> response){try{return Math.min(600,Math.max(10,Long.parseLong(response.headers().firstValue("Retry-After").orElse("60"))))*1000;}catch(Exception e){return 60_000;}}
+    private static long retryAfter(HttpResponse<?> response){try{return Math.min(3600,Math.max(10,Long.parseLong(response.headers().firstValue("Retry-After").orElse("60"))))*1000;}catch(Exception e){return 60_000;}}
 }

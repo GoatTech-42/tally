@@ -5,7 +5,7 @@ Public release integration: Discord sign-in and per-installation pairing, owner-
 ## Pairing
 
 Open https://gonuts.at/dashboard/ and sign in with Discord. Choose Link client.
-Enter the fresh code in GoNuts About → Dashboard, or Dashboard in the local web panel for a headless client.
+Enter the fresh code in GoNuts Swarm, or Dashboard in the local web panel for a headless client.
 The local panel links its hosting client only. Pair each installation separately.
 Local unlink stops the socket and removes the local credential; remove the offline installation on the website too.
 
@@ -22,7 +22,7 @@ Local unlink stops the socket and removes the local credential; remove the offli
 ## Live acceptance test together (before publication)
 
 1. Install the unpublished test JAR on one selected client, retaining its current JAR as backup. Do not publish or update everyone yet.
-2. Generate a new code and redeem it using About → Dashboard or the local web panel.
+2. Generate a new code and redeem it using Swarm or the local web panel.
 3. Verify the website identifies that installation and shows fresh telemetry. Check its booked hour/day profits against the same account's ledger.
 4. Snapshot, pause and resume from the hosted page; verify ack/result outcomes and actual local controller state. Limits and unresolved recovery remain enforced.
 5. Repeat an id in the VPS test harness: controller action happens once. Verify an expired command is rejected.
@@ -39,3 +39,11 @@ The Dashboard tab lists every hive account and accepts a separate website code f
 ## Full panel relay
 
 Advertises `panel` in redeem and hello. Relays page, state, data, change, act, png, icon and fixed bundled assets through the same LocalPanel.Backend instance. Mutations run on the client thread after checking socket ownership and the fifteen-second deadline. Eight outstanding requests maximum, dedupe per socket/request id, bounded text/binary/frame sizes, bounded form input, fixed asset allowlist, safe error replies and no request/body logging. Local PIN authentication stays unchanged; hosted ownership and CSRF belong to the VPS. No HTTP listener or client UI is added.
+
+## In-game Swarm tab
+
+The top-level Swarm tab contains website sign-in, pairing-code entry, a bot label and Link dashboard & join Swarm. It also explains contribution, shared-discovery benefits and native execution checks. Linked clients show the remote dashboard link, membership recovery, contribution status, their own Hive rank and fresh anonymous totals. Small windows use the same scrollable panel in a dedicated view.
+
+Installation swarm_rank frames version 2 include optional stats, an owner linked-installation count and the anonymous active-bot count. Their outer at/expiresAt interval is at most 120 seconds; each stats snapshot also expires after 180 seconds. Missing or withheld fields are unknown, never zero. Other members' identities and individual financial results are not displayed.
+
+A new pairing renews Swarm membership through its new dashboard credential. Retry on a disabled or refused membership forgets the unusable local community credential and uses the existing authenticated enrollment route; it does not assume permission or revive an unlinked installation. Pending batches survive 401/403 while enrollment is repaired. Retry-After is honored for up to one hour.

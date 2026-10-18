@@ -95,6 +95,7 @@ public final class HostedDashboardClient {
                 if(j.path("protocol").asInt()!=1||!j.path("wsUrl").asText().equals(DashboardProtocol.SOCKET.toString())||!j.path("checkUrl").asText().equals(DashboardProtocol.CHECK.toString()))throw new IllegalStateException();
                 var next=new DashboardStore.Link(j.path("installationId").asLong(),j.path("credential").asText(),j.path("name").asText());
                 store.save(next);link=next;attempts=0;nextConnect=0;view=new View(true,false,false,next.name,"Linked; connecting",0);
+                CommunityClient.INSTANCE.dashboardPaired();
             }catch(Exception e){if(operation==epochs.get())view=new View(false,false,false,"","Could not link or save private settings; use a new code if it was consumed",0);}
         });
     }
@@ -225,7 +226,11 @@ public final class HostedDashboardClient {
             if(type.equals("panel"))panel.receive(own,j,()->epochs.get()==own&&welcome,
                     reply->worker.execute(()->{if(epochs.get()==own&&welcome)send(reply);}));
             else if(type.equals("command"))command(own,j);
-            else if(type.equals("swarm_rank"))SwarmRank.receive(j,publishedAccountId,System.currentTimeMillis());
+            else if(type.equals("swarm_rank")){
+                long now=System.currentTimeMillis();
+                SwarmRank.receive(j,publishedAccountId,now);
+                SwarmTotals.receiveFrame(j,now);
+            }
             else if(!type.equals("pong")&&!type.equals("error"))throw new IllegalArgumentException();
         }catch(Exception e){failed("Dashboard protocol error; retrying");}
     }

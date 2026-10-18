@@ -8,9 +8,9 @@ import java.util.*;
 /** Own-Hive results only; never stores other members' names, results or ordering. */
 public final class SwarmRank {
     private SwarmRank(){}
-    private record Result(int percentile,int count,int position,long computedAt,long expiresAt,String reason){}
+    private record Result(int percentile,int count,int position,long computedAt,long expiresAt,String reason,long profit,long saleRecords){}
     private static volatile Result current;
-    public static void clear(){current=null;}
+    public static void clear(){current=null;SwarmTotals.clear();}
     static String accountId(String salt,String account) {
         if(salt==null||!salt.matches("[A-Za-z0-9_-]{32,128}")||account==null||account.isBlank())return "";
         try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((salt+"\n"+account.strip().toLowerCase(Locale.ROOT)).getBytes(StandardCharsets.UTF_8)));}
@@ -22,7 +22,7 @@ public final class SwarmRank {
         var r=frame.path("rank");
         if(r.path("unavailable").asBoolean()) {
             String reason=r.path("reason").asText();
-            if(Set.of("insufficient_group","stale_snapshot","no_booked_source","low_coverage","not_contributing","invalid_data","contribution_check_unavailable").contains(reason))current=new Result(0,0,0,now,now+90_000,reason);
+            if(Set.of("insufficient_group","stale_snapshot","no_booked_source","low_coverage","not_contributing","invalid_data","contribution_check_unavailable").contains(reason))current=new Result(0,0,0,now,now+90_000,reason,0,0);
             return;
         }
         if(!r.path("metric").asText().equals("booked_realized_profit")||r.path("windowHours").asInt()!=24)return;
@@ -42,7 +42,7 @@ public final class SwarmRank {
             if(!r.path("position").isIntegralNumber()||!r.path("position").canConvertToInt())return;
             position=r.path("position").asInt();if(position<1||position>n)return;
         }
-        current=new Result((int)p,(int)n,position,at,expiry,"");
+        current=new Result((int)p,(int)n,position,at,expiry,"",r.path("yourFigure").asLong(),r.path("yourBookedSaleRecords").asLong());
     }
     public static List<String[]> rows(long now) {
         var r=current;
@@ -54,6 +54,8 @@ public final class SwarmRank {
             default->"Current reported profit unavailable";
         },"dim"});
         return List.of(new String[]{"Estimated Swarm rank",r.position()>0?"#"+r.position()+" of "+r.count()+" active Hives":"Above "+r.percentile()+"% of other active Hives","green"},
-                new String[]{"Swarm basis","Reported profit, last 24h - approximate; available data"});
+                new String[]{"Swarm basis","Reported profit, last 24h - approximate; available data"},
+                new String[]{"Your Hive reported booked profit · 24h",String.format(Locale.ROOT,"%,d",r.profit())},
+                new String[]{"Your Hive booked sale records · 24h",String.format(Locale.ROOT,"%,d",r.saleRecords())});
     }
 }
