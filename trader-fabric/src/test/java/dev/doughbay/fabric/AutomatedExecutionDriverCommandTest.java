@@ -14,6 +14,87 @@ class AutomatedExecutionDriverCommandTest {
     private final FakeTransport transport = new FakeTransport();
 
     @Test
+    void genericQueueReproducesUnsentEscapeBehindIdleOrders() {
+        transport.menu = true;
+        transport.escapeClose = true;
+        driver.sendWhenClear(transport, "rtp west", 100_000, true);
+        driver.drainExternalCommands(transport, 120_001);
+        assertEquals(0, transport.closes);
+        assertTrue(driver.externalQueued("rtp west"));
+        assertTrue(transport.sent.isEmpty());
+        assertEquals(0, driver.lastEscapeSentAt());
+    }
+
+    @Test
+    void escapeClosesIdleOrdersThenSendsOnceWithActualDispatchTime() {
+        transport.menu = true;
+        transport.escapeClose = true;
+        driver.sendEscapeWhenClear(transport, "rtp west", 100_000, true);
+        assertEquals(1, transport.closes);
+        assertTrue(transport.sent.isEmpty());
+        assertEquals(0, driver.lastEscapeSentAt(), "Closing the page is not a teleport send");
+        driver.drainExternalCommands(transport, 101_000);
+        driver.drainExternalCommands(transport, 102_000);
+        assertEquals(List.of("rtp west"), transport.sent);
+        assertEquals(101_000, driver.lastEscapeSentAt());
+        assertEquals("rtp west", driver.lastEscapeCommand());
+    }
+
+    @Test
+    void escapeDoesNotCloseMenusDuringAnOperationOrUnsafeInventory() throws Exception {
+        activateListing();
+        transport.menu = true;
+        transport.escapeClose = true;
+        driver.sendEscapeWhenClear(transport, "rtp", 100_000, true);
+        driver.drainExternalCommands(transport, 101_000);
+        assertEquals(0, transport.closes);
+        clearOperation();
+        transport.escapeClose = false;
+        driver.drainExternalCommands(transport, 102_000);
+        assertEquals(0, transport.closes);
+        assertTrue(transport.sent.isEmpty());
+    }
+
+    @Test
+    void cancelledEscapeCannotTeleportLaterAfterMenuCloses() {
+        transport.menu = true;
+        driver.sendEscapeWhenClear(transport, "rtp", 100_000, true);
+        assertTrue(driver.withdrawExternal("rtp"));
+        transport.menu = false;
+        driver.drainExternalCommands(transport, 200_000);
+        assertTrue(transport.sent.isEmpty());
+        assertEquals(0, driver.lastEscapeSentAt());
+    }
+
+    @Test
+    void escapeStillHonorsServerHoldAndExternalSafetyGate() {
+        transport.menu = true;
+        transport.escapeClose = true;
+        transport.holdUntil = 130_000;
+        driver.sendEscapeWhenClear(transport, "rtp", 100_000, true);
+        driver.drainExternalCommands(transport, 129_999);
+        assertEquals(0, transport.closes);
+        driver.setExternalAllowed(false);
+        driver.drainExternalCommands(transport, 130_000);
+        assertEquals(0, transport.closes);
+        driver.setExternalAllowed(true);
+        driver.drainExternalCommands(transport, 131_000);
+        assertEquals(1, transport.closes);
+        driver.drainExternalCommands(transport, 132_000);
+        assertEquals(List.of("rtp"), transport.sent);
+    }
+
+    @Test
+    void onlyKnownTradingPagesWithEmptyCursorCanCloseForEscape() {
+        assertTrue(AutomatedExecutionDriver.escapeMenuMayClose("Your Orders", true));
+        assertTrue(AutomatedExecutionDriver.escapeMenuMayClose("Auction House", true));
+        assertFalse(AutomatedExecutionDriver.escapeMenuMayClose("Your Orders", false));
+        assertFalse(AutomatedExecutionDriver.escapeMenuMayClose("Confirm Auction Purchase", true));
+        assertFalse(AutomatedExecutionDriver.escapeMenuMayClose("Large Chest", true));
+        assertFalse(AutomatedExecutionDriver.escapeMenuMayClose("RTP", true));
+    }
+
+    @Test
     void queuedSaleCannotUseAnEmptyOrChangedHandAfterTheDelay() throws Exception {
         activateListing();
         set("lastCommandSentAt",100_000L);
@@ -213,11 +294,13 @@ class AutomatedExecutionDriverCommandTest {
     private static final class FakeTransport implements AutomatedExecutionDriver.CommandTransport {
         boolean menu;
         boolean stickyMenu;
+        boolean escapeClose;
         int closes;
         long holdUntil;
         String listingBlocker;
         final List<String> sent = new ArrayList<>();
         public boolean menuOpen() { return menu; }
+        public boolean escapeMenuMayClose() { return escapeClose; }
         public long notBeforeMillis() { return holdUntil; }
         public String listingBlocker() { return listingBlocker; }
         public void closeMenu() { closes++; if (!stickyMenu) menu = false; }
