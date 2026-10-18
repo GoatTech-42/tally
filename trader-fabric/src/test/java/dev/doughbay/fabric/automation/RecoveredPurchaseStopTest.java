@@ -9,6 +9,15 @@ import java.lang.reflect.Field;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RecoveredPurchaseStopTest {
+    @Test void rejectedPlayerResumeRetainsTheExplicitStop() throws Exception {
+        var controller = recoveredController();
+        set(controller, "pausedByPlayer", true);
+        set(controller, "recoveredSession", false);
+        set(controller, "pauseResumable", false);
+        assertFalse(controller.resumeFromPlayer().ok());
+        assertEquals("explicit player stop", controller.queuedStockBlocker(10_000, true, false, null));
+        assertFalse(controller.mayAutoListRecoveredPurchase(1_000_000));
+    }
     @Test
     void queuedStockWaitsBeforeTakingOwnershipWhileInventoryOrProtectionIsBusy() throws Exception {
         var controller=recoveredController();set(controller,"armed",true);
