@@ -35,10 +35,19 @@ final class ItemLists {
             if (!n.isEmpty()) tokens.add(n);
         }
         boolean changed = false;
+        boolean exactSelection = key.equals("items.allow") || key.equals("items.deny");
         for (String raw : ids) {
             String id = Tuning.normalizeItem(raw);
+            if (exactSelection && id.startsWith("=")) id = id.substring(1);
             if (id.isEmpty()) continue;
-            changed |= add ? tokens.add(id) : tokens.remove(id);
+            if (add) {
+                // A clicked item is one item, not a suffix rule such as all *_glass.
+                // Existing manually entered category rules remain untouched.
+                changed |= tokens.add(exactSelection ? "=" + id : id);
+            } else {
+                changed |= tokens.remove(id);
+                if (exactSelection) changed |= tokens.remove("=" + id);
+            }
         }
         if (changed) Tuning.setText(key, String.join(", ", tokens));
         return changed;

@@ -161,16 +161,17 @@ class WebPagesTest {
             assertTrue(out.path("ok").asBoolean());
             assertEquals("Excluded 2 item(s)", out.path("note").asText());
             assertEquals(Set.of("diamond"), Tuning.itemSet("items.allow"));
-            assertEquals(Set.of("emerald", "golden_apple"), Tuning.itemSet("items.deny"));
+            assertEquals(Set.of("=emerald", "=golden_apple"), Tuning.itemSet("items.deny"));
             assertEquals(2, out.path("deny").size());
             assertEquals("diamond", out.path("allow").get(0).asText());
 
             WebPages.itemsChange("golden_apple", "include");
-            assertEquals(Set.of("diamond", "golden_apple"), Tuning.itemSet("items.allow"));
-            assertEquals(Set.of("emerald"), Tuning.itemSet("items.deny"));
+            assertEquals(Set.of("diamond", "=golden_apple"), Tuning.itemSet("items.allow"));
+            assertFalse(Tuning.buyingAllowed("minecraft:enchanted_golden_apple"));
+            assertEquals(Set.of("=emerald"), Tuning.itemSet("items.deny"));
 
             WebPages.itemsChange("emerald,diamond", "clear");
-            assertEquals(Set.of("golden_apple"), Tuning.itemSet("items.allow"));
+            assertEquals(Set.of("=golden_apple"), Tuning.itemSet("items.allow"));
             assertEquals(Set.of(), Tuning.itemSet("items.deny"));
 
             JsonNode tracked = json(WebPages.itemsChange("beacon", "track"));
@@ -287,7 +288,7 @@ class WebPagesTest {
             assertTrue(json(WebPages.rivalMarkets(s, "TraderOne", "track")).path("ok").asBoolean());
             assertEquals(Set.of("emerald", "diamond", "beacon"), Tuning.itemSet("watch.tracked"));
             assertTrue(json(WebPages.rivalMarkets(s, "TraderOne", "include")).path("ok").asBoolean());
-            assertEquals(Set.of("emerald", "diamond", "beacon"), Tuning.itemSet("items.allow"));
+            assertEquals(Set.of("emerald", "=diamond", "=beacon"), Tuning.itemSet("items.allow"));
             assertEquals(Set.of(), Tuning.itemSet("items.deny"));
             // Someone with no trades seen has no markets to take.
             assertFalse(json(WebPages.rivalMarkets(s, "Seller_Two", "track")).path("ok").asBoolean());
