@@ -362,10 +362,11 @@ public final class CommunityClient {
         if(body!=null)builder.header("Content-Type","application/json").method(method,HttpRequest.BodyPublishers.ofString(body.toString()));else builder.method(method,HttpRequest.BodyPublishers.noBody());
         try{dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(builder.build(),HttpResponse.BodyHandlers.ofByteArray());lastHttpStatus=response.statusCode();if(response.statusCode()>=200&&response.statusCode()<300)dev.doughbay.fabric.SwarmActivity.received();if(response.statusCode()==429&&CommunityQueryBackoff.query(method,path))queryBackoff.defer(System.currentTimeMillis(),response.headers().firstValue("Retry-After").orElse("60"));if(response.statusCode()>=400)lastServiceFailure=System.currentTimeMillis();
             if(response.statusCode()==429&&!CommunityQueryBackoff.query(method,path))serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));
+            dev.doughbay.fabric.ActionTrace.INSTANCE.httpResult(response.statusCode());
             if(response.statusCode()>=500)throw new java.io.IOException("Service unavailable");
             if(response.statusCode()>=200&&response.statusCode()<300)serviceRetry.success();
             return response;}
-        catch(Exception error){lastServiceFailure=System.currentTimeMillis();throw error;}
+        catch(Exception error){dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.COMMUNITY_UPLOAD,error,System.currentTimeMillis());lastServiceFailure=System.currentTimeMillis();throw error;}
     }
     private JsonNode json(HttpResponse<byte[]> response)throws Exception{
         if(response.body().length>2*1024*1024)throw new IllegalArgumentException();return DashboardProtocol.JSON.readTree(response.body());
@@ -472,6 +473,7 @@ public final class CommunityClient {
                 .header("Content-Type","application/json").header("Idempotency-Key",pending.path("key").asText()).POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
         dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(request,HttpResponse.BodyHandlers.ofByteArray());if(response.statusCode()==200||response.statusCode()==202)dev.doughbay.fabric.SwarmActivity.received();if(!enabled||generation.get()!=own)return;
         int code=response.statusCode();lastHttpStatus=code;if(code>=400)lastServiceFailure=System.currentTimeMillis();
+        dev.doughbay.fabric.ActionTrace.INSTANCE.httpResult(code);
         if(code==200||code==202){var result=json(response);if(!result.path("replay").asBoolean())accepted+=result.path("accepted").asLong();rejected+=result.path("rejected").size();for(var failure:result.path("rejected")){String reason=failure.path("code").asText();if(reason.matches("[a-z_]{1,48}")&&rejectionCodes.size()<32)rejectionCodes.merge(reason,1L,Long::sum);}eligible=result.path("eligible").asBoolean();lastUpload=System.currentTimeMillis();lastUploadScope=body.path("region").asText();failures=0;status="Shadow active; local scanning unchanged";acknowledgeOrderBatch(CommunityOrderReceipt.successfulBatch(result,body.path("records").size()));clearPending();}
         else if(code==429){nextUpload=System.currentTimeMillis()+retryAfter(response);status="Upload rate limited; local scanning continues";}
         else if(code>=500){nextUpload=System.currentTimeMillis()+Math.min(600_000,10_000L<<Math.min(6,failures++));status="Upload retry pending; local scanning continues";}

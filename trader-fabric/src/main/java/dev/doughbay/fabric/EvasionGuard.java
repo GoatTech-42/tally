@@ -1137,6 +1137,7 @@ public final class EvasionGuard {
             if (client.getConnection() == null) return;
             boolean useHomes = Tuning.get("evasion.use_homes") >= .5;
             var route = EvasionRoute.action(escapeMode(), useHomes, !SafeHomes.homes().isEmpty());
+            ActionTrace.INSTANCE.record(ActionTrace.Scope.EVASION,ActionTrace.Event.REQUEST,route,"PROTECTIVE_HOLD",-1,-1,-1);
             if (route == EvasionRoute.Action.PAUSE) {
                 teleportedAt = 0;
                 triggered = true;

@@ -78,6 +78,7 @@ public final class ReconnectController {
   if(mc.level!=null&&!mc.hasSingleplayerServer()&&mc.getCurrentServer()!=null){target=mc.getCurrentServer();cancelledByUser=false;donutSession=DonutServer.matches(target.ip);}
   regionEscape.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect&&WatchConfig.get().regionSwitch);
   flow.tick(donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect,WatchConfig.get().reconnectAddress(),dev.doughbay.fabric.DoughBayClient.restartOwnsConnection());
+  dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.RESTART,dev.doughbay.fabric.ActionTrace.Event.PHASE,flow.phase(),"NONE",-1,-1,-1);
   if(!WatchConfig.get().enabled||!WatchConfig.get().autoDisconnect||cancelledByUser){tradingResume.cancel();return;}
   if(tradingResume.pending()){
    var session=dev.doughbay.fabric.DoughBayClient.automationSessionController();

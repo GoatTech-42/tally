@@ -137,7 +137,7 @@ public final class WebReports {
                 BugReportPrivacy.clean(dev.doughbay.fabric.proxy.ProxyAccess.redact(expected)), BugReportDiagnostics.readCountersForReport(path));
             // Preview is local and must work during a reporting-service outage.
             // Delivery validates capabilities later and retains the frozen draft.
-            String log = BugReportEvidence.readForReport(path);
+            String log = BugReportEvidence.readForReport(path,payload.description());
             payload.json(log);
             return new Prepared(payload, log);
     }

@@ -28,15 +28,20 @@ final class HivePanel {
         }).bounds(x,y+65,half,22).build();
         use.active=!detected.isEmpty();add.accept(use);
         var create=CockpitButton.builder(Component.literal(member==null?"Create hive & copy code":"Copy hive code"),b->{
+            ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REQUEST,ActionTrace.Code.CREATE,"NONE",-1,-1,-1);
             try {
-                if(Minecraft.getInstance().getConnection()!=null) throw new java.io.IOException(DISCONNECT_HELP);
+                if(Minecraft.getInstance().getConnection()!=null) {
+                    ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REFUSED,ActionTrace.Code.CREATE,"OFFLINE_REQUIRED",-1,-1,-1);
+                    throw new java.io.IOException(DISCONNECT_HELP);
+                }
                 if(member==null) {
                     if(!detected.isEmpty()&&System.currentTimeMillis()>createConfirmUntil){createConfirmUntil=System.currentTimeMillis()+8000;note="A hive already exists on this PC. Use existing hive to join it. Only click Create again within 8 seconds if you want a separate hive.";rebuild.run();return;}
                     member=HiveSetup.create(game(),DoughBayClient.activeConfig().directory(),DoughBayClient.account());HiveSetup.register(member);
                 }
                 Minecraft.getInstance().keyboardHandler.setClipboard(HiveSetup.code(member));
                 note="Code copied. Restart this instance, then paste it in the second instance's Hive tab.";
-            } catch(Exception e) { note=message(e); }
+                ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.SUCCEEDED,ActionTrace.Code.CREATE,"NONE",-1,-1,-1);
+            } catch(Exception e) { note=message(e); if(Minecraft.getInstance().getConnection()==null)FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis()); }
             rebuild.run();
         }).bounds(x+half+8,y+65,half,22).build();
         // Keep the action reachable: a disabled button could not explain the required offline route.
@@ -47,11 +52,15 @@ final class HivePanel {
         code.setMaxLength(12000);code.setValue(input);code.setResponder(s->input=s);add.accept(code);
         add.accept(CockpitButton.builder(Component.literal("Paste code"),b->code.setValue(Minecraft.getInstance().keyboardHandler.getClipboard())).bounds(x,y+163,half,22).build());
         var join=CockpitButton.builder(Component.literal(member==null?"Review joining hive":"Review combining hives"),b->{
+            ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REQUEST,ActionTrace.Code.JOIN,"NONE",-1,-1,-1);
             try {
-                if(Minecraft.getInstance().getConnection()!=null) throw new java.io.IOException(DISCONNECT_HELP);
+                if(Minecraft.getInstance().getConnection()!=null) {
+                    ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REFUSED,ActionTrace.Code.JOIN,"OFFLINE_REQUIRED",-1,-1,-1);
+                    throw new java.io.IOException(DISCONNECT_HELP);
+                }
                 HiveSetup.decode(code.getValue());
                 Minecraft.getInstance().gui.setScreen(new HiveCombineScreen(Minecraft.getInstance().gui.screen(),code.getValue()));return;
-            } catch(Exception e) { note=message(e); }
+            } catch(Exception e) { note=message(e); if(Minecraft.getInstance().getConnection()==null)FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis()); }
             rebuild.run();
         }).bounds(x+half+8,y+163,half,22).build();
         join.setTooltip(Tooltip.create(Component.literal(member==null?DISCONNECT_HELP:"Select the other hive above or paste its code, then review combining. Both original histories and per-account settings are preserved; both instances must be closed for the startup import.")));

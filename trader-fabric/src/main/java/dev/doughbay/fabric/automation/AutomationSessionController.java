@@ -2788,6 +2788,7 @@ public final class AutomationSessionController {
     public synchronized String bugReportContext(long now) {
         var out=new StringBuilder("Controller context (fixed keys, no identities)\n");
         out.append("ctx captured_at_ms=").append(now).append('\n');
+        out.append(driver.bugReportContext(now));
         out.append("ctx session_elapsed_ms=").append(reportAge(now,sessionStartedAtMillis)).append(" queued_action=")
                 .append(deskQueue.isEmpty()?"NONE":deskQueue.peekFirst().action().name()).append('\n');
         out.append(reportInventory.report(now));
@@ -2832,6 +2833,9 @@ public final class AutomationSessionController {
             return;
         }
         AutomationPersistencePort.Status status = persistence.status();
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.PERSISTENCE,
+                status.refusalOutstanding()?dev.doughbay.fabric.ActionTrace.Event.REFUSED:dev.doughbay.fabric.ActionTrace.Event.OBSERVATION,
+                status.loadState(),status.refusalOutstanding()?"PERSISTENCE_REFUSED":status.ready()?"NONE":"PERSISTENCE_WAIT",-1,-1,-1);
         persistenceStatus = status.loadState().name() + " â€” " + status.detail();
         if (!status.ready() || recoveryApplied) return;
 
@@ -4875,10 +4879,16 @@ public final class AutomationSessionController {
     private long reportDeskGateAt,reportFlipGateAt;
     private String reportResumeGate="NOT_ATTEMPTED";
     private long reportResumeGateAt;
-    private void reportResumeGate(String code,long now) {reportResumeGate=code;reportResumeGateAt=now;}
+    private void reportResumeGate(String code,long now) {
+        reportResumeGate=code;reportResumeGateAt=now;
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.RECOVERY,
+                dev.doughbay.fabric.ActionTrace.Event.REFUSED,state,code,-1,-1,-1);
+    }
 
     private boolean deskBlocked(String gate) {
         reportDeskGate=dev.doughbay.fabric.BugReportReason.classify(gate);
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DESK,
+                dev.doughbay.fabric.ActionTrace.Event.REFUSED,deskQueue.isEmpty()?dev.doughbay.fabric.ActionTrace.Code.NONE:deskQueue.peekFirst().action(),reportDeskGate,-1,-1,-1);
         reportDeskGateAt=System.currentTimeMillis();
         bump(deskGate, gate);
         return false;
@@ -6751,6 +6761,8 @@ public final class AutomationSessionController {
     /** Why an item on the player's list is not being ordered just now, said once every five minutes. */
     private void ownPriceNote(String itemId, String reason, long now) {
         reportFlipGate=dev.doughbay.fabric.BugReportReason.classify(reason);
+        dev.doughbay.fabric.ActionTrace.INSTANCE.recordMarket(dev.doughbay.fabric.ActionTrace.Scope.FLIPS,
+                dev.doughbay.fabric.ActionTrace.Event.REFUSED,state,reportFlipGate,-1,-1,-1,itemId);
         reportFlipGateAt=now;
         if (now - ownPriceNotedAt.getOrDefault(itemId, 0L) < 5 * 60_000L) return;
         ownPriceNotedAt.put(itemId, now);
@@ -6839,6 +6851,10 @@ public final class AutomationSessionController {
                 if (unit <= 0) {
                     ownPriceNote(id, "the best order for it pays " + standing + " each, and being over that would pass your "
                             + own.buy(), now);
+                    dev.doughbay.fabric.ActionTrace.INSTANCE.recordMarket(dev.doughbay.fabric.ActionTrace.Scope.FLIPS,
+                            dev.doughbay.fabric.ActionTrace.Event.REFUSED,DeskAction.QUOTE,"TOP_BID_CEILING",-1,standing,own.buy(),id);
+                    dev.doughbay.fabric.ActionTrace.INSTANCE.recordMarket(dev.doughbay.fabric.ActionTrace.Scope.FLIPS,
+                            dev.doughbay.fabric.ActionTrace.Event.OBSERVATION,dev.doughbay.fabric.ActionTrace.Code.TOP_BID_INCREMENT,"NONE",-1,own.over(),own.buy(),id);
                     // A ceiling rejection must not pin a Flip to the old
                     // market price for the ordinary 15-minute quote lifetime.
                     // Refresh on a later desk pass, rate-limited like the
@@ -13614,6 +13630,8 @@ public final class AutomationSessionController {
     }
 
     private void transition(State next, String message) {
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.CONTROLLER,
+                dev.doughbay.fabric.ActionTrace.Event.STATE,next,dev.doughbay.fabric.BugReportReason.classify(message),-1,-1,-1);
         accrueActiveRuntime();
         // Automatic purchase recovery and own-listing adoption can return to
         // active trading without passing through start()/resume(). Preserve

@@ -312,6 +312,7 @@ public final class HostedDashboardClient {
         }));
     }
     private void failed(String message){
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.RETRY,dev.doughbay.fabric.ActionTrace.Code.SOCKET,"IO_FAILURE",-1,-1,-1);
         staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
@@ -322,6 +323,7 @@ public final class HostedDashboardClient {
         if(link!=null)view=new View(true,false,false,link.name,message,nextConnect);
     }
     private void revoked(){
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.REFUSED,dev.doughbay.fabric.ActionTrace.Code.SOCKET,"AUTHORIZATION_HOLD",-1,-1,-1);
         staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();rankingSalt="";publishedAccountId="";
@@ -332,7 +334,7 @@ public final class HostedDashboardClient {
     private final class Listener implements WebSocket.Listener {
         private final long own;private final StringBuilder fragments=new StringBuilder();private int bytes;
         Listener(long own){this.own=own;}
-        @Override public void onOpen(WebSocket ws){ws.request(1);}
+        @Override public void onOpen(WebSocket ws){dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.CONNECTED,dev.doughbay.fabric.ActionTrace.Code.SOCKET,"NONE",-1,-1,-1);ws.request(1);}
         @Override public CompletionStage<?> onText(WebSocket ws,CharSequence data,boolean last){
             bytes+=data.toString().getBytes(StandardCharsets.UTF_8).length;
             if(bytes>DashboardProtocol.MAX_PANEL_FRAME_BYTES){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("Oversized dashboard message");});return null;}
@@ -342,10 +344,12 @@ public final class HostedDashboardClient {
         @Override public CompletionStage<?> onBinary(WebSocket ws,java.nio.ByteBuffer data,boolean last){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("Unsupported dashboard message");});return null;}
         @Override public CompletionStage<?> onClose(WebSocket ws,int code,String reason){worker.execute(()->{
             if(epochs.get()!=own)return;
+            var closeCode=switch(code){case 4401->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4401;case 4403->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4403;case 4409->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4409;case 1000->dev.doughbay.fabric.ActionTrace.Code.SOCKET_1000;case 1006->dev.doughbay.fabric.ActionTrace.Code.SOCKET_1006;default->dev.doughbay.fabric.ActionTrace.Code.SOCKET;};
+            dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.DISCONNECTED,closeCode,"IO_FAILURE",-1,-1,-1);
             if(code==4401||code==4403){revoked();return;}
             if(code==4409){SwarmRank.clear();rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(own);panel.disconnected(own);socket=null;welcome=false;connecting=false;nextConnect=Long.MAX_VALUE;view=new View(true,false,false,link.name,"Another process owns this link; reconnect only if intentional",0);return;}
             failed("Dashboard offline; reconnecting");
         });return null;}
-        @Override public void onError(WebSocket ws,Throwable error){worker.execute(()->{if(epochs.get()==own)failed("Dashboard connection failed; retrying");});}
+        @Override public void onError(WebSocket ws,Throwable error){worker.execute(()->{if(epochs.get()==own){dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.DASHBOARD_LINK,error,System.currentTimeMillis());failed("Dashboard connection failed; retrying");}});}
     }
 }

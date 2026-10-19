@@ -15,6 +15,8 @@ final class ListenerErrorReporter {
    }
 
    static synchronized void report(ListenerHandle<?> handle, Event event, Exception ex) {
+      dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.EVASION,
+         dev.doughbay.fabric.ActionTrace.Event.FAULT,handle.stage(),"UNCLASSIFIED",-1,-1,-1);
       int count = failureCounts.merge(handle, 1, Integer::sum);
       String owner = handle.owner() == null ? "<static>" : handle.owner().getClass().getName();
       if (count <= 4) {

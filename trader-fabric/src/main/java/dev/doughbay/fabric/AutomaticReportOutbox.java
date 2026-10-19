@@ -47,6 +47,8 @@ public final class AutomaticReportOutbox {
     }
     /** Validate regenerated lines again after a restart; never trust a locally edited excerpt. */
     static boolean validExcerpt(String log) {
+        if(log.getBytes(StandardCharsets.UTF_8).length>8192||log.split("\n",-1).length>200)return false;
+        if(log.startsWith("Controller context (fixed keys, no identities)\n")||log.startsWith("Current controller evidence: unavailable\n"))return validContextExcerpt(log);
         String prefix=BugReportLog.sanitize("");
         if(!log.startsWith(prefix) || log.getBytes(StandardCharsets.UTF_8).length>8192) return false;
         String events=log.substring(prefix.length());
@@ -61,6 +63,29 @@ public final class AutomaticReportOutbox {
             if(!line.matches("(?:\\[\\d{2}:\\d{2}:\\d{2}\\] )?(?:automation state=(?:SCANNING|BID_DESK|PREPARING_LIST|LISTING|MONITORING|COOLDOWN|PAUSED|STOPPED|IDLE|BUYING|REPRICING)|order action did not complete|connection ended \\(reason omitted\\)|evasion escape triggered \\(identity/location omitted\\)|restart recovery reported limbo|exception type=(?:SQLiteException|IllegalStateException|IllegalArgumentException|NullPointerException|IOException|SocketException|TimeoutException|ConnectException)(?: code=SQLITE_(?:BUSY_SNAPSHOT|BUSY|LOCKED|ERROR|CONSTRAINT|CORRUPT|IOERR|FULL|READONLY))?)")) return false;
         }
         return true;
+    }
+    private static boolean validContextExcerpt(String log) {
+        var seen=new HashSet<String>();boolean action=false,history=false;
+        for(String line:log.split("\n",-1)){
+            if(line.length()>500)return false;
+            if(line.isEmpty()||line.equals("Controller context (fixed keys, no identities)")||line.equals("Current controller evidence: unavailable"))continue;
+            if(line.startsWith("ctx ")){if(history||!ReportContextLine.valid(line,seen))return false;continue;}
+            if(line.equals("Action evidence v1 (newest per subsystem first; ages at capture; -1 unknown)")){if(action||history)return false;action=true;continue;}
+            if(line.startsWith("act ")){if(!action||history||!line.equals(ActionTrace.sanitizedLogLine("GoNuts action "+line)))return false;continue;}
+            if(line.equals("Filtered GoNuts diagnostic excerpt; messages, identities and locations omitted.")||line.equals("Sample: last 256 KiB, up to 100 recognized events/frames.")||line.equals("Sample: diagnostic log unavailable on this client.")){history=true;continue;}
+            if(line.startsWith("  at ")){String prefix=BugReportLog.sanitize("");if(!BugReportLog.sanitize(line).equals(prefix+line))return false;continue;}
+            if(!history||!safeHistorical(line))return false;
+        }
+        return true;
+    }
+    private static boolean safeHistorical(String line) {
+        String body=line.replaceFirst("^\\[\\d{2}:\\d{2}:\\d{2}\\] ","");
+        if(body.startsWith("act "))return body.equals(ActionTrace.sanitizedLogLine("GoNuts action "+body));
+        if(body.matches("automation state=(SCANNING|BID_DESK|PREPARING_LIST|LISTING|MONITORING|COOLDOWN|PAUSED|STOPPED|IDLE|BUYING|REPRICING)( reason=[A-Z_]+)?")){
+            int index=body.indexOf(" reason=");return index<0||ActionTrace.knownReason(body.substring(index+8));
+        }
+        if(Set.of("order placement completed","order action did not complete","recovery prolonged hold; exposure retained","connection ended (reason omitted)","evasion escape triggered (identity/location omitted)","restart recovery reported limbo").contains(body))return true;
+        return body.matches("exception type=(SQLiteException|IllegalStateException|IllegalArgumentException|NullPointerException|IOException|SocketException|TimeoutException|ConnectException)( code=SQLITE_(BUSY_SNAPSHOT|BUSY|LOCKED|ERROR|CONSTRAINT|CORRUPT|IOERR|FULL|READONLY))?");
     }
     public Optional<Pending> load(long now) throws IOException {
         if(!Files.exists(file)) return Optional.empty();

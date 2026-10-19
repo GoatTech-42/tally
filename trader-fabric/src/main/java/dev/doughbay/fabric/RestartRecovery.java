@@ -91,6 +91,7 @@ final class RestartRecovery {
                 client.level, SidebarBalance.freshSince(route.connectAt()), limboSeenAt,
                 session.serverRestarting(), safeToLeave));
         if (result.action() == RestartRoute.Action.NONE) return;
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.RESTART,ActionTrace.Event.RESULT,result.action(),"WORLD_RECOVERY_HOLD",-1,-1,-1);
         DoughBayClient.LOGGER.info("DoughBay restart: {}", result.detail());
         switch (result.action()) {
             case DISCONNECT -> leave(client);

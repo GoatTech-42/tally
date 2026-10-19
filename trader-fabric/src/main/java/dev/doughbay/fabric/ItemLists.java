@@ -124,12 +124,16 @@ final class ItemLists {
     }
 
     static void track(Collection<String> ids, boolean track) {
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.CONTROLLER,ActionTrace.Event.REQUEST,track?ActionTrace.Code.ITEM_TRACK:ActionTrace.Code.ITEM_UNTRACK,"NONE",ids.size(),-1,-1);
         seedTracked();
         edit("watch.tracked", ids, track);
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.CONTROLLER,ActionTrace.Event.RESULT,track?ActionTrace.Code.ITEM_TRACK:ActionTrace.Code.ITEM_UNTRACK,"NONE",tracked().size(),-1,-1);
     }
 
     static void track(Collection<String> ids, boolean track, Collection<String> fromConfig) {
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.CONTROLLER,ActionTrace.Event.REQUEST,track?ActionTrace.Code.ITEM_TRACK:ActionTrace.Code.ITEM_UNTRACK,"NONE",ids.size(),-1,-1);
         seedTracked(fromConfig);
         edit("watch.tracked", ids, track);
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.CONTROLLER,ActionTrace.Event.RESULT,track?ActionTrace.Code.ITEM_TRACK:ActionTrace.Code.ITEM_UNTRACK,"NONE",tracked(fromConfig).size(),-1,-1);
     }
 }
