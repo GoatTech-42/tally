@@ -156,6 +156,7 @@ public final class StaffListModule extends ClientModule {
    public void resetForRegionTransfer() { this.forgetShard(); this.shard.clear(); dev.doughbay.fabric.StaffWatchReport.observationBoundary(); }
 
    private void forgetShard() {
+      this.packetHealth.resetStaffBaselines();
       this.switches.clear();
       this.sightings.clear();
       this.pendingAlerts.clear();
@@ -274,6 +275,16 @@ public final class StaffListModule extends ClientModule {
       EnumSet<Action> actions = info.actions();
       this.packetHealth.received(actions.contains(Action.UPDATE_GAME_MODE), actions.contains(Action.ADD_PLAYER),
               info.entries().size(), System.currentTimeMillis());
+      // Count known-staff modes in full player-list updates without treating
+      // them as local evidence or feeding them to escape/alert decisions.
+      if (actions.contains(Action.UPDATE_GAME_MODE) && actions.contains(Action.ADD_PLAYER)) {
+         for (var entry : info.entries()) {
+            if (entry != null && entry.profile() != null && entry.gameMode() != null
+                  && entry.profileId() != null && isStaffName(entry.profile().name())) {
+               this.packetHealth.combinedStaff(entry.profileId(), entry.gameMode().getName());
+            }
+         }
+      }
       if (actions.contains(Action.UPDATE_GAME_MODE) && !actions.contains(Action.ADD_PLAYER)) {
          for (net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry entry : info.entries()) {
             if (entry != null && entry.profileId() != null) {

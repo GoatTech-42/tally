@@ -5257,7 +5257,7 @@ public final class DoughBayScreen extends Screen {
         // orders, listings, sales, payments and the guard. Optional.
         discordFeedField = new EditBox(this.font, x + half + 6, y, width - half - 6, 20, Component.literal("Activity channel id"));
         discordFeedField.setMaxLength(32);
-        discordFeedField.setHint(Component.literal("Activity feed channel id, optional"));
+        discordFeedField.setHint(Component.literal("Separate activity channel, optional"));
         discordFeedField.setValue(discordFeedDraft);
         discordFeedField.setResponder(v -> discordFeedDraft = v);
         addRenderableWidget(discordFeedField);
@@ -5336,6 +5336,12 @@ public final class DoughBayScreen extends Screen {
         String feed = discordFeedDraft == null ? "" : discordFeedDraft.strip();
         if (!feed.isEmpty() && !feed.matches("[0-9]{5,}")) {
             discordMessage = "The activity channel id is a number: right-click that channel and copy its id, or leave it empty";
+            discordMessageColor = WARN;
+            rebuildWidgets();
+            return;
+        }
+        if (!feed.isEmpty() && feed.equals(channel)) {
+            discordMessage = "Use a separate activity channel; the panel channel is reserved for its embed. Leave activity blank for webhook alerts only.";
             discordMessageColor = WARN;
             rebuildWidgets();
             return;
