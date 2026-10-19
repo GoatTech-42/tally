@@ -5,6 +5,37 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AuctionWatchBudgetTest {
+    @Test void driverChecksTheModeBeforeReadingOrClickingTheNextAuctionPage() throws Exception {
+        double previous = Tuning.get("prices.only");
+        try {
+            Tuning.set("prices.only", 1);
+            var driver = watching(100_000);
+            var tick = AutomatedExecutionDriver.class.getDeclaredMethod("tickWaitingForListing", net.minecraft.client.Minecraft.class);
+            tick.setAccessible(true);
+            tick.invoke(driver, new Object[]{null});
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED, driver.lastTerminalEvent().outcome());
+            assertFalse(driver.lastTerminalEvent().confirmationSubmitted());
+            assertFalse(driver.watchHasNotClicked());
+        } finally { Tuning.set("prices.only", previous); }
+    }
+
+    @Test void modeChangeEndsOnlyAReadingWatchWithoutServerFailureOrCharge() throws Exception {
+        ServerStrain.reset();
+        try {
+            var reading = watching(100_000);
+            assertTrue(reading.cancelUnclickedWatch(null, "Flips only enabled"));
+            assertFalse(reading.lastTerminalEvent().confirmationSubmitted());
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED, reading.lastTerminalEvent().outcome());
+            assertFalse(reading.watchHasNotClicked());
+            assertFalse(ServerStrain.holding());
+            var clicked = watching(100_000);
+            field("targetItemId").set(clicked, "minecraft:emerald_block");
+            assertFalse(clicked.cancelUnclickedWatch(null, "Flips only enabled"));
+            assertEquals(0, clicked.lastTerminalEvent().sequence());
+            assertEquals("minecraft:emerald_block", clicked.watchClickedItemId());
+        } finally { ServerStrain.reset(); }
+    }
+
     @Test void entireWatchYieldsAtDeadlineAcrossRepeatedLooks() throws Exception {
         double prior = Tuning.get("watch.session_max_sec");
         try {

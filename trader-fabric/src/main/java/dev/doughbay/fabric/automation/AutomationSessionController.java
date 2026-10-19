@@ -2284,6 +2284,13 @@ public final class AutomationSessionController {
             transition(State.SCANNING, dev.doughbay.fabric.FlipsMode.description());
             return;
         }
+        if (ownOnly() && watchBuy && state == State.BUYING && buyCommandStarted
+                && driver.cancelUnclickedWatch(client,
+                "Flips only enabled: ending the general auction watch; nothing was charged")) {
+            // Its ordinary terminal receipt releases the durable intent on the next tick.
+            // A selected row cannot take this path and must finish reconciliation.
+            return;
+        }
         // A stop/resume or recovery transition can invalidate a partially
         // completed split. Never carry its old click stage into another state.
         if (isRunning() && singlePeelStage >= 0
@@ -10193,6 +10200,11 @@ public final class AutomationSessionController {
     }
 
     private void beginWatchBuy(Minecraft client, long now) {
+        if (ownOnly()) {
+            clearPendingCandidate();
+            detail = dev.doughbay.fabric.FlipsMode.description();
+            return;
+        }
         if (closeStrayAuctionPage(client)) return;
         if (!safeInventoryContext(client) && !modScreenOpen(client)) {
             detail = "Waiting before buying: " + guiBlockerDescription(client);
@@ -10266,6 +10278,10 @@ public final class AutomationSessionController {
                                     MarketWatcher.Snapshot marketSnapshot,
                                     long now) {
         if (!buyCommandStarted) {
+            if (watchBuy && ownOnly()) {
+                abandonBuyAndRescan("Flips only enabled before the auction watch was dispatched");
+                return;
+            }
             if (!persistence.status().durable(buyIntentPersistenceGeneration)) {
                 detail = "Waiting for durable BUY intent; no auction command has been sent";
                 return;

@@ -17,6 +17,31 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class AutomationSessionControllerPersistenceTest {
+    @Test void flipsOnlyModeReleasesAnUndispatchedWatchThroughADurableCheckpoint() throws Exception {
+        double previous = dev.doughbay.fabric.Tuning.get("prices.only");
+        try {
+            dev.doughbay.fabric.Tuning.set("prices.only", 1);
+            var persistence = new FakePersistence();
+            var c = new AutomationSessionController(new AutomatedExecutionDriver());
+            c.setPersistence(persistence);
+            setField(c, "state", AutomationSessionController.State.BUYING);
+            setField(c, "sessionOpen", true);
+            setField(c, "watchBuy", true);
+            setField(c, "buyCommandStarted", false);
+            setField(c, "buyIntentPersistenceGeneration", 1L);
+            setField(c, "committedSpend", 12345L);
+            var method = AutomationSessionController.class.getDeclaredMethod("observeBuyTerminal",
+                    net.minecraft.client.Minecraft.class, dev.doughbay.fabric.MarketWatcher.Snapshot.class, long.class);
+            method.setAccessible(true);
+            method.invoke(c, null, null, 1000L);
+            assertEquals(AutomationSessionController.State.SCANNING, field(c, "state"));
+            assertEquals(false, field(c, "watchBuy"));
+            assertEquals(0L, field(c, "buyIntentPersistenceGeneration"));
+            assertEquals(12345L, field(c, "committedSpend"));
+            assertEquals(1, persistence.submissions.get(), "release must be queued durably, never silently cleared");
+        } finally { dev.doughbay.fabric.Tuning.set("prices.only", previous); }
+    }
+
 
     @Test void collectedBatchRetainsBothStacksAndAllCostBeforeListing() throws Exception {
         checkCollectedBatch(false);
