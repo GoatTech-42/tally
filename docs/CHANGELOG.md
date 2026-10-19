@@ -4,6 +4,15 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 16:30 UTC
+
+- Release PR #149: Analyzer now has a guided overview, compact baseline cards and separate evidence, next-step and estimate sections, with matching browser guidance. Suggested presets remain a separate save/review/apply decision.
+- Hive setup separates Link accounts from Share this hive, lets you cycle through detected hives, and provides clear combination steps and scrollable help. Both original histories and separate settings are preserved.
+- Combination startup failures now explain supported failure categories rather than always blaming restart order. A malformed queued request no longer throws again inside its error handler; original ledgers and incomplete-publication safety checks remain intact.
+- Related to report #148. The UI and demonstrated failure-reporting defects are addressed; the cause of the reporter's original failed combination is unconfirmed. Verified with 1,333 tests, zero failures/errors, one skip, and isolated offline native previews. No live user bots were updated or controlled.
+- Client artifact published October 19 at 09:30:53 Los Angeles time (16:30:53 UTC). Build 1792427444712; SHA256: `5568ee9e180765f6cbee4296d703c8d5d8ece5953a26e15fe1b64d4ef92fd085`. This is a separate client update from PR #146; the production package has no smoke entrypoints/classes.
+
+
 ## 2026-10-19 14:59 UTC
 
 - Release PR #146: A refused Resume request now preserves the session's existing automatic recovery authorization. Previously, pressing Resume during an ineligible pause or while disconnected could silently disarm the session and prevent evasion/restart recovery from continuing later.
