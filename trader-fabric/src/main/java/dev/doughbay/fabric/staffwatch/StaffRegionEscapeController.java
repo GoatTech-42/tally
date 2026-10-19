@@ -147,6 +147,8 @@ final class StaffRegionEscapeController {
             mc().getConnection().send(new ServerboundCommandSuggestionPacket(discoveryId, "rtp "));
         }
         flow.tick(enabled);
+        dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.EVASION,
+                dev.doughbay.fabric.ActionTrace.Event.PHASE,flow.phase(),"NONE",-1,-1,-1);
     }
     String evasionRtpCommand() {
         long age=System.currentTimeMillis()-regionsAt;

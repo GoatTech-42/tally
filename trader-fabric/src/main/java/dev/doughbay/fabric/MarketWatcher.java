@@ -599,11 +599,13 @@ public final class MarketWatcher {
                     boolean noKey = key == null || key.isBlank();
                     if (FlipsMode.only() || mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
                         faultStage=FaultTrace.Stage.MARKET_KEYLESS;
+                        ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.REQUEST,ActionTrace.Code.KEYLESS,"NONE",-1,-1,-1);
                         runKeyless(mode == 2 && !noKey);
                         failures = 0;
                         apiFailures = 0;
                         continue;
                     }
+                    ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.REQUEST,ActionTrace.Code.API,"NONE",-1,-1,-1);
                     runOnce();
                     if(FlipsMode.only())continue;
                     return;   // stopped on purpose
@@ -615,6 +617,7 @@ public final class MarketWatcher {
                     failures++;
                     if (!KeylessFeed.active()) apiFailures++;
                     long wait = Math.min(120_000L, 15_000L * failures);
+                    ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.RETRY,faultStage,"IO_FAILURE",failures,-1,-1);
                     DoughBayClient.LOGGER.warn("DoughBay market watcher failed ({}); starting it again in {} s",
                             e.toString(), wait / 1000);
                     setStatus("RETRYING in " + wait / 1000 + " s: " + e);
@@ -708,6 +711,7 @@ public final class MarketWatcher {
                     latest.updateAndGet(current -> new Snapshot(signals, List.of(), markets, List.of(),
                             Map.of(), Map.of(), current.exactListingCoverage(), name, balance, status,
                             Diagnostics.empty("keyless"), now, now, false));
+                    ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.SUCCEEDED,ActionTrace.Code.KEYLESS,"NONE",markets.size(),-1,-1);
                     DoughBayClient.LOGGER.info("DoughBay keyless: {} market(s) valued, {} signal(s), {} sale(s) observed in the last hour",
                             markets.size(), signals.size(), feed.writtenLastHour(now));
                     // Exact active-book coverage is an API listing scan; there
@@ -979,6 +983,7 @@ public final class MarketWatcher {
                         publishedName, publishedBalance,
                         status,
                         diagnostics, activeListingScanStartedAt, completedAt, false));
+                ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.SUCCEEDED,ActionTrace.Code.API,"NONE",publishedMarkets.size(),-1,-1);
                 // How much of the key we are actually spending. Raising the
                 // budget only buys anything if the sweep was hitting it, and
                 // the only way to know that from outside is to say so.

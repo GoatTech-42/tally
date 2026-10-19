@@ -29,20 +29,30 @@ public final class BugReportLog {
     private BugReportLog() { }
     /** Every report gets filtered evidence or a fixed availability marker, never raw exception/path text. */
     public static String readForReport(Path path) {
-        try { return read(path); }
+        return readForReport(path,ReportTopic.GENERAL);
+    }
+    public static String readForReport(Path path,ReportTopic topic) {
+        try { return read(path,topic); }
         catch (IOException | RuntimeException e) { return UNAVAILABLE; }
     }
     public static String read(Path path) throws IOException {
+        return read(path,ReportTopic.GENERAL);
+    }
+    private static String read(Path path,ReportTopic topic) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(path.toFile(), "r")) {
             long end = file.length(), start = Math.max(0, end - 262144);
             file.seek(start); byte[] bytes = new byte[(int)(end-start)]; file.readFully(bytes);
             String text = new String(bytes, StandardCharsets.UTF_8);
             if (start > 0) {int line = text.indexOf('\n'); text = line < 0 ? "" : text.substring(line+1);}
-            return sanitize(text);
+            return sanitize(text,topic);
         }
     }
     public static String sanitize(String text) {
+        return sanitize(text,ReportTopic.GENERAL);
+    }
+    public static String sanitize(String text,ReportTopic topic) {
         var lines = new ArrayDeque<String>();
+        var focused = new ArrayDeque<String>();
         String previousState = null;
         for (String raw : text.split("\\R")) {
             if (raw.contains("[CHAT]") || raw.contains("Authorization") || raw.contains("Bearer ")) continue;
@@ -62,7 +72,9 @@ public final class BugReportLog {
                 var time = TIME.matcher(raw);
                 String prefix = time.find() ? "[" + time.group(1) + "] " : "";
                 var state = STATE.matcher(raw);
-                if (state.find()) {
+                String action=ActionTrace.sanitizedLogLine(raw);
+                if(action!=null)out=prefix+action;
+                else if (state.find()) {
                     String current = state.group(1);
                     String reason = "";
                     if (current.equals("PAUSED") || current.equals("STOPPED")) {
@@ -89,9 +101,18 @@ public final class BugReportLog {
                 }
             }
             if (out != null && out.length() <= 500 && (lines.isEmpty() || !lines.peekLast().equals(out))) {
-                lines.add(out);
-                while (lines.size() > 100 || String.join("\n", lines).getBytes(StandardCharsets.UTF_8).length > MAX_BYTES - 160) lines.removeFirst();
+                var target=topic!=ReportTopic.GENERAL&&topic.relevant(out)?focused:lines;
+                if(target.isEmpty()||!target.peekLast().equals(out))target.add(out);
+                while (target.size() > 100 || String.join("\n", target).getBytes(StandardCharsets.UTF_8).length > MAX_BYTES - 160) target.removeFirst();
             }
+        }
+        if(topic!=ReportTopic.GENERAL){
+            var selected=new ArrayDeque<String>();
+            var candidates=new java.util.ArrayList<>(focused);java.util.Collections.reverse(candidates);
+            var other=new java.util.ArrayList<>(lines);java.util.Collections.reverse(other);candidates.addAll(other);
+            int bytes=0;
+            for(String line:candidates){int size=line.getBytes(StandardCharsets.UTF_8).length+1;if(selected.size()<100&&bytes+size<=MAX_BYTES-160){selected.add(line);bytes+=size;}}
+            lines=selected;
         }
         return "Filtered GoNuts diagnostic excerpt; messages, identities and locations omitted.\nSample: last 256 KiB, up to 100 recognized events/frames.\n" + String.join("\n", lines);
     }

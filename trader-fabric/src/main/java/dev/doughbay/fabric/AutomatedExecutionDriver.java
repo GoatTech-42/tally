@@ -2660,6 +2660,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         return lastTerminalEvent;
     }
 
+    public synchronized String bugReportContext(long now) {
+        return "ctx driver_phase="+phase.name()+" driver_phase_age_ms="+(phaseStartedAtMillis<=0||now<phaseStartedAtMillis?-1:now-phaseStartedAtMillis)
+                +" driver_watch="+watching+" driver_watch_age_ms="+(watchStartedAtMillis<=0||now<watchStartedAtMillis?-1:now-watchStartedAtMillis)+"\n"
+                +"ctx driver_target_count="+targetCount+" driver_target_price="+targetPrice+" driver_target_ceiling="+targetCeiling
+                +" driver_cheapest_visible="+lastCheapestVisible+"\n";
+    }
+
     @Override
     public synchronized ExecutionResult buy(Opportunity requested) {
         if (!authorizedExecutionEnabled) {
@@ -3925,11 +3932,21 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 if (ItemDescriptor.of(stack).hasParts()) continue;
                 seen++;
                 PriceEvidence price = authoritativePriceEvidence(rowTooltip);
-                if (!price.sawAuthoritativeField() || price.unclear()) continue;
+                if (!price.sawAuthoritativeField() || price.unclear()) {
+                    ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER,ActionTrace.Event.REFUSED,OperationIntent.BUY,"UNCLEAR_PRICE",stack.getCount(),-1,target.ceiling(),id);
+                    continue;
+                }
                 long displayed = price.displayed();
                 long band = price.band();
-                if (displayed + band - 1 > target.ceiling()) continue;
-                if (isGhost(id + "|" + stack.getCount() + "|" + displayed)) continue;
+                if (displayed + band - 1 > target.ceiling()) {
+                    ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER,ActionTrace.Event.REFUSED,OperationIntent.BUY,"ABOVE_CEILING",stack.getCount(),displayed + band - 1,target.ceiling(),id);
+                    continue;
+                }
+                if (isGhost(id + "|" + stack.getCount() + "|" + displayed)) {
+                    ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER,ActionTrace.Event.REFUSED,OperationIntent.BUY,"GHOST_ROW",stack.getCount(),displayed,target.ceiling(),id);
+                    continue;
+                }
+                ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER,ActionTrace.Event.OBSERVATION,OperationIntent.BUY,"NONE",stack.getCount(),displayed,target.ceiling(),id);
                 // The page is sorted newest first. The newest qualifying row has
                 // had the least time to be bought by someone else, so it is the
                 // least likely ghost; the cheapest row is the most likely one.
@@ -6341,6 +6358,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void enterPhase(Phase next, String message) {
+        ActionTrace.INSTANCE.record(ActionTrace.Scope.DRIVER, ActionTrace.Event.PHASE, next,
+                BugReportReason.classify(message), targetCount, targetPrice, targetCeiling);
         phase = next;
         lastMessage = message;
         resetPhaseObservation();
@@ -6512,6 +6531,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (operation == Operation.NONE || outcome == null || outcome == TerminalOutcome.NONE) {
             return;
         }
+        ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER, ActionTrace.Event.valueOf(outcome.name()), operationIntent(),
+                outcome == TerminalOutcome.SUCCEEDED ? "NONE" : BugReportReason.classify(detail),
+                targetCount, targetPrice, targetCeiling,targetItemId);
         finishCommunityReadTiming(outcome==TerminalOutcome.SUCCEEDED);
         terminalSequence++;
         lastTerminalEvent = new TerminalEvent(

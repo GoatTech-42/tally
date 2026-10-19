@@ -18,9 +18,11 @@ final class HiveCombineScreen extends Screen {
                 var game=net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
                 var target=HiveSetup.decode(code);
                 if(HiveSetup.configured(game)==null){HiveSetup.create(game,DoughBayClient.activeConfig().directory(),DoughBayClient.account());}
+                ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REQUEST,ActionTrace.Code.COMBINE,"NONE",-1,-1,-1);
                 HiveCombine.queue(game,code);queued=true;
+                ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.RESULT,ActionTrace.Code.COMBINE,"PERSISTENCE_WAIT",-1,-1,-1);
                 message="Queued. Close BOTH Minecraft instances. Start THIS instance first; when it finishes importing, start the other. Originals stay intact.";
-            }catch(Exception e){message=e instanceof java.io.IOException||e instanceof java.sql.SQLException?e.getMessage():"Setup could not finish. Both original hives were kept.";}
+            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException||e instanceof java.sql.SQLException?e.getMessage():"Setup could not finish. Both original hives were kept.";}
             rebuildWidgets();
         }).bounds(x,height-55,w,22).build();confirm.active=!queued;addRenderableWidget(confirm);
         addRenderableWidget(CockpitButton.builder(Component.literal(queued?"Back to Hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
