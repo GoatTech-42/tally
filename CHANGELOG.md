@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 23:30 UTC
+
+- Release PR #162: Updated setup guides and tutorials for the current **Trade** tab (formerly **AutoPilot** or **Automation**). The homepage walkthrough, player handbook, GUI tour, API-key configuration and Discord instructions now use current navigation and distinguish guided Choose limits / Review & Start from existing-session controls. Earlier video and screenshot labels are identified explicitly, with links to current steps.
+- Added an optional **Find AutoPilot / Trade** in-game lesson and renamed the Dashboard shortcut to **Manage trading**. API tools, Discord command centre and web-panel setup are explained separately. Corrected the safety guide: **End** is the default emergency-stop key; **B** opens GoNuts. Existing tutorial progress, trading behavior, limits, settings and recovery checks are unchanged.
+- Client artifact published October 19 at 16:30:30 Los Angeles time (23:30:30 UTC), separately from PR #160. Build 1792452605667; SHA256: `c0c139d7989d8c0460e87015ec1231031465d4d9f39fe41d5d374e87467b5546`. Full suite: 1,355 tests, zero failures/errors, one skip. Client package, lesson content and public JAR/source/checksum downloads verified. Documentation anchors and rendered handbook checked. No live bots were updated or controlled.
+
 ## 2026-10-19 21:40 UTC
 
 - Release PR #160: The Discord control-panel channel is reserved for its editable embed. Staff Watch and connection alerts no longer fall back there when the optional activity channel is blank; an explicitly configured activity channel must be separate. Unsent durable records remain pending. Existing connection webhook delivery stays on the configured webhook route.
