@@ -4,6 +4,14 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 03:18 UTC
+
+- Release PR #139: Structured action evidence now records requests, phases, actual outcomes, refusal categories, ages/counts and relevant quantity/price/ceiling/item values across the controller, auction driver, Flips/order desk, market feeds, recovery, Hive, dashboard, community, evasion, reconnect and restart paths.
+- Reports prioritize relevant subsystem events from their description before trimming the fixed 8 KiB attachment. Shared controller/recovery context stays present; repeated events coalesce and the latest problem per subsystem is retained. Historical scanning remains bounded to the last 256 KiB of the current log.
+- Fixed a reproduced automatic-report delivery defect: the disk queue rejected reports containing real controller context. Frozen diagnostics now survive save/reload and reach intake and the fix worker. This improves future investigation evidence; unresolved historical trade symptoms are not declared fixed.
+- Client artifact published October 18 at 20:18:45 Los Angeles time (October 19 03:18:45 UTC), separately from PR #137. Build 1792379689005; SHA256: `298823a68f3e482fb9a0300a32887a2a981fa3f22ae1c9de511b727a5ea26028`. Verified with 1,325 tests, zero failures/errors and one skip; deployed receiver/worker passed 64 + 72 tests and isolated issue-to-prompt propagation checks.
+- Diagnostic capture excludes identities, credentials and arbitrary messages. No new automatic submission consent, runtime bot updates, trading settings, positions or safety gates changed.
+
 ## 2026-10-19 02:20 UTC
 
 - Release PR #137: Enabling Trade only these now discards a queued general auction watch and stops an already-running watch before it selects a listing. Previously selected watches could continue scanning unrelated markets after the toggle changed.
