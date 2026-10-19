@@ -520,10 +520,7 @@ public final class DoughBayScreen extends Screen {
         if (ids.isEmpty()) {
             rivalMessage = "no markets seen from them yet";
         } else {
-            for (String id : ids) {
-                Tuning.removeFromList("items.deny", id);
-                Tuning.addToList("items.allow", id);
-            }
+            ItemLists.include(ids);
             rivalMessage = ids.size() + " of their market(s) added to the items the bot may trade";
         }
         rebuildWidgets();
@@ -7178,10 +7175,8 @@ public final class DoughBayScreen extends Screen {
             rebuildWidgets();
             return;
         }
-        for (String id : ids) {
-            Tuning.removeFromList(otherKey, id);
-            Tuning.addToList(listKey, id);
-        }
+        if (listKey.equals("items.deny")) ItemLists.exclude(ids);
+        else ItemLists.include(ids);
         searchMessage = (listKey.equals("items.deny") ? "Excluded " : "Included ")
                 + ids.size() + " item(s) from " + searchSellerName;
         rebuildWidgets();

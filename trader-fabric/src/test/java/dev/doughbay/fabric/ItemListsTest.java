@@ -10,6 +10,43 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemListsTest {
+    @Test
+    void exactSelectionsPreserveExistingCategoryRulesAndTracking() {
+        keeping(() -> {
+            Tuning.setText("items.allow", "boots");
+            Tuning.setText("items.deny", "");
+            Tuning.setText("items.liquidate", "");
+            Tuning.set("watch.tracked_managed", 1);
+            Tuning.setText("watch.tracked", "diamond");
+            ItemLists.include(List.of("minecraft:golden_apple"));
+            assertTrue(Tuning.buyingAllowed("minecraft:iron_boots"));
+            assertTrue(Tuning.buyingAllowed("minecraft:netherite_boots"));
+            assertFalse(Tuning.buyingAllowed("minecraft:enchanted_golden_apple"));
+            ItemLists.clear(List.of("golden_apple"));
+            assertEquals("boots", Tuning.text("items.allow"));
+            assertEquals("diamond", Tuning.text("watch.tracked"));
+        });
+    }
+
+    @Test
+    void pickingOneItemDoesNotAlsoIncludeOrExcludeSuffixVariants() {
+        keeping(() -> {
+            Tuning.setText("items.allow", "");
+            Tuning.setText("items.deny", "");
+            Tuning.setText("items.liquidate", "");
+            ItemLists.include(List.of("minecraft:golden_apple"));
+            assertTrue(Tuning.buyingAllowed("minecraft:golden_apple"));
+            assertFalse(Tuning.buyingAllowed("minecraft:enchanted_golden_apple"));
+            ItemLists.clear(List.of("minecraft:golden_apple"));
+            ItemLists.exclude(List.of("minecraft:glass"));
+            assertFalse(Tuning.buyingAllowed("minecraft:glass"));
+            assertTrue(Tuning.buyingAllowed("minecraft:white_stained_glass"));
+            ItemLists.include(List.of("minecraft:glass"));
+            assertTrue(Tuning.buyingAllowed("minecraft:glass"));
+            assertFalse(Tuning.buyingAllowed("minecraft:white_stained_glass"));
+        });
+    }
+
     private interface Body {
         void run();
     }
@@ -95,17 +132,17 @@ class ItemListsTest {
             Tuning.setText("items.deny", "mace");
             ItemLists.exclude(List.of("minecraft:emerald", "elytra", ""));
             assertEquals(Set.of("diamond"), Tuning.itemSet("items.allow"));
-            assertEquals(Set.of("mace", "emerald", "elytra"), Tuning.itemSet("items.deny"));
+            assertEquals(Set.of("mace", "=emerald", "=elytra"), Tuning.itemSet("items.deny"));
             // What was there is kept in the order it was written, with the new ones after it.
-            assertEquals("mace, emerald, elytra", Tuning.text("items.deny"));
+            assertEquals("mace, =emerald, =elytra", Tuning.text("items.deny"));
 
             ItemLists.include(List.of("mace", "Golden Apple"));
-            assertEquals("diamond, mace, golden_apple", Tuning.text("items.allow"));
-            assertEquals("emerald, elytra", Tuning.text("items.deny"));
+            assertEquals("diamond, =mace, =golden_apple", Tuning.text("items.allow"));
+            assertEquals("=emerald, =elytra", Tuning.text("items.deny"));
 
             ItemLists.clear(List.of("diamond", "elytra", "never_listed"));
-            assertEquals("mace, golden_apple", Tuning.text("items.allow"));
-            assertEquals("emerald", Tuning.text("items.deny"));
+            assertEquals("=mace, =golden_apple", Tuning.text("items.allow"));
+            assertEquals("=emerald", Tuning.text("items.deny"));
         });
     }
 
