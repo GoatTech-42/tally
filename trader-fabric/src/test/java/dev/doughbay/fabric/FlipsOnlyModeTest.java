@@ -34,6 +34,16 @@ class FlipsOnlyModeTest {
         Method sweep=AutomationSessionController.class.getDeclaredMethod("nextKeylessSweep",MarketWatcher.Snapshot.class,long.class);
         sweep.setAccessible(true);assertNull(sweep.invoke(c,null,Long.MAX_VALUE/2));
     }
+    @Test void queuedAuctionWatchIsDiscardedAfterEnablingFlipsOnly() throws Exception {
+        var c = new AutomationSessionController(new AutomatedExecutionDriver());
+        Field state = AutomationSessionController.class.getDeclaredField("state"); state.setAccessible(true);
+        state.set(c, AutomationSessionController.State.SCANNING);
+        Field watch = AutomationSessionController.class.getDeclaredField("watchBuy"); watch.setAccessible(true);
+        watch.set(c, true);
+        Method begin = AutomationSessionController.class.getDeclaredMethod("beginWatchBuy", net.minecraft.client.Minecraft.class, long.class);
+        begin.setAccessible(true); begin.invoke(c, null, 1000L);
+        assertFalse(watch.getBoolean(c), "a queued general auction watch cannot survive Flips-only mode");
+    }
     @Test void normalModeRemainsExplicitlyAvailable() throws Exception {
         Tuning.set("prices.only",0);
         Method gate=AutomationSessionController.class.getDeclaredMethod("ownOnly");gate.setAccessible(true);

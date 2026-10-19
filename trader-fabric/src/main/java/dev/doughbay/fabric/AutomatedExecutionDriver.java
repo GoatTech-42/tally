@@ -5012,6 +5012,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         return true;
     }
 
+    /** End only a reading watch; never interrupt a selected purchase or its confirmation. */
+    public synchronized boolean cancelUnclickedWatch(Minecraft client, String detail) {
+        if (!watchHasNotClicked()) return false;
+        finishUnclickedWatch(client, detail);
+        return true;
+    }
+
     private void finishUnclickedWatch(Minecraft client, String detail) {
         // No qualifying offer is a normal market outcome, not an unanswered
         // server action. Frequent short watches must not trigger ServerStrain.
@@ -5025,6 +5032,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void tickWaitingForListing(Minecraft client) {
+        if (Tuning.get("prices.only") >= 0.5 && cancelUnclickedWatch(client,
+                "Flips only enabled: ending the general auction watch; nothing was charged")) return;
         if (yieldUnclickedWatchIfDue(client, System.currentTimeMillis())) return;
         Screen screen = client.gui.screen();
         if (watching && watchWaiting && !(screen instanceof AbstractContainerScreen<?>)) {
