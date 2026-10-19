@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 21:40 UTC
+
+- Release PR #160: The Discord control-panel channel is reserved for its editable embed. Staff Watch and connection alerts no longer fall back there when the optional activity channel is blank; an explicitly configured activity channel must be separate. Unsent durable records remain pending. Existing connection webhook delivery stays on the configured webhook route.
+- Staff Watch region-escape and watcher-disconnect events now also reach the configured webhook without requiring an activity-feed channel or a loaded world. Previously they only entered the bridge notification queue. All webhook alert switches remain authoritative, titles distinguish a requested region escape from a disconnect, and a reporting failure cannot prevent protection or local history.
+- Staff Watch's existing passive minute diagnostics now count known-staff entries, spectator entries and observed mode changes inside combined player-add updates. Initial presence and reconnect/region boundaries do not invent changes; no identities or packet bodies are logged. These observations never trigger alerts or escapes. The combined-update exclusion is unchanged since October 13; the separate question of changed game-server signals versus missing client detections remains unconfirmed.
+- Client artifact published October 19 at 14:40:53 Los Angeles time (21:40:53 UTC), separately from PR #158. Build 1792446021710; SHA256: `1e2e3a1c748a923a428bbfacb9b404a75dc55f793b858bfbe00fac5e29341011`. Three notification/routing regressions failed before their fixes. Full suite: 1,355 tests, zero failures/errors, one skip, including real durable queues with fake senders and actual combined packet handling. Production package and public JAR/source/checksum downloads verified. No live bots were updated or controlled, settings/guards were unchanged, and no Discord test messages were sent.
+
 ## 2026-10-19 21:17 UTC
 
 - Release PR #158: A protective pause during a read-only auction watch now captures the driver's proof that no row was clicked before stopping it. Previously that proof was lost, leaving a false uncertain BUY intent that could block unattended recovery. A release is queued durably, and automatic scanning waits until the writer and controller apply the receipt.

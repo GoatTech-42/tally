@@ -26,3 +26,12 @@ The worker publishes cached immutable snapshots for UI readers; rendering perfor
 Tests cover two observers, restarts, gaps, disabled detectors, stale observations, event idempotency, case-insensitive overlap merging, insufficient coverage, clock formatting, web authentication, JSON output, and headless Discord rendering. Preview assets under trader-fabric/build/staff-watch-preview use clearly marked demo data.
 
 The actual in-game layout was verified with an isolated offline Minecraft client using marked sample data, including scrolling through current observations and history. The screenshot fixture is excluded from normal production builds. After installing, confirm that the sidecar records fresh observations from both clients and that all three panels expose the Staff Watch page. Existing escape and reconnect behavior is unchanged.
+
+
+## Notification destinations
+
+The Discord panel channel is reserved for the single editable control message. Staff Watch and connection notifications never fall back to it. An optional activity channel must be a separate channel; without one, bridge notification records remain pending rather than being acknowledged or posted to the panel. The configured webhook is independent: it receives Staff Watch region-escape and disconnect notifications when webhook notifications and evasion alerts are enabled, even without an activity channel. The existing webhook URL and all alert switches are preserved.
+
+A region-escape notification says that a safe change was requested; it does not claim arrival or disconnection. An ordinary connection-refused notice is a network/reconnect event, not evidence of staff detection. Notification delivery and detection evidence are separate: absence of a Discord message alone does not establish that no detection occurred.
+
+The passive detector-health minute line includes combinedStaffEntries, combinedStaffSpectators and combinedStaffModeChanges for names in the client's existing staff list. These are observations from global player-list updates, not local-region proof and never input to alert/escape decisions. Initial spectator presence is distinct from an observed mode change, and baselines reset at connection/region boundaries. Counts do not include names, UUIDs, coordinates or packet bodies; the in-memory baseline is bounded. They are intended to distinguish irrelevant all-player traffic from staff-specific changes while investigating signal compatibility. They do not by themselves prove a game-server change or a missed local staff detection.
