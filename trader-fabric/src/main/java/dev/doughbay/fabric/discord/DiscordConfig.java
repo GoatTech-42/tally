@@ -25,9 +25,9 @@ public record DiscordConfig(String token, String guildId, String channelId, Stri
         feedChannelId = feedChannelId == null ? "" : feedChannelId.strip();
     }
 
-    /** Whether the live activity feed has somewhere to post. */
+    /** The control panel's channel is reserved for its one editable message. */
     public boolean hasFeed() {
-        return !feedChannelId.isBlank();
+        return !feedChannelId.isBlank() && !feedChannelId.equals(channelId == null ? "" : channelId.strip());
     }
 
 

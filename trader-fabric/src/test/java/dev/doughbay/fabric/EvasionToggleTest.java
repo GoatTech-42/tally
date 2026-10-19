@@ -28,6 +28,40 @@ class EvasionToggleTest {
         Path path=root.resolve("evasion.txt");if(legacy!=null)Files.writeString(path,legacy);
         return new EvasionGuard(path);
     }
+    @Test void staffRegionAndDisconnectAlertsReachTheConfiguredWebhookPathWithoutAFeedOrWorld()throws Exception {
+        var prior=EvasionGuard.ledgerPath();EvasionGuard.setLedger(null);
+        try {
+            for(String key:List.of("webhook.enabled","webhook.alerts","webhook.alert_evasion"))Tuning.set(key,1);
+            var titles=new ArrayList<String>();var fields=new ArrayList<List<String[]>>();
+            var guard=new EvasionGuard(root.resolve("unused.txt"),(title,rows,who)->{titles.add(title);fields.add(rows);});
+            guard.noteStaffRegionEscape("TestStaff");
+            guard.noteStaffEscape("TestStaff","test-server",120000);
+            assertEquals(List.of("STAFF WATCH — REGION ESCAPE","STAFF WATCH — DISCONNECTED"),titles);
+            assertTrue(fields.getFirst().stream().anyMatch(row->row[1].contains("preparing a safe region change")));
+            assertEquals(2,guard.events().size());
+        } finally {EvasionGuard.setLedger(prior);}
+    }
+    @Test void eachWebhookOptOutStillSuppressesStaffWebhookDelivery()throws Exception {
+        var prior=EvasionGuard.ledgerPath();EvasionGuard.setLedger(null);
+        try {
+            var titles=new ArrayList<String>();
+            var guard=new EvasionGuard(root.resolve("unused.txt"),(title,rows,who)->titles.add(title));
+            for(String disabled:List.of("webhook.enabled","webhook.alerts","webhook.alert_evasion")) {
+                for(String key:List.of("webhook.enabled","webhook.alerts","webhook.alert_evasion"))Tuning.set(key,1);
+                Tuning.set(disabled,0);guard.noteStaffRegionEscape("TestStaff");
+            }
+            assertTrue(titles.isEmpty());assertEquals(3,guard.events().size());
+        } finally {EvasionGuard.setLedger(prior);}
+    }
+    @Test void staffWebhookFailureCannotPreventLocalHistoryOrProtectiveFlow()throws Exception {
+        var prior=EvasionGuard.ledgerPath();EvasionGuard.setLedger(null);
+        try {
+            for(String key:List.of("webhook.enabled","webhook.alerts","webhook.alert_evasion"))Tuning.set(key,1);
+            var guard=new EvasionGuard(root.resolve("unused.txt"),(title,rows,who)->{throw new IllegalStateException("test failure");});
+            assertDoesNotThrow(()->guard.noteStaffRegionEscape("TestStaff"));
+            assertEquals(1,guard.events().size());
+        } finally {EvasionGuard.setLedger(prior);}
+    }
     @Test void importingEnabledSettingsAfterAnExplicitOffUpdatesTheActualGuard()throws Exception{
         Tuning.set("evasion.enabled",0);var guard=guard("off");
         var json=new ObjectMapper().createObjectNode().put("v",1);json.putObject("n").put("evasion.enabled",1);

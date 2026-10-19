@@ -31,9 +31,22 @@ public final class EvasionGuard {
     private boolean triggered;
     private long clearSinceMillis;
     private String lastIntruder = "";
+    @FunctionalInterface
+    interface StaffAlertSink {
+        void send(String title, java.util.List<String[]> fields, String who);
+    }
+    private final StaffAlertSink staffAlertSink;
 
     EvasionGuard(Path store) {
+        this(store, (title, fields, who) -> {
+            var hook = DoughBayClient.webhook();
+            if (hook != null) hook.alert(title, 0xFF858C, fields, who);
+        });
+    }
+
+    EvasionGuard(Path store, StaffAlertSink staffAlertSink) {
         this.store = store;
+        this.staffAlertSink = staffAlertSink;
         boolean legacyEnabled = false;
         try {
             legacyEnabled = Files.exists(store)
@@ -103,6 +116,20 @@ public final class EvasionGuard {
         synchronized (events) {
             events.addFirst(new Event(at, who, 0, action));
             while (events.size() > 40) events.removeLast();
+        }
+        // Staff Watch can change region without disconnecting. Its dedicated
+        // notification must reach the configured webhook independently of the
+        // optional activity channel and of an available Minecraft world.
+        if (Tuning.get("webhook.enabled") >= 0.5 && Tuning.get("webhook.alerts") >= 0.5
+                && Tuning.get("webhook.alert_evasion") >= 0.5) {
+            try {
+                String staff = who == null || who.isBlank() ? "Staff" : who;
+                staffAlertSink.send(dev.doughbay.storage.StaffWatchAlerts.title(action),
+                        java.util.List.of(new String[]{"Staff", staff}, new String[]{"Response", action}), staff);
+            } catch (RuntimeException failure) {
+                // Reporting cannot cancel a protective escape or its durable history.
+                DoughBayClient.LOGGER.warn("GoNuts could not queue the Staff Watch webhook notification");
+            }
         }
         Path path = ledger;
         if (path == null) return;

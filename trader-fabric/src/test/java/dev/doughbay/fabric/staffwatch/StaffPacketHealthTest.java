@@ -4,6 +4,24 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StaffPacketHealthTest {
+    @Test void staffSpecificCountersDistinguishModeChangesFromInitialPresenceAndNeverPublishIdentities() {
+        var health=new StaffPacketHealth(); health.report(1000,0,0);
+        var first=java.util.UUID.randomUUID();var second=java.util.UUID.randomUUID();
+        health.combinedStaff(first,"survival");health.combinedStaff(first,"survival");
+        health.combinedStaff(first,"spectator");health.combinedStaff(second,"spectator");
+        health.combinedStaff(first,"untrusted arbitrary value");
+        String report=health.report(61000,2,0);
+        assertTrue(report.contains("combinedStaffEntries=4 combinedStaffSpectators=2 combinedStaffModeChanges=1"));
+        assertTrue(report.contains("recognizedModeChanges=0"),"passive combined counts must not claim accepted local evidence");
+        assertFalse(report.contains(first.toString()));assertFalse(report.contains(second.toString()));
+        assertFalse(report.contains("untrusted"));
+    }
+    @Test void reconnectOrRegionBoundaryDoesNotInventAStaffModeChange() {
+        var health=new StaffPacketHealth();health.report(1000,0,0);
+        var id=java.util.UUID.randomUUID();health.combinedStaff(id,"survival");
+        health.resetStaffBaselines();health.combinedStaff(id,"spectator");
+        assertTrue(health.report(61000,1,0).contains("combinedStaffEntries=2 combinedStaffSpectators=1 combinedStaffModeChanges=0"));
+    }
     @Test void separatesCombinedAddsFromStandaloneModeEvidenceWithoutReclassifyingEither() {
         var health=new StaffPacketHealth();
         assertNull(health.report(1000,0,0));
