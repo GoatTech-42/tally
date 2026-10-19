@@ -35,4 +35,24 @@ class BugReportContextTest {
         assertFalse(c.resumeAfterEvasion().ok());
         assertTrue(c.bugReportContext(System.currentTimeMillis()).contains("last_resume_gate=NO_RESUMABLE_SESSION"));
     }
+    @Test void runningTicksDoNotReplaceTheLastActualRecoveryGate() throws Exception {
+        var c = new AutomationSessionController(new AutomatedExecutionDriver());
+        set(c,"state",AutomationSessionController.State.PAUSED);
+        set(c,"armed",true);set(c,"sessionOpen",true);
+        set(c,"policy",dev.doughbay.core.automation.ContinuousAutomationPolicy.fromConfigValues(
+                2,100000,50000,5000,12,80,10,8,120,1));
+        var check = c.getClass().getDeclaredMethod("autoResumeInternalPause",net.minecraft.client.Minecraft.class,long.class);
+        check.setAccessible(true);
+        set(c,"stateChangedAtMillis",1000L);
+        check.invoke(c,null,1001L);
+        assertTrue(c.bugReportContext(2000).contains("last_resume_gate=COOLDOWN last_resume_gate_age_ms=999"));
+        for (var state : new AutomationSessionController.State[]{
+                AutomationSessionController.State.SCANNING,AutomationSessionController.State.BID_DESK,
+                AutomationSessionController.State.COOLDOWN,AutomationSessionController.State.STOPPED}) {
+            set(c,"state",state);
+            check.invoke(c,null,2000L);
+        }
+        assertTrue(c.bugReportContext(3000).contains("last_resume_gate=COOLDOWN last_resume_gate_age_ms=1999"),
+                "normal trading and stopped ticks are not failed resume attempts");
+    }
 }

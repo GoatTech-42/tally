@@ -1873,7 +1873,6 @@ public final class AutomationSessionController {
         if (state != State.PAUSED) {
             return ExecutionResult.refused("Only a paused session can be resumed");
         }
-        armed = false;
         if (!pauseResumable) {
             return ExecutionResult.refused(
                     "This pause protects an uncertain operation and cannot be resumed automatically");
@@ -1881,6 +1880,10 @@ public final class AutomationSessionController {
         if (recoveredSession) {
             return ExecutionResult.refused("Recovered exposure must be reconciled through the recovered-session controls; plain Resume never force-resets it");
         }
+        // A refused Resume is not Stop: preserve any existing evasion/restart
+        // ownership, and never advance before durable receipts are applied.
+        String persistenceBlocker = persistenceStartBlocker();
+        if (persistenceBlocker != null) return ExecutionResult.refused(persistenceBlocker);
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return ExecutionResult.refused(blocker);
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
@@ -4882,7 +4885,9 @@ public final class AutomationSessionController {
     private void reportResumeGate(String code,long now) {
         reportResumeGate=code;reportResumeGateAt=now;
         dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.RECOVERY,
-                dev.doughbay.fabric.ActionTrace.Event.REFUSED,state,code,-1,-1,-1);
+                code.equals("RESUMING") || code.equals("RETAINED_STOCK_RECOVERY")
+                        ? dev.doughbay.fabric.ActionTrace.Event.RESULT : dev.doughbay.fabric.ActionTrace.Event.REFUSED,
+                state,code,-1,-1,-1);
     }
 
     private boolean deskBlocked(String gate) {
@@ -12394,11 +12399,15 @@ public final class AutomationSessionController {
 
     private void autoResumeInternalPause(Minecraft client, long now,
                                          boolean connectionRecoveryOwned, boolean evasionOwned) {
+        // This method is polled on every tick, including normal trading.
+        // A running/stopped tick is not a failed resume and must not replace
+        // the last actual recovery blocker or flood the incident timeline.
+        if (state != State.PAUSED) return;
         // A session recovered from disk has no policy until the player presses
         // Resume; only pauses raised while running are resumed here.
         if (!armed) {reportResumeGate("NOT_ARMED",now);return;}
-        if (state != State.PAUSED || pausedByPlayer || !sessionOpen || policy == null) {
-            reportResumeGate(pausedByPlayer?"PLAYER_PAUSE":policy==null?"POLICY_UNAVAILABLE":!sessionOpen?"SESSION_CLOSED":"NOT_PAUSED",now);
+        if (pausedByPlayer || !sessionOpen || policy == null) {
+            reportResumeGate(pausedByPlayer?"PLAYER_PAUSE":policy==null?"POLICY_UNAVAILABLE":"SESSION_CLOSED",now);
             return;
         }
         // A write the ledger refused is not retried on a timer. Listing again
