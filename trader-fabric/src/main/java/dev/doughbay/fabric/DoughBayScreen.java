@@ -755,7 +755,7 @@ public final class DoughBayScreen extends Screen {
             }).bounds(ui.innerRight() - 184, ui.top() + 30, 98, 18).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Find opportunities"), b -> navigate(Tab.OPPORTUNITIES))
                     .bounds(ui.innerLeft() + 16, ui.contentTop() + 69, 128, 22).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Manage autopilot"), b -> navigate(Tab.AUTOMATION))
+            addRenderableWidget(CockpitButton.builder(Component.literal("Manage trading"), b -> navigate(Tab.AUTOMATION))
                     .bounds(ui.innerLeft() + 151, ui.contentTop() + 69, 128, 22).build());
         }
 

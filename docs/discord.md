@@ -71,7 +71,8 @@ Both are long numbers, about 18 digits.
 ### 5. Paste them into GoNuts
 
 1. In game, press **B** to open GoNuts.
-2. Click **Autopilot** in the list on the left.
+2. Open **Trade** (formerly **AutoPilot**) in the navigation. The Dashboard
+   shortcut is **Manage trading**.
 3. Click the button at the top right, labelled **Tools: API key / test**. Its
    label changes to **Discord command centre**. Click it again.
 4. Paste the token into **Bot token** (it shows as stars), the first number into
@@ -81,7 +82,9 @@ Both are long numbers, about 18 digits.
 
 The two other boxes on that card are optional. **Server (guild) id** can stay
 empty. **Activity feed channel id** is for a second channel that gets a line
-for every sale and purchase as it happens; leave it empty to start with.
+for activity and bridge alerts; it must differ from the panel channel. Leave it
+empty for an embed-only panel. Configured webhook alerts use their own webhook
+destination and do not require this activity channel.
 
 ### 6. Use the panel
 

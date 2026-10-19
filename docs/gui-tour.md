@@ -78,10 +78,21 @@ The order house, a buy-order book no public API exposes. This tab shows your
 standing bids, what has been collected and delivered, and the depth of the book,
 so you can trade the demand side as well as the listings.
 
-## Trade
+## Trade (formerly AutoPilot)
 
-The trading controls; the reviewed quick-start flow also provides an explicit Start action. It has three
-sub-modes:
+AutoPilot is still available under **Trade**. The Dashboard shortcut is
+**Manage trading**. Older walkthroughs may say AutoPilot or Automation.
+
+For guided setup, choose **Set up trading**, set your limits in **Choose limits**,
+then review readiness in **Review & Start**. Starting is a separate, deliberate
+choice. Existing item choices, protections and recovery checks still apply.
+
+On **Trade**, **Continuous** shows readiness and session controls. If live trading
+is off, review **Max per trade** and **Max per session**, select **Enable live
+trading**, and click again to confirm. Then review readiness before **Start**.
+An unresolved recovery or exposure blocker must be investigated, not bypassed.
+
+The page selector cycles through four views:
 
 - **Continuous:** the live buy, relist, and track engine, with the session
   spend and trade caps, plus start and stop. Off by default and gated behind the
@@ -89,6 +100,11 @@ sub-modes:
 - **Tools:** setup and proving: the API-key card, and a one-shot test buy and
   sell for validating the live GUI format.
 - **Discord:** the command-centre setup: bot token, channel, and operator.
+- **Web:** local web-panel setup.
+
+From Continuous, choose **Tools: API key / test**, then **Discord command
+centre**, then **Web panel**, then **Back to Continuous**. Linking Swarm and
+configuring Discord are separate from starting a local trading session.
 
 See [Execution and safety](execution-and-safety.md) for exactly what has to be
 true before a real trade can happen.

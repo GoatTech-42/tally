@@ -6,8 +6,11 @@ explains the modes and the gates between them.
 
 ## The modes
 
-Press **B** to open GoNuts. The **Automation** tab presents, from least to most
-capable:
+Press **B** to open GoNuts. Open **Trade** (formerly **AutoPilot** or
+**Automation**) for current readiness and session controls. **Set up trading**
+provides the guided **Choose limits → Review & Start** flow. The execution
+capabilities below describe the safety boundaries; they are not a list of current
+navigation tabs:
 
 - **Observe (default).** Opportunities and demo data are view-only. Nothing can
   trade. Opening an opportunity's detail only navigates; it never sends a buy.
@@ -25,8 +28,8 @@ capable:
   after the previous sale is reconciled and its capital released, always inside
   every configured session limit.
 
-**B** becomes the emergency stop whenever an operation is armed, including an
-active preflight.
+**End** is the default emergency-stop key, including during an active preflight.
+**B** opens the interface. If you changed bindings, check Minecraft Controls.
 
 ## What a real trade requires
 
