@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 20:24 UTC
+
+- Release PR #154: Web-panel navigation now distinguishes Auction listings and Order book data views from Auction settings and Order settings. Previously the generic Auction and Orders shortcuts opened configuration sections, making them look like broken data links. Each settings page now explains which sidebar entry shows the data.
+- Related to report #151. Existing page-selection actions, permissions, hashes, tracked listing/order-book data and settings remain unchanged. This fixes reproduced naming ambiguity; a different reporter-specific navigation failure is not claimed resolved, and the report remains open.
+- Client artifact published October 19 at 13:24:53 Los Angeles time (20:24:53 UTC), separately from PR #152. Build 1792441467488; SHA256: `0b3dd1da17c30e8b2e8c7fa256093359bab9eba1018d75806e1a6b55d447ae95`. Verified actual production navigation JavaScript, isolated browser configuration/data routes at desktop and 320px width with no page overflow, and 1,339 tests with zero failures/errors and one skip. Production package contains no smoke entrypoints/classes. No live user bots were updated or controlled.
+
 ## 2026-10-19 19:05 UTC
 
 - Release PR #152: Staff Watch now queues a durable local staff alert when it starts a watcher-triggered region escape. Previously successful region switches only appeared in the client log, while the Discord staff notification queue was used only for disconnects. This works independently of Swarm through the existing configured Discord feed.
