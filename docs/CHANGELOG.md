@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 19:05 UTC
+
+- Release PR #152: Staff Watch now queues a durable local staff alert when it starts a watcher-triggered region escape. Previously successful region switches only appeared in the client log, while the Discord staff notification queue was used only for disconnects. This works independently of Swarm through the existing configured Discord feed.
+- Alerts and Evasion history label the response as a requested region escape, without claiming the transfer completed or the client disconnected. Duplicate in-flight detector calls do not queue another first-hop notice; normal follow/timeout disconnect reporting remains intact. A reporting failure cannot block the protective escape.
+- Passive once-a-minute, count-only client diagnostics distinguish received player-info packets, standalone versus combined-add game-mode updates and recognized staff mode changes. No names, UUIDs, coordinates or packet bodies are added, and detection thresholds, local-region proof, trade safety, settings and network requests are unchanged. The separate recent absence of spectator evidence is still under investigation; it is not claimed fixed by notification repair.
+- Client artifact published October 19 at 12:05:06 Los Angeles time (19:05:06 UTC), separately from PR #149. Build 1792436682105; SHA256: `6150fab8fdac31606abca676b73c4e97765198b7f4918680dd374cfb35e0f49b`. Full suite: 1,339 tests, zero failures/errors, one skip. The missed-notification regression fails against the old path. Production package contains no smoke entrypoints/classes. No live user bots were updated or controlled, and no synthetic Discord alerts were sent.
+
 ## 2026-10-19 16:30 UTC
 
 - Release PR #149: Analyzer now has a guided overview, compact baseline cards and separate evidence, next-step and estimate sections, with matching browser guidance. Suggested presets remain a separate save/review/apply decision.
