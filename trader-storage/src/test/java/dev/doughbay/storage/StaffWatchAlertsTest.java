@@ -8,6 +8,24 @@ import static org.junit.jupiter.api.Assertions.*;
 class StaffWatchAlertsTest {
     @TempDir Path directory;
 
+    @Test void regionEscapeSurvivesRestartAndIsNeverLabelledAsDisconnected() throws Exception {
+        Path file=directory.resolve("region-report.db");
+        try(var db=new Database(file)) {
+            StaffWatchAlerts.record(db.connection(),100,"Bot","DemoStaff",StaffWatchAlerts.REGION_ESCAPE_ACTION);
+        }
+        try(var db=new Database(file)) {
+            var rows=StaffWatchAlerts.pending(db.connection());
+            assertEquals(1,rows.size());
+            assertEquals("STAFF WATCH — REGION ESCAPE",StaffWatchAlerts.title(rows.getFirst().action()));
+            assertEquals("STAFF — REGION ESCAPE REQUESTED",StaffWatchAlerts.historyLabel(rows.getFirst().action()));
+            assertFalse(rows.getFirst().action().contains("confirmed"));
+            assertFalse(rows.getFirst().action().contains("disconnected"));
+            StaffWatchAlerts.delivered(db.connection(),rows.getFirst().id(),200);
+        }
+        try(var db=new Database(file)) { assertTrue(StaffWatchAlerts.pending(db.connection()).isEmpty()); }
+        assertEquals("STAFF WATCH — DISCONNECTED",StaffWatchAlerts.title("Staff Watch: watcher detected; disconnected"));
+    }
+
     @Test void upgradesExistingV16LedgerWithoutLosingHistory() throws Exception {
         Path file = directory.resolve("existing-v16.db");
         try (var db = new Database(file); var statement = db.connection().createStatement()) {

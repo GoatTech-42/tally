@@ -9,6 +9,8 @@ class StaffRegionEscapeFlowTest {
     static class Client implements StaffRegionEscapeFlow.Client {
         boolean connected=true, safe=true, allowed=true, sent, arrived;
         int clears, resumes, releases, disconnects;
+        List<String> detected = new ArrayList<>();
+        boolean reportingFails;
         List<String> options=List.of("east","west","asia");
         List<String> hops=new ArrayList<>(); String hint="east", reason;
         public boolean connected(){return connected;} public boolean pauseSafely(){return safe;}
@@ -18,6 +20,7 @@ class StaffRegionEscapeFlowTest {
         public void clearDetections(){clears++;} public void resume(){resumes++;}
         public void release(){releases++;} public void disconnect(String w,String r){disconnects++;reason=r;}
         public void notice(String w,String d){}
+        public void detected(String w){detected.add(w);if(reportingFails)throw new IllegalStateException("synthetic reporting failure");}
     }
     AtomicLong now; Client client; StaffRegionEscapeFlow flow;
     @BeforeEach void setup(){now=new AtomicLong();client=new Client();flow=new StaffRegionEscapeFlow(client,now::get);}
@@ -49,6 +52,28 @@ class StaffRegionEscapeFlowTest {
     @Test void duplicateAlertImmediatelyBeforeArrivalCannotCreateARepeat(){
         firstHop();now.set(29_000);assertFalse(flow.alert("Staff",true));arrive();assertEquals(0,client.disconnects);
         assertEquals(StaffRegionEscapeFlow.Phase.WATCHING,flow.phase());
+    }
+
+    @Test void acceptedLocalAlertReportsOnceWithoutRequiringSwarmOrADisconnect(){
+        assertFalse(flow.alert("Staff",false));
+        assertTrue(client.detected.isEmpty());
+        firstHop();
+        assertFalse(flow.alert("Staff",true));
+        assertFalse(flow.alert("OtherStaff",true));
+        arrive();
+        assertEquals(List.of("Staff"),client.detected);
+        assertEquals(0,client.disconnects);
+        assertTrue(flow.alert("OtherStaff",true));
+        assertEquals(List.of("Staff","OtherStaff"),client.detected);
+    }
+    @Test void followedStaffUsesDisconnectReportingWithoutDuplicatingFirstHopNotice(){
+        firstHop();arrive();assertTrue(flow.alert("STAFF",true));
+        assertEquals(List.of("Staff"),client.detected);
+        assertEquals(1,client.disconnects);
+    }
+    @Test void notificationFailureNeverBlocksSafeEscape(){
+        client.reportingFails=true;firstHop();arrive();
+        assertEquals(1,client.resumes);assertEquals(0,client.disconnects);
     }
 
 }

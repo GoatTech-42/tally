@@ -113,6 +113,7 @@ public final class StaffListModule extends ClientModule {
    private boolean primed;
    private int alertGather;
    private int tickCount;
+   private final dev.doughbay.fabric.staffwatch.StaffPacketHealth packetHealth = new dev.doughbay.fabric.staffwatch.StaffPacketHealth();
 
    public StaffListModule() {
       super("staff-list", "Staff List", "Lists online DonutSMP staff.", ModuleCategory.DONUT);
@@ -271,6 +272,8 @@ public final class StaffListModule extends ClientModule {
 
    private void queueSwitches(ClientboundPlayerInfoUpdatePacket info) {
       EnumSet<Action> actions = info.actions();
+      this.packetHealth.received(actions.contains(Action.UPDATE_GAME_MODE), actions.contains(Action.ADD_PLAYER),
+              info.entries().size(), System.currentTimeMillis());
       if (actions.contains(Action.UPDATE_GAME_MODE) && !actions.contains(Action.ADD_PLAYER)) {
          for (net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry entry : info.entries()) {
             if (entry != null && entry.profileId() != null) {
@@ -351,6 +354,11 @@ public final class StaffListModule extends ClientModule {
       dev.doughbay.fabric.StaffWatchReport.publish(observedAt, true,
               conn != null && mc.player != null && mc.level != null && this.primed && this.settleTicks==0
                   && mc.getCurrentServer()!=null && dev.doughbay.fabric.staffwatch.DonutServer.matches(mc.getCurrentServer().ip), reportRows);
+      if (conn != null && mc.player != null && mc.level != null) {
+         String health = this.packetHealth.report(observedAt, reportRows.size(),
+                 (int) reportRows.stream().filter(row -> row.presence().equals("SPECTATOR")).count());
+         if (health != null) dev.doughbay.fabric.DoughBayClient.LOGGER.info("{} regionAlerts={}", health, this.regionAlert.get());
+      }
    }
 
    private StaffListModule.Changes scan(Minecraft mc, ClientPacketListener conn, long now) {
@@ -489,6 +497,7 @@ public final class StaffListModule extends ClientModule {
             }
 
             StaffListModule.Sighting seen = this.sightings.computeIfAbsent(id, key -> new StaffListModule.Sighting());
+            this.packetHealth.recognizedMode();
             dev.doughbay.fabric.StaffWatchReport.record(now, name, change.mode() == GameType.SPECTATOR
                     ? dev.doughbay.fabric.StaffWatchReport.Event.SPECTATOR
                     : dev.doughbay.fabric.StaffWatchReport.Event.MODE_CHANGED, true);

@@ -90,6 +90,15 @@ public final class EvasionGuard {
         String action = String.format(java.util.Locale.ROOT,
                 "Staff Watch: watcher detected; disconnected; reconnect %s in %d:%02d",
                 server, seconds / 60, seconds % 60);
+        recordStaffNotification(who, action);
+    }
+
+    /** A requested escape is not yet a confirmed transfer or a disconnect. */
+    public void noteStaffRegionEscape(String who) {
+        recordStaffNotification(who, dev.doughbay.storage.StaffWatchAlerts.REGION_ESCAPE_ACTION);
+    }
+
+    private void recordStaffNotification(String who, String action) {
         long at = System.currentTimeMillis();
         synchronized (events) {
             events.addFirst(new Event(at, who, 0, action));

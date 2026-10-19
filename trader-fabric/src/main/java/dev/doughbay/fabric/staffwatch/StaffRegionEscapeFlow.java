@@ -18,6 +18,8 @@ public final class StaffRegionEscapeFlow {
         void release();
         void disconnect(String watcher, String reason);
         void notice(String watcher, String detail);
+        /** Reporting only: never pause, disconnect or alter the escape decision. */
+        default void detected(String watcher) {}
     }
     public enum Phase { IDLE, PREPARING_FIRST, TRANSFERRING_FIRST, WATCHING }
     private static final long PREPARE_TIMEOUT = 15_000, TRANSFER_TIMEOUT = 30_000;
@@ -45,6 +47,7 @@ public final class StaffRegionEscapeFlow {
         watcher = name;
         phase = Phase.PREPARING_FIRST;
         deadline = clock.getAsLong() + PREPARE_TIMEOUT;
+        try { client.detected(watcher); } catch (RuntimeException ignored) { /* Protection must continue. */ }
         client.notice(watcher, "Preparing a safe region change");
         return true;
     }
