@@ -45,14 +45,14 @@ class BugReportContextTest {
         check.setAccessible(true);
         set(c,"stateChangedAtMillis",1000L);
         check.invoke(c,null,1001L);
-        assertTrue(c.bugReportContext(2000).contains("last_resume_gate=COOLDOWN last_resume_gate_age_ms=999"));
+        assertTrue(c.bugReportContext(2000).contains("last_resume_gate=PERSISTENCE_WAIT last_resume_gate_age_ms=999"));
         for (var state : new AutomationSessionController.State[]{
                 AutomationSessionController.State.SCANNING,AutomationSessionController.State.BID_DESK,
                 AutomationSessionController.State.COOLDOWN,AutomationSessionController.State.STOPPED}) {
             set(c,"state",state);
             check.invoke(c,null,2000L);
         }
-        assertTrue(c.bugReportContext(3000).contains("last_resume_gate=COOLDOWN last_resume_gate_age_ms=1999"),
+        assertTrue(c.bugReportContext(3000).contains("last_resume_gate=PERSISTENCE_WAIT last_resume_gate_age_ms=1999"),
                 "normal trading and stopped ticks are not failed resume attempts");
     }
 }
