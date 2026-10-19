@@ -366,8 +366,8 @@ final class Pages {
             // ---- the pages down the side: the pictures the mod draws, and the panel's own
             const OWN = {
               settings: { label: 'Settings', open: openSettings },
-              auction: { label: 'Auction', open: async()=>{S.section='AUCTION';await openSettings();} },
-              orders: { label: 'Orders', open: async()=>{S.section='ORDERS';await openSettings();} },
+              auction: { label: 'Auction settings', open: async()=>{S.section='AUCTION';await openSettings();} },
+              orders: { label: 'Order settings', open: async()=>{S.section='ORDERS';await openSettings();} },
               dashboard: { label: 'Dashboard', open: openDashboard },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
@@ -423,7 +423,7 @@ final class Pages {
                 // The Flips picture is the Your prices page here, which edits the whole list.
                 if (o.value === 'FLIPS') continue;
                 if (o.value === 'TUNE') { mine('auction'); mine('orders'); mine('items'); mine('prices'); mine('settings'); continue; }
-                add(o.value === 'ITEMS' ? 'Item profit' : o.value === 'ORDERS' ? 'Order book' : o.label, !view && o.default, () => {
+                add(o.value === 'ITEMS' ? 'Item profit' : o.value === 'ORDERS' ? 'Order book' : o.value === 'LISTINGS' ? 'Auction listings' : o.label, !view && o.default, () => {
                   if (view) show('');
                   act('page:pick', o.value);
                 });
@@ -1003,7 +1003,12 @@ final class Pages {
               const none = el('p', 'muted');
               none.id = 'nomatch';
               none.hidden = true;
-              own.replaceChildren(sections,el('p','muted','Auction: buying and listings. Orders: bids, fills and delivery. General: shared limits, pacing, updates and display. All: search everything.'),bar, codeBox, none, cards);
+              const sectionHint = view === 'auction'
+                ? 'Auction settings. To inspect tracked auction listings, choose Auction listings in the sidebar.'
+                : view === 'orders'
+                ? 'Order settings. To inspect observed order-book data and tracked bid stock, choose Order book in the sidebar.'
+                : 'Auction: buying and listings. Orders: bids, fills and delivery. General: shared limits, pacing, updates and display. All: search everything.';
+              own.replaceChildren(sections,el('p','muted',sectionHint),bar, codeBox, none, cards);
               sift();
             }
 
