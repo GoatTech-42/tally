@@ -334,6 +334,53 @@ final class AutomationSessionControllerPersistenceTest {
         assertEquals(4_100L, field(controller, "committedSpend"));
     }
 
+    @Test void refusedManualResumePreservesExistingAutomaticRecoveryOwnership() throws Exception {
+        for (boolean resumable : new boolean[]{false, true}) {
+            var c = internallyPausedAfterLeave();
+            setField(c, "pauseResumable", resumable);
+            setField(c, "continuousAuthorizationEnabled", true);
+            setField(c, "auctionFeesConfirmed", true);
+            ((AutomatedExecutionDriver) field(c, "driver")).setAuthorizedExecutionEnabled(true);
+            assertTrue(c.restartRecoveryMayResume());
+            for (int attempt = 0; attempt < 3; attempt++) {
+                var result = c.resume();
+                assertFalse(result.ok(), "no world is authorized, even for a resumable pause");
+                if (resumable) assertTrue(result.detail().contains("Join a server"), result.detail());
+                assertTrue(c.armed(), "a refused request must not cancel the running session's authorization");
+                assertTrue(c.restartRecoveryMayResume(), "evasion/restart must retain their existing recovery ownership");
+            }
+            assertEquals(AutomationSessionController.State.PAUSED, c.snapshot().state());
+            assertEquals(4100L, field(c, "committedSpend"));
+            assertEquals(1, field(c, "tradesStarted"));
+            assertEquals(0, ((FakePersistence) field(c, "persistence")).submissions.get());
+        }
+    }
+
+    @Test void refusedManualResumeNeverArmsAnOperatorStop() throws Exception {
+        var c = internallyPausedAfterLeave();
+        setField(c, "armed", false);
+        setField(c, "pausedByPlayer", true);
+        assertFalse(c.resume().ok());
+        assertFalse(c.armed());
+        assertFalse(c.restartRecoveryMayResume());
+        assertTrue((boolean) field(c, "pausedByPlayer"));
+    }
+
+    @Test void ordinaryResumeWaitsForPendingControllerAcknowledgementWithoutDroppingOwnership() throws Exception {
+        var c = internallyPausedAfterLeave();
+        setField(c, "pauseResumable", true);
+        setField(c, "runtimePersistenceGeneration", 7L);
+        var p = (FakePersistence) field(c, "persistence");
+        p.status = new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
+                p.status.recovery(), 7, 7, "Durable, not consumed");
+        var result = c.resume();
+        assertFalse(result.ok());
+        assertTrue(result.detail().contains("checkpoint"), result.detail());
+        assertTrue(c.armed());
+        assertEquals(7L, field(c, "runtimePersistenceGeneration"));
+        assertEquals(0, p.submissions.get());
+    }
+
     @Test void evasionResumeBypassesOnlyTheManualLeaveGate() throws Exception {
         double previous = dev.doughbay.fabric.Tuning.get("session.resume_after_leave");
         try {
