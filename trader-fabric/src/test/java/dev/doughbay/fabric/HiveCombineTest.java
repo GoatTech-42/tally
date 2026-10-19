@@ -125,4 +125,39 @@ class HiveCombineTest {
         HiveCombine.completePending(root.resolve("Bob"));
         assertEquals(a,HiveSetup.configured(root.resolve("Alice")));assertEquals(b,HiveSetup.configured(root.resolve("Bob")));
     }
+
+    @Test void malformedPendingRequestKeepsOriginalsAndOffersRecoveryInsteadOfThrowingAgain() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);
+        Path request=root.resolve("Bob/gonuts-hive-combine.json");Files.writeString(request,"{broken");
+        assertDoesNotThrow(()->HiveCombine.completePending(root.resolve("Bob")));
+        assertTrue(Files.exists(request));
+        assertTrue(HiveCombine.startupMessage.contains("queued setup request is invalid"));
+        assertFalse(HiveCombine.startupMessage.contains("start this one first"));
+        assertEquals(a,HiveSetup.configured(root.resolve("Alice")));
+        assertEquals(b,HiveSetup.configured(root.resolve("Bob")));
+        Files.writeString(request,"{\"version\":1}");
+        assertDoesNotThrow(()->HiveCombine.completePending(root.resolve("Bob")));
+        assertTrue(HiveCombine.startupMessage.contains("queued setup request is invalid"));
+    }
+    @Test void failedLedgerValidationDoesNotPrescribeRestartOrderOrLeakPaths() {
+        String message=HiveCombine.failureMessage(new java.sql.SQLException("Conflicting sale receipt; private-folder/account"));
+        assertTrue(message.contains("safe-merge checks"));
+        assertTrue(message.contains("Restarting alone will not resolve"));
+        assertFalse(message.contains("private-folder"));
+        assertFalse(message.contains("start the instance"));
+        assertTrue(HiveCombine.failureMessage(new java.io.IOException("Close both Minecraft instances")).contains("Close BOTH"));
+        assertTrue(HiveCombine.failureMessage(new java.sql.SQLException("Hive schemas differ")).contains("same build"));
+        assertTrue(HiveCombine.failureMessage(new java.sql.SQLException("payroll or loan records")).contains("cannot merge safely"));
+        assertTrue(HiveCombine.failureMessage(new java.nio.file.AccessDeniedException("private-folder")).contains("inaccessible"));
+    }
+
+    @Test void malformedRequestCannotBypassAnIncompletePublishedRedirect() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
+        HiveCombine.complete(p,root.resolve("no-presence"));
+        Files.delete(Path.of(p.combined().directory()).resolve("hive-combine-ready.json"));
+        Files.writeString(root.resolve("Bob/gonuts-hive-combine.json"),"{broken");
+        assertThrows(java.io.IOException.class,()->HiveSetup.resolve(root.resolve("Bob"),Path.of(b.directory())));
+        assertTrue(Files.exists(Path.of(a.directory()).resolve("doughbay.db")));
+        assertTrue(Files.exists(Path.of(b.directory()).resolve("hive-combined-into.json")));
+    }
 }

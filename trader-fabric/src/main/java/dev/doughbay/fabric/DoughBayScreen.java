@@ -6796,6 +6796,7 @@ public final class DoughBayScreen extends Screen {
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         if(tab==Tab.SWARM&&swarmPanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.ANALYZER&&analyzerPanel.scroll(mouseX,mouseY,deltaY))return true;
+        if(tab==Tab.HIVE&&hivePanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.APPEARANCE&&appearancePanel.scroll(mouseX,mouseY,deltaY))return true;
         if(tab==Tab.STAFF_WATCH&&staffWatchPanel.scroll(mouseX,mouseY,deltaY))return true;
         AUTOMATION_SESSION.notePanelActivity();
