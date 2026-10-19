@@ -4,8 +4,8 @@
 
 The key lives outside version control. Two ways to provide it:
 
-- **In game (easiest).** Open GoNuts with **B**, go to the **Automation** tab in
-  Observe mode, and use the **API KEY** card. Every character renders as `*`, so
+- **In game (easiest).** Open GoNuts with **B**, go to **Trade** (formerly **AutoPilot**),
+  choose **Tools: API key / test**, and use the **API KEY** card. Every character renders as `*`, so
   the key is never legible on screen or in a stream. **Save** writes it to
   `secret.dat` and restarts collection at once; enter it once and it is reused at
   every later launch. **Test history** then makes a single read-only request and

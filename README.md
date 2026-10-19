@@ -31,6 +31,13 @@ off by default.
 
 ---
 
+## Where is AutoPilot?
+
+Open GoNuts with **B**, then choose **Trade** (the current name for AutoPilot).
+The Dashboard shortcut is **Manage trading**. **Set up trading** opens
+**Choose limits → Review & Start**. See the [current setup guide](https://gonuts.at/guide/#trade)
+or **Tutorials → Find AutoPilot / Trade** in game. Opening a tutorial never starts trading.
+
 ## Why GoNuts
 
 Most auction tooling reads the current asking prices and guesses. GoNuts does the
