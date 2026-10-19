@@ -1791,6 +1791,26 @@ public final class AutomationSessionController {
         }
     }
 
+    /** Capture read-only watch proof before stopping the driver erases its target. */
+    private void releaseUnclickedWatchForPause() {
+        if (state != State.BUYING || !watchBuy || buyTerminalSucceeded
+                || !sessionOpen || !uncertainExposure.active()
+                || !"BUYING".equals(uncertainExposure.phase())
+                || trackedPosition != null || !recoveredOpenPositions.isEmpty()
+                || (buyCommandStarted && !driver.watchHasNotClicked())
+                || persistence == null || !persistence.status().ready()
+                || persistence.status().refusalOutstanding()) return;
+        // Queue behind the original BUY intent. A rejected release retains the
+        // original exposure; an accepted release still blocks resume until its
+        // durable receipt has been applied. No inventory absence is inferred.
+        long generation = persistence.submit(checkpoint(true, State.PAUSED.name(),
+                trackedPosition, AutomationUncertainExposure.none(),
+                "Protective pause ended an unclicked auction watch; nothing was purchased"));
+        if (generation <= 0) return;
+        releaseUnclickedWatchExposure();
+        buyIntentPersistenceGeneration = generation;
+    }
+
     /** Stops this controller and the driver before either can advance again. */
     public synchronized void emergencyStop() {
         if (manualResolutionPersistenceGeneration <= 0) clearManualResolution();
@@ -12431,6 +12451,7 @@ public final class AutomationSessionController {
             return;
         }
         if (recoveredExposureRemains()) {reportResumeGate("EXPOSURE_HOLD",now);return;}
+        if (persistenceStartBlocker() != null) {reportResumeGate("PERSISTENCE_WAIT",now);return;}
         if (!connectionRecoveryOwned && detail != null && detail.contains("Join a server")
                 && dev.doughbay.fabric.Tuning.get("session.resume_after_leave") < 0.5) {
             // Leaving the server is the player's doing; the session waits for Resume.
@@ -12468,6 +12489,7 @@ public final class AutomationSessionController {
         // Repeated Stop/E-stop while already paused must not erase the phase
         // that explains a possible BUY exposure.
         State prior = state == State.PAUSED ? pausedFromState : state;
+        releaseUnclickedWatchForPause();
         if (recoveredExposureRemains()) recoveredSession = true;
         if (prior == State.SCANNING) clearPendingCandidate();
         if (prior == State.REPRICING) {
