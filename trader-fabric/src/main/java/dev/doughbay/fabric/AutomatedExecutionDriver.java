@@ -5380,6 +5380,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * Remember the row, search again, and take the next cheapest.
      */
     private void retryAfterGhost(Minecraft client) {
+        retryAfterGhost(client, () -> sendCommand(client, "ah"));
+    }
+
+    // Keep command dispatch replaceable for offline retries; production uses the normal paced sender.
+    void retryAfterGhost(Minecraft client, Runnable reopenWatch) {
         if (watching) {
             watchGhosts.put(targetItemId + "|" + targetCount + "|" + targetPrice, System.currentTimeMillis());
             ghostRetries++;
@@ -5399,8 +5404,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             listingCaptureTaken = false;
             confirmationCaptureTaken = false;
             filterClicks = 0;
+            // /ah opens a fresh page 1, not the old look's pending next page.
+            // Keep the overall deadline and ghost exclusions, but reset page-local progress.
+            watchPagesRead = 0;
+            watchLastPage = 0;
+            watchOpenedAtMillis = 0;
             try {
-                sendCommand(client, "ah");
+                reopenWatch.run();
             } catch (RuntimeException e) {
                 abort(client, "Could not re-open the auction house after a vanished listing");
                 return;
