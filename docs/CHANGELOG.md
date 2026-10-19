@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 03:41 UTC
+
+- Release PR #141: After a watched auction listing has already sold, reopening the auction now starts with fresh page navigation. Previously a retry from page two or later retained the old page number and pages-read count, mistook fresh page one for an unchanged response, and could waste eight seconds plus lose further page coverage.
+- Only page-local progress and opening age reset. The original watch deadline, remaining looks, sold-row exclusions, price ceilings and normal purchase-confirmation checks remain enforced. A retry does not record a purchase or clear exposure.
+- Reproduced during investigation of #48 with a failing-before offline retry regression. This fixes a demonstrated no-purchase path defect; the original report does not establish whether it caused the entire three-hour symptom, so #48 remains under investigation.
+- Client artifact published October 18 at 20:41:00 Los Angeles time (October 19 03:41:00 UTC), separately from PR #139. Build 1792381116075; SHA256: `fae676df489babe025b4875c8a36d81e50e287a8b65409f26ab842a14fda810b`. Full suite: 1,326 tests, zero failures/errors and one skip. Production package contains no smoke entrypoints/classes. No running user bots were updated or controlled.
+
 ## 2026-10-19 03:18 UTC
 
 - Release PR #139: Structured action evidence now records requests, phases, actual outcomes, refusal categories, ages/counts and relevant quantity/price/ceiling/item values across the controller, auction driver, Flips/order desk, market feeds, recovery, Hive, dashboard, community, evasion, reconnect and restart paths.
