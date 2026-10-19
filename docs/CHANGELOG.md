@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 02:01 UTC
+
+- Release PR #135: Explicit item selections now match that item only. Including golden apple no longer also permits enchanted golden apples; excluding plain glass no longer also excludes stained glass. Applies to Items in game and on the web panel, plus seller/rival Include and Exclude actions.
+- Opposite actions and Clear remove exact and legacy entries for the selected name. Existing unrelated category rules, tracked markets, positions and trading limits are preserved. This fixes a reproduced selection defect; it does not establish the cause of historical reports #45/#58.
+- Client artifact published October 18 at 19:01:01 Los Angeles time (October 19 02:01:01 UTC), separately from PR #133. Verified with 1,312 tests, zero failures/errors and one skip. SHA256: `f5815a2bc154b887820bd14425b4f7432b39cfe3f3a141e88629513c00905151`.
+
 ## 2026-10-18 19:56 UTC
 
 - Release PR #133: Combine two accidentally separate single-account hives on the same computer through an explicit review and queued offline import. Select Use existing hive or paste the other hive’s code; creating another separate hive now warns when one is already known.
