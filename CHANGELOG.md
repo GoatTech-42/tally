@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 14:59 UTC
+
+- Release PR #146: A refused Resume request now preserves the session's existing automatic recovery authorization. Previously, pressing Resume during an ineligible pause or while disconnected could silently disarm the session and prevent evasion/restart recovery from continuing later.
+- Ordinary Resume waits for durable checkpoint acknowledgement. Operator stops stay stopped; world authorization, unresolved exposure, existing caps and trade verification remain enforced.
+- Normal running/stopped ticks no longer overwrite actual recovery blockers with NOT_PAUSED refusal noise. Recovery results are distinguished from refusals. Reproduced during investigation of #144/#145; their complete historical symptoms are not claimed resolved, and #143 remains a separate investigation.
+- Client artifact published October 19 at 07:59:51 Los Angeles time (14:59:51 UTC), separately from PR #141. Build 1792421850658; SHA256: `d999e0e653e4c1df5555c0704a582b9640ca758349f0c31221eba1c291cdac36`. Full suite: 1,330 tests, zero failures/errors and one skip. Production package contains no smoke entrypoints/classes. No running user bots were updated or controlled.
+
 ## 2026-10-19 03:41 UTC
 
 - Release PR #141: After a watched auction listing has already sold, reopening the auction now starts with fresh page navigation. Previously a retry from page two or later retained the old page number and pages-read count, mistook fresh page one for an unchanged response, and could waste eight seconds plus lose further page coverage.
