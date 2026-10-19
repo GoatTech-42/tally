@@ -36,7 +36,9 @@ public final class PresetsAnalyzerSmoke implements ClientModInitializer {
       ((net.minecraft.client.gui.components.Button)net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(mc.gui.screen()).stream().filter(w->w.getMessage().getString().equals("Next")).findFirst().orElseThrow()).onPress(null);phase++;ticks=0;}
     case 4->{if(ticks<30)return;capture(mc,"analyzer-finding-preview.png");
       ((net.minecraft.client.gui.components.Button)net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(mc.gui.screen()).stream().filter(w->w.getMessage().getString().equals("Capital charts")).findFirst().orElseThrow()).onPress(null);phase++;ticks=0;}
-    case 5->{if(ticks<30)return;capture(mc,"capital-charts-preview.png");phase=99;mc.stop();}
+    case 5->{if(ticks<30)return;capture(mc,"capital-charts-preview.png");mc.options.guiScale().set(2);mc.resizeGui();var screen=new DoughBayScreen(DoughBayClient.watcher());screen.selectHive();mc.gui.setScreen(screen);phase++;ticks=0;}
+    case 6->{if(ticks<30)return;capture(mc,"hive-guided-preview.png");mc.gui.setScreen(new HiveCombineScreen(mc.gui.screen(),"preview only"));phase++;ticks=0;}
+    case 7->{if(ticks<30)return;capture(mc,"hive-review-guided-preview.png");phase=99;mc.stop();}
    }
   }catch(Exception e){try{Files.writeString(Path.of("preview-error.txt"),e.toString());}catch(Exception ignored){}phase=99;mc.stop();}
  }

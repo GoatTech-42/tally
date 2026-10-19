@@ -779,16 +779,19 @@ final class Pages {
             }
             async function openAnalyzer(){
               try{
-                const d=await api('analyzer'),box=el('section','card');box.appendChild(el('h2','title','Local settings analyzer'));
+                const d=await api('analyzer'),box=el('section','card');box.appendChild(el('h2','title','Understand your trading'));
+                box.appendChild(el('p','desc','1. Analyze local data. 2. Review the evidence and next steps. 3. Choose a small experiment. Nothing applies automatically.'));
                 box.appendChild(el('p','desc',d.note||''));
                 box.appendChild(button('pick','Analyze local data',async()=>{const r=await change('analyzer',{});if(r&&r.ok){openAnalyzer();setTimeout(()=>{if(view==='analyzer')openAnalyzer();},1500);}}));
                 box.appendChild(button('','Refresh report',openAnalyzer));
                 const report=d.report;
                 if(report){
                   if(report.capital){const capital=el('section','card');box.appendChild(capital);drawCapital(capital,report);}
-                  for(const line of report.baseline||[])box.appendChild(el('p','desc',line));
-                  for(const f of report.findings||[]){const card=el('section','card');card.appendChild(el('h3','title',f.title));card.appendChild(el('p','desc','Evidence: '+f.evidence));card.appendChild(el('p','desc','Suggested experiment: '+f.suggestion));card.appendChild(el('p','muted','Estimate: '+f.estimate));box.appendChild(card);}
-                  if(Object.keys(report.numbers||{}).length||Object.keys(report.lists||{}).length)box.appendChild(button('pick','Save suggested preset',async()=>{const n=prompt('Name for this suggested preset');if(n!==null)await change('savedpresets',{action:'save',source:'proposal',name:n});}));
+                  const baseline=el('details','card');baseline.appendChild(el('summary','title','Baseline: what was measured'));for(const line of report.baseline||[])baseline.appendChild(el('p','desc',line));box.appendChild(baseline);
+                  box.appendChild(el('h3','title',(report.findings||[]).length+' findings to review'));
+                  if(!(report.findings||[]).length)box.appendChild(el('p','desc','Keep collecting completed sales and analyze again. No findings is not a guarantee of profitable or healthy trading.'));
+                  for(const f of report.findings||[]){const card=el('section','card');card.appendChild(el('h3','title',f.title));card.appendChild(el('h4','','What we observed'));card.appendChild(el('p','desc',f.evidence));card.appendChild(el('h4','','What you can try'));card.appendChild(el('p','desc',f.suggestion));card.appendChild(el('h4','','What the estimate means'));card.appendChild(el('p','muted',f.estimate));box.appendChild(card);}
+                  if(Object.keys(report.numbers||{}).length||Object.keys(report.lists||{}).length)box.appendChild(button('pick','Save suggestion for review',async()=>{const n=prompt('Name for this suggested preset (saved only; apply separately from Saved presets)');if(n!==null)await change('savedpresets',{action:'save',source:'proposal',name:n});}));
                   box.appendChild(button('','Copy report',()=>codeToClipboard(JSON.stringify(report,null,2))));
                 }
                 if(view==='analyzer')own.replaceChildren(box);

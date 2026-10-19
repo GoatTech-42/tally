@@ -88,3 +88,14 @@ The #145 investigation reproduces a real controller defect: ordinary Resume clea
 Report #144 also demonstrates recovery evidence pollution: ordinary running ticks recorded REFUSED/NOT_PAUSED under each successive trading state, replacing the last actual blocker and filling the bounded attachment. Active/stopped ticks no longer record a resume attempt. Actual paused checks keep their reason and age; resuming or adopting retained stock is recorded as a result rather than a refusal. A regression fails on the previous implementation when running ticks overwrite a real cooldown gate. No new report fields or backend changes are needed.
 
 No disconnected world is authorized, no uncertain exposure is cleared, and no operator stop is rearmed. #143/#144/#145 remain open for their separately reported outcomes unless further evidence establishes full resolution; these code regressions do not prove the entire historical symptoms resolved.
+
+
+## Report #148 — guided Analyzer and Hive setup
+
+Human requested these usability improvements. Analyzer now explains the analyze/review/experiment flow, shows responsive baseline cards, and separates findings into evidence, next action and estimate limits. Browser Analyzer uses the same guidance and a collapsible baseline. Suggested settings still require separate preset review/application.
+
+Hive setup separates Link accounts from Share this hive, cycles through detected local hives rather than always choosing the first, and provides selection/review/restart steps, scrollable help and a combine alternative to deleting original hives. Combine review separates preparation, restart order, result and data preservation.
+
+A demonstrated error-path defect was also found: completePending reparsed malformed JSON inside its catch handler, throwing instead of retaining the request and reporting the failure. The regression fails against the original implementation with Jackson's parse exception and passes after the fix. Malformed/incomplete requests stay on disk and original links/ledgers remain intact; redirect validation and publication gates remain. Startup failure guidance distinguishes running-instance locks, version mismatch, unsupported account/loan history, validation conflicts, inaccessible files and invalid requests without reflecting arbitrary exception text/paths. Only running-instance failures prescribe restarting both instances in order. Existing HIVE_SETUP fault capture records type/frames through the privacy-filtered pipeline.
+
+The demonstrated UI and failure-reporting paths are addressed. Which condition caused this reporter's two failed imports remains unknown; no claim all possible merge failures are fixed. No live bots, ledgers, caps or recovery controls changed.

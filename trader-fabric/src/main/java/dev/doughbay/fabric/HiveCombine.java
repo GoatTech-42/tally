@@ -47,22 +47,48 @@ final class HiveCombine {
     }
     static void completePending(Path game) throws IOException {
         Path request=game.resolve(REQUEST);if(!Files.exists(request))return;
+        Plan pending=null;
         try {
             if(Files.size(request)>24_576)throw new IOException("Invalid pending hive combination");
             Plan p=JSON.readValue(Files.readAllBytes(request),Plan.class);
+            if(p==null||p.first()==null||p.second()==null||p.combined()==null||p.first().directory()==null||p.second().directory()==null)
+                throw new IOException("Invalid pending hive combination");
+            Path.of(p.first().directory());Path.of(p.second().directory());pending=p;
             if(p.version()!=1)throw new IOException("Unsupported hive combination");
             complete(p);
             // Preserve the exact request as a local receipt rather than deleting it.
             Files.move(request,game.resolve("gonuts-hive-combine-"+p.combined().id()+".applied.json"));
             startupMessage="Hives combined. Both original folders were kept. Restart the other instance to use the shared ledger.";
         } catch(Exception e) {
-            startupMessage="Combination did not finish. Close both Minecraft instances and start this one first. Original ledgers were kept.";
+            startupMessage=failureMessage(e);
+            FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());
             // Before link publication a failed import leaves both original hives fully usable.
-            Plan p=JSON.readValue(Files.readAllBytes(request),Plan.class);
+            // A malformed request must not be parsed again from inside the failure handler.
+            // Existing redirect validation still blocks incomplete publication during normal resolve.
+            if(pending==null)return;
+            Plan p=pending;
             if(!Files.exists(Path.of(p.first().directory()).resolve(REDIRECT))&&!Files.exists(Path.of(p.second().directory()).resolve(REDIRECT)))return;
             // A pending redirect deliberately prevents an interrupted combination becoming two divergent ledgers.
             throw new IOException(startupMessage,e);
         }
+    }
+    static String failureMessage(Throwable failure) {
+        String detail=String.valueOf(failure.getMessage()).toLowerCase(Locale.ROOT);
+        String next;
+        if(detail.contains("close both")||detail.contains("running")||detail.contains("active instance"))
+            next="Another instance is still using a hive. Close BOTH Minecraft windows completely, then start the instance that queued Combine first.";
+        else if(detail.contains("schema")||detail.contains("update both"))
+            next="The hive data versions do not match this importer. Update both instances to the same build before retrying.";
+        else if(detail.contains("payroll")||detail.contains("loan")||detail.contains("other account")||detail.contains("single-account")||detail.contains("multi-member"))
+            next="This combination contains account or loan history that the two-account importer cannot merge safely. Keep using the original hives; report the Hive setup failure for review.";
+        else if(detail.contains("conflict")||detail.contains("integrity")||detail.contains("reference")||detail.contains("verified ledger"))
+            next="The histories could not pass the safe-merge checks. Restarting alone will not resolve this. Keep the original folders and report the Hive setup failure.";
+        else if(failure instanceof com.fasterxml.jackson.core.JacksonException||detail.contains("invalid")||detail.contains("unsupported hive combination")||detail.contains("membership changed"))
+            next="The queued setup request is invalid or no longer matches these hives. Review Hive setup and report this failure before retrying. Do not delete either original hive.";
+        else if(failure instanceof java.nio.file.AccessDeniedException||failure instanceof java.nio.file.NoSuchFileException)
+            next="A required hive file is missing or inaccessible. Restore access to the original folders before retrying; do not create replacement ledgers.";
+        else next="The import could not finish safely. Keep both original folders and submit a report from Help > Report a bug, describing the Hive setup failure.";
+        return "Combination not completed. "+next+" Original ledgers were kept.";
     }
     static void complete(Plan p) throws Exception {
         complete(p,Path.of(System.getProperty("user.home"),".gonuts","local-presence"));
