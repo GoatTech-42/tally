@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 02:20 UTC
+
+- Release PR #137: Enabling Trade only these now discards a queued general auction watch and stops an already-running watch before it selects a listing. Previously selected watches could continue scanning unrelated markets after the toggle changed.
+- Undispatched BUY intents release through a durable checkpoint. Reading watches end through their normal no-charge terminal event; a selected purchase continues normal verification and reconciliation. No trading limits, held stock or existing exposure are reset.
+- Related to report #45; its historical toggle state and reporter outcome remain unconfirmed. The investigation also reviewed #48/#58/#118/#120 without claiming their separate symptoms fixed.
+- Client artifact published October 18 at 19:20:36 Los Angeles time (October 19 02:20:36 UTC), separately from PR #135. Verified with 1,316 tests, zero failures/errors and one skip. Build 1792376334232; SHA256: `c5158ecebac16d9c8a943abf7002882725979672af8fb891f260af7ebbf737c6`.
+
 ## 2026-10-19 02:01 UTC
 
 - Release PR #135: Explicit item selections now match that item only. Including golden apple no longer also permits enchanted golden apples; excluding plain glass no longer also excludes stained glass. Applies to Items in game and on the web panel, plus seller/rival Include and Exclude actions.
