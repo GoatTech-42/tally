@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-19 21:17 UTC
+
+- Release PR #158: A protective pause during a read-only auction watch now captures the driver's proof that no row was clicked before stopping it. Previously that proof was lost, leaving a false uncertain BUY intent that could block unattended recovery. A release is queued durably, and automatic scanning waits until the writer and controller apply the receipt.
+- Selected rows, possible purchases, held positions and rejected releases retain their exposure. Explicit Stop, protective timing, native authorization and all spend/trade caps remain enforced. This is a reproduced related path from the #157 investigation; the report's original uncertain phase and Stop initiator are unknown, so the full incident is not claimed resolved and existing retained exposure is not cleared.
+- Client artifact published October 19 at 14:17:37 Los Angeles time (21:17:37 UTC), separately from PR #154. Build 1792444635940; SHA256: `fbeb960b7d93466ed0cc8fc23789b8b4baa4d1da0c4e54462faa5274d19d490e`. Two regressions failed against the old code; full suite: 1,344 tests, zero failures/errors, one skip. Production package has no smoke entrypoints/classes; public JAR, source and checksum downloads independently verified. No live user bots were updated or controlled.
+
 ## 2026-10-19 20:24 UTC
 
 - Release PR #154: Web-panel navigation now distinguishes Auction listings and Order book data views from Auction settings and Order settings. Previously the generic Auction and Orders shortcuts opened configuration sections, making them look like broken data links. Each settings page now explains which sidebar entry shows the data.
