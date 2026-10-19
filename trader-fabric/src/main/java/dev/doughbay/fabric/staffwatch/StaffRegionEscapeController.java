@@ -109,6 +109,10 @@ final class StaffRegionEscapeController {
             public void notice(String watcher, String detail) {
                 DoughBayClient.LOGGER.warn("Staff Watch region escape [{}]: {}", watcher, detail);
             }
+            public void detected(String watcher) {
+                var guard = DoughBayClient.evasionGuard();
+                if (guard != null) guard.noteStaffRegionEscape(watcher);
+            }
         }, System::currentTimeMillis);
         PacketReceiveNettyEvent.TYPE.listen(this, EventPriority.HIGHEST, event -> {
             if (event.packet instanceof ClientboundRespawnPacket || event.packet instanceof ClientboundPlayerPositionPacket) {

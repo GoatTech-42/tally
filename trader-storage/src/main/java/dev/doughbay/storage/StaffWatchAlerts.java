@@ -11,6 +11,14 @@ public final class StaffWatchAlerts {
 
     private StaffWatchAlerts() { }
 
+    public static final String REGION_ESCAPE_ACTION = "Staff Watch: watcher detected; preparing a safe region change";
+    public static String title(String action) {
+        return REGION_ESCAPE_ACTION.equals(action) ? "STAFF WATCH — REGION ESCAPE" : "STAFF WATCH — DISCONNECTED";
+    }
+    public static String historyLabel(String action) {
+        return REGION_ESCAPE_ACTION.equals(action) ? "STAFF — REGION ESCAPE REQUESTED" : "STAFF — DISCONNECTED";
+    }
+
     public static void record(Connection connection, long at, String client, String who, String action) throws SQLException {
         connection.setAutoCommit(false);
         try {

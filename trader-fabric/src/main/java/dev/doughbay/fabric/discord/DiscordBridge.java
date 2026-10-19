@@ -273,7 +273,7 @@ public final class DiscordBridge {
                 var body = MAPPER.createObjectNode();
                 body.putObject("allowed_mentions").putArray("parse");
                 var embed = body.putArray("embeds").addObject();
-                embed.put("title", "STAFF WATCH — DISCONNECTED");
+                embed.put("title", dev.doughbay.storage.StaffWatchAlerts.title(alert.action()));
                 embed.put("color", 0xFF858C);
                 embed.put("timestamp", Instant.ofEpochMilli(alert.at()).toString());
                 embed.put("description", DiscordFeed.clean("Client: " + alert.client()) + "\n"
@@ -1767,7 +1767,7 @@ public final class DiscordBridge {
                         String action = rs.getString(5);
                         // Keep the outcome readable in the narrow history column. The full
                         // destination and cooldown remain in the dedicated notification.
-                        if (action.startsWith("Staff Watch:")) action = "STAFF — DISCONNECTED";
+                        if (action.startsWith("Staff Watch:")) action = dev.doughbay.storage.StaffWatchAlerts.historyLabel(action);
                         rows.add(new String[] {when, rs.getString(2), rs.getString(3),
                                 blocks > 0 ? String.format(Locale.ROOT, "%.0f", blocks) : "", action});
                     }
