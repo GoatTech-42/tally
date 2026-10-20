@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 16:00 UTC
+
+- Release PR #168: Replaced the alarming unresolved-item banner with an interrupted-trade recovery guide. Trade identifies the item and count, explains the next step for each recovery stage, and keeps refused-action feedback visible. A focused scrollable dialog makes the checklist readable at larger GUI scales; the global recovery button opens Review trade instead of taking a generic Resume action.
+- Recovery help remains available while confirmations are blocked. Confirmation requires all instructions to be visible/read through, the same current recovery stage and one identified exposure; the controller still requires the existing two confirmations, fresh evidence and durable acknowledgement. Verified stock uses its normal listing path. Existing ownership, safety holds, saved positions and spending limits are preserved. Persistent waits or unclear records direct players to report the problem. This improves #167's recovery UX; its underlying interruption is not claimed resolved. No live bot was upgraded or restarted.
+- Client artifact published October 20 at 09:00:43 Los Angeles time (16:00:43 UTC), separately from PR #164. Build 1792512001296; SHA256: `29332d9e72e49ba0686dd2764d3c81fad094de5f397e752cd57e6033ef24a255`. Full suite: 1,360 tests, zero failures/errors, one skip. Isolated offline synthetic recovery screenshots verified at two GUI scales, including the focused help dialog; no trade or recovery confirmation was executed. Production JAR excludes preview code; public JAR/source/checksum bytes independently verified.
+
 ## 2026-10-20 03:26 UTC
 
 - Release PR #164: Fixed automatic buy-order sizing that described 7 individual diamond blocks as 7 of up to 12 stacks. A sampled single-item price bucket no longer becomes the physical stack size when singles selling is off. New stack orders require supported whole-stack resale pricing; a purchase cap cannot silently enable single-item orders.
