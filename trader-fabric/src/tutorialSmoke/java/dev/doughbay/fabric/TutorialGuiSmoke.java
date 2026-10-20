@@ -14,14 +14,20 @@ public final class TutorialGuiSmoke implements ClientModInitializer {
   if(mc.level!=null)throw new IllegalStateException("Tutorial preview must remain offline");
   if(mc.gui.overlay()!=null||++ticks<45)return;ticks=0;
   switch(phase++){
-   case 0->{mc.options.guiScale().set(2);mc.resizeGui();main=new DoughBayScreen(DoughBayClient.watcher());guide=new TutorialScreen(main,false);setup=new QuickStartScreen(main);mc.gui.setScreen(setup);}
+   case 0->{mc.options.guiScale().set(3);mc.resizeGui();main=new DoughBayScreen(DoughBayClient.watcher());guide=new TutorialScreen(main,false);setup=new QuickStartScreen(main);mc.gui.setScreen(setup);}
    case 1->{capture(mc,"quick-start-limits.png");var field=QuickStartScreen.class.getDeclaredField("review");field.setAccessible(true);field.set(setup,true);mc.gui.setScreen(setup);}
    case 2->{capture(mc,"quick-start-review.png");main.openTutorialTarget("auction",guide);}
    case 3->{capture(mc,"settings-auction.png");main.openTutorialTarget("orders",guide);}
    case 4->{capture(mc,"settings-orders.png");mc.gui.setScreen(new TutorialScreen(main,false));}
    case 5->{capture(mc,"tutorial-library.png");
+    var field=DoughBayScreen.class.getDeclaredField("tab");field.setAccessible(true);
+    @SuppressWarnings({"rawtypes","unchecked"}) Object dashboard=Enum.valueOf((Class)field.getType(),"OVERVIEW");
+    field.set(main,dashboard);mc.gui.setScreen(main);}
+   case 6->{capture(mc,"install-dashboard.png");main.openTutorialTarget("autopilot",guide);}
+   case 7->{capture(mc,"install-trade.png");main.openTutorialTarget("evasion",guide);}
+   case 8->{capture(mc,"install-protections.png");
     if(!DoughBayClient.watcher().snapshot().status().startsWith("KEYLESS:"))throw new IllegalStateException("Local keyless analysis did not publish while offline");
-    Files.writeString(Path.of("tutorial-preview-success.txt"),"Offline keyless analysis published while item components were unbound; two-step setup/tutorials rendered; no server joined or Start pressed");mc.stop();}
+    Files.writeString(Path.of("tutorial-preview-success.txt"),"Fresh offline capture: limits, review, tutorial library, Dashboard, Trade and Evasion; no server joined or Start pressed");mc.stop();}
   }
  }catch(Throwable e){try{Files.writeString(Path.of("tutorial-preview-error.txt"),e.toString());}catch(Exception ignored){}mc.stop();}}
  private void capture(Minecraft mc,String name)throws Exception{

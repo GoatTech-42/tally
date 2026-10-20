@@ -170,7 +170,7 @@
   }
   @media (max-width: 560px) {
     .bar .wrap { flex-wrap: wrap; padding-block: 12px; gap: 12px; }
-    .bar nav { width: 100%; margin-left: 0; gap: 10px; justify-content: space-between; }
+    .bar nav { width: 100%; margin-left: 0; gap: 10px; flex-wrap: wrap; justify-content: flex-start; }
     body { font-size: 16px; }
     .cards { grid-template-columns: minmax(0, 1fr); }
     .entry { grid-template-columns: minmax(0, 1fr); }
@@ -261,7 +261,7 @@
       <article class="card"><h3>Join the Swarm</h3><p>Link your bot, understand shared discovery and see what contribution includes.</p><a href="guide/swarm.html">Swarm setup and benefits</a></article>
       <article class="card"><h3>Written handbook</h3><p>First install, hive setup, panels and troubleshooting.</p><a href="guide/">Read the guides</a></article>
       <article class="card"><h3>Trading and Flips</h3><p>Only trade selected items, set your own prices, understand singles and use Analyzer.</p><a href="guide/trading.html">Read the trading handbook</a><a href="guide/trading.html#selected-items">Only specific items</a></article>
-      <article class="card"><h3>First-install video</h3><p>From download to trading in six steps.</p><a href="#install">Watch the install tutorial</a></article>
+      <article class="card"><h3>First-install video</h3><p>Fresh setup screens, captions and eight clear steps.</p><a href="#install">Watch the install tutorial</a></article>
       <article class="card"><h3>Discord-bot setup</h3><p>Configure your own Discord bot and its control panel.</p><a href="#discord">Watch the Discord tutorial</a><a href="guide/#discord">Read the Discord steps</a></article>
       <article class="card"><h3>MultiMC + HeadlessMC</h3><p>Run a working instance without a game window and verify dashboard access.</p><a href="guide/headless-multimc.html">Set up headless</a></article>
     </div>
@@ -270,29 +270,31 @@
   <div class="wrap">
     <div class="section-head">
       <div class="label">Install</div>
-      <h2>Six steps from download to trading</h2>
-      <p class="lede">Watch it through, or pick a step to jump the video to it. This earlier recording says AutoPilot; the current tab is Trade. <a href="guide/#trade">Read the current setup steps.</a></p>
+      <h2>Install and review in eight steps</h2>
+      <p class="lede">Follow the current first-run flow with fresh screenshots and captions. Pick a step to jump to it. <a href="guide/#start">Open the written instructions.</a></p>
     </div>
     <div class="install-grid">
       <div class="player">
-        <video id="film" controls preload="metadata" poster="assets/site/first-install-poster.jpg">
-          <source src="assets/site/first-install.mp4" type="video/mp4">
-          <track kind="captions" src="assets/site/first-install.vtt" srclang="en" label="English" default>
-          Your browser cannot play this video. <a href="assets/site/first-install.mp4">Download it</a> instead.
+        <video id="film" controls preload="metadata" poster="assets/site/first-install-poster.jpg?v=20261019-current-flow-silent">
+          <source src="assets/site/first-install.mp4?v=20261019-current-flow-silent" type="video/mp4">
+          <track kind="captions" src="assets/site/first-install.vtt?v=20261019-current-flow-silent" srclang="en" label="English" default>
+          Your browser cannot play this video. <a href="assets/site/first-install.mp4?v=20261019-current-flow-silent">Download it</a> instead.
         </video>
         <div class="under">
-          <span>Your first install, with captions</span>
+          <span>Current first install · 2 min 40 sec · silent, with captions. Game screens were freshly captured offline; disabled controls and blockers are shown honestly.</span>
           <a href="guide/#start">Prefer to read? The written guide</a>
         </div>
       </div>
       <div>
         <ol class="steps" id="steps">
-          <li><button type="button" data-at="5"><span class="n">1</span><span><span class="what">Get what you need</span><div class="how">Minecraft Java 26.2, Fabric Loader for 26.2, and the Fabric API mod.</div></span><span class="at">0:05</span></button></li>
-          <li><button type="button" data-at="14"><span class="n">2</span><span><span class="what">Download GoNuts</span><div class="how">One file: <span class="mono">GoNuts-0.1.0-mc26.2.jar</span> from the Releases page.</div></span><span class="at">0:14</span></button></li>
-          <li><button type="button" data-at="22"><span class="n">3</span><span><span class="what">Put it in your mods folder</span><div class="how">Close Minecraft first. The folder is <span class="mono">%appdata%\.minecraft\mods</span>.</div></span><span class="at">0:22</span></button></li>
-          <li><button type="button" data-at="32"><span class="n">4</span><span><span class="what">Join DonutSMP</span><div class="how">Turn the sidebar scoreboard on in <span class="mono">/settings</span>. GoNuts reads your balance from it.</div></span><span class="at">0:32</span></button></li>
-          <li><button type="button" data-at="40"><span class="n">5</span><span><span class="what">Press B and open Trade</span><div class="how">Formerly AutoPilot. New installs use Choose limits → Review &amp; Start; existing users can choose Set up trading.</div></span><span class="at">0:40</span></button></li>
-          <li><button type="button" data-at="57"><span class="n">6</span><span><span class="what">Enable live trading, then Start</span><div class="how">In Trade, review both limits, enable and confirm if needed, then review readiness before Start. Opening a tutorial does not start trading.</div></span><span class="at">0:57</span></button></li>
+          <li><button type="button" data-at="8.625"><span class="n">1</span><span><span class="what">Prepare Fabric</span><div class="how">Fabric Loader, Fabric API and Java 25 must match Minecraft 26.2.</div></span><span class="at">0:08</span></button></li>
+          <li><button type="button" data-at="28.167"><span class="n">2</span><span><span class="what">Download GoNuts</span><div class="how">Use gonuts.at → Download for Minecraft 26.2. Keep the .jar intact.</div></span><span class="at">0:27</span></button></li>
+          <li><button type="button" data-at="41.417"><span class="n">3</span><span><span class="what">Put both mods in the right folder</span><div class="how">Use the game directory for the installation you launch, not another instance.</div></span><span class="at">0:41</span></button></li>
+          <li><button type="button" data-at="61.167"><span class="n">4</span><span><span class="what">Launch, join, then press B</span><div class="how">Join DonutSMP, enable the sidebar in /settings, then press B.</div></span><span class="at">1:00</span></button></li>
+          <li><button type="button" data-at="78.458"><span class="n">5</span><span><span class="what">Choose your limits</span><div class="how">Enter both caps, then choose Review &amp; continue.</div></span><span class="at">1:18</span></button></li>
+          <li><button type="button" data-at="97.667"><span class="n">6</span><span><span class="what">Review protections</span><div class="how">Review Evasion and Staff Watch; Swarm and Discord are optional.</div></span><span class="at">1:37</span></button></li>
+          <li><button type="button" data-at="115.750"><span class="n">7</span><span><span class="what">Review &amp; Start</span><div class="how">Read readiness and blockers; choose Start trading only when ready.</div></span><span class="at">1:55</span></button></li>
+          <li><button type="button" data-at="140.458"><span class="n">8</span><span><span class="what">Find your controls and help</span><div class="how">Trade is the current AutoPilot tab. B opens; End stops by default.</div></span><span class="at">2:20</span></button></li>
         </ol>
         <p class="after">After that, leave the game window open and visible with no menu left open. The End key stops it at once.</p>
       </div>
@@ -383,8 +385,8 @@
         <figcaption>The dashboard, on a fresh install before any trades.</figcaption>
       </figure>
       <figure class="shot">
-        <img src="assets/site/autopilot.jpg" alt="Earlier AutoPilot screen, now found under Trade, with its setup checklist and spend limits" width="1600" height="900" loading="lazy">
-        <figcaption>Earlier AutoPilot screen. In the current client, open Trade or Set up trading.</figcaption>
+        <img src="assets/site/install-choose-limits.jpg" alt="Current Choose your limits setup screen with maximum per trade and session spend" width="1600" height="900" loading="lazy">
+        <figcaption>Current first-run setup: Choose your limits, then Review &amp; Start.</figcaption>
       </figure>
     </div>
   </div>
