@@ -54,6 +54,26 @@ final class OrderShape {
         return stack;
     }
 
+    /** Resale lot selected independently of the statistics bucket. Zero means no supported lot. */
+    static int resaleLot(int sampledCount, int fullStack, boolean fullStackPriced, boolean singlesEnabled) {
+        if (sampledCount <= 0 || fullStack <= 0 || fullStack > 64) return 0;
+        if (fullStackPriced || fullStack == 1) return fullStack;
+        return singlesEnabled ? 1 : 0;
+    }
+
+    /** A small purchase cap is not permission to switch off whole-stack sizing. */
+    static boolean mayUseSingles(int fullStack, boolean singlesEnabled) {
+        return fullStack == 1 || singlesEnabled;
+    }
+
+    /** Whole resale stacks within money, listing capacity and exact order-count limits. */
+    static int stackOrderCount(int stacks, int fullStack, long unit, long budget, int listingRoom) {
+        if (stacks <= 0 || fullStack <= 0 || fullStack > 64 || unit <= 0 || budget <= 0 || listingRoom <= 0) return 0;
+        long affordable = budget / unit / fullStack;
+        long count = Math.min(Math.min(stacks, listingRoom), Math.min(999 / fullStack, affordable));
+        return (int) count * fullStack;
+    }
+
     /** Whole stacks that fit the money: never part of one, and at least one for the caller to refuse. */
     static int fitStacks(int stacks, int per, long unit, long budget) {
         if (stacks <= 1 || per <= 0 || unit <= 0) return Math.max(1, stacks);

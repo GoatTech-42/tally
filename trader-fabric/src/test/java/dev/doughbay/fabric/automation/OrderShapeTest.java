@@ -5,6 +5,42 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OrderShapeTest {
+    @Test void twelveStacksMeans768BlocksAndSevenMeans448() {
+        assertEquals(768,OrderShape.stackOrderCount(12,64,45_885,40_000_000,12));
+        assertEquals(448,OrderShape.stackOrderCount(7,64,45_885,40_000_000,12));
+        assertEquals(0,OrderShape.stackOrderCount(12,64,45_885,350_000,12));
+        assertEquals(128,OrderShape.stackOrderCount(12,64,45_885,6_000_000,12));
+    }
+
+    @Test void quantityRespectsListingRoomExactCountsAndRealStackSizes() {
+        assertEquals(192,OrderShape.stackOrderCount(12,64,100,1_000_000,3));
+        assertEquals(960,OrderShape.stackOrderCount(30,64,100,1_000_000,30));
+        assertEquals(192,OrderShape.stackOrderCount(12,16,100,1_000_000,12));
+        assertEquals(12,OrderShape.stackOrderCount(12,1,100,1_000_000,12));
+        assertEquals(0,OrderShape.stackOrderCount(12,64,Long.MAX_VALUE,Long.MAX_VALUE,12));
+        assertEquals(0,OrderShape.stackOrderCount(12,64,100,1_000_000,0));
+    }
+
+    @Test void sampledSingleDiamondBlockCannotBecomeASevenItemStackOrder() {
+        // Actual incident: an X1 price bucket yielded "7 of up to 12 stacks", but ordered 7 blocks.
+        assertEquals(64, OrderShape.resaleLot(1,64,true,false));
+        assertEquals(0, OrderShape.resaleLot(1,64,false,false));
+        assertEquals(0, OrderShape.resaleLot(16,64,false,false));
+    }
+
+    @Test void purchaseCapCannotSilentlyEnableSingles() {
+        org.junit.jupiter.api.Assertions.assertFalse(OrderShape.mayUseSingles(64,false));
+        org.junit.jupiter.api.Assertions.assertTrue(OrderShape.mayUseSingles(64,true));
+        org.junit.jupiter.api.Assertions.assertTrue(OrderShape.mayUseSingles(1,false));
+    }
+
+    @Test void realStackSizesAndExplicitSinglesRemainDistinct() {
+        assertEquals(16, OrderShape.resaleLot(1,16,true,false));
+        assertEquals(1, OrderShape.resaleLot(1,1,true,false));
+        assertEquals(1, OrderShape.resaleLot(1,64,false,true));
+        assertEquals(64, OrderShape.resaleLot(1,64,true,true));
+    }
+
     @Test
     void anOrderGoesOneStepAboveTheBestStandingOne() {
         assertEquals(13_130, OrderShape.topOfBook(13_000));

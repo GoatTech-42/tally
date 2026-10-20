@@ -6039,33 +6039,33 @@ public final class AutomationSessionController {
                     }
                 }
             }
-            // The bucket our statistics happened to sample is not the size the
-            // market trades in. Order a whole stack where the auction prices
-            // one, and never order more than a stack of anything.
-            if (shaped == null && full > per && bidCeilingUnit(snapshot, m.itemKey(), full, minimumProfit, minimumRoi) > 0) {
-                per = full;
+            // A sampled single is price evidence, not a physical stack. Only an
+            // explicitly enabled singles-selling path may order partial stacks.
+            boolean singlesAllowed = OrderShape.mayUseSingles(full, singlesListingEnabled());
+            if (shaped == OrderShape.Mode.SINGLES && !singlesAllowed) {
+                bump(why, "single-item selling is off"); continue;
             }
-            per = Math.min(per, full);
-            if (shaped != null) per = shaped == OrderShape.Mode.STACKS ? full : 1;
+            if (shaped == null) {
+                per = OrderShape.resaleLot(per, full,
+                        bidCeilingUnit(snapshot, m.itemKey(), full, minimumProfit, minimumRoi) > 0,
+                        singlesAllowed);
+                if (per <= 0) { bump(why, "no whole-stack resale price; singles are off"); continue; }
+            } else per = shaped == OrderShape.Mode.STACKS ? full : 1;
             long unit = shaped != null ? shapedOffer : bidCeilingUnit(snapshot, m.itemKey(), per, minimumProfit, minimumRoi);
             if (unit <= 0) { bump(why, "no resale price"); continue; }
-            // A stack of a million-a-unit item never fits the per-trade cap, so
-            // the desk skips it for ever. Where even one stack is too dear, bid
-            // a single at a time: the same market worked one unit per order,
-            // which is the whole point for ancient debris and netherite ingots.
-            // The fill is then listed on the auction like any other collected
-            // stock, one at a time, at the single's resale price.
-            if (shaped == OrderShape.Mode.STACKS && unit * (long) per > effectivePurchaseCap() && unit <= singleCeiling) {
-                // Even one stack is past the cap; the single allotment is not.
-                shaped = OrderShape.Mode.SINGLES;
-                per = 1;
-            } else if (per > 1 && unit * (long) per > effectivePurchaseCap()) {
-                long single = bidCeilingUnit(snapshot, m.itemKey(), 1, minimumProfit, minimumRoi);
-                if (single <= 0 || single > effectivePurchaseCap()) { bump(why, "over the buy cap"); continue; }
-                per = 1;
-                unit = single;
-                retail = null;
-                shaped = null;
+            if (per > 1 && unit > effectivePurchaseCap() / per) {
+                if (!singlesAllowed) { bump(why, "one whole stack exceeds the buy cap"); continue; }
+                if (shaped == OrderShape.Mode.STACKS && unit <= singleCeiling) {
+                    shaped = OrderShape.Mode.SINGLES;
+                    per = 1;
+                } else {
+                    long single = bidCeilingUnit(snapshot, m.itemKey(), 1, minimumProfit, minimumRoi);
+                    if (single <= 0 || single > effectivePurchaseCap()) { bump(why, "over the buy cap"); continue; }
+                    per = 1;
+                    unit = single;
+                    retail = null;
+                    shaped = null;
+                }
             }
             if (retail != null && shaped == null) {
                 // Compete at the order book's price; the retail ceiling is a limit, not an offer.
@@ -6169,12 +6169,15 @@ public final class AutomationSessionController {
             // orders went unrecognised and their 1,280 items sat uncollected.
             int exact = (999 / per) * per;
             if (exact >= per && count > exact) count = exact;
-            // Fewer stacks rather than no order when the money runs short.
-            if (shaped == OrderShape.Mode.STACKS && count > per) {
-                count = per * OrderShape.fitStacks(count / per, per, unit, (long) Math.min(effectivePurchaseCap(), room));
+            // Apply the same whole-stack budget rule to ordinary and shaped bids.
+            if (per == full && shaped != OrderShape.Mode.SINGLES) {
+                count = OrderShape.stackOrderCount(count / per, full, unit,
+                        (long) Math.min(effectivePurchaseCap(), room), roomInMarket);
+                if (count <= 0) { bump(why, "no whole stack fits the caps"); continue; }
             }
-            String trimmed = String.format(java.util.Locale.ROOT, "; %d of up to %d stack(s), margin %.0f%%%s%s",
-                    count / per, stacks, margin * 100,
+            String quantityKind = full > 1 && per == full ? "stack(s)" : "item(s)";
+            String trimmed = String.format(java.util.Locale.ROOT, "; %d of up to %d %s, margin %.0f%%%s%s",
+                    count / per, stacks, quantityKind, margin * 100,
                     track == null ? ", unproven" : String.format(java.util.Locale.ROOT, ", ours sold %d in ~%.0f min",
                             track.sold(), track.avgMinutesListed()),
                     roomInMarket < sized ? ", listing cap" : "");
