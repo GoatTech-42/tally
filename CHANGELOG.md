@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 23:15 UTC
+
+- Release PR #185: A stalled panel picture render can no longer occupy every reader used for status and data. Pictures now use a separate single worker with at most one outstanding render; repeated picture polls return promptly while status requests remain available. Picture capacity is released after completion or a rendering error. Existing authentication, overall request limits, expiry and game-thread control checks remain enforced.
+- The panel now explains busy, unavailable, timed-out and oversized responses, retries automatically, and directs persistent failures to About → Report bug in game. It no longer treats these HTTP responses as proof that Minecraft stopped. Separately, a valid shared-history receipt at the frozen 24-hour boundary could expire during network transit and reject its whole page. Fully validated expired boundary rows are now skipped while fresh sales remain; scope, provenance, quantity, price and future-time checks stay enforced. No positions or ownership records are changed.
+- Related to #183's web-panel connection failure and captured history fault. Three regressions failed before their respective fixes: actual panel executor starvation with a blocked renderer, actual page JavaScript handling relay failures, and the actual history decoder with a 250 ms transport delay. These repair reproduced paths; the affected player's complete incident cause remains unconfirmed and the report stays open. Separate VPS diagnostics measure anonymous operation/outcome/latency counts. No running bot was upgraded or restarted for this release.
+- Client artifact published October 20 at 16:15:44 Los Angeles time (23:15:44 UTC), separately from PR #182. Build 1792537983146; SHA256: `f4be0cd37af064d3d4eb21308bb648a4e49299e7e1cdd3867a69566f199a7515`. Full clean suite/build: 1,381 tests, zero failures/errors, one skip. Production JAR has only the normal client entrypoint and no test or Smoke classes. Public JAR, source ZIP and checksum manifest independently downloaded and verified.
+
 ## 2026-10-20 22:52 UTC
 
 - Release PR #182: Fixed inventory sweeps and fallback fill adoption booking stock a second time while its original purchase was still queued. That duplicate could list the physical stock first, leaving the original purchase to pause because it was no longer in inventory. Adoption now defers to queued purchases, preserving their original IDs, quantities and cost basis. Split batches, partial stacks and descriptor item keys are covered; actual new collection receipts retain their normal booking flow.
