@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 03:26 UTC
+
+- Release PR #164: Fixed automatic buy-order sizing that described 7 individual diamond blocks as 7 of up to 12 stacks. A sampled single-item price bucket no longer becomes the physical stack size when singles selling is off. New stack orders require supported whole-stack resale pricing; a purchase cap cannot silently enable single-item orders.
+- Whole-stack bids reduce to affordable whole stacks within existing purchase/session spending limits, listing room and the exact order-count bound. Twelve 64-item stacks means up to 768 items, not a promise to always order twelve. Explicit singles selling and unstackable items retain their supported paths; diagnostics identify items versus stacks. Existing orders, inventory, positions and collection/recovery remain intact, so an older small order can still complete. No caps were raised and no live bots were installed, restarted or controlled.
+- Client artifact published October 19 at 20:26:53 Los Angeles time (October 20, 03:26:53 UTC), separately from PR #162. Build 1792466786792; SHA256: `040285bbbaeb3f3df9164d0cdba05fb08beb2ebebb6186a778dcd9457cb7ff85`. Two regressions failed against the extracted legacy selection/fallback decisions. Full suite: 1,360 tests, zero failures/errors, one skip, including true 64/16/1-item stack sizes, 12-stack quantities, affordability, listing room, exact-count bounds and overflow-safe sizing. Production package and public JAR/source/checksum downloads verified.
+
 ## 2026-10-19 23:30 UTC
 
 - Release PR #162: Updated setup guides and tutorials for the current **Trade** tab (formerly **AutoPilot** or **Automation**). The homepage walkthrough, player handbook, GUI tour, API-key configuration and Discord instructions now use current navigation and distinguish guided Choose limits / Review & Start from existing-session controls. Earlier video and screenshot labels are identified explicitly, with links to current steps.
