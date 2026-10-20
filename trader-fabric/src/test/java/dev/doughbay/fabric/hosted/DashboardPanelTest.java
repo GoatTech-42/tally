@@ -29,6 +29,44 @@ class DashboardPanelTest {
         var page=request(frame("page","page")).get(2,TimeUnit.SECONDS);assertEquals(LocalPanel.pageHtml(),page.path("body").asText());assertEquals("panel_result",page.path("type").asText());
         var state=request(frame("state","state")).get(2,TimeUnit.SECONDS);assertEquals(backend.state(),state.path("body").asText());
     }
+    @Test void stalledPicturesCannotStarveStateReadsAndPictureCapacityReturnsAfterCompletion()throws Exception{
+        var entered=new CountDownLatch(1);var release=new CountDownLatch(1);var renders=new AtomicInteger();var failNext=new AtomicBoolean();
+        var slow=new LocalPanel.Backend(){
+            public byte[] png()throws Exception{renders.incrementAndGet();entered.countDown();release.await();if(failNext.getAndSet(false))throw new java.io.IOException("synthetic render failure");return new byte[]{1,2,3};}
+            public String state(){return backend.state();}
+            public void press(String id,String value){backend.press(id,value);}
+            public void text(String id,String value){backend.text(id,value);}
+            public String data(String name,Map<String,String> query){return backend.data(name,query);}
+            public String change(String name,Map<String,String> form){return backend.change(name,form);}
+            public byte[] icon(String id){return null;}
+        };
+        try(var isolated=new DashboardPanel(()->slow,game::add,timer)){
+            var pictures=new ArrayList<CompletableFuture<ObjectNode>>();
+            try{
+                for(int i=0;i<4;i++){
+                    var reply=new CompletableFuture<ObjectNode>();pictures.add(reply);
+                    isolated.receive(1,frame("slow"+i,"png"),current::get,reply::complete);
+                }
+                assertTrue(entered.await(2,TimeUnit.SECONDS));
+                var state=new CompletableFuture<ObjectNode>();
+                isolated.receive(1,frame("responsive","state"),current::get,state::complete);
+                assertEquals(200,state.get(1,TimeUnit.SECONDS).path("status").asInt(),
+                        "status must remain available while a picture render is stalled");
+                assertEquals(1,renders.get(),"repeated polling must not fan out stalled renders");
+                for(int i=1;i<pictures.size();i++)assertEquals(429,pictures.get(i).get(1,TimeUnit.SECONDS).path("status").asInt());
+            }finally{release.countDown();}
+            assertEquals(200,pictures.getFirst().get(2,TimeUnit.SECONDS).path("status").asInt());
+            var next=new CompletableFuture<ObjectNode>();
+            isolated.receive(1,frame("nextpicture","png"),current::get,next::complete);
+            assertEquals(200,next.get(2,TimeUnit.SECONDS).path("status").asInt());
+            failNext.set(true);var failed=new CompletableFuture<ObjectNode>();
+            isolated.receive(1,frame("failedpicture","png"),current::get,failed::complete);
+            assertEquals(500,failed.get(2,TimeUnit.SECONDS).path("status").asInt());
+            var retry=new CompletableFuture<ObjectNode>();
+            isolated.receive(1,frame("retrypicture","png"),current::get,retry::complete);
+            assertEquals(200,retry.get(2,TimeUnit.SECONDS).path("status").asInt(),"render errors must release picture capacity");
+        }
+    }
     @Test void readsForwardMapsAndNullBecomes404()throws Exception{
         var data=frame("data","data").put("name","settings");data.putObject("query").put("key","slots.max");
         assertTrue(request(data).get(2,TimeUnit.SECONDS).path("body").asText().contains("slots.max"));

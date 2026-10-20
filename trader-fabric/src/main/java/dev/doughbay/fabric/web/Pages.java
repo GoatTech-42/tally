@@ -1461,12 +1461,22 @@ final class Pages {
               try {
                 const r = await fetch('/state', { cache: 'no-store' });
                 if (r.status === 401) { location.reload(); return; }
+                if (!r.ok) {
+                  const messages = {
+                    429: 'Panel is busy refreshing. It will retry automatically.',
+                    503: 'Panel link is not ready. Keep Minecraft open; retrying automatically.',
+                    504: 'Panel request timed out. It will retry automatically.',
+                    413: 'Panel data was too large to load. In game, open About → Report bug and mention panel response too large.'
+                  };
+                  if (!view) put('notice', messages[r.status] || 'Panel could not refresh. Retrying automatically; if this continues, use About → Report bug in game.');
+                  return;
+                }
                 draw(await r.json());
                 await reportNotice();
                 if (!view) picture();
                 else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
               } catch (e) {
-                if (!view) put('notice', SILENT);
+                if (!view) put('notice', 'Panel connection was interrupted. Retrying automatically; if this continues, use About → Report bug in game.');
               }
             }
             if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();

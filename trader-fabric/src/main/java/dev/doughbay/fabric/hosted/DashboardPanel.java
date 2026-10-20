@@ -19,12 +19,16 @@ public final class DashboardPanel implements AutoCloseable {
     private final Executor game;
     private final ScheduledExecutorService timer;
     private final ExecutorService reads=Executors.newFixedThreadPool(4,r->{Thread t=new Thread(r,"gonuts-dashboard-panel");t.setDaemon(true);return t;});
+    // A slow render must not consume every reader and make a connected bot's
+    // status and controls look offline. Only one picture may be outstanding.
+    private final ExecutorService pictures=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"gonuts-dashboard-picture");t.setDaemon(true);return t;});
     private final LinkedHashMap<String,Request> requests=new LinkedHashMap<>();
     private int inFlight;
+    private int picturesInFlight;
     private static final class Request {
-        final long epoch,expires;final String identity;final JsonNode frame;final BooleanSupplier current;final Consumer<ObjectNode> reply;
+        final long epoch,expires;final String identity;final JsonNode frame;final BooleanSupplier current;final Consumer<ObjectNode> reply;final boolean picture;
         ObjectNode result;boolean answered,running;ScheduledFuture<?> timeout;
-        Request(long epoch,JsonNode frame,BooleanSupplier current,Consumer<ObjectNode> reply){this.epoch=epoch;this.frame=frame.deepCopy();this.expires=frame.path("expiresAt").asLong();this.identity=frame.toString();this.current=current;this.reply=reply;}
+        Request(long epoch,JsonNode frame,BooleanSupplier current,Consumer<ObjectNode> reply){this.epoch=epoch;this.frame=frame.deepCopy();this.expires=frame.path("expiresAt").asLong();this.identity=frame.toString();this.current=current;this.reply=reply;this.picture=frame.path("op").asText().equals("png");}
     }
     public DashboardPanel(Supplier<LocalPanel.Backend> backend,Executor game,ScheduledExecutorService timer){this.backend=backend;this.game=game;this.timer=timer;}
     public synchronized void receive(long epoch,JsonNode frame,BooleanSupplier current,Consumer<ObjectNode> reply){
@@ -35,21 +39,23 @@ public final class DashboardPanel implements AutoCloseable {
         if(old!=null){if(!old.identity.equals(frame.toString()))reply.accept(error(id,409,"Request id already used"));else if(old.result!=null)reply.accept(old.result.deepCopy());return;}
         requests.entrySet().removeIf(e->e.getValue().answered&&!e.getValue().running&&now-e.getValue().expires>30_000);
         if(inFlight>=8||requests.size()>=256){reply.accept(error(id,429,"Panel busy"));return;}
+        if(frame.path("op").asText().equals("png")&&picturesInFlight>=1){reply.accept(error(id,429,"Panel picture busy; status is still available"));return;}
         try{validate(frame);}catch(IllegalArgumentException e){reply.accept(error(id,400,"Invalid panel request"));return;}
-        var request=new Request(epoch,frame,current,reply);requests.put(key,request);inFlight++;
+        var request=new Request(epoch,frame,current,reply);requests.put(key,request);inFlight++;if(request.picture)picturesInFlight++;
         request.timeout=timer.schedule(()->finish(request,error(id,504,"The client did not answer in time")),expires-now,TimeUnit.MILLISECONDS);
-        String op=frame.path("op").asText();Executor executor=op.equals("change")||op.equals("act")?game:reads;
-        try{executor.execute(()->execute(request));}catch(RejectedExecutionException e){inFlight--;finish(request,error(id,503,"Panel unavailable"));}
+        String op=frame.path("op").asText();Executor executor=op.equals("change")||op.equals("act")?game:request.picture?pictures:reads;
+        try{executor.execute(()->execute(request));}catch(RejectedExecutionException e){release(request);finish(request,error(id,503,"Panel unavailable"));}
     }
     private void execute(Request request){
         synchronized(this){
-            if(request.answered||!request.current.getAsBoolean()||System.currentTimeMillis()>=request.expires){inFlight--;finish(request,null);return;}
+            if(request.answered||!request.current.getAsBoolean()||System.currentTimeMillis()>=request.expires){release(request);finish(request,null);return;}
             request.running=true;
         }
         ObjectNode result;
         try{result=call(request.frame);}catch(Exception e){result=error(request.frame.path("id").asText(),500,"Panel request failed");}
-        synchronized(this){request.running=false;inFlight--;finish(request,result);}
+        synchronized(this){request.running=false;release(request);finish(request,result);}
     }
+    private void release(Request request){inFlight--;if(request.picture)picturesInFlight--;}
     private synchronized void finish(Request request,ObjectNode result){
         if(request.answered)return;request.answered=true;if(request.timeout!=null)request.timeout.cancel(false);
         if(!request.current.getAsBoolean()||result==null)return;
@@ -120,5 +126,5 @@ public final class DashboardPanel implements AutoCloseable {
     private static ObjectNode bounded(ObjectNode result){return result.toString().getBytes(StandardCharsets.UTF_8).length>DashboardProtocol.MAX_PANEL_FRAME_BYTES?error(result.path("id").asText(),413,"Panel response too large"):result;}
     private static ObjectNode result(String id,int status,String type,String body){return DashboardProtocol.JSON.createObjectNode().put("type","panel_result").put("id",id).put("status",status).put("contentType",type).put("body",body);}
     static ObjectNode error(String id,int status,String body){return result(id,status,"text/plain; charset=utf-8",body);}
-    @Override public void close(){synchronized(this){for(var r:requests.values())finish(r,null);}reads.shutdownNow();}
+    @Override public void close(){synchronized(this){for(var r:requests.values())finish(r,null);}reads.shutdownNow();pictures.shutdownNow();}
 }
