@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 22:52 UTC
+
+- Release PR #182: Fixed inventory sweeps and fallback fill adoption booking stock a second time while its original purchase was still queued. That duplicate could list the physical stock first, leaving the original purchase to pause because it was no longer in inventory. Adoption now defers to queued purchases, preserving their original IDs, quantities and cost basis. Split batches, partial stacks and descriptor item keys are covered; actual new collection receipts retain their normal booking flow.
+- This prevents the reproduced duplicate-booking path going forward. It does not clear existing ambiguous records, bypass inventory/ownership checks, change nearby-player evasion, or prove every report in #170/#171/#174 resolved. Existing positions still require native reconciliation. No live bots were upgraded or restarted for this release.
+- Client artifact published October 20 at 15:52:27 Los Angeles time (22:52:27 UTC), separately from PR #180. Build 1792536604165; SHA256: `fb0d99e8f50df3c505819a3faf9129f0b27fbc7393061bc230baaf1c33253eae`. Two ownership regressions failed before the fix; all four new regressions pass. Full clean suite/build: 1,377 tests, zero failures/errors, one skip. Production JAR has only the normal client entrypoint and no test or Smoke classes. Public JAR, source ZIP and checksum manifest independently downloaded and verified.
+
 ## 2026-10-20 22:29 UTC
 
 - Release PR #180: Restored normal Minecraft command handoff for auction sells. An October 17 change prepended a raw hotbar-selection packet before every sell and repeated it on retries, even after the selected exact stack had settled. Sells now retain their dispatch-time item/components/count/slot/inventory validation without that extra selection packet. Command pacing, connection-handoff verification, spending caps, durable intent and ownership guards stay enforced.
