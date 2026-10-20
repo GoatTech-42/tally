@@ -4378,7 +4378,7 @@ public final class AutomationSessionController {
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
             String k = orderKey(r.itemId(), r.unitPrice(), r.requested());
             if (!seen.add(k)) continue;
-            if (hasRetailStock(r.itemId())) continue;
+            if (inventoryStockAlreadyOwned(r.itemId())) continue;
             int pending = deliveredFor(k) - collectedByKey.getOrDefault(k, 0);
             if (pending <= 0) continue;
             if (unlistedPurchaseSlot(client, r.itemId(), pending) < 0) continue;
@@ -4503,7 +4503,7 @@ public final class AutomationSessionController {
         List<ItemStack> stacks = client.player.getInventory().getNonEquipmentItems();
         for (var entry : owed.entrySet()) {
             String itemId = entry.getKey();
-            if (hasRetailStock(itemId)) continue;
+            if (inventoryStockAlreadyOwned(itemId)) continue;
             int sum = entry.getValue();
             boolean owedOnPage = false;
             for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
@@ -4574,7 +4574,7 @@ public final class AutomationSessionController {
         if (trace) fillNoteAt.put("#trace", now);
         List<String> traceLines = new ArrayList<>();
         for (PlacedBid bid : placedBids.values()) {
-            if (hasRetailStock(bid.itemId())) continue;
+            if (inventoryStockAlreadyOwned(bid.itemId())) continue;
             if (now - bid.placedAt() > 24 * 3_600_000L) continue;
             int held = 0;
             for (ItemStack st : stacks) if (!st.isEmpty() && itemId(st).equals(bid.itemId())) held += st.getCount();
@@ -4759,7 +4759,7 @@ public final class AutomationSessionController {
             ItemStack st = stacks.get(i);
             if (st.isEmpty() || reservedSlot(i)) continue;
             String id = itemId(st);
-            if (hasRetailStock(id)) continue;
+            if (inventoryStockAlreadyOwned(id)) continue;
             if (!AutomatedExecutionDriver.listableWithParts(st)) continue;
             if (dev.doughbay.fabric.ItemDescriptor.of(st).hasParts()) continue;
             if (bookingRefuses(setAsideItems.contains(id), dev.doughbay.fabric.Tuning.itemAllowed(id),
@@ -4795,7 +4795,7 @@ public final class AutomationSessionController {
             // this recovery saw the same trident sitting unaccounted for,
             // wrote a fresh position, the preparation failed, the position was
             // closed, and round it went - nineteen times before anyone noticed.
-            if (setAsideItems.contains(id) || hasRetailStock(id)) continue;
+            if (setAsideItems.contains(id) || inventoryStockAlreadyOwned(id)) continue;
             // The deny list outlives a restart where the set above does not, so
             // an item we have decided not to trade is never adopted off the
             // floor either.
@@ -7182,6 +7182,15 @@ public final class AutomationSessionController {
     private boolean hasRetailStock(String item) {
         return stockInHand().stream().anyMatch(p -> retailLots.containsKey(p.positionId())
                 && baseItemId(p.itemKey()).equals(baseItemId(item)));
+    }
+
+    boolean inventoryStockAlreadyOwned(String item) {
+        // A collected batch already has one durable purchase per physical stack.
+        // Inventory adoption must let that queue list it under its original cost
+        // basis, instead of creating a second position for the same stock.
+        return hasRetailStock(item) || recoveredQueue.stream().anyMatch(p ->
+                p.status() == PositionStatus.PURCHASED
+                        && baseItemId(p.itemKey()).equals(baseItemId(item)));
     }
 
     /**
