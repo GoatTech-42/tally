@@ -1,0 +1,128 @@
+[
+  {
+    "title": "Current first-install flow",
+    "subtitle": "From download to your first review",
+    "bullets": [
+      "Minecraft 26.2 + Fabric",
+      "Choose limits → Review & Start",
+      "Pause the video whenever you need"
+    ],
+    "image": "quick-start-limits.png",
+    "captionText": "Install GoNuts using the current first-run screens. We will download the mod, choose limits, and review before starting.",
+    "duration": 8.375,
+    "start": 0,
+    "speechDuration": 7.153106575963719
+  },
+  {
+    "title": "1. Prepare Fabric",
+    "subtitle": "Match the versions first",
+    "bullets": [
+      "Minecraft Java Edition 26.2",
+      "Fabric Loader + Fabric API for 26.2",
+      "Java 25 for this Minecraft version"
+    ],
+    "image": "fabric",
+    "captionText": "Use Minecraft Java Edition 26.2 with Fabric Loader, Fabric API for 26.2, and Java 25. In the official launcher, follow Fabric’s installer instructions. Other launchers use their own Fabric installation flow. The written guide links the official instructions.",
+    "duration": 19.541666666666668,
+    "start": 8.375,
+    "speechDuration": 18.336054421768708
+  },
+  {
+    "title": "2. Download GoNuts",
+    "subtitle": "Use the website’s Download button",
+    "bullets": [
+      "Visit gonuts.at",
+      "Download for Minecraft 26.2",
+      "Keep the file as a .jar"
+    ],
+    "image": "download-page.png",
+    "captionText": "Open gonuts dot at and choose Download for Minecraft 26.2. Save the GoNuts jar file. Do not extract it. You do not need a manual API key for normal keyless setup.",
+    "duration": 13.25,
+    "start": 27.916666666666668,
+    "speechDuration": 12.012290249433107
+  },
+  {
+    "title": "3. Put both mods in the right folder",
+    "subtitle": "Close Minecraft before changing mods",
+    "bullets": [
+      "Open THIS installation’s game folder",
+      "Place GoNuts + Fabric API in mods",
+      "Keep just one GoNuts jar"
+    ],
+    "image": "folder",
+    "captionText": "Close Minecraft. Open the game folder for the installation you actually launch. Put the GoNuts jar and matching Fabric API jar in its mods folder. Create mods if it is missing. Keep only one GoNuts jar. Custom launcher instances may use a different folder from the default dot minecraft folder.",
+    "duration": 19.75,
+    "start": 41.16666666666667,
+    "speechDuration": 18.531201814058957
+  },
+  {
+    "title": "4. Launch, join, then press B",
+    "subtitle": "Use your Fabric 26.2 installation",
+    "bullets": [
+      "Launch the Fabric profile",
+      "Join DonutSMP; enable sidebar in /settings",
+      "Press B to open GoNuts"
+    ],
+    "image": "install-dashboard.png",
+    "captionText": "Launch your Fabric 26.2 installation and join DonutSMP. Enable the sidebar scoreboard in the server’s settings so GoNuts can read your balance. Press B. A new install opens guided setup. If you see the Dashboard, choose Set up trading.",
+    "duration": 17.291666666666668,
+    "start": 60.91666666666667,
+    "speechDuration": 16.061451247165532
+  },
+  {
+    "title": "5. Choose your limits",
+    "subtitle": "Step 1 of 2",
+    "bullets": [
+      "Maximum per trade = one purchase cap",
+      "Maximum session spend = session cap",
+      "Choose Review & continue"
+    ],
+    "image": "quick-start-limits.png",
+    "captionText": "On Choose your limits, enter maximum per trade and maximum session spend. Choose amounts you intend to use; the values shown here are examples, not recommendations. Swarm is optional. Select Review and continue. This moves to the review screen; it does not start trading.",
+    "duration": 19.208333333333332,
+    "start": 78.20833333333334,
+    "speechDuration": 17.986122448979593
+  },
+  {
+    "title": "6. Review protections",
+    "subtitle": "Understand them before you start",
+    "bullets": [
+      "Review protections opens Evasion",
+      "Swarm linking is optional",
+      "No Discord bot or API-key setup required"
+    ],
+    "image": "install-protections.png",
+    "captionText": "Use Review protections to understand the Evasion settings. Review Staff Watch separately if you use it. Return to setup afterward. Joining Swarm and configuring Discord are optional connections, not required installation steps. Opening a tutorial never starts trading.",
+    "duration": 18.083333333333332,
+    "start": 97.41666666666667,
+    "speechDuration": 16.846485260770976
+  },
+  {
+    "title": "7. Review & Start",
+    "subtitle": "Step 2 of 2",
+    "bullets": [
+      "Check your amounts and readiness",
+      "Read any red blocker",
+      "Choose Start trading only when ready"
+    ],
+    "image": "quick-start-review.png",
+    "captionText": "On Review and Start, check your amounts and readiness. Start trading saves these fixed limits and starts continuous buying and listing through the existing checks. This offline preview is blocked because it has not joined a server. On your client, read the actual blocker; do not bypass it. Choose Start trading only when ready. Server rules prohibit automation; running it carries a ban risk.",
+    "duration": 24.708333333333332,
+    "start": 115.5,
+    "speechDuration": 23.485170068027212
+  },
+  {
+    "title": "8. Find your controls and help",
+    "subtitle": "You are ready to review your own client",
+    "bullets": [
+      "Trade is the current AutoPilot tab",
+      "B opens GoNuts; End is emergency stop",
+      "Tutorials → Find AutoPilot / Trade"
+    ],
+    "image": "tutorial-library.png",
+    "captionText": "Trade is the current name for AutoPilot. B opens GoNuts, and End is the default emergency stop. Check Minecraft Controls if you changed the bindings. A fresh database may need time to gather market data. Purchases and profit are not guaranteed. Use Tutorials or the written guide whenever you need help.",
+    "duration": 20.208333333333332,
+    "start": 140.20833333333334,
+    "speechDuration": 18.985668934240362
+  }
+]
