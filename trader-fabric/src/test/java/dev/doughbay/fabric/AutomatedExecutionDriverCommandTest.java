@@ -120,6 +120,60 @@ class AutomatedExecutionDriverCommandTest {
     }
 
     @Test
+    void lateSellConfirmationIsNotClosedByQueuedRetry() throws Exception {
+        activateListing();
+        long now = 100_000;
+        driver.sendCommand(transport, "ah sell 20000", now, 600);
+        driver.sendCommand(transport, "ah sell 20000", now + 100, 600);
+        transport.menu = true; // The first command's delayed response arrived during the retry gap.
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, now + 600));
+        assertEquals(0, transport.closes, "let the existing confirmation verifier inspect the late menu");
+        assertFalse(driver.commandPending());
+        assertEquals(List.of("ah sell 20000"), transport.sent);
+        assertEquals("WAITING_FOR_CONFIRMATION", get("phase").toString());
+    }
+
+    @Test
+    void lateListingReceiptWithdrawsRetryWithoutBypassingInventoryVerification() throws Exception {
+        activateListing();
+        long now = System.currentTimeMillis();
+        driver.sendCommand(transport, "ah sell 20000", now, 600);
+        driver.sendCommand(transport, "ah sell 20000", now + 100, 600);
+        driver.observeGameMessage("You listed 64 Redstone for $ 20K");
+        transport.listingBlocker = "Listing stack changed before dispatch; no sell command sent";
+        transport.holdUntil = now + 100_000;
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, now + 200));
+        assertFalse(driver.commandPending());
+        assertEquals(List.of("ah sell 20000"), transport.sent);
+        assertEquals("WAITING_FOR_CONFIRMATION", get("phase").toString(),
+                "receipt alone must not finish the operation or invent a listed position");
+        assertEquals("You listed 64 Redstone for $ 20K", get("listingReceipt"));
+    }
+
+    @Test
+    void serverRefusalWithdrawsQueuedSellInsteadOfRepeatingIt() throws Exception {
+        activateListing();
+        driver.sendCommand(transport, "ah sell 20000", 100_000, 600);
+        driver.sendCommand(transport, "ah sell 20000", 100_100, 600);
+        driver.observeGameMessage("You have too many listed items");
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, 100_600));
+        assertFalse(driver.commandPending());
+        assertEquals(List.of("ah sell 20000"), transport.sent);
+    }
+
+    @Test
+    void initialQueuedSaleStillClosesOldMenuAndDoesNotTreatItAsConfirmation() throws Exception {
+        activateListing();
+        transport.menu = true;
+        transport.stickyMenu = true;
+        driver.sendCommand(transport, "ah sell 20000", 100_000, 600);
+        assertEquals(WAITING, driver.dispatchPendingCommand(transport, 100_600));
+        assertTrue(driver.commandPending());
+        assertTrue(transport.sent.isEmpty());
+        assertEquals(2, transport.closes);
+    }
+
+    @Test
     void sellRetriesHonorLongServerBackoffWithoutTimingOutInTheQueue() throws Exception {
         activateListing();
         transport.holdUntil = 220_000;

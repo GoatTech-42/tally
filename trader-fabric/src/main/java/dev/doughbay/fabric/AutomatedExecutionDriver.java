@@ -4442,6 +4442,24 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     PendingDispatch dispatchPendingCommand(CommandTransport transport, long now) {
         if (resendCommand == null) return PendingDispatch.NONE;
+        // A sell retry can be queued just before the first command's response
+        // arrives. Process that response before touching the queue: otherwise
+        // menuOpen closes the late confirmation, or a late receipt reaches
+        // listingBlocker after its stack has already left the hand. Withdrawing
+        // a retry is not success; the normal confirmation/receipt AND inventory
+        // verification below still decide the terminal outcome.
+        if (operation == Operation.LIST && resendCommand.startsWith("ah sell ")
+                && resendCommand.equals(lastDispatchedCommand)
+                && (phase == Phase.WAITING_FOR_CONFIRMATION || phase == Phase.WAITING_FOR_COMPLETION)
+                && (!listingReceipt.isEmpty() || !serverRejection.isEmpty()
+                    || phase == Phase.WAITING_FOR_COMPLETION || transport.menuOpen())) {
+            resendCommand = null;
+            commandQueuedAt = 0;
+            resendCommandAt = 0;
+            pendingCommandGap = 0;
+            pendingCommandHoldUntil = 0;
+            return PendingDispatch.NONE;
+        }
         pendingCommandHoldUntil = Math.max(pendingCommandHoldUntil, transport.notBeforeMillis());
         if (now < pendingCommandHoldUntil) return PendingDispatch.WAITING;
         // An intentional server hold is not a stuck queue/menu timeout.

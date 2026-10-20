@@ -11,14 +11,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RestartPlanTest {
     @Test
     void theSideDoorsAreEastAndWestOfTheHomeAddressUnlessListed() {
-        assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops("", "donutsmp.net"));
-        assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops(null, "DonutSMP.net:25565"));
+        var all = List.of("east.donutsmp.net", "west.donutsmp.net", "asia.donutsmp.net",
+                "oceania.donutsmp.net", "eu-central.donutsmp.net", "eu-west.donutsmp.net");
+        assertEquals(all, RestartPlan.hops("", "donutsmp.net"));
+        assertEquals(all, RestartPlan.hops(null, "DonutSMP.net:25565"));
         // Joined through a name of its own: the doors are still the network's, not that name's.
-        assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops("  ", "play.donutsmp.net"));
-        assertEquals(List.of("east.donutsmp.net", "west.donutsmp.net"), RestartPlan.hops("", "west.donutsmp.net"));
+        assertEquals(all, RestartPlan.hops("  ", "play.donutsmp.net"));
+        assertEquals(all.stream().filter(a -> !a.equals("west.donutsmp.net")).toList(), RestartPlan.hops("", "west.donutsmp.net"));
         // The player's own list, in the player's order.
         assertEquals(List.of("west.donutsmp.net", "east.donutsmp.net"),
                 RestartPlan.hops("West.donutsmp.net; east.donutsmp.net, west.donutsmp.net", "donutsmp.net"));
+    }
+
+    @Test void skipsEveryCurrentRegionAndKeepsAllSixConfiguredAlternatives() {
+        var all = RestartPlan.hops("", "donutsmp.net");
+        for (String current : all) {
+            assertEquals(all.stream().filter(a -> !a.equals(current)).toList(),
+                    RestartPlan.hops("", current.toUpperCase() + ":25565"));
+        }
+        assertEquals(all, RestartPlan.hops(String.join(",", all), "donutsmp.net"));
+        assertEquals(List.of("asia.donutsmp.net", "west.donutsmp.net"),
+                RestartPlan.hops("east.donutsmp.net,asia.donutsmp.net,west.donutsmp.net", "east.donutsmp.net"));
+        assertEquals(List.of(), RestartPlan.hops("west.donutsmp.net", "west.donutsmp.net"));
+    }
+
+    @Test void bypassIsEnabledByDefaultWithClearQueueLabel() {
+        var setting = Tuning.SETTINGS.stream().filter(s -> s.key().equals("restart.hop")).findFirst().orElseThrow();
+        assertEquals(1, setting.defaultValue());
+        assertEquals("Restart queue bypass", setting.label());
     }
 
     @Test

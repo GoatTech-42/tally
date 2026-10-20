@@ -11,7 +11,7 @@ import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.network.chat.Component;
 
-/** Disconnects from confirmed restart limbo and reconnects directly through East or West. */
+/** Disconnects from confirmed restart limbo and reconnects directly through another region. */
 final class RestartRecovery {
     private final RestartRoute route = new RestartRoute();
     private volatile long limboSeenAt;

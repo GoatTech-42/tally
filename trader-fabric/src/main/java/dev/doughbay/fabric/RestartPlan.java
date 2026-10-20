@@ -50,10 +50,9 @@ final class RestartPlan {
     }
 
     /**
-     * The side doors to try, in order. What the player listed, or east and
-     * west of the home address when they listed nothing. Only ever another
-     * door of the same network. A current regional address remains a valid retry: a typing
-     * mistake must not send an account to some other server.
+     * The regional doors to try, in order. Keep a custom order, but never
+     * reconnect to the address whose restart we are trying to leave.
+     * Only doors of the same network are allowed.
      */
     static List<String> hops(String configured, String home) {
         String h = host(home);
@@ -66,13 +65,12 @@ final class RestartPlan {
             }
         }
         if (wanted.isEmpty()) {
-            wanted.add("east." + site(h));
-            wanted.add("west." + site(h));
+            for (String region : List.of("east", "west", "asia", "oceania", "eu-central", "eu-west"))
+                wanted.add(region + "." + site(h));
         }
         for (String w : wanted) {
-            if (out.size() >= 4) break;
-            boolean regionalHome = h.equals("east." + site(h)) || h.equals("west." + site(h));
-            if ((host(w).equals(h) && !regionalHome) || !sameSite(w, h)) continue;
+            if (out.size() >= 6) break;
+            if (host(w).equals(h) || !sameSite(w, h)) continue;
             boolean seen = false;
             for (String o : out) if (host(o).equals(host(w))) seen = true;
             if (!seen) out.add(w);
