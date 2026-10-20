@@ -65,6 +65,32 @@ position.
 
 ## Crash recovery
 
+### If Trade says “Trade interrupted — check before continuing”
+
+This means the bot could not verify how an interrupted trade finished. It has
+paused new purchases to avoid buying twice. Open **B → Trade** and follow the
+next step shown at the top of the session card:
+
+1. **Item verified in inventory:** choose **List the bought item, then continue**.
+   Normal listing checks and your existing limits still apply.
+2. **Item not verified:** check your inventory and your own auction listings.
+   Open **Show recovery steps** for a readable checklist. Only if the item is in
+   neither place, choose **1: I checked both places** in that dialog.
+   If you find it, keep it; report the problem if the screen
+   does not recognize it. Do not confirm that it is missing.
+3. **Checking listings:** close the panel with **Esc** so the bot can perform its
+   fresh checks, then reopen **Trade**. A waiting button is disabled on purpose.
+4. **Checks ready:** open **Review final check**, then confirm **2: Confirm neither place** only if
+   that remains true. Wait while the confirmation is saved.
+5. Once the screen says it is ready, choose **Resume trading**. Existing spending
+   limits remain in place; recovery confirmation does not itself start trading.
+
+If checks keep waiting, the records cannot identify a single interrupted trade,
+or a button refuses your action, send a bug report from that screen. Include the
+displayed **Last action** message. Do not force-reset or remove recovery records.
+An update can prevent a previously fixed cause, but does not automatically erase
+an existing unresolved trade.
+
 Real-automation checkpoints are written by a dedicated SQLite worker, never on
 Minecraft's render thread. Session open, pre-command intent, verified position,
 caps, and reconciled closure each get a durable acknowledgement at their safety

@@ -13232,14 +13232,15 @@ public final class AutomationSessionController {
                 && uncertain.targetPrice() == position.targetPrice();
     }
 
-    private String recoveredExposureItemId() {
+    /** Read-only item identity for the recovery screen; never an ownership proof. */
+    public synchronized String recoveredExposureItemId() {
         if (uncertainExposure.active()) return uncertainExposure.itemId();
         List<Position> positions = exposurePositions();
         Position position = positions.size() == 1 ? positions.getFirst() : null;
         return position == null ? "" : baseItemId(position.itemKey());
     }
 
-    private int recoveredExposureItemCount() {
+    public synchronized int recoveredExposureItemCount() {
         if (uncertainExposure.active()) return uncertainExposure.itemCount();
         List<Position> positions = exposurePositions();
         Position position = positions.size() == 1 ? positions.getFirst() : null;

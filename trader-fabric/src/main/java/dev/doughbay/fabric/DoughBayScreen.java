@@ -912,21 +912,13 @@ public final class DoughBayScreen extends Screen {
             }
             case PAUSED -> {
                 label = "▶ Resume";
-                if (session.recoveredSession() && session.unresolvedExposure()
-                        && !AUTOMATION_SESSION.recoverableInHand()) {
-                    label = "Resolve recovery";
+                if (session.recoveredSession() || AUTOMATION_SESSION.recoverableInHand()) {
+                    label = "Review trade";
                     action = () -> {
                         tab = Tab.AUTOMATION;
                         automationMode = AutomationMode.CONTINUOUS;
                         rebuildWidgets();
                     };
-                } else if (session.recoveredSession() || AUTOMATION_SESSION.recoverableInHand()) {
-                    action = () -> {
-                        ExecutionResult result = AUTOMATION_SESSION.resumeRecoveredSession(DoughBayClient.continuousPolicy());
-                        driverMessage = result.detail();
-                        rebuildWidgets();
-                    };
-                    active = DoughBayClient.continuousPolicy() != null;
                 } else if (canResumeSession(session)) {
                     action = () -> {
                         ExecutionResult result = AUTOMATION_SESSION.resume();
@@ -938,7 +930,7 @@ public final class DoughBayScreen extends Screen {
                         tab = Tab.AUTOMATION;
                         rebuildWidgets();
                     };
-                    label = "Paused: see Automation";
+                    label = "Paused: see Trade";
                 }
             }
             default -> {
@@ -4183,7 +4175,7 @@ public final class DoughBayScreen extends Screen {
             int leftWidth = (width - gap) / 2;
             automationRecoveryPrimaryButton = CockpitButton.builder(
                             Component.literal(geometry.compact()
-                                    ? "Resume caps" : "Resume — KEEP restored caps"), ignored -> {
+                                    ? "Resume trading" : "Resume trading — keep existing limits"), ignored -> {
                                 ExecutionResult result =
                                         AUTOMATION_SESSION.resumeRecoveredSession(policy);
                                 driverMessage = result.detail();
@@ -4206,7 +4198,7 @@ public final class DoughBayScreen extends Screen {
 
         if (AUTOMATION_SESSION.recoverableInHand()) {
             automationRecoveryPrimaryButton = CockpitButton.builder(Component.literal(geometry.compact()
-                            ? "Resume: list the item" : "Resume — list the bought item in your inventory"), ignored -> {
+                            ? "List bought item" : "List the bought item, then continue"), ignored -> {
                         ExecutionResult result = AUTOMATION_SESSION.resumeRecoveredSession(policy);
                         DoughBayClient.LOGGER.info("DoughBay resume with item in hand: {}", result.detail());
                         driverMessage = result.detail();
@@ -4220,17 +4212,29 @@ public final class DoughBayScreen extends Screen {
         String stage = session.manualResolutionStage();
         String label = switch (stage) {
             case "FIRST_CONFIRMATION_REQUIRED" -> geometry.compact()
-                    ? "Step 1: inspected" : "STEP 1 — I inspected inventory + auction externally";
-            case "EVIDENCE_SCANNING" -> "Close panel: waiting for complete recovery checks…";
+                    ? "Show recovery steps" : "Show recovery steps — check inventory and listings";
+            case "EVIDENCE_SCANNING" -> "Checking listings — show next step";
             case "SECOND_CONFIRMATION_REQUIRED" -> geometry.compact()
-                    ? "Step 2: confirm" : "STEP 2 — Confirm no item and no own listing";
-            case "AUDIT_WRITE_PENDING" -> "Writing immutable recovery audit…";
-            default -> "Recovery controls locked";
+                    ? "Review final check" : "Review final check — item still in neither place";
+            case "AUDIT_WRITE_PENDING" -> "Saving your checks — show next step";
+            default -> "Show recovery help";
         };
         automationRecoveryPrimaryButton = CockpitButton.builder(Component.literal(label), ignored -> {
+                    String confirmation = "FIRST_CONFIRMATION_REQUIRED".equals(stage)
+                            ? "1: I checked both places" : "2: Confirm neither place";
+                    String item = AUTOMATION_SESSION.recoveredExposureItemId();
+                    String instructions = "A trade was interrupted. New purchases are paused to avoid buying twice.\n"
+                            + (item.isBlank() ? "The item could not be identified safely.\n"
+                            : "Item to check: " + titleCase(shortName(item)) + " x"
+                            + AUTOMATION_SESSION.recoveredExposureItemCount() + "\n")
+                            + recoveryNextStep(session) + "\n"
+                            + (driverMessage.isBlank() ? "" : "Last action: " + driverMessage + "\n")
+                            + "Your existing limits stay in place. A recovery confirmation does not start a new trade.\n"
+                            + "If a check keeps waiting or the item is not recognized, go Back to Trade"
+                            + " and send a bug report. Do not reset or remove saved trade records.";
+                    this.minecraft.gui.setScreen(new RecoveryHelpScreen(this, instructions, confirmation, () -> {
                     ExecutionResult result;
-                    if ("FIRST_CONFIRMATION_REQUIRED".equals(
-                            AUTOMATION_SESSION.snapshot().manualResolutionStage())) {
+                    if ("FIRST_CONFIRMATION_REQUIRED".equals(stage)) {
                         result = AUTOMATION_SESSION.beginManualResolution(
                                 policy, this.minecraft, snapshot());
                     } else {
@@ -4239,13 +4243,81 @@ public final class DoughBayScreen extends Screen {
                     }
                     DoughBayClient.LOGGER.info("DoughBay recovery button: {}", result.detail());
                     driverMessage = result.detail();
-                    rebuildWidgets();
+                    this.minecraft.gui.setScreen(this);
+                    }, () -> policy != null
+                            && AUTOMATION_SESSION.snapshot().recoveredExposureCount() == 1
+                            && stage.equals(AUTOMATION_SESSION.snapshot().manualResolutionStage())
+                            && ("FIRST_CONFIRMATION_REQUIRED".equals(stage)
+                            || "SECOND_CONFIRMATION_REQUIRED".equals(stage))));
                 })
                 .bounds(x, y, width, 20).build();
-        automationRecoveryPrimaryButton.active = policy != null
-                && ("FIRST_CONFIRMATION_REQUIRED".equals(stage)
-                || "SECOND_CONFIRMATION_REQUIRED".equals(stage));
+        // Help remains accessible even when a confirmation is not permitted.
+        automationRecoveryPrimaryButton.active = true;
+        automationRecoveryPrimaryButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
+                Component.literal(recoveryNextStep(session)
+                        + " Only confirm what you actually checked. The bot also verifies fresh listings;"
+                        + " this button does not force-clear a purchase or reset spending limits.")));
         addRenderableWidget(automationRecoveryPrimaryButton);
+    }
+
+    private String recoveryNextStep(AutomationSessionController.SessionSnapshot session) {
+        if ("SESSION_CLOSE_PENDING".equals(session.manualResolutionStage())) {
+            return "Saving the session closure. Wait for it to finish; trading will stay stopped.";
+        }
+        if (!session.unresolvedExposure()) {
+            return "Your saved trade is checked. Choose Resume trading to continue with the same limits.";
+        }
+        if (AUTOMATION_SESSION.recoverableInHand()) {
+            return "The bought item is in your inventory. Choose List bought item to continue safely.";
+        }
+        if (session.recoveredExposureCount() != 1) {
+            return "The saved records do not identify one interrupted trade safely. Keep your items and listings unchanged;"
+                    + " send a bug report from this screen for help.";
+        }
+        return switch (session.manualResolutionStage()) {
+            case "FIRST_CONFIRMATION_REQUIRED" ->
+                    "1. Check your inventory and your own auction listings for the item.\n"
+                    + "Found it? Keep it; send a bug report if it is not recognized.\n"
+                    + "In neither place? Continue with step 1 below only after checking both.";
+            case "EVIDENCE_SCANNING" ->
+                    "Close this panel with Esc so the bot can check your listings."
+                    + " Reopen Trade after the checks. If it keeps waiting, send a bug report; do not reset.";
+            case "SECOND_CONFIRMATION_REQUIRED" ->
+                    "The listing checks are ready.\nOnly if the item is still in neither your inventory"
+                    + " nor your listings, continue with step 2 below.\n"
+                    + "Then wait for the saved confirmation.";
+            case "AUDIT_WRITE_PENDING" ->
+                    "Saving your recovery checks. Wait for Resume trading; do not repeat the confirmation."
+                    + " If this keeps waiting, send a bug report from this screen.";
+            default -> "Recovery needs another check. Read Last action below."
+                    + " If no next step is shown, send a bug report from this screen.";
+        };
+    }
+
+    /** Keep recovery instructions ahead of diagnostics so they survive a short viewport. */
+    private int renderRecoveryHelp(GuiGraphicsExtractor graphics,
+                                   AutomationSessionController.SessionSnapshot session,
+                                   int x, int y, int width, int maxY) {
+        if (!session.recoveredSession()) return y;
+        y = statusLine(graphics, x, y, width,
+                "SESSION_CLOSE_PENDING".equals(session.manualResolutionStage()) ? "Closing saved session…"
+                        : session.unresolvedExposure() ? "Trade interrupted — check before continuing"
+                        : "Ready to continue your saved session", WARN);
+        String itemId = AUTOMATION_SESSION.recoveredExposureItemId();
+        if (session.unresolvedExposure() && session.recoveredExposureCount() == 1
+                && !itemId.isBlank() && y < maxY - 10) {
+            y = statusLine(graphics, x, y + 2, width, "Item to check: "
+                    + titleCase(shortName(itemId)) + " x"
+                    + AUTOMATION_SESSION.recoveredExposureItemCount(), TEXT);
+        }
+        y = drawWrapped(graphics, recoveryNextStep(session), x, y + 2, width, maxY, TEXT);
+        if (y < maxY - 10) {
+            y = statusLine(graphics, x, y + 2, width, "Your existing spending limits stay in place", SECONDARY);
+        }
+        if (!driverMessage.isBlank() && y < maxY - 10) {
+            y = drawWrapped(graphics, "Last action: " + driverMessage, x, y + 2, width, maxY, WARN);
+        }
+        return y + 5;
     }
 
     private void addAutomationCandidateButton(Opportunity current,
@@ -5923,6 +5995,8 @@ public final class DoughBayScreen extends Screen {
         int innerWidth = width - 18;
         int yy = y + 27;
         AutomationSessionController.RunMode shownMode = displayedRunMode(session, requestedMode);
+        yy = renderRecoveryHelp(graphics, session, innerX, yy, innerWidth, y + height - 10);
+        if (session.recoveredSession()) return;
         yy = kvRight(graphics, innerX, yy, innerWidth, "State / run mode",
                 session.state().name().toLowerCase(Locale.ROOT) + " / "
                         + shownMode.name().toLowerCase(Locale.ROOT),
@@ -5966,7 +6040,7 @@ public final class DoughBayScreen extends Screen {
                 startBlocker == null ? GOOD : WARN);
         if (pausedWithUnresolvedPosition(session)) {
             yy = statusLine(graphics, innerX, yy + 3, innerWidth,
-                    "PAUSED — unresolved item; inspect manually before any resume", BAD);
+                    "New purchases wait until the interrupted trade is checked", WARN);
         }
         if (requestedMode == AutomationSessionController.RunMode.CONTINUOUS
                 && yy <= y + height - 23) {
@@ -6097,6 +6171,8 @@ public final class DoughBayScreen extends Screen {
         int innerX = x + 9;
         int innerWidth = width - 18;
         int yy = y + 27;
+        yy = renderRecoveryHelp(graphics, session, innerX, yy, innerWidth, y + height - 10);
+        if (session.recoveredSession()) return;
         yy = kvRight(graphics, innerX, yy, innerWidth, "State",
                 session.state().name(), sessionStateColor(session));
         yy = kvRight(graphics, innerX, yy, innerWidth, "Run mode",
@@ -6152,7 +6228,7 @@ public final class DoughBayScreen extends Screen {
                 startBlocker == null ? GOOD : WARN);
         if (pausedWithUnresolvedPosition(session)) {
             yy = statusLine(graphics, innerX, yy + 4, innerWidth,
-                    "PAUSED — UNRESOLVED POSITION; DO NOT START ANOTHER TRADE", BAD);
+                    "New purchases wait until the interrupted trade is checked", WARN);
         }
         drawWrapped(graphics, session.detail(), innerX, yy + 4, innerWidth,
                 y + height - 10, sessionStateColor(session));
