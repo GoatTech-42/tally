@@ -4223,11 +4223,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                                 && client.player.inventoryMenu.getCarried().isEmpty());
             }
             public void send(String command) {
-                CommandSendProbe.verify(command, () -> {
-                    if(operation == Operation.LIST && command.startsWith("ah sell "))
-                        client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(listingCommandSlot));
-                    client.getConnection().sendCommand(command);
-                });
+                // Preparation and vanilla ticks already synchronize the selected slot.
+                // Revalidate the exact hand at dispatch, but do not reselect it on every command/retry.
+                CommandSendProbe.verify(command, () -> client.getConnection().sendCommand(command));
                 if (operation == Operation.LIST && command.startsWith("ah sell ")) {
                     Screen screen = client.gui.screen();
                     DoughBayClient.LOGGER.info(
