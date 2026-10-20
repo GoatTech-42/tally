@@ -33,6 +33,22 @@ class CommunityHistoryBootstrapTest {
   var capped=body(1).put("capped",true);
   assertThrows(IllegalArgumentException.class,()->CommunityHistoryBootstrap.decode(capped,REQUESTED,NOW,0));
  }
+ @Test void transportDelayDoesNotDiscardFreshSalesWhenAFrozenWindowEdgeAgesOut(){
+  var b=body(3);
+  ((ObjectNode)b.path("rows").get(0)).put("observedAt",NOW-CommunityHistoryBootstrap.WINDOW);
+  var page=CommunityHistoryBootstrap.decode(b,REQUESTED,NOW+250,0);
+  assertEquals(2,page.sales().size(),"an expired boundary row must not discard the fresh receipts on its page");
+  assertEquals(NOW,page.asOf());
+  assertEquals(NOW-CommunityHistoryBootstrap.WINDOW,page.windowStart());
+  assertTrue(page.sales().stream().allMatch(s->NOW+250-s.soldAt()<=CommunityHistoryBootstrap.WINDOW));
+ }
+ @Test void expiredBoundaryRowsStillRequireValidReceiptEvidence(){
+  var b=body(1);
+  ((ObjectNode)b.path("rows").get(0)).put("observedAt",NOW-CommunityHistoryBootstrap.WINDOW).put("unitPrice",999);
+  assertThrows(IllegalArgumentException.class,()->CommunityHistoryBootstrap.decode(b,REQUESTED,NOW+250,0));
+  ((ObjectNode)b.path("rows").get(0)).put("unitPrice",100).put("observedAt",NOW-CommunityHistoryBootstrap.WINDOW-1);
+  assertThrows(IllegalArgumentException.class,()->CommunityHistoryBootstrap.decode(b,REQUESTED,NOW+250,0));
+ }
  @Test void wrongScopeFutureTimeAndOfferProvenanceCannotSeed(){
   var b=body(1);b.put("regionScope","unknown");assertThrows(IllegalArgumentException.class,()->CommunityHistoryBootstrap.decode(b,REQUESTED,NOW,0));
   b.put("regionScope","net-donut");((ObjectNode)b.path("rows").get(0)).put("observedAt",NOW+1);

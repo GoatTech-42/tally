@@ -40,7 +40,11 @@ public final class CommunityHistoryBootstrap {
             if(provenance.path("ownAccount").asBoolean())continue;
             if(count<1||stack!=Math.min(count,64)||stack!=Integer.parseInt(key.substring(key.indexOf('|')+1))
                     ||total<count||total>1_000_000_000_000L||at<=0||at<since||at>asOf||at>now
-                    ||now-at>WINDOW||integer(row,"unitPrice")!=total/count)throw new IllegalArgumentException("Invalid completed sale");
+                    ||integer(row,"unitPrice")!=total/count)throw new IllegalArgumentException("Invalid completed sale");
+            // The service freezes the window at asOf. A valid edge receipt can
+            // age out while this page travels or later pages are read; skip it
+            // without rejecting the fresh receipts in the same snapshot.
+            if(now-at>WINDOW)continue;
             // A multi-stack receipt is one sale, not several independent stack samples.
             if(count>64)continue;
             sales.add(new Sale(ItemFingerprint.sha256("swarm-history-v1|"+id),at,SOURCE,"Shared completed-sale history",item,item,(int)count,total));
