@@ -18,4 +18,11 @@ class BugReportEvidenceTest {
         assertEquals("FLIP_ALLOWANCE_EXHAUSTED",BugReportReason.classify("the budget you gave it is spent (player secret)"));
         assertEquals("UNCLASSIFIED",BugReportReason.classify("player secret 123,456"));
     }
+    @Test void listingFailuresRetainTheirDistinctSanitizedCauses() {
+        assertEquals("CONFIRMATION_GUI_TIMEOUT", BugReportReason.classify("No confirmation GUI appeared within 7 seconds; last dispatched /ah sell 12345"));
+        assertEquals("COMMAND_DISPATCH_TIMEOUT", BugReportReason.classify("Command /ah sell 12345 was not dispatched within 45 seconds; command queue/menu blocked"));
+        assertEquals("LISTING_STACK_CHANGED", BugReportReason.classify("Could not dispatch queued command /ah sell 12345: Listing stack changed before dispatch; inventory must be verified again"));
+        assertEquals("LISTING_WORLD_UNAVAILABLE", BugReportReason.classify("Listing world is unavailable; no sell command sent"));
+        assertEquals("SERVER_LISTING_REFUSED", BugReportReason.classify("The server refused the listing command: private server message"));
+    }
 }

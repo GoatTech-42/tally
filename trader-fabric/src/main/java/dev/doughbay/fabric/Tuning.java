@@ -809,13 +809,14 @@ public final class Tuning {
                     + "(1 auto, 0 wait for Resume)", 1, 0, 1, Kind.TOGGLE),
             new Setting("session.resume_after_leave", "Session", "Resume after leaving the server",
                     "Leaving the server pauses the session; 1 lets it resume by itself once you are back on, 0 waits for you to press Resume", 0, 0, 1, Kind.TOGGLE),
-            new Setting("restart.hop", "Session", "Skip the restart waiting room",
+            new Setting("restart.hop", "Session", "Restart queue bypass",
                     "When the server puts you in its restart waiting room, disconnect and reconnect directly through "
-                    + "East or West. Stay on the working region; try the other if it fails or also puts you in the waiting room. "
+                    + "a different region: East, West, Asia, Oceania, EU Central or EU West. Stay on the working region; "
+                    + "try the next if it fails or also puts you in the waiting room. Enabled by default. "
                     + "A session the restart stopped resumes after the world and its balance sidebar are verified. "
                     + "The server warns that leaving the waiting room loses your position, so use it where that "
                     + "does not matter (1 on, 0 off)",
-                    0, 0, 1, Kind.TOGGLE),
+                    1, 0, 1, Kind.TOGGLE),
             new Setting("session.wind_down", "Session", "Wind down (soft stop)",
                     "On, the bot buys nothing more: no new orders and no auction buys, and its open orders are "
                     + "cancelled, with what they have already delivered collected. It keeps listing, repricing and "
@@ -934,9 +935,10 @@ public final class Tuning {
                     "The address the auto join connects to, e.g. donutsmp.net. Blank uses the last server this client "
                     + "was on, which is usually what you want"),
             new ListSetting("restart.hop_addresses", "Addresses to come back in through",
-                    "The other addresses of the network that 'Skip the restart waiting room' joins through, in the "
-                    + "order to try them. Blank uses east and west of the usual address (east.donutsmp.net, "
-                    + "west.donutsmp.net). The client stays on the first working region; failed attempts alternate with "
+                    "The other addresses of the network that 'Restart queue bypass' joins through, in the "
+                    + "order to try them. Blank uses east, west, asia, oceania, eu-central and eu-west of the usual "
+                    + "address (for example asia.donutsmp.net), skipping the current address. "
+                    + "The client stays on the first working region; failed attempts move to the next with "
                     + "a retry delay. Only addresses of the same network are ever used"),
             new ListSetting("watch.filter", "Auction pages to watch",
                     "The sorts this client reads, in turn, separated by commas: \"Recently Listed, Lowest Price\". "

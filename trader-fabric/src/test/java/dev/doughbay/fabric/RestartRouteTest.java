@@ -130,4 +130,30 @@ class RestartRouteTest {
         assertFalse(recovery.active());
         assertEquals(RestartRoute.Action.NONE,r.tick(offline(START+10_000L)).action());
     }
+
+    @Test void sixRegionRouteReachesLastRegionAndRequiresFreshStableWorld() {
+        var addresses = RestartPlan.hops("", "donutsmp.net");
+        var r = new RestartRoute();
+        r.start(addresses, LIMBO, START);
+        assertEquals(RestartRoute.Action.DISCONNECT, r.tick(parked(START + 4_000, true)).action());
+        long at = START + 5_000;
+        assertEquals(addresses.getFirst(), r.tick(offline(at)).address());
+        for (int i = 1; i < addresses.size(); i++) {
+            var failed = r.tick(offline(at + 2_000));
+            assertEquals(RestartRoute.Action.DISCONNECT, failed.action());
+            assertEquals(addresses.get(i), failed.address());
+            at += 22_000;
+            var next = r.tick(offline(at));
+            assertEquals(RestartRoute.Action.CONNECT, next.action());
+            assertEquals(addresses.get(i), next.address());
+        }
+        String last = "eu-west.donutsmp.net";
+        r.tick(world(at + 1_000, true, last, REGION, false, 0, false, true));
+        assertEquals(RestartRoute.Action.NONE,
+                r.tick(world(at + 13_000, true, last, REGION, false, 0, false, true)).action());
+        var ready = r.tick(world(at + 14_000, true, last, REGION, true, 0, false, true));
+        assertEquals(RestartRoute.Action.WORLD_READY, ready.action());
+        assertEquals(last, ready.address());
+        assertFalse(r.active());
+    }
 }

@@ -100,6 +100,39 @@ recovered exposure takes two separate confirmations around two newer complete
 scans plus an immutable local audit record; caps are kept until the session is
 deliberately resumed or ended.
 
+## Restart queue bypass
+
+In **Settings → Session**, **Restart queue bypass** is enabled by default.
+An explicitly saved off setting stays off. When the server confirms that this
+client is in its restart waiting room, GoNuts waits for a safe trading checkpoint,
+disconnects, and connects directly through a different regional address. The
+default list is `east.donutsmp.net`, `west.donutsmp.net`, `asia.donutsmp.net`,
+`oceania.donutsmp.net`, `eu-central.donutsmp.net`, and `eu-west.donutsmp.net`.
+The current connection address is skipped. **Addresses to come back in through**
+can specify a custom order of up to six addresses on the same network.
+
+Failed joins and regions that return the client to the waiting room move to the
+next address after a retry delay. A working region is kept; GoNuts does not
+bounce back to the main address. A fresh balance sidebar and a stable game world
+must be verified before the restart-paused session can resume. Manual stops,
+staff holds, ownership checks and unresolved-trade recovery remain authoritative.
+Trade records and spending limits are retained. Leaving the waiting room can
+lose the previous world position, as the server warns. This is recovery from a
+confirmed restart, not an instruction to leave during every restart warning.
+
+## Auction confirmation delays
+
+If a sell confirmation, listing receipt or server refusal arrives while a sell
+retry is queued, GoNuts cancels that retry and processes the response. It does
+not close the delayed confirmation or send another sell command over it.
+Receipt-only listings still require the normal inventory verification; a receipt
+alone does not clear a trade. A changed hand still blocks a queued sale.
+
+If the server never opens a confirmation or reports a sale, the attempt stays
+bounded and the stock stays subject to recovery checks. Bug reports distinguish
+confirmation timeouts, commands that could not leave the queue, changed stacks,
+unavailable worlds and server refusals without copying private message text.
+
 ## GUI captures
 
 On the first listing GUI and first confirmation GUI of each session, GoNuts

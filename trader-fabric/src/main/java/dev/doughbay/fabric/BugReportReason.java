@@ -6,6 +6,11 @@ public final class BugReportReason {
     public static String classify(String message) {
         if (message == null || message.isBlank()) return "UNCLASSIFIED";
         String s=message.toLowerCase(java.util.Locale.ROOT);
+        if(s.contains("no confirmation gui appeared"))return "CONFIRMATION_GUI_TIMEOUT";
+        if(s.contains("command queue/menu blocked"))return "COMMAND_DISPATCH_TIMEOUT";
+        if(s.contains("listing stack changed before dispatch"))return "LISTING_STACK_CHANGED";
+        if(s.contains("listing world is unavailable"))return "LISTING_WORLD_UNAVAILABLE";
+        if(s.contains("server refused the listing"))return "SERVER_LISTING_REFUSED";
         if(s.contains("sale notice") && s.contains("timed out"))return "SALE_RECONCILIATION_TIMEOUT";
         if(s.contains("new active listing") && s.contains("timed out"))return "LISTING_RECONCILIATION_TIMEOUT";
         if(s.contains("write was refused") || s.contains("write is refused"))return "PERSISTENCE_REFUSED";
