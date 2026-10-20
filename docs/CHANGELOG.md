@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 22:02 UTC
+
+- Release PR #177: Native action-bar auction messages now reach the execution driver as well as HUD alerts. Previously this packet path could hide a server listing refusal or receipt from the active listing operation. A regression through the actual client callback failed before the fix and passes now. Receipt handling still requires the existing inventory evidence; idle messages do not create trades.
+- Added privacy-safe local listing handoff diagnostics: packet handoff, screen/menu context, selected/expected slot and held count. No raw server message, player identity or settings are included. This repairs a demonstrated message-routing gap related to #171; the ongoing no-confirmation incident on PR #175 is still under live investigation and is not claimed resolved.
+- Client artifact published October 20 at 15:02:06 Los Angeles time (22:02:06 UTC), separately from PR #175. Build 1792533709093; SHA256: `fcd64397621748e19924eb0025a20addb504cec1e68f97aeedd7082f3477fbcc`. Full clean suite/build: 1,371 tests, zero failures/errors, one skip. Production JAR has only the normal client entrypoint and no Smoke classes; public JAR, source ZIP and checksum manifest independently downloaded and verified. Existing ownership, retained positions and trade limits remain enforced.
+
 ## 2026-10-20 20:22 UTC
 
 - Release PR #175: **Restart queue bypass** is enabled by default. Confirmed restart waiting rooms trigger a safe disconnect and direct reconnection through East, West, Asia, Oceania, EU Central or EU West. The current connection address is skipped; custom same-network lists support up to six addresses. Failed or limbo joins move to the next region with a delay; the first verified working region is kept. Explicit saved off settings remain off. A stable world and fresh balance sidebar are required before normal gated resume. Positions, owned orders, inventory checks, manual stops, recovery holds and spending limits are preserved. Implements #172's alternate-region restart flow. No running bots were installed, restarted or controlled.
