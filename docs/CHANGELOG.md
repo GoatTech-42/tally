@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-20 22:29 UTC
+
+- Release PR #180: Restored normal Minecraft command handoff for auction sells. An October 17 change prepended a raw hotbar-selection packet before every sell and repeated it on retries, even after the selected exact stack had settled. Sells now retain their dispatch-time item/components/count/slot/inventory validation without that extra selection packet. Command pacing, connection-handoff verification, spending caps, durable intent and ownership guards stay enforced.
+- Controlled verification on an affected local bot restored native listing confirmation, exact stack-removal checks and durable LISTED handling. The owner independently observed new listings; a read-only ledger check found eight positions listed since the trial boot, including three subsequently sold. The peer on PR #177 continued timing out. This supports the local regression repair related to #170/#171/#174; it does not prove every reporter incident or older inventory/recovery hold resolved. No server-side filtering mechanism or developer intent is claimed. Draft #179 was superseded by #180 at the identical tested commit; it was not another binary release.
+- Client artifact published October 20 at 15:29:57 Los Angeles time (22:29:57 UTC), separately from PR #177. Build 1792535007250; SHA256: `79e8135ecb702e81bfa6cc26481a35e6bc23cb202069dae333c042358f44874b`. Two real command-transport regressions failed before the change and pass now. Full clean suite/build: 1,373 tests, zero failures/errors, one skip. Production JAR has only the normal client entrypoint and no test or Smoke classes. Public JAR, source ZIP and checksum manifest independently downloaded and verified. Configuration and tuning hashes were unchanged in the controlled trial.
+
 ## 2026-10-20 22:02 UTC
 
 - Release PR #177: Native action-bar auction messages now reach the execution driver as well as HUD alerts. Previously this packet path could hide a server listing refusal or receipt from the active listing operation. A regression through the actual client callback failed before the fix and passes now. Receipt handling still requires the existing inventory evidence; idle messages do not create trades.
