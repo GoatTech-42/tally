@@ -4228,6 +4228,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         client.getConnection().send(new net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket(listingCommandSlot));
                     client.getConnection().sendCommand(command);
                 });
+                if (operation == Operation.LIST && command.startsWith("ah sell ")) {
+                    Screen screen = client.gui.screen();
+                    DoughBayClient.LOGGER.info(
+                            "DoughBay listing handoff: packet_handoff=true screen={} menu_id={} inventory_menu_id={} selected_slot={} expected_slot={} held_count={}",
+                            screen == null ? "none" : screen.getClass().getSimpleName(),
+                            client.player.containerMenu.containerId, client.player.inventoryMenu.containerId,
+                            client.player.getInventory().getSelectedSlot(), listingCommandSlot,
+                            client.player.getInventory().getSelectedItem().getCount());
+                }
             }
         };
     }
