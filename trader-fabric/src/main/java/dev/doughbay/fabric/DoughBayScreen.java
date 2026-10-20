@@ -4228,6 +4228,7 @@ public final class DoughBayScreen extends Screen {
                             : "Item to check: " + titleCase(shortName(item)) + " x"
                             + AUTOMATION_SESSION.recoveredExposureItemCount() + "\n")
                             + recoveryNextStep(session) + "\n"
+                            + (driverMessage.isBlank() ? "" : "Last action: " + driverMessage + "\n")
                             + "Your existing limits stay in place. A recovery confirmation does not start a new trade.\n"
                             + "If a check keeps waiting or the item is not recognized, go Back to Trade"
                             + " and send a bug report. Do not reset or remove saved trade records.";
