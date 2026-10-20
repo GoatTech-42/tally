@@ -1253,6 +1253,10 @@ public class DoughBayClient implements ClientModInitializer {
      */
     public static void observeActionBar(Component message) {
         if (message == null) return;
+        // Native title action bars bypass Fabric's GAME callback. They can
+        // carry the same auction refusal/receipt as system chat; the driver
+        // must see them before treating the server as silent.
+        EXECUTION_DRIVER.observeGameMessage(message.getString());
         HUD_ALERTS.observeServerMessage(
                 net.minecraft.client.Minecraft.getInstance(), message.getString());
     }
