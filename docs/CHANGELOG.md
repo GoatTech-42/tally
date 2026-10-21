@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 02:56 UTC
+
+- Release PR #195: Fixed the checkpoint save path assigning an old unowned trade to the account inspecting it. Existing position ownership now stays unchanged, and another named account cannot overwrite the position. Together with PR #193's account-scoped recovery, this prevents a fresh Hive member becoming stuck on another session's trade after closing an older client. Genuine recovery holds remain enforced.
+- Already affected saved state requires a separate, explicitly approved offline correction. The included repair accepts only one paused legacy-import case with a preserved pre-join database, identical trade fields and matching legacy checkpoint. It archives the prior state atomically, restores the original ownership and retains the original trade and legacy recovery. Changed evidence, stale approval and replay attempts are refused. It never runs automatically, fabricates an inventory acknowledgement or enables trading. One verified third-account correction was explicitly approved and applied; post-relaunch trading has not yet been verified.
+- Client artifact published October 20 at 19:56:15 Los Angeles time (October 21 02:56:15 UTC). Build 1792551115042; SHA256: `e209c683df4e457b5dfd80aae419b3f6ce16d0e1d53b207209165ed995caeb85`. Full clean suite/build: 1,413 tests, zero failures/errors, one skip. Public JAR, source and checksum manifest independently downloaded and matched. Normal client entrypoint retained; no GUI smoke entrypoint is packaged. Healthy peers do not require a routine upgrade or restart.
+
 ## 2026-10-21 02:35 UTC
 
 - Release PR #193: Fixed a fresh Hive account displaying an interrupted trade it never made. Native joined-account profiles now load only their own positions, checkpoint, runtime and cancelled-stock candidates before recovery starts. Old unowned records stay in the shared ledger for legacy reconciliation; they are not assigned to the new account, removed or marked resolved. Genuine owned exposure still requires the normal native recovery process. Recovery spend/trade reconstruction excludes other named accounts while retaining the account's stored caps.
