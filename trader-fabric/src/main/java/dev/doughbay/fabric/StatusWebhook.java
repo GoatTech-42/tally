@@ -44,8 +44,7 @@ public final class StatusWebhook {
     }
 
     private static String url() {
-        String u = Tuning.text("webhook.url");
-        return u == null ? "" : u.strip();
+        return HiveWebhookRoute.resolve(Tuning.text("webhook.url"), HiveSetup.notificationConfiguration());
     }
 
     /** Called from the client tick; posts at most once an interval, off-thread. */
@@ -63,14 +62,17 @@ public final class StatusWebhook {
         // that decides who runs the Discord embed), so the channel gets a
         // single consolidated report. Event alerts stay per-bot; a death or an
         // escape belongs to the bot it happened to.
-        if (Tuning.get("webhook.hive_one") >= 0.5
-                && Tuning.get("multi.enabled") >= 0.5
-                && !DoughBayClient.hostsDiscord()) {
+        if (!reportHost(Tuning.get("webhook.hive_one") >= .5, HiveSetup.active(),
+                Tuning.get("multi.enabled") >= .5, DoughBayClient.hostsDiscord())) {
             return;
         }
         Thread t = new Thread(() -> post(url), "doughbay-webhook");
         t.setDaemon(true);
         t.start();
+    }
+
+    static boolean reportHost(boolean onePerHive, boolean nativeHive, boolean legacyMulti, boolean electedHost) {
+        return !onePerHive || !(nativeHive || legacyMulti) || electedHost;
     }
 
     /**
@@ -88,11 +90,12 @@ public final class StatusWebhook {
      */
     public void alert(String title, int colour, java.util.List<String[]> lines, String player) {
         if (Tuning.get("webhook.enabled") < 0.5 || Tuning.get("webhook.alerts") < 0.5) return;
-        String url = url();
+        String url = HiveWebhookRoute.resolve(Tuning.text("webhook.url"), HiveSetup.notificationConfiguration(), true);
         if (!url.startsWith("https://")) return;
         Thread t = new Thread(() -> {
             try {
-                StringBuilder fields = new StringBuilder();
+                StringBuilder fields = new StringBuilder("{\"name\":\"Account\",\"value\":\"")
+                        .append(escape(who())).append("\",\"inline\":true}");
                 for (String[] line : lines) {
                     if (fields.length() > 0) fields.append(',');
                     fields.append("{\"name\":\"").append(escape(line[0]))
@@ -109,7 +112,7 @@ public final class StatusWebhook {
                             .append(escape(player)).append("/64\"}");
                 }
                 embed.append(",\"footer\":{\"text\":\"").append(escape(who())).append("\"}}");
-                String body = dev.doughbay.fabric.discord.DiscordPrivacy.payload("{\"embeds\":[" + embed + "]}");
+                String body = dev.doughbay.fabric.discord.DiscordPrivacy.payload("{\"allowed_mentions\":{\"parse\":[]},\"embeds\":[" + embed + "]}");
                 HttpRequest request = HttpRequest.newBuilder(URI.create(url))
                         .timeout(Duration.ofSeconds(15))
                         .header("Content-Type", "application/json")
@@ -211,6 +214,8 @@ public final class StatusWebhook {
             rows.add(new String[] {"payroll share",
                     lastHour[3] > 0 ? String.format(Locale.ROOT, "%.0f%%", paidHour * 100.0 / lastHour[3]) : "-",
                     day[3] > 0 ? String.format(Locale.ROOT, "%.0f%%", paidDay * 100.0 / day[3]) : "-"});
+            for (var profit : accountProfits(db.connection(), DoughBayClient.hiveAccounts(), now))
+                rows.add(new String[] {"profit · " + profit.account(), money(profit.hour()), money(profit.day())});
             try (PreparedStatement ps = db.connection().prepareStatement(
                     "SELECT COUNT(*), COALESCE(SUM(target_price),0) FROM positions "
                             + "WHERE mode='REAL' AND status='LISTED'");
@@ -228,12 +233,12 @@ public final class StatusWebhook {
 
         int slots = (int) Tuning.get("slots.max");
         return new dev.doughbay.fabric.discord.StatsImage.Page(
-                who(),
+                reportTitle(),
                 java.time.LocalTime.now().withNano(0) + "  -  hourly report",
                 "#74E48B", headline, listed, Math.max(slots, listed),
                 new String[] {"", "last hour", "last 24 h"},
                 new boolean[] {false, true, true}, rows,
-                "DoughBay");
+                "Posted by " + who() + " · shared ledger totals");
     }
 
     /** Discord takes an image as a file part beside the JSON payload. */
@@ -267,7 +272,7 @@ public final class StatusWebhook {
             long[] lastHour = sales(db, now - hour, now);
             long[] day = sales(db, now - 24 * hour, now);
 
-            out.append("**").append(who()).append("** · last hour\n");
+            out.append("**").append(reportTitle()).append("** · last hour\n");
             out.append(line("trades", lastHour[0] + " sold, " + lastHour[2] + " bought"));
             out.append(line("revenue", money(lastHour[1])));
             out.append(line("profit", money(lastHour[3])
@@ -285,6 +290,11 @@ public final class StatusWebhook {
             out.append(line("profit", money(day[3])));
             out.append(line("payments", money(payroll(db, now - 24 * hour, now))));
 
+            var accounts = accountProfits(db.connection(), DoughBayClient.hiveAccounts(), now);
+            if (!accounts.isEmpty()) {
+                out.append("\n**Profit by account · 1h / 24h**\n");
+                for (var profit : accounts) out.append(line(profit.account(), money(profit.hour()) + " / " + money(profit.day())));
+            }
             out.append("\n**right now**\n");
             out.append(line("open", openListings(db)));
             out.append(line("players", population()));
@@ -302,6 +312,31 @@ public final class StatusWebhook {
         } catch (Throwable t) {
             return "DoughBay";
         }
+    }
+
+    private static String reportTitle() {
+        return HiveSetup.active() || DoughBayClient.hiveAccounts().size() > 1
+                ? "GoNuts Hive — all accounts" : "GoNuts — ledger totals";
+    }
+
+    record AccountProfit(String account, long hour, long day) {}
+
+    /** Show each recognized member, including one with no sales, without changing aggregate totals. */
+    static java.util.List<AccountProfit> accountProfits(java.sql.Connection db, java.util.List<String> accounts, long now) throws Exception {
+        var rows = new java.util.ArrayList<AccountProfit>();
+        var names = new java.util.TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+        names.addAll(accounts);
+        for (String name : names) {
+            if (name == null || name.isBlank()) continue;
+            try (var query = db.prepareStatement("SELECT COALESCE(SUM(CASE WHEN closed_at>? THEN realized_profit ELSE 0 END),0), COALESCE(SUM(realized_profit),0) FROM positions WHERE mode='REAL' AND status='SOLD' AND client=? COLLATE NOCASE AND closed_at>? AND closed_at<=?")) {
+                query.setLong(1, now-3_600_000L);query.setString(2,name);
+                query.setLong(3,now-86_400_000L);query.setLong(4,now);
+                try (var result=query.executeQuery()) {
+                    rows.add(new AccountProfit(name, Math.round(result.getDouble(1)),Math.round(result.getDouble(2))));
+                }
+            }
+        }
+        return rows;
     }
 
     private static String line(String label, String value) {

@@ -927,7 +927,9 @@ public final class Tuning {
             new ListSetting("webhook.url", "Status webhook",
                     "A Discord webhook URL. Channel settings, Integrations, New Webhook, Copy Webhook URL. The hourly "
                     + "report is posted there: trades, profit, payments, what is listed, the population and the rivals. "
-                    + "Leave it blank to post nothing"),
+                    + "A joined Hive account with no URL uses its existing Hive owner's enabled destination. "
+                    + "Turn off Hourly status webhook to disable notifications for this account. "
+                    + "Outside a Hive, a blank URL posts nothing"),
             new ListSetting("boxes.sweep_term", "Box markets to sweep",
                     "What the sweep searches for, separated by commas: \"shulker, bundle\". Every one is read each "
                     + "time the sweep comes round, one look each. Blank sweeps shulkers only"),

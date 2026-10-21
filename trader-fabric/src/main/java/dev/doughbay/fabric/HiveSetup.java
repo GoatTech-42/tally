@@ -20,6 +20,14 @@ public final class HiveSetup {
     static String activeId() { return active == null ? "" : active.id(); }
     public static Path sharedDirectoryOr(Path fallback) { return active == null ? fallback : Path.of(active.directory()); }
 
+    /** The existing owner's notification settings, inside this validated Hive only. */
+    static Path notificationConfiguration() {
+        Membership member = active;
+        if (member == null) return null;
+        try { return HiveCombine.configuration(member, member.owner()); }
+        catch (IOException ignored) { return null; }
+    }
+
     static boolean joinedProfile(Path configuration) {
         return active != null && joinedProfile(Path.of(active.directory()), configuration);
     }
