@@ -1,6 +1,6 @@
 # GoNuts changelog
 
-## 2026-10-21 — Guarded recovery after network reconnect
+## 2026-10-21 09:48 UTC
 
 - Release PR #212: An unexpected connection loss during a running session could reconnect to the server successfully while trading remained paused. Ordinary connection retries did not retain the trading recovery ownership used by staff-triggered reconnects. Only a recent unexpected disconnect from an already running or internally resumable session now transfers that intent to the existing reconnect flow. A failed manual connection cannot create trading intent.
 - Recovery still waits for a fresh connected world and balance, 15 seconds of settling, retained session ownership, and the native persistence, exposure, inventory and authorization gates. Stop, deliberate departures, cancellation, disabled reconnect and stale departure evidence remain protected. Native refusals keep the original intent and the existing 30-second retry spacing. No limits or settings are changed.
