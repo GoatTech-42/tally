@@ -532,7 +532,7 @@ public final class DiscordBridge {
         ArrayNode opts = picker.putArray("options");
         for (Page pg : Page.values()) {
             if (pg == Page.SEARCH) continue;   // reached by the Search button, not a page of its own
-            if (pg == Page.HIVE && DoughBayClient.hiveAccounts().size() < 2) continue;
+            // Keep setup discoverable before a second account is recognized.
             option(opts, label(pg), pg.name(), pg == page);
         }
         // Which account the figures are for. Offered only when there is more
@@ -1408,7 +1408,7 @@ public final class DiscordBridge {
                 totalProfit24 += profit24;
                 totalSales24 += sales24;
             }
-            head.add(new String[] {"Accounts", accounts.size() + " trading", accounts.size() > 1 ? "green" : "dim"});
+            head.add(new String[] {"Accounts", accounts.size() + " recorded in this Hive", accounts.size() > 1 ? "green" : "dim"});
             head.add(new String[] {"Hive bank", money(totalBank), "gold"});
             head.add(new String[] {"Listed", totalListed + " · asking " + money(totalAsk)});
             head.add(new String[] {"Profit 1h", money(totalProfit) + " · " + totalSales + " sold", "green"});

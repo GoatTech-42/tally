@@ -335,16 +335,28 @@ final class Pages {
                 const initial=await api('bots');if(view!=='bots')return;
                 own.replaceChildren(el('h2','','Your bots and Hive'));
                 own.append(el('p','muted','Bots on this computer appear automatically after loading the current update. Detection does not link accounts or start trading. Swarm is separate.'));
-                const status=el('p'), roster=el('div','bot-roster');own.append(status,roster);
+                const membership=el('p');membership.setAttribute('role','status');membership.setAttribute('aria-label','Hive membership');
+                const status=el('p'), roster=el('div','bot-roster');own.append(membership,status,roster);
                 const joining=el('section','card bot-card');joining.append(el('h3','','Add a bot to a Hive'));
                 const botLabel=el('label','','New bot '), bot=el('select');bot.setAttribute('aria-label','Bot to add');botLabel.append(bot);
                 const hiveLabel=el('label','','Existing Hive '), hive=el('select');hive.setAttribute('aria-label','Existing Hive');hiveLabel.append(hive);
                 const joinFields=el('div','bot-fields');joinFields.append(botLabel,hiveLabel);
                 joining.append(joinFields,el('p','muted','Only a fresh bot without trading history can join. This leaves that new bot’s world safely and keeps its settings and Swarm link. Restart only the new instance after linking. Existing members keep running.'));
-                joining.append(button('go','Add selected bot to Hive',async()=>{
+                let currentBots=[];
+                const joinButton=button('go','Add selected bot to Hive',async()=>{
+                  if(joinButton.disabled)return;
                   if(!bot.value||!hive.value){toast('Choose the new bot and existing Hive',true);return;}
                   await change('bots',{action:'join',bot:bot.value,hive:hive.value});await poll();
-                }));own.append(joining);
+                });
+                const joinHint=el('p','muted');
+                function checkJoin(){
+                  const b=currentBots.find(b=>b.id===bot.value),h=currentBots.find(b=>b.id===hive.value);
+                  const same=b&&h&&(b.id===h.id||(b.sameHive&&h.sameHive)||(b.group&&b.group===h.group));
+                  joinButton.disabled=!b||!h||!!same;
+                  joinHint.textContent=same?'These accounts already share a Hive. No linking or deletion is needed.':!b||!h?'Launch the other updated instance to select it here.':'Selected bots are separate. Adding a fresh bot keeps its settings; existing trading histories need the supported combination flow and must not be deleted.';
+                }
+                bot.onchange=checkJoin;hive.onchange=checkJoin;
+                joining.append(joinButton,joinHint);own.append(joining);
                 const commands=el('section','card bot-card');commands.append(el('h3','','Queue a command for one bot'));
                 const targetLabel=el('label','','Send as '),target=el('select');target.setAttribute('aria-label','Command target bot');targetLabel.append(target);
                 const input=el('input');input.type='text';input.maxLength=256;input.placeholder='/rtp or /pay player amount';input.setAttribute('aria-label','Manual command');
@@ -360,7 +372,11 @@ final class Pages {
                 let shape='';
                 function update(d) {
                   status.textContent=d.setup||'Select a bot below. No game window is required.';
-                  const rows=d.bots||[],newShape=JSON.stringify(rows.map(b=>[b.id,b.label,b.sameHive,b.self,b.hiveSize]));
+                  const rows=d.bots||[],newShape=JSON.stringify(rows.map(b=>[b.id,b.label,b.sameHive,b.self,b.hiveSize,b.group]));
+                  currentBots=rows;
+                  const together=rows.filter(b=>b.sameHive).length,separate=rows.length-together;
+                  membership.textContent=!rows.length?'No running bots detected yet. Keep this client open while detection refreshes; no link has changed.':together>1?'Same Hive confirmed: '+together+' running bots share this panel’s ledger.'+(separate?' '+separate+' other running bot(s) are separate.':' Choose All accounts on Money or Hive to see their combined figures.'):
+                    separate?'Separate instances detected. Only this bot is in this panel’s Hive; linking each bot to Swarm does not combine their local Hives.':'Only one running bot detected. Start the other updated instance under the same Windows user; it will appear here automatically. A missing second bot does not mean you should delete a Hive.';
                   if(newShape!==shape){
                     const refill=(select,list,preferred)=>{const chosen=select.value;select.replaceChildren();for(const b of list){const o=el('option','',b.label+(b.self?' (this panel)':''));o.value=b.id;select.append(o);}if(list.some(b=>b.id===chosen))select.value=chosen;else if(list.some(b=>b.id===preferred))select.value=preferred;};
                     const self=rows.find(b=>b.self),shared=self&&(self.hiveSize>1||self.linked);
@@ -370,7 +386,8 @@ final class Pages {
                     refill(bot,rows,newBot?.id);refill(hive,[...groups.values()],existing?.id);refill(target,rows.filter(b=>b.sameHive),d.self);
                     clearReview();shape=newShape;
                   }
-                  roster.replaceChildren();for(const b of rows)roster.append(el('p','',b.label+' · '+(b.sameHive?'In this Hive':'Separate instance')+(b.setup?' · '+b.setup:'')));
+                  checkJoin();
+                  roster.replaceChildren();for(const b of rows)roster.append(el('p','',b.label+(b.self?' (this panel)':'')+' · '+(b.sameHive?'In this Hive':'Separate instance')+(b.setup?' · '+b.setup:'')));
                   history.replaceChildren();for(const b of rows.filter(b=>b.sameHive))for(const j of b.commands||[]){
                     const row=el('p','',b.label+' · '+j.command+' · '+j.status+' · '+j.note);
                     if(j.status==='QUEUED'||j.status==='WAITING')row.append(button('','Cancel before sending',async()=>{await change('bots',{action:'cancel',bot:b.id,id:j.id});await poll();}));history.append(row);
