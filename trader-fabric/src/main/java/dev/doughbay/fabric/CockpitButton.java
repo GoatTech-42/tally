@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 final class CockpitButton extends Button {
     private boolean selected;
     private boolean navigation;
+    private boolean primary;
 
     private CockpitButton(int x, int y, int width, int height, Component label, OnPress action) {
         super(x, y, width, height, label, action, DEFAULT_NARRATION);
@@ -29,11 +30,13 @@ final class CockpitButton extends Button {
         this.selected = selected;
     }
 
+    void primary() { this.primary = true; }
+
     @Override protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         var font = Minecraft.getInstance().font;
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         boolean highlight = active && (isHovered() || isFocused());
-        int background = selected ? UiTheme.HOVER : highlight ? UiTheme.HOVER : UiTheme.SURFACE;
+        int background = primary && active ? UiTheme.GOLD : selected ? UiTheme.HOVER : highlight ? UiTheme.HOVER : UiTheme.SURFACE;
         boolean border = !navigation || highlight;
         UiTheme.rounded(g, x, y, w, h, 4, border ? (isFocused() ? UiTheme.GOLD : UiTheme.EDGE)
                 : active ? background : UiTheme.INSET);
@@ -42,7 +45,7 @@ final class CockpitButton extends Button {
         String label = UiTheme.fit(font, getMessage().getString(), w - 12);
         int tx = navigation ? x + 8 : x + (w - font.width(label)) / 2;
         g.text(font, label, tx, y + (h - font.lineHeight) / 2,
-                !active ? UiTheme.MUTED : selected ? UiTheme.GOLD : UiTheme.TEXT, false);
+                !active ? UiTheme.MUTED : primary ? UiTheme.BACKGROUND : selected ? UiTheme.GOLD : UiTheme.TEXT, false);
         if (isHovered() && font.width(getMessage()) > w - 12) {
             g.setTooltipForNextFrame(font, getMessage(), mouseX, mouseY);
         }

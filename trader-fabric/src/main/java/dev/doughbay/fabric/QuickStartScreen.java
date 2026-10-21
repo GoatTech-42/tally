@@ -8,13 +8,17 @@ import net.minecraft.network.chat.Component;
 /** Two-step setup: choose limits, then deliberately enable and start through existing safety gates. */
 final class QuickStartScreen extends Screen {
     private final DoughBayScreen parent;
+    private final Screen home;
     private boolean review;
     private String trade,session,message="";
     private EditBox tradeField,sessionField;
     private net.minecraft.client.gui.components.Button primary;
     private int scroll,maxScroll;
     QuickStartScreen(DoughBayScreen parent){
-        super(Component.literal("GoNuts quick start"));this.parent=parent;
+        this(parent,parent);
+    }
+    QuickStartScreen(DoughBayScreen parent,Screen home){
+        super(Component.literal("GoNuts quick start"));this.parent=parent;this.home=home;
         var config=DoughBayClient.activeConfig();
         trade=MoneyInput.compact(config==null?5_000_000:config.continuousMaxPurchasePrice());
         session=MoneyInput.compact(config==null?75_000_000:config.continuousMaxSessionSpend());
@@ -43,7 +47,7 @@ final class QuickStartScreen extends Screen {
             var result=parent.startQuickTrading(perTrade,perSession);message=result.detail();
             if(result.ok()){parent.endTutorialNavigation();minecraft.gui.setScreen(null);}
         }).bounds(x,height-55,w,23).build();addRenderableWidget(primary);
-        addRenderableWidget(CockpitButton.builder(Component.literal(review?"Back to limits":"Back to GoNuts"),b->{
+        addRenderableWidget(CockpitButton.builder(Component.literal(review?"Back to limits":home instanceof StartHereScreen?"Back to Start here":"Back to GoNuts"),b->{
             if(review){review=false;scroll=0;message="";rebuildWidgets();}else onClose();
         }).bounds(x,height-27,(w-6)/2,20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Optional tutorials"),b->minecraft.gui.setScreen(new TutorialScreen(parent,this,false)))
@@ -76,7 +80,7 @@ final class QuickStartScreen extends Screen {
         for(var line:font.split(Component.literal(text),w)){g.text(font,line,x,y,color);y+=13;}return y+10;
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*28)));return true;}
-    @Override public void onClose(){parent.endTutorialNavigation();minecraft.gui.setScreen(parent);}
+    @Override public void onClose(){parent.endTutorialNavigation();minecraft.gui.setScreen(home);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

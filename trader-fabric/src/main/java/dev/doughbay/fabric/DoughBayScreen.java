@@ -51,6 +51,7 @@ public final class DoughBayScreen extends Screen {
     private final AnalyzerPanel analyzerPanel = new AnalyzerPanel();
 
     private enum Tab {
+        START_HERE("START HERE"),
         OVERVIEW("Dashboard"),
         SWARM("Swarm"),
         AUCTION("Auction"),
@@ -649,7 +650,7 @@ public final class DoughBayScreen extends Screen {
         UiLayout ui = layout();
 
         int columns = ui.navColumns();
-        if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof QuickStartScreen?"Return to setup":"Return to tutorial"),b->{
+        if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof StartHereScreen?"Back to Start here":tutorialReturn instanceof QuickStartScreen?"Return to setup":"Return to tutorial"),b->{
             var guide=tutorialReturn;tutorialReturn=null;Minecraft.getInstance().gui.setScreen(guide);
         }).bounds(ui.innerRight()-158,ui.contentTop()-(tab==Tab.ORDERS?52:26),158,20).build());
         int gap = 4;
@@ -664,6 +665,9 @@ public final class DoughBayScreen extends Screen {
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
                     : ui.tabY() + (i / columns) * 22;
             Button button = CockpitButton.builder(Component.literal(value.label), ignored -> {
+                if(value==Tab.START_HERE){
+                    Minecraft.getInstance().gui.setScreen(new StartHereScreen(this));return;
+                }
                 if(value==Tab.AUTOMATION&&showLiveTradingSetup()){
                     Minecraft.getInstance().gui.setScreen(new QuickStartScreen(this));return;
                 }
@@ -699,6 +703,7 @@ public final class DoughBayScreen extends Screen {
                 rebuildWidgets();
             }).bounds(x, y, buttonWidth, 20).build();
             ((CockpitButton) button).navigation(value == tab);
+            if(value==Tab.START_HERE)((CockpitButton)button).primary();
             addRenderableWidget(button);
             i++;
         }
@@ -1177,6 +1182,7 @@ public final class DoughBayScreen extends Screen {
         openGuidedTarget(target,guide);
     }
     void openSetupTarget(String target,QuickStartScreen setup){openGuidedTarget(target,setup);}
+    void openBeginnerTarget(String target,StartHereScreen help){openGuidedTarget(target,help);}
     private void openGuidedTarget(String target,net.minecraft.client.gui.screens.Screen guide){
         if(target.equals("bugs")){Minecraft.getInstance().gui.setScreen(new BugReportScreen(guide));return;}
         tutorialReturn=guide;selectedSetting=null;settingsSearch="";settingsScroll=0;
