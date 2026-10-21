@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 03:44 UTC
+
+- Release PR #200: Fixed Hive notification aliases putting the sending account first on every client, which could make every bot's alerts say Account 1. All senders now use the same sorted Hive roster, and immediate webhook alerts have an explicit source-account field. Privacy masking and suppressed mentions remain in place.
+- A native joined account with no local webhook URL can reuse its existing Hive owner's enabled destination without copying credentials or changing trading settings. Explicit account destinations and local notification switches remain authoritative; a disabled owner destination or immediate-alert master switch is not bypassed. Missing or malformed owner settings fail closed. Existing staff, disconnect, evasion, death and jackpot alert call paths use this routing. No test notification was sent to Discord.
+- The hourly report already read the shared ledger. It now says Hive/all accounts or ledger totals rather than showing only the posting account as its title, and includes recognized members' booked 1h/24h profit separately in image and text output. One-report-per-Hive election now recognizes native membership even with the older multi-client toggle off. This does not start a private experiment, schedule extra reports or change the report interval. Runtime activation and end-to-end delivery from updated live clients remain separate verification steps.
+- Client artifact published October 20 at 20:44:15 Los Angeles time (October 21 03:44:15 UTC). Build 1792554062405; SHA256: `3e5b20753a7d8c00670744e5824eb98abbab4d638e98b68851c99c388f343f6b`. Full clean suite/build: 1,421 tests, zero failures/errors, one skip. Regressions cover three-sender identity consistency, inherited/explicit/disabled/malformed routing, owner alert opt-out, native report election and shared-ledger per-owner/time/mode accounting. Public JAR, source and checksum manifest independently downloaded and hash-matched. Normal client entrypoint retained; no smoke/test entrypoint packaged.
+
 ## 2026-10-21 03:13 UTC
 
 - Release PR #197: The Hive page remains visible even before a second account is recognized. Previously it disappeared when the panel saw fewer than two accounts, making incomplete setup look like missing Hive support. Both the local panel and hosted Open panel now explicitly distinguish bots sharing this panel's ledger, separate running instances, only one detected bot and discovery still waiting. Each roster identifies the hosting bot. Swarm linking alone does not combine local Hives.
