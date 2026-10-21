@@ -3,6 +3,8 @@ import org.junit.jupiter.api.*;import static org.junit.jupiter.api.Assertions.*;
 class ReconnectFlowTest {
  static class Client implements ReconnectFlow.Client {
   boolean multiplayer=true,connected=true,connecting=false,disconnected=false,countdown=false;int disconnects,shows,connects;String destination;
+  Runnable retryScheduled=()->{};
+  public void automaticRetryScheduled(){retryScheduled.run();}
   public boolean multiplayer(){return multiplayer;}public boolean connected(){return connected;}public boolean connecting(){return connecting;}public boolean disconnectedScreen(){return disconnected;}public boolean countdownScreen(){return countdown;}public String currentAddress(){return "current.example:25566";}
   public void disconnect(String s){disconnects++;}public void showCountdown(){shows++;countdown=true;disconnected=false;}public void connect(String s){destination=s;connects++;connecting=true;}
  }
@@ -25,6 +27,32 @@ class ReconnectFlowTest {
  @Test void randomDelaysStayInFiveToTenMinuteRange(){Set<Long> delays=new HashSet<>();for(int i=0;i<1000;i++){timer.cancel();timer.begin("server","staff");long delay=timer.remainingMillis();assertTrue(delay>=300000&&delay<=600000);delays.add(delay);}assertTrue(delays.size()>900);}
 
  @Test void randomDisconnectWaitsExactlyTwoMinutes(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertNull(timer.watcher());now.set(119999000000L);flow.tick(true);assertEquals(0,client.connects);now.addAndGet(1000000L);flow.tick(true);assertEquals(1,client.connects);assertEquals("current.example:25566",client.destination);}
+
+ @Test void ordinaryNetworkRetryRetainsRunningIntentBeforeControllerPausesThenUsesGuardedResume(){
+  var recovery=new ReconnectResume();
+  recovery.noteUnexpectedDisconnect(true,999);
+  client.retryScheduled=()->recovery.automaticRetryScheduled(1000);
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
+  assertTrue(recovery.pending(),"A normal retry must carry trading ownership, not just staff alerts");
+  assertNull(recovery.tick(1000,false,false,true,()->fail("Controller has not paused yet")));
+  assertTrue(recovery.pending());
+  now.set(120000000000L);flow.tick(true);client.connecting=false;client.connected=true;flow.tick(true);
+  assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());
+  assertNull(recovery.tick(121000,true,true,false,()->fail("Fresh world must settle")));
+  assertFalse(recovery.tick(136000,true,true,false,()->dev.doughbay.core.execution.ExecutionResult.refused("Native recovery gate" )).ok());
+  assertTrue(recovery.pending(),"A refusal must not erase the original running intent");
+  assertNull(recovery.tick(136001,true,true,false,()->fail("Retry pacing")));
+  assertTrue(recovery.tick(166000,true,true,false,()->dev.doughbay.core.execution.ExecutionResult.awaitingPlayer("Guarded recovery")).ok());
+  assertFalse(recovery.pending());
+ }
+
+ @Test void manualDepartureAndDisabledReconnectNeverCaptureTradingIntent(){
+  var recovery=new ReconnectResume();client.retryScheduled=()->recovery.automaticRetryScheduled(1000);
+  flow.tick(true);client.connected=false;client.disconnected=false;flow.tick(true);
+  assertFalse(recovery.pending());
+  flow.connectionStarted("current.example",true);client.disconnected=true;flow.tick(false);
+  assertFalse(recovery.pending());
+ }
  @Test void failedAttemptsKeepRetryingEveryTwoMinutes(){client.connected=false;client.connecting=true;flow.connectionStarted("failed.example",true);for(int i=0;i<4;i++){client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertEquals(i,client.connects);now.addAndGet(120000000000L);flow.tick(true);assertEquals(i+1,client.connects);assertEquals("failed.example",client.destination);}}
  @Test void staffDelaySurvivesDisconnectAndThenFailuresUseTwoMinutes(){start("");long delay=timer.remainingMillis();offline();assertEquals(delay,timer.remainingMillis());now.addAndGet(delay*1000000L);flow.tick(true);assertEquals(1,client.connects);client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertNull(timer.watcher());}
  @Test void manualDisconnectDoesNotRejoin(){flow.tick(true);client.connected=false;client.disconnected=false;flow.tick(true);now.set(900000000000L);flow.tick(true);assertEquals(0,client.connects);assertFalse(timer.active());}
