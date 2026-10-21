@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 04:58 UTC
+
+- Release PR #202: Added passive Swarm read-savings measurements in the in-game Swarm tab and a new Swarm savings page in both local and hosted panels. Select each Hive account to see actual broad discovery scans skipped, shared lookups, fallbacks and measured lookup wait for its current session. Existing bounded local session history retains the measurements; no extra collector, experiment or scan is started.
+- Estimated net time saved subtracts all lookup waits, including fallbacks, from estimated omitted scan time. Calibration needs at least three successful natural scans in the same observed region with the omitted scan's scheduled page count in the preceding 30 minutes. Stale, changed-region, different-depth and failed scans do not calibrate it; unknown baselines remain visible and estimates are never filled retrospectively. Negative savings and a matched discovery ratio below 1x show when shared lookups cost more time. Estimates are labelled and are not proof of total bot speed or profit gains; live execution checks remain unchanged.
+- Client artifact published October 20 at 21:58:50 Los Angeles time (October 21 04:58:50 UTC). Build 1792558586147; SHA256: `12808b1a16cabeb80cf69d2a4607350217d9fb2ce7304db29c376f9f25d3a172`. Full suite/build: 1,429 tests, zero failures/errors, one skipped. Actual local/hosted panel routes, account switching and uncalibrated states verified with clearly labelled synthetic data. Public JAR, source and checksum manifest independently downloaded and matched. Running clients were left unchanged pending rollout authorization.
+
 ## 2026-10-21 03:44 UTC
 
 - Release PR #200: Fixed Hive notification aliases putting the sending account first on every client, which could make every bot's alerts say Account 1. All senders now use the same sorted Hive roster, and immediate webhook alerts have an explicit source-account field. Privacy masking and suppressed mentions remain in place.
