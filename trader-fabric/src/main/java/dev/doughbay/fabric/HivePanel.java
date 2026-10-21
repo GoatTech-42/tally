@@ -63,7 +63,7 @@ final class HivePanel {
     boolean scroll(double mx,double my,double delta){if(mx<x||mx>x+w||my<detailTop||my>bottom-30)return false;scroll=Math.max(0,Math.min(maxScroll,scroll-(int)Math.signum(delta)*26));return true;}
     void render(GuiGraphicsExtractor g,Font font){
         g.text(font,UiTheme.fit(font,"CONNECT YOUR ACCOUNTS",w),x,y,UiTheme.GOLD);
-        String status=member==null?"Start with one hive, then connect the other account.":HiveSetup.active()?"This instance is connected to a hive.":"This instance has a hive link. Restart to connect.";
+        String status=member==null?"One hive can have many accounts. Join it from each new instance.":HiveSetup.active()?"This instance is connected to a hive.":"This instance has a hive link. Restart to connect.";
         g.text(font,UiTheme.fit(font,status,w),x,y+14,UiTheme.SECONDARY);
         boolean wide=w>=420;int cw=wide?(w-6)/2:w,otherX=wide?x+cw+6:x,otherY=wide?y+62:y+134;
         if(share){
@@ -75,8 +75,8 @@ final class HivePanel {
         }
         int top=detailTop,end=bottom-48;if(end<=top)return;
         g.enableScissor(x,top,x+w,end);int row=top-scroll;
-        row=detail(g,font,row,"3  FINISH AFTER REVIEW",share?"The other account reviews the connection. Hive sharing works on this PC; Swarm is separate.":"Queue from the review screen. Then CLOSE BOTH Minecraft instances completely. Start the requesting instance first, wait for confirmation, then open the other.");
-        String guidance=!note.isEmpty()?note:!HiveCombine.startupMessage.isEmpty()?HiveCombine.startupMessage:"Two hives are not a reason to delete data. Combine preserves both histories and separate settings in a new shared ledger. Cancel queued combine is available before switching begins.";
+        row=detail(g,font,row,"3  FINISH AFTER REVIEW",share?"Each additional account reviews the connection. Hive sharing works on this PC; Swarm is separate.":"New account: choose Join existing hive, then restart only that new instance. Existing members can keep running. Combining two existing histories instead requires closing BOTH instances and starting the requesting instance first.");
+        String guidance=!note.isEmpty()?note:!HiveCombine.startupMessage.isEmpty()?HiveCombine.startupMessage:"Hive missing from the list? On an existing account, disconnect and open Multiplayer > GoNuts hive > Share this hive. Copy its code, then paste it here. Older shared-folder setups need this registration once. Do not delete either folder.";
         row=detail(g,font,row,"SETUP STATUS / HELP",guidance);
         maxScroll=Math.max(0,row+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();
         if(maxScroll>0)g.text(font,"Scroll for setup status",x,bottom-43,UiTheme.MUTED);

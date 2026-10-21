@@ -21,6 +21,51 @@ class HiveSetupTest {
     }
     private Path data(Path game){return game.resolve("config/doughbay");}
 
+    @Test void freshThirdAndFourthAccountsJoinWithoutChangingExistingMembersOrSettings() throws Exception {
+        Path main=instance("many-members",true),third=instance("third",false),fourth=instance("fourth",false);
+        try(var c=DriverManager.getConnection("jdbc:sqlite:"+data(main).resolve("doughbay.db"));var s=c.createStatement()) {
+            s.execute("INSERT INTO positions VALUES(2,'SecondPlayer')");
+        }
+        Files.writeString(data(main).resolve("orders-bids.txt"),"owners bids");
+        Path second=Files.createDirectories(data(main).resolve("accounts/SecondPlayer"));
+        Files.writeString(second.resolve("audit-balance.txt"),"second balance");
+        Files.writeString(data(third).resolve("config.json"),"{\"continuousMaxSessionSpend\":123,\"authorizedExecutionEnabled\":false}");
+        Files.writeString(data(third).resolve("secret.dat"),"third-own-key");
+        Path link=third.resolve("gonuts-dashboard/installation.json");Files.createDirectories(link.getParent());Files.writeString(link,"third-own-link");
+        var m=HiveSetup.create(main,data(main),"SourcePlayer");
+        byte[] db=Files.readAllBytes(data(main).resolve("doughbay.db")),local=Files.readAllBytes(data(third).resolve("config.json"));
+        HiveSetup.joinFresh(third,data(third),HiveSetup.code(m),"ThirdPlayer");
+        HiveSetup.joinFresh(fourth,data(fourth),HiveSetup.code(m),"FourthPlayer");
+        Path profile=HiveCombine.configuration(m,"ThirdPlayer");
+        var config=new com.fasterxml.jackson.databind.ObjectMapper().readTree(Files.readAllBytes(profile.resolve("config.json")));
+        assertEquals(123,config.path("continuousMaxSessionSpend").asInt());
+        assertFalse(config.path("authorizedExecutionEnabled").asBoolean());
+        assertEquals(data(main).resolve("doughbay.db").toString(),config.path("databasePath").asText());
+        assertEquals("third-own-key",Files.readString(profile.resolve("secret.dat")));
+        assertEquals("third-own-link",Files.readString(link));
+        assertFalse(Files.exists(AccountRecords.directory(profile,true,"ThirdPlayer",NOPLogger.NOP_LOGGER).resolve("orders-bids.txt")));
+        assertEquals(data(main),HiveCombine.configuration(m,"SecondPlayer"));
+        assertEquals("second balance",Files.readString(second.resolve("audit-balance.txt")));
+        assertArrayEquals(db,Files.readAllBytes(data(main).resolve("doughbay.db")));
+        assertArrayEquals(local,Files.readAllBytes(data(third).resolve("config.json")));
+        assertEquals(m,HiveSetup.configured(fourth));
+        assertEquals(m,HiveSetup.joinFresh(third,data(third),HiveSetup.code(m),"ThirdPlayer"));
+    }
+
+    @Test void freshJoinRefusesLocalHistoryDestinationOwnershipAndPendingCombinations() throws Exception {
+        Path main=instance("source",true),used=instance("used",true),fresh=instance("fresh",false);
+        var m=HiveSetup.create(main,data(main),"SourcePlayer");String code=HiveSetup.code(m);
+        assertThrows(java.io.IOException.class,()->HiveSetup.joinFresh(used,data(used),code,"NewPlayer"));
+        assertThrows(java.io.IOException.class,()->HiveSetup.joinFresh(fresh,data(fresh),code,"SourcePlayer"));
+        Files.createDirectories(data(main).resolve("accounts/Existing"));
+        assertThrows(java.io.IOException.class,()->HiveSetup.joinFresh(fresh,data(fresh),code,"existing"));
+        Files.writeString(fresh.resolve("gonuts-hive-combine.json"),"queued");
+        assertThrows(java.io.IOException.class,()->HiveSetup.joinFresh(fresh,data(fresh),code,"NewPlayer"));
+        assertFalse(Files.exists(fresh.resolve("gonuts-hive.json")));
+        assertFalse(Files.exists(used.resolve("gonuts-hive.json")));
+        assertFalse(Files.exists(data(main).resolve("joined-profiles")));
+    }
+
     @Test void createAndJoinPreserveBothDataFoldersAndApplyOnlyOnRestart() throws Exception {
         Path main=instance("old launcher with spaces",true),alt=instance("Prism alt",false);
         byte[] original=Files.readAllBytes(data(main).resolve("doughbay.db"));

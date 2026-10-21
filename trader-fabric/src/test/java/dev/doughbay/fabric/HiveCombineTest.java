@@ -28,6 +28,33 @@ class HiveCombineTest {
         String id=UUID.randomUUID().toString();
         return new HiveCombine.Plan(1,a,b,new HiveSetup.Membership(1,id,Path.of(b.directory()).resolveSibling("gonuts-combined-"+id).toString(),a.owner()));
     }
+    @Test void combinedHiveAcceptsAdditionalFreshAccountsWithTheirOwnProfiles() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
+        HiveCombine.complete(p,root.resolve("no-presence"));
+        Path game=Files.createDirectories(root.resolve("third")),local=Files.createDirectories(game.resolve("config/doughbay"));
+        Files.writeString(local.resolve("config.json"),"{\"continuousMaxSessionSpend\":333}");
+        try(var db=new Database(local.resolve("doughbay.db"))){}
+        Path shared=Path.of(p.combined().directory());byte[] before=Files.readAllBytes(shared.resolve("doughbay.db"));
+        HiveSetup.joinFresh(game,local,HiveSetup.code(a),"Charlie");
+        assertEquals(p.combined(),HiveSetup.configured(game));
+        Path third=HiveCombine.configuration(p.combined(),"Charlie");
+        assertTrue(Files.readString(third.resolve("config.json")).contains("333"));
+        assertFalse(Files.exists(third.resolve("orders-collected.txt")));
+        assertTrue(Files.readString(HiveCombine.configuration(p.combined(),"Alice").resolve("config.json")).contains("111"));
+        assertTrue(Files.readString(HiveCombine.configuration(p.combined(),"Bob").resolve("config.json")).contains("222"));
+        assertArrayEquals(before,Files.readAllBytes(shared.resolve("doughbay.db")));
+    }
+    @Test void queuedCombinationCannotAbandonAnAccountThatJoinedAfterReview() throws Exception {
+        var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
+        Path game=Files.createDirectories(root.resolve("third")),local=Files.createDirectories(game.resolve("config/doughbay"));
+        Files.writeString(local.resolve("config.json"),"{}");
+        try(var db=new Database(local.resolve("doughbay.db"))){}
+        HiveSetup.joinFresh(game,local,HiveSetup.code(a),"Charlie");
+        assertThrows(java.io.IOException.class,()->HiveCombine.complete(p,root.resolve("no-presence")));
+        assertEquals(a,HiveSetup.configured(game));
+        assertFalse(Files.exists(Path.of(a.directory()).resolve("hive-combined-into.json")));
+        assertFalse(Files.exists(Path.of(b.directory()).resolve("hive-combined-into.json")));
+    }
     @Test void twoExistingHivesSwitchTogetherWithSeparateProfilesAndUntouchedLedgers() throws Exception {
         var a=hive("Alice",111);var b=hive("Bob",222);var p=plan(a,b);
         var json=new com.fasterxml.jackson.databind.ObjectMapper();

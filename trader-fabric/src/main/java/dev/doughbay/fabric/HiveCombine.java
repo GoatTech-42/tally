@@ -20,6 +20,10 @@ final class HiveCombine {
         Path real=folder.toRealPath();if(HELD.containsKey(real))return;
         HELD.put(real,lease(real,true));
     }
+    static synchronized AutoCloseable joinLease(Path folder) throws IOException {
+        Path real=folder.toRealPath();
+        return HELD.containsKey(real)?()->{}:lease(real,true);
+    }
     private static Lease lease(Path folder,boolean shared) throws IOException {
         FileChannel channel=FileChannel.open(folder.resolve("hive-use.lock"),StandardOpenOption.CREATE,StandardOpenOption.READ,StandardOpenOption.WRITE);
         try {
@@ -37,7 +41,7 @@ final class HiveCombine {
         if(own.id().equals(other.id())||own.owner().equalsIgnoreCase(other.owner()))throw new IOException("These are already the same hive or account");
         for(var m:List.of(own,other)) {
             Path dir=Path.of(m.directory());
-            if(Files.exists(dir.resolve("member-profiles")))throw new IOException("This hive is already combined; adding further members needs a separate migration");
+            if(Files.exists(dir.resolve("member-profiles"))||Files.exists(dir.resolve("joined-profiles")))throw new IOException("Combining existing multi-member hives is not supported. To add a fresh account, choose Join existing hive.");
             HiveLedgerImport.inspect(dir.resolve("doughbay.db"),m.owner());
         }
         String id=UUID.randomUUID().toString();
@@ -101,10 +105,13 @@ final class HiveCombine {
                 ||!p.combined().owner().equals(p.first().owner()))throw new IOException("Invalid combination request");
         if(!p.first().owner().matches("[A-Za-z0-9_.-]{1,32}")||!p.second().owner().matches("[A-Za-z0-9_.-]{1,32}"))throw new IOException("Invalid hive account");
         for(var m:List.of(p.first(),p.second())) {
+            if(Files.exists(Path.of(m.directory()).resolve("joined-profiles")))throw new IOException("This hive now has additional members; the two-single-account combination was not applied");
             var actual=HiveSetup.read(Path.of(m.directory()).resolve("hive.json"));
             if(!actual.id().equals(m.id())||!actual.owner().equals(m.owner())||!actual.directory().equals(m.directory()))throw new IOException("Hive membership changed; originals were kept");
         }
         try(var lockA=lease(a,false);var lockB=lease(b,false)) {
+            if(Files.exists(a.resolve("joined-profiles"))||Files.exists(b.resolve("joined-profiles")))
+                throw new IOException("This hive now has additional members; the two-single-account combination was not applied");
             // Updated clients hold the leases for their whole process. Older compatible builds also advertise local presence.
             rejectRunning(p.first().id(),presence);rejectRunning(p.second().id(),presence);
             if(Files.exists(out.resolve(READY))) {verifyReady(out,p);return;}
@@ -155,6 +162,9 @@ final class HiveCombine {
         }finally{Files.deleteIfExists(temp);}
     }
     private static void profile(Path source,Path out,String owner) throws Exception {
+        profile(source,out,owner,out);
+    }
+    static void profile(Path source,Path out,String owner,Path ledger) throws Exception {
         Path destination=out.resolve("member-profiles").resolve(owner.toLowerCase(Locale.ROOT));Files.createDirectories(destination);
         for(String name:List.of("config.json","tuning.json","secret.dat","saved-presets.json","appearance.json",
                 "probe.json","homes.json","shelf.json","discord.json","web-panel.json","tutorial-progress.json",
@@ -162,7 +172,7 @@ final class HiveCombine {
             copyIfPresent(source.resolve(name),destination.resolve(name));
         Path config=destination.resolve("config.json");var j=JSON.readTree(Files.readAllBytes(config));
         if(!(j instanceof com.fasterxml.jackson.databind.node.ObjectNode obj))throw new IOException("Invalid source settings");
-        obj.put("databasePath",out.resolve("doughbay.db").toString());
+        obj.put("databasePath",ledger.resolve("doughbay.db").toString());
         Files.write(config,JSON.writerWithDefaultPrettyPrinter().writeValueAsBytes(obj));
         for(String file:AccountRecords.FILES) {
             Path own=source.resolve("accounts").resolve(owner).resolve(file);
@@ -211,7 +221,15 @@ final class HiveCombine {
             throw new IOException("Hive combination is pending. Start the requesting instance first; no replacement ledger was created");
     }
     static Path configuration(HiveSetup.Membership membership,String account) throws IOException {
-        Path root=Path.of(membership.directory());if(!Files.isDirectory(root.resolve("member-profiles")))return root;
+        Path root=Path.of(membership.directory());
+        if(account!=null&&account.matches("[A-Za-z0-9_]{1,16}")) {
+            Path joined=root.resolve("joined-profiles").resolve(account.toLowerCase(Locale.ROOT));
+            if(Files.exists(joined)) {
+                if(!Files.isRegularFile(joined.resolve("config.json")))throw new IOException("This hive account's settings are incomplete. Keep its original instance and report the setup failure.");
+                return joined;
+            }
+        }
+        if(!Files.isDirectory(root.resolve("member-profiles")))return root;
         if(account==null||!account.matches("[A-Za-z0-9_.-]{1,32}"))throw new IOException("Sign into the hive account first");
         Path profile=root.resolve("member-profiles").resolve(account.toLowerCase(Locale.ROOT));
         if(!Files.isRegularFile(profile.resolve("config.json")))throw new IOException("No preserved settings profile for this hive account");return profile;

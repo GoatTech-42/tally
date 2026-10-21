@@ -124,6 +124,45 @@ public final class HiveSetup {
         return m;
     }
 
+    /** Add a fresh account, keeping its own settings rather than adopting the hive owner's. */
+    static Membership joinFresh(Path game, Path local, String code, String account) throws IOException {
+        Membership m=decode(code);
+        if(account==null||!account.matches("[A-Za-z0-9_]{1,16}"))
+            throw new IOException("Sign into the Minecraft account you want to add first");
+        if(Files.exists(game.resolve(POINTER))) {
+            if(!configured(game).id().equals(m.id()))throw new IOException("This instance is already linked to another hive. Its link was kept.");
+            return m;
+        }
+        if(Files.exists(game.resolve("gonuts-hive-combine.json")))
+            throw new IOException("Cancel this instance's queued combination before joining another hive");
+        requireLocalLedger(local);requireEmpty(local);
+        Path shared=Path.of(m.directory());
+        if(Files.isSameFile(local,shared))throw new IOException("This instance already uses that hive folder. Share its code from the existing account instead.");
+        try(var lease=HiveCombine.joinLease(shared)) {
+            if(!validate(m).id().equals(m.id()))throw new IOException("The hive changed during setup. Copy its current code and review again.");
+            if(m.owner().equalsIgnoreCase(account)||hasAccountFolder(shared.resolve("accounts"),account)
+                    ||hasAccountFolder(shared.resolve("member-profiles"),account)
+                    ||hasAccountFolder(shared.resolve("joined-profiles"),account))
+                throw new IOException("This account already has data in that hive. Open its existing instance; nothing was replaced.");
+            try(var c=DriverManager.getConnection("jdbc:sqlite:"+shared.resolve("doughbay.db").toUri()+"?mode=ro");var s=c.prepareStatement("SELECT 1 FROM positions WHERE lower(client)=lower(?) LIMIT 1")) {
+                s.setString(1,account);try(var r=s.executeQuery()){if(r.next())throw new IOException("This account already has trading history in that hive. Open its existing instance; nothing was replaced.");}
+            }catch(java.sql.SQLException e){throw new IOException("Could not verify the destination account safely. Nothing was linked.",e);}
+            Path profiles=shared.resolve("joined-profiles");Files.createDirectories(profiles);
+            Path staging=Files.createTempDirectory(profiles,"preparing-");
+            // Publication never replaces an existing profile. An interrupted preparation is kept for diagnosis.
+            HiveCombine.profile(local,staging,account,shared);
+            Files.move(staging.resolve("member-profiles").resolve(account.toLowerCase(java.util.Locale.ROOT)),
+                    profiles.resolve(account.toLowerCase(java.util.Locale.ROOT)));
+            writePointer(game,m);
+        }catch(IOException e){throw e;}catch(Exception e){throw new IOException("Could not prepare this account's settings. Nothing was overwritten.",e);}
+        return m;
+    }
+
+    private static boolean hasAccountFolder(Path parent,String account) throws IOException {
+        if(!Files.isDirectory(parent))return false;
+        try(var files=Files.list(parent)){return files.anyMatch(p->p.getFileName().toString().equalsIgnoreCase(account));}
+    }
+
     /** Read-only inspection never creates a DB, migrates it or checkpoints a writer. */
     static void requireEmpty(Path local) throws IOException {
         Path db = local.resolve("doughbay.db");
