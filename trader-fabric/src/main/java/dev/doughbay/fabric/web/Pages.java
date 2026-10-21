@@ -442,6 +442,7 @@ final class Pages {
               auction: { label: 'Auction settings', open: async()=>{S.section='AUCTION';await openSettings();} },
               orders: { label: 'Order settings', open: async()=>{S.section='ORDERS';await openSettings();} },
               dashboard: { label: 'Dashboard', open: openDashboard },
+              savings: { label: 'Swarm savings', open: openSwarmSavings },
               bots: { label: 'Hive & commands', open: openBots },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
@@ -482,7 +483,7 @@ final class Pages {
                 pages.appendChild(b);
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name));
-              mine('bots'); mine('reports'); mine('proxies');
+              mine('bots'); mine('savings'); mine('reports'); mine('proxies');
               if (hostedPanel) {
                 const back = el('a', '', 'Dashboard');
                 back.href = 'https://gonuts.at/dashboard/';
@@ -1288,6 +1289,36 @@ final class Pages {
               own.replaceChildren(...parts);
             }
             
+            async function openSwarmSavings() {
+              try {
+                const d=await api('dashboard');if(view!=='savings')return;
+                let select=document.getElementById('savings-account');
+                if(!select){
+                  select=el('select');select.id='savings-account';select.setAttribute('aria-label','Read savings account');
+                  select.onchange=openSwarmSavings;
+                  const result=el('div');result.id='savings-result';
+                  own.replaceChildren(el('h2','title','Swarm read savings'),el('label','','Account'),select,result);
+                }
+                const rows=d.accounts||[],selected=select.value;
+                select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
+                if(rows.some(r=>r.id===selected))select.value=selected;
+                const current=rows.find(r=>r.id===select.value)||{};
+                const lines=!current.available?['Selected bot is offline or its status is stale; no current measurements.']:readSavingsLines(current.community?.readSavings);
+                document.getElementById('savings-result').replaceChildren(...lines.map(t=>el('p','muted',t)));
+              }catch(e){failed();}
+            }
+            function readSavingsLines(s) {
+              s=s||{};const seconds=n=>((n||0)/1000).toFixed(1)+'s';
+              const rows=Object.keys(s).length?[
+                'Scans skipped: '+(s.actualSkippedReads||0)+' / '+(s.attempts||0)+' shared lookups | fallbacks: '+(s.fallbackReads||0),
+                'Measured shared lookup wait: '+seconds(s.lookupWaitMs),
+                s.estimateAvailable?'Estimated net time saved'+(s.estimateComplete?'':' (partial baseline)')+': '+seconds(s.estimatedNetSavedMs)+' (all lookup waits included; negative means overhead)':'Time saved: not calibrated yet; needs 3 recent successful scans of matching region and page count.',
+                'Calibrated skips: '+(s.calibratedSkippedReads||0)+' | without baseline: '+(s.uncalibratedSkippedReads||0)
+              ]:['Measurements unavailable from this client; update the client to record read savings.'];
+              if(s.estimatedMatchedReadSpeedRatio!=null)rows.push('Estimated matched discovery speed: '+s.estimatedMatchedReadSpeedRatio.toFixed(2)+'x (1x = equal; below 1x = slower)');
+              rows.push('Ratio covers calibrated successful lookups only; net estimate subtracts fallback waits too. Selected bot, current session; discovery only, not a controlled speed or profit comparison. Live trade checks still run.');
+              return rows;
+            }
             async function openDashboard() {
               try {
                 const d=await api('dashboard');if(view!=='dashboard')return;
@@ -1305,11 +1336,13 @@ final class Pages {
                   const status=el('p','','');status.id='dashboard-status';status.setAttribute('aria-live','polite');
                   const all=el('div');all.id='dashboard-accounts';
                   const community=el('p');community.id='dashboard-community-status';
+                  const savings=el('div');savings.id='dashboard-read-savings';
                   const enable=button('go','Retry Swarm connection',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
                   own.replaceChildren(el('h2','title','Hosted Dashboard'),website,
                     el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linking joins the Swarm: public market observations are contributed and discovery hints received. Linked bots share one hive group.'),
                     el('label','','Account'),account,el('label','','Pairing code'),code,el('label','','Client label'),name,link,reconnect,unlink,status,all,
                     el('h2','title','Swarm API'),el('p','muted','Linking a bot opts it into contributing public market and follow observations, including observed account identities and payments, and receiving shared discovery guidance. Live price, inventory and trading checks remain required. Swarm contribution is required for the hosted dashboard. Unlink to leave the Swarm.'),community,enable,
+                    el('h2','title','Swarm read savings'),savings,
                     el('p','muted','Each bot keeps its own credential in its own installation. Dashboard outages do not stop trading. After unlinking, remove its offline entry on the website too.'));
                 }
                 const select=document.getElementById('dashboard-account');const selected=select.value;
@@ -1330,6 +1363,8 @@ final class Pages {
                 document.getElementById('dashboard-community-enable').disabled=!current.available||current.busy||!current.linked||healthy;
                 document.getElementById('dashboard-community-enable').textContent=contribution.needsRenewal?'Renew Swarm membership':'Retry Swarm connection';
                 document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
+                const savingRows=readSavingsLines(contribution.readSavings);
+                document.getElementById('dashboard-read-savings').replaceChildren(...savingRows.map(t=>el('p','muted',t)));
                 document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
               } catch(e){failed();}
             }
@@ -1558,6 +1593,7 @@ final class Pages {
               refresh();
               if (view === 'staff') openStaff();
               if (view === 'dashboard') openDashboard();
+              if (view === 'savings') openSwarmSavings();
               if (view === 'evasion') refreshEvasionHistory();
               // The rivals move by themselves; a setting or a list only when somebody changes it.
               if (++ticks % 4 !== 0) return;

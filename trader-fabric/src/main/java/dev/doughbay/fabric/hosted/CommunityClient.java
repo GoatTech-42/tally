@@ -202,6 +202,7 @@ public final class CommunityClient {
         value.set("orderJob",isolatedOrderJob.deepCopy());
         value.set("orderSnapshotValidation",snapshotValidation.deepCopy());
         value.set("performance",CommunityPerformance.INSTANCE.view().put("snapshotStatus",measurementStatus));
+        value.set("readSavings",CommunityPerformance.INSTANCE.view().path("discoverySavings"));
         var codes=value.putObject("rejectionCodes");rejectionCodes.forEach(codes::put);return value;
     }
     public synchronized void observe(ObjectNode record){

@@ -41,6 +41,13 @@ public final class DashboardHive {
                     ?DashboardProtocol.JSON.getNodeFactory().textNode(item.asText().substring(0,Math.min(240,item.asText().length())))
                     :item);
         }
+        var savings=out.putObject("readSavings");
+        for(String key:Set.of("attempts","actualSkippedReads","fallbackReads","lookupWaitMs","calibratedSkippedReads",
+                "uncalibratedSkippedReads","estimatedAvoidedReadMs","estimatedNetSavedMs","estimateAvailable",
+                "estimateComplete","skipPercent","estimatedMatchedReadSpeedRatio")) {
+            var item=value.path("readSavings").get(key);
+            if(item!=null&&(item.isNumber()||item.isBoolean()))savings.set(key,item);
+        }
         return out;
     }
     public void publish(String account,HostedDashboardClient.View view,long now) throws Exception {

@@ -14,6 +14,11 @@ public final class CommunityPerformance {
     private long probeMs, orderMs, probes, sweeps, failedProbes, failedSweeps, pages, rows;
     private long candidateMs, candidates;
     private boolean enabled;
+    private final SwarmReadSavings savings = new SwarmReadSavings();
+
+    public synchronized void discoveryLookup(boolean reused, String region, int pages, long elapsedMs, long now) {
+        if (enabled) savings.lookup(reused, region, pages, elapsedMs, now);
+    }
 
     public synchronized void enable() { enabled = true; }
     public synchronized void tick(boolean connected, long nanos) {
@@ -45,16 +50,20 @@ public final class CommunityPerformance {
             orderMs += elapsed;
             if (succeeded) sweeps++; else failedSweeps++;
             pages += Math.max(0, pageCount); rows += Math.max(0, rowCount);
+            if (succeeded && read.region().equals(region))
+                savings.nativeRead(region, pageCount, elapsed, System.currentTimeMillis());
         }
     }
     public synchronized ObjectNode view() {
-        return DashboardProtocol.JSON.createObjectNode().put("schema", 1).put("session", session)
+        var value = DashboardProtocol.JSON.createObjectNode().put("schema", 2).put("session", session)
                 .put("startedAt", beganAt).put("observedAt", System.currentTimeMillis())
                 .put("connectedMs", connectedMs).put("probeReadMs", probeMs).put("orderReadMs", orderMs)
                 .put("completedProbes", probes).put("failedProbes", failedProbes)
                 .put("completedOrderReads", sweeps).put("failedOrderReads", failedSweeps)
                 .put("orderPages", pages).put("orderRows", rows)
                 .put("candidateProbes", candidates).put("hypotheticalCandidateMs", candidateMs)
-                .put("actualSkippedReads", 0).put("actualSavedMs", 0);
+                .put("actualSkippedReads", savings.view().path("actualSkippedReads").asLong()).put("actualSavedMs", 0);
+        value.set("discoverySavings", savings.view());
+        return value;
     }
 }

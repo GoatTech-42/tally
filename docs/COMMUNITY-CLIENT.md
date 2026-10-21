@@ -100,3 +100,40 @@ A local acknowledgement barrier counts every queued stream record. The end marke
 The barrier metadata is local only, absent from wire JSON. If a process restarts during a read, its unfinished barrier cannot manufacture an end record. A persisted end-marker batch can only have been created after all preceding stream records were acknowledged. Unrelated queued follow/payment events still use the same bounded FIFO, 500-record cap, 10-second upload cadence and rate-limit handling. No server limits or protocol fields changed.
 
 Local community.orderCoverage.streamUpload reports recordsQueued, recordsAccepted, recordsPending, endMarkerQueued and uploadState. endMarkerQueued means queued for upload, not proof the server accepted it; the VPS must verify marker acceptance and frozen row counts. Streaming should reduce post-read lag; it does not guarantee a peer snapshot exists ten seconds after a fast full read, nor does it establish decision equivalence. All reads, shadow mode and public rollout gates stay unchanged.
+
+
+## Passive Swarm read savings
+
+The in-game Swarm tab and both panels' **Swarm savings** page show per-account,
+current-session measurements. The panels allow selecting each Hive account;
+stale/offline accounts are labelled unavailable. No live experiment, extra scans,
+new worker, or trading-setting changes are required. Existing freshness, ownership,
+live-price and execution gates are unchanged.
+
+- **Scans skipped** counts only eligible shared discovery lookups that actually
+  omitted a scheduled broad order-house read. It is not an API-request count.
+- **Fallbacks and lookup wait** count completed shared lookups that could not
+  replace the read, including timeouts. Waiting includes the existing asynchronous
+  lookup/controller wait, measured with the monotonic clock.
+- **Estimated net time saved** subtracts all lookup waits from estimated omitted
+  scan time. A skip gets an estimate only when at least three successful natural
+  reads of the same observed region and actual page count as the omitted scan's
+  scheduled page budget were measured in the preceding 30 minutes. The lower
+  median is used; failed reads, changed/unknown regions, future/stale samples and
+  different scan depths cannot calibrate it. At most 100 samples are retained.
+- Estimates are frozen at each decision, never backfilled from future data.
+  Uncalibrated skips are counted separately and partial estimates are labelled.
+  Insufficient data shows **not calibrated**, never an invented speed gain.
+- **Estimated matched discovery speed** divides estimated native-read time by
+  measured shared-lookup wait for calibrated successful replacements only.
+  Below 1x means those lookups were slower; fallback costs are included in the
+  net-time estimate, not that matched ratio. Zero measured wait has no ratio.
+
+These are passive estimates, not a controlled comparison of total bot speed,
+causal time savings, market quality or profit. Shared market hints and startup
+sale-history imports are useful but are not assigned invented time savings.
+`actualSavedMs` remains zero because the counterfactual scan was not performed;
+`performance.discoverySavings` carries the measured counts and explicitly named
+estimates. The existing bounded per-installation `performance.json` session
+history records them once a minute and retains up to seven days/168 sessions.
+No telemetry contract or server deployment is needed for the client-served panels.

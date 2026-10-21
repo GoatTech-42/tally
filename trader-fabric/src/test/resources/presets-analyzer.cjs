@@ -3,11 +3,12 @@ const html=fs.readFileSync(process.argv[2],'utf8');
 // Exercise the real navigation builder for local and hosted shells.
 for(const hostedPanel of [false,true]) {
  const pages={children:[],replaceChildren(){this.children=[];},appendChild(n){this.children.push(n);}};
- const ownMap={bots:{label:'Hive & commands'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'}};
+ const ownMap={bots:{label:'Hive & commands'},savings:{label:'Swarm savings'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'}};
  const nav=vm.createContext({hostedPanel,pages,OWN:ownMap,view:'',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>({tag,text}),button:(cls,text,click)=>({text,click,setAttribute(){}})});
  vm.runInContext(html.slice(html.indexOf('function tabs(pick)'),html.indexOf('function draw(state)')),nav);
  nav.tabs(null);
  assert(pages.children.some(n=>n.text==='Analyzer'),'Analyzer must be reachable in both sidebars');
+ assert(pages.children.some(n=>n.text==='Swarm savings'),'Swarm savings must be reachable in both sidebars');
  const dashboard=pages.children.find(n=>n.text==='Dashboard');assert(dashboard);
  if(hostedPanel)assert.equal(dashboard.href,'https://gonuts.at/dashboard/');else assert.equal(typeof dashboard.click,'function');
 }

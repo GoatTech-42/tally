@@ -32,10 +32,16 @@ class DashboardHiveTest {
   var source=DashboardProtocol.JSON.createObjectNode().put("enabled",true).put("needsRenewal",true)
       .put("accepted",42).put("status","s".repeat(1000)).put("credential","never copy");
   source.putObject("orderCoverage").put("rows",5000);
+  source.putObject("readSavings").put("actualSkippedReads",12).put("estimatedNetSavedMs",-1000)
+      .put("credential","never copy").put("scope","private text");
   var summary=DashboardHive.communitySummary(source);
   assertEquals(42,summary.path("accepted").asInt());assertTrue(summary.path("needsRenewal").asBoolean());
   assertEquals(240,summary.path("status").asText().length());assertFalse(summary.has("credential"));
   assertFalse(summary.has("orderCoverage"));
+  assertEquals(12,summary.path("readSavings").path("actualSkippedReads").asInt());
+  assertEquals(-1000,summary.path("readSavings").path("estimatedNetSavedMs").asLong());
+  assertFalse(summary.path("readSavings").has("credential"));
+  assertFalse(summary.path("readSavings").has("scope"));
  }
  private static HostedDashboardClient.View unlinked(){return new HostedDashboardClient.View(false,false,false,"","Not linked",0);}
  @Test void routesOnlyToSelectedClientConsumesOnceAndNeverSharesCredential() throws Exception {
