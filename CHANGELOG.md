@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-21 10:15 UTC
+
+- Release PR #215: Fixed automatic capacity observations overwriting auction/order slot limits the player had just chosen manually. Editing either capacity now keeps both configured values under manual control for that account, including across reloads. Confirmed menu and API rank learning honor this choice; other Hive accounts keep their own detection mode. No positions, existing orders, limits or safety gates are reset.
+- Automatic detection remains on by default until a manual slot edit is made. In the GUI, set Auction slots and Order slots to 18 if both should be 18; this switches detection off for that account. To resume detection after a rank upgrade, enable Detect account slots automatically under Settings/Tiers (Auction settings in the panels). Existing values are not guessed to be manual during migration. Malformed local settings cannot silently re-enable detection, and the choice is excluded from shared Hive presets.
+- Related to #211: the manual-override defect was independently reproduced, and its regression fails on the prior code. The reason the reported menu was interpreted as 90 remains unconfirmed; the entire incident is not claimed fixed or closed. Full suite/build: 1,453 tests, zero failures/errors, one skip. Regressions cover menu/API learning, saved manual limits, per-account isolation, explicit re-enable, legacy values and malformed files. Normal production entrypoint; no smoke/preview classes.
+- Client artifact published October 21 at 03:15:03 Los Angeles time (10:15:03 UTC). Build 1792577566996; SHA256: df754ca56e730d32f49f3a755d98cc44ba83360f344b2f836f414d5e9a3716be. Public JAR, source ZIP and checksum manifest independently downloaded and hash-matched. This is a separate publication from PR212; no running bot was upgraded or restarted for PR215.
+
 ## 2026-10-21 09:48 UTC
 
 - Release PR #212: An unexpected connection loss during a running session could reconnect to the server successfully while trading remained paused. Ordinary connection retries did not retain the trading recovery ownership used by staff-triggered reconnects. Only a recent unexpected disconnect from an already running or internally resumable session now transfers that intent to the existing reconnect flow. A failed manual connection cannot create trading intent.
