@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-21 — Guarded recovery after network reconnect
+
+- Release PR #212: An unexpected connection loss during a running session could reconnect to the server successfully while trading remained paused. Ordinary connection retries did not retain the trading recovery ownership used by staff-triggered reconnects. Only a recent unexpected disconnect from an already running or internally resumable session now transfers that intent to the existing reconnect flow. A failed manual connection cannot create trading intent.
+- Recovery still waits for a fresh connected world and balance, 15 seconds of settling, retained session ownership, and the native persistence, exposure, inventory and authorization gates. Stop, deliberate departures, cancellation, disabled reconnect and stale departure evidence remain protected. Native refusals keep the original intent and the existing 30-second retry spacing. No limits or settings are changed.
+- Reproduced after a live connection reset during an order placement: the client reconnected but stayed paused without exposure. A deterministic ordinary-retry regression fails against the old flow. Full suite/build: 1,449 tests, zero failures/errors, one skip. Normal production client entrypoint only; no smoke/preview classes.
+- Client artifact published October 21 at 02:48:20 Los Angeles time (09:48:20 UTC). Build 1792575951343; SHA256: `f3591813b4f1aac791a9446c0a9e92e23b8bdcf903ebae570e8447dcdc28af84`. Public JAR, source and checksum manifest independently downloaded and matched. This is separate from PR206. Reports #210 (repricing) and #211 (slot detection) are not claimed fixed by this release.
+
 What each published update changed, newest first. Times are UTC publication times, not development start times. Each release keeps its own entry. The mod shows these in
 the update notice, after an update installs, and under What's new on the
 About tab.
