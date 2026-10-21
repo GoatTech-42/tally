@@ -30,6 +30,17 @@ class DiscordPrivacyTest {
     }
 
     @Test
+    void allThreeSendersUseTheSameAccountNumbersInsteadOfEachCallingItselfAccountOne() {
+        var roster=List.of("Charlie","Alpha","Bravo");
+        for(String source:roster) {
+            var ordered=DiscordPrivacy.orderedNames(source,roster);
+            assertEquals(List.of("Alpha","Bravo","Charlie"),ordered);
+            assertEquals("Account 1 / Account 2 / Account 3",DiscordPrivacy.hide("Alpha / Bravo / Charlie",ordered));
+        }
+        assertEquals(List.of("Alpha","Bravo","Charlie"),DiscordPrivacy.orderedNames("charlie",List.of("Bravo","Alpha","Charlie","ALPHA")));
+    }
+
+    @Test
     void aMessageKeepsItsIdsAndLosesOnlyTheNamesAPersonReads() throws Exception {
         String json = "{\"content\":\"steve_trades is trading\","
                 + "\"embeds\":[{\"title\":\"steve_trades\",\"description\":\"paid Buyer123\","

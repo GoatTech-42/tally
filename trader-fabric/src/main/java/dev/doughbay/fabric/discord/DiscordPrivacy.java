@@ -41,12 +41,14 @@ public final class DiscordPrivacy {
     /** This client's account and its hive siblings, when names are being hidden; empty otherwise. */
     static List<String> hidden() {
         if (!NameMask.on()) return List.of();
-        Set<String> names = new LinkedHashSet<>();
-        String own = DoughBayClient.account();
+        return orderedNames(DoughBayClient.account(), DoughBayClient.hiveAccounts());
+    }
+
+    /** Each sender must number the same Hive roster identically, not put itself first. */
+    static List<String> orderedNames(String own, List<String> roster) {
+        var names = new java.util.TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+        for (String name : roster) if (name != null && !name.isBlank()) names.add(name);
         if (own != null && !own.isBlank()) names.add(own);
-        for (String sibling : DoughBayClient.hiveAccounts()) {
-            if (sibling != null && !sibling.isBlank()) names.add(sibling);
-        }
         return new ArrayList<>(names);
     }
 
