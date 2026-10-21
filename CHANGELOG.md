@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 02:12 UTC
+
+- Release PR #191: Fixed a fresh-account Hive join that waited for a checkpoint which had never existed. A never-started account reports generation zero; the shared safe-to-leave gate now recognizes a fully loaded STOPPED state with no open session, armed work, in-flight operation or recovered exposure. It does not invent a durable acknowledgement or start trading. Real accepted checkpoints still require their actual durable acknowledgement; unavailable recovery, refused writes and pending controller checkpoints remain blocked.
+- Reproduced against the real controller: the never-started-state regression failed before the fix. This repairs the checkpoint wait observed while adding a third account through PR189's panel flow. No existing positions, account records, settings, limits or recovery holds are cleared. Live third-account joining has not yet been completed; existing healthy peers do not need a restart for this fresh-account repair.
+- Client artifact published October 20 at 19:12:41 Los Angeles time (October 21 02:12:41 UTC). Build 1792548618302; SHA256: `66da830d606f8ce6af9d22254a30c83d76f6f796926d7e7a0048405984c71f40`. Full clean suite/build: 1,404 tests, zero failures/errors, one skip. Tests cover initial recovery loading, empty generation zero, open-session/refused-write rejection and a real accepted write awaiting durable acknowledgement. Production JAR has only the normal client entrypoint and no test/Smoke classes. Public JAR, source and SHA manifest independently downloaded and hash-verified.
+
 ## 2026-10-21 01:56 UTC
 
 - Release PR #189: **Hive & commands** is available in both the local panel and the hosted Open panel. Running updated clients on this computer appear automatically. Choose a fresh bot and an existing Hive, then **Add selected bot to Hive**; no headless game window or copied code is needed. The existing member registers its Hive metadata at a safe checkpoint and keeps running. The new bot rechecks its empty history/account records, pauses safely if needed, leaves only its own world and creates its native link. Restart only that new instance normally. Its own settings and Swarm link are preserved; no trading is started or existing histories merged.
