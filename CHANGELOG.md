@@ -4,6 +4,13 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 01:04 UTC
+
+- Release PR #187: A Hive can have many accounts. Hive setup now offers **Join existing hive (new account)** separately from the two-single-account history importer. A fresh third, fourth or later account can join an existing multi-account or combined Hive without merging or copying its trading database. Only the joining instance needs a restart; existing members can keep running.
+- The joining account keeps its own settings, limits, execution gates and instance-scoped Swarm credentials. Its profile points to the existing shared ledger; it never inherits another member's order or balance records. Local history, saved account records, an existing destination identity, replacement links and pending combinations block unsafe joins. Setup leases and import-time checks prevent a history combination from dropping a newly added member. No existing live instance was upgraded, linked or restarted by this release.
+- Hive setup and the guide explain the fresh-account path, its restart requirement and how older shared-folder Hives register once through Share this hive. The separate history importer still supports only two single-account histories; that is not a Hive membership limit. The earlier video is labelled as the history-combination walkthrough.
+- Client artifact published October 20 at 18:04:32 Los Angeles time (October 21 01:04:32 UTC). Build 1792544543099; SHA256: `015575f83d330e3cb7b881cc558292d8cfd924c7ef7e16f59a22aec1c8b7d848`. Full clean suite/build: 1,385 tests, zero failures/errors, one skip. Added regressions cover third/fourth membership, adding a member to a combined Hive, unsafe joins and a prepared combination after another member joins. Offline GUI review was captured and inspected. Production JAR has only the normal client entrypoint and no test/Smoke classes. Public JAR, source and SHA manifest independently downloaded and hash-verified. This does not claim the user's third account has already joined.
+
 ## 2026-10-20 23:15 UTC
 
 - Release PR #185: A stalled panel picture render can no longer occupy every reader used for status and data. Pictures now use a separate single worker with at most one outstanding render; repeated picture polls return promptly while status requests remain available. Picture capacity is released after completion or a rendering error. Existing authentication, overall request limits, expiry and game-thread control checks remain enforced.
