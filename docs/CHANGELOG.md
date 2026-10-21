@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 06:31 UTC
+
+- Release PR #206: Corrected the scope of shared-data measurement. The Hive view now separates validated cloud responses, hints actually used in bid plans/native-check choices, follow/price-level provenance, history imports and local stored-book use from genuinely avoided broad scans. Follow and price-level source subsets can overlap; a lookup or hint is never converted into saved time. Older clients remain unmeasured. Local counts describe existing stored-book loads/planning, potentially from the same account's saved book; this release does not claim live Hive peer-refresh is implemented.
+- Added separately negotiated data_use schema 1 over the existing authenticated connection, with bounded per-game counts, matching read-savings session/fallback totals, explicit rejection reasons, unchanged clock-only telemetry cadence and existing consent/ownership gates. Existing readSavings schema 1 remains unchanged. Production discovery requests the newest eligible same-owner non-self 200-page peer snapshot from the last 90 seconds, rather than allowing a newer ineligible read to mask it; legacy shadow/validation behavior and native price, balance, inventory, own-order and trade-safety checks stay authoritative. The existing VPS owner independently tested actual client wire output against the server parser/ledger offline and deployed the matching services.
+- Client artifact published October 20 at 23:31:24 Los Angeles time (October 21 06:31:24 UTC). Build 1792563406286; SHA256: `aeeb42a53dff7f9bee4e5db91390a4c5c1ba2564e8f87be51cb078c391ab9235`. Full build: 1,445 tests, zero failures/errors, one skipped; backend community 26 tests and dashboard 75 tests passed. Public JAR, source and checksum manifest independently downloaded and matched; normal production entrypoint retained, no smoke classes. Live measuring-client rollout/ingestion remains the activation check.
+
 ## 2026-10-21 05:28 UTC
 
 - Release PR #204: Made read savings a master Hive total in the in-game Swarm tab and both panels. The combined total is shown first, with per-account details collapsed below it. Each fresh account is counted once; stale, offline and older clients are explicitly unmeasured. Local totals sum current reporting sessions and are labelled bot-time, not elapsed wall-clock. No per-account speed ratios are summed or averaged.
