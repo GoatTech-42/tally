@@ -771,6 +771,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         return lastPlacementOrders;
     }
 
+    static boolean collectionReady(OwnOrderRow row, boolean finishedOnly) {
+        return !finishedOnly || row.remaining() == 0 || row.alreadyCancelled();
+    }
+
+    static boolean newPlacementObserved(int before, int after) {
+        return before >= 0 && after > before;
+    }
+
     static List<OwnOrderRow> activePlacementBook(List<OwnOrderRow> rows, String item, int count, long unit) {
         return rows.stream().anyMatch(r -> r.itemId().equals(item) && r.requested() == count
                 && r.unitPrice() == unit && !r.alreadyCancelled() && r.remaining() > 0)
@@ -847,6 +855,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownMatchOrdinal = 0;
         ownMatchRequested = 0;
         placeConfirmed = false;
+        placeMatchingBefore = -1;
         lastPlacementOrders = null;
         placeReceipt = "";
         ownDone = false;
@@ -926,12 +935,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** A known requested quantity keeps collection on the controller's exact order-accounting key. */
     public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
                                                      int ordinal, boolean wholeStacksOnly) {
+        return collectOrder(itemId,unitPrice,requested,ordinal,wholeStacksOnly,false);
+    }
+
+    public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
+                                                     int ordinal, boolean wholeStacksOnly, boolean finishedOnly) {
         ExecutionResult result = beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
                 "Collecting " + shortName(itemId) + " delivered to your order");
         if (result.ok()) {
             ownMatchOrdinal = Math.max(0, ordinal);
             ownMatchRequested = Math.max(0, requested);
             collectWholeStacksOnly = wholeStacksOnly;
+            collectFinishedOnly = finishedOnly;
             ownTargetFinished = false;
         }
         return result;
@@ -940,6 +955,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** What a collect that found only a part stack ends with; the desk leaves that order alone for a while. */
     public static final String PART_STACK_WAITING = "Only part of a stack is waiting on the order";
     private boolean collectWholeStacksOnly;
+    private boolean collectFinishedOnly;
     /** The order being collected shows on Your Orders as fully delivered or cancelled. */
     private boolean ownTargetFinished;
 
@@ -1237,7 +1253,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 rows.add(row);
                 if (matchesOwnOrder(row, targetItemId, ownTargetUnitPrice, ownMatchRequested,
-                        operation == Operation.CANCEL_ORDER)) {
+                        operation == Operation.CANCEL_ORDER)
+                        && (operation != Operation.COLLECT_ORDER || collectionReady(row,collectFinishedOnly))) {
                     if (matchSlot < 0 && matchesSeen == ownMatchOrdinal) {
                         matchSlot = menuSlot;
                         ownTargetTooltip = List.copyOf(tooltipLines(client, stack));
@@ -1253,7 +1270,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             switch (operation) {
                 case OWN_ORDERS -> complete(client, "Your orders read: " + rows.size() + " open");
                 case PLACE_ORDER -> {
-                    if (ownStage == 1 && placeCount > 0 && matchSlot >= 0 && rows.stream().anyMatch(r ->
+                    int matchingNow = (int)rows.stream().filter(r -> r.itemId().equals(targetItemId)
+                            && r.unitPrice()==placeUnitPrice && r.requested()==placeCount).count();
+                    if (!placeConfirmed && placeMatchingBefore < 0) placeMatchingBefore = matchingNow;
+                    if (ownStage == 1 && placeCount > 0 && matchSlot >= 0 && newPlacementObserved(placeMatchingBefore,matchingNow) && rows.stream().anyMatch(r ->
                             r.itemId().equals(targetItemId) && r.unitPrice() == placeUnitPrice && r.requested() == placeCount && placeConfirmed)) {
                         lastPlacementOrders = activePlacementBook(rows, targetItemId, placeCount, placeUnitPrice);
                         complete(client, String.format(Locale.ROOT, "Bid placed: %s x%d at %s each",
@@ -1531,6 +1551,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private boolean placeConfirmed;
     /** The server's "You ordered 64 Empty Maps" line after Create Order; the page it returns to varies. */
     private String placeReceipt = "";
+    private int placeMatchingBefore = -1;
     private static final Pattern PLACE_RECEIPT = Pattern.compile("(?i)^you ordered +([0-9,]+) +(.+)$");
     private boolean ownDone;
 
