@@ -3,7 +3,7 @@ const html=fs.readFileSync(process.argv[2],'utf8');
 // Exercise the real navigation builder for local and hosted shells.
 for(const hostedPanel of [false,true]) {
  const pages={children:[],replaceChildren(){this.children=[];},appendChild(n){this.children.push(n);}};
- const ownMap={reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'}};
+ const ownMap={bots:{label:'Hive & commands'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'}};
  const nav=vm.createContext({hostedPanel,pages,OWN:ownMap,view:'',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>({tag,text}),button:(cls,text,click)=>({text,click,setAttribute(){}})});
  vm.runInContext(html.slice(html.indexOf('function tabs(pick)'),html.indexOf('function draw(state)')),nav);
  nav.tabs(null);

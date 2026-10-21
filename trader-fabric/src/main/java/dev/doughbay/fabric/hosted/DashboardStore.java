@@ -35,7 +35,7 @@ public final class DashboardStore {
         }finally{Files.deleteIfExists(temp);}
     }
     public void forget() throws Exception {Files.deleteIfExists(file);}
-    static void restrict(Path path) throws Exception {
+    public static void restrict(Path path) throws Exception {
         var acl=Files.getFileAttributeView(path,AclFileAttributeView.class);
         if(acl!=null){
             var entry=AclEntry.newBuilder().setType(AclEntryType.ALLOW).setPrincipal(Files.getOwner(path)).setPermissions(EnumSet.allOf(AclEntryPermission.class));

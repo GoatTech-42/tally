@@ -46,13 +46,13 @@ class LocalPanelTest {
         @Override
         public synchronized String data(String name, java.util.Map<String, String> query) {
             calls.add("data " + name + " " + new java.util.TreeMap<>(query));
-            return name.equals("settings") || name.equals("rival") || name.equals("staff") || name.equals("reports") || name.equals("proxies") ? "{\"page\":\"" + name + "\"}" : null;
+            return name.equals("bots") || name.equals("settings") || name.equals("rival") || name.equals("staff") || name.equals("reports") || name.equals("proxies") ? "{\"page\":\"" + name + "\"}" : null;
         }
 
         @Override
         public synchronized String change(String name, java.util.Map<String, String> form) {
             calls.add("change " + name + " " + new java.util.TreeMap<>(form));
-            return name.equals("setting") ? "{\"ok\":true,\"note\":\"done\"}" : null;
+            return name.equals("setting") || name.equals("bots") ? "{\"ok\":true,\"note\":\"done\"}" : null;
         }
 
         @Override
@@ -88,6 +88,18 @@ class LocalPanelTest {
         String set = r.headers().firstValue("Set-Cookie").orElseThrow();
         assertTrue(set.contains("HttpOnly") && set.contains("SameSite=Strict"));
         return set.substring(0, set.indexOf(';'));
+    }
+
+    @Test void botDiscoveryAndQueuedCommandsRetainAuthenticationAndCsrf() throws Exception {
+        var recorder=new Recorder();try(var panel=open(recorder)){
+            assertEquals(401,get(panel,"/api/bots",null).statusCode());
+            assertEquals(401,post(panel,"/api/bots","action=send&review=test",null,true).statusCode());
+            assertTrue(recorder.calls.isEmpty());String cookie=signIn(panel);
+            assertEquals(200,get(panel,"/api/bots",cookie).statusCode());
+            assertEquals(403,post(panel,"/api/bots","action=send&review=test",cookie,false).statusCode());
+            assertEquals(200,post(panel,"/api/bots","action=send&review=test",cookie,true).statusCode());
+            assertEquals(1,recorder.calls.stream().filter(c->c.startsWith("change bots")).count());
+        }
     }
 
     @Test

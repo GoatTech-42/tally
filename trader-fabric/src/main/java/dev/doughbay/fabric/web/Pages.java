@@ -83,6 +83,12 @@ final class Pages {
             #evasion-shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
             #notice { min-height:22px; margin:8px 2px 2px; color:var(--secondary); overflow-wrap:anywhere; }
             .row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+            .bot-card { padding:12px; margin-top:12px; }
+            .bot-card h3 { margin:0 0 12px; }
+            .bot-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+            .bot-fields label { display:grid; gap:6px; }
+            .bot-roster { display:flex; flex-wrap:wrap; gap:8px; }
+            .bot-roster p { background:var(--inset); padding:7px 10px; border-radius:4px; }
             .row button { flex:1 1 auto; }
             .row select { flex:1 1 100%; max-width:100%; }
             form.out button { min-height:34px; padding:5px 12px; }
@@ -324,6 +330,56 @@ final class Pages {
               }
             }
             function failed() { own.replaceChildren(el('p', 'muted', SILENT)); }
+            async function openBots() {
+              try {
+                const initial=await api('bots');if(view!=='bots')return;
+                own.replaceChildren(el('h2','','Your bots and Hive'));
+                own.append(el('p','muted','Bots on this computer appear automatically after loading the current update. Detection does not link accounts or start trading. Swarm is separate.'));
+                const status=el('p'), roster=el('div','bot-roster');own.append(status,roster);
+                const joining=el('section','card bot-card');joining.append(el('h3','','Add a bot to a Hive'));
+                const botLabel=el('label','','New bot '), bot=el('select');bot.setAttribute('aria-label','Bot to add');botLabel.append(bot);
+                const hiveLabel=el('label','','Existing Hive '), hive=el('select');hive.setAttribute('aria-label','Existing Hive');hiveLabel.append(hive);
+                const joinFields=el('div','bot-fields');joinFields.append(botLabel,hiveLabel);
+                joining.append(joinFields,el('p','muted','Only a fresh bot without trading history can join. This leaves that new bot’s world safely and keeps its settings and Swarm link. Restart only the new instance after linking. Existing members keep running.'));
+                joining.append(button('go','Add selected bot to Hive',async()=>{
+                  if(!bot.value||!hive.value){toast('Choose the new bot and existing Hive',true);return;}
+                  await change('bots',{action:'join',bot:bot.value,hive:hive.value});await poll();
+                }));own.append(joining);
+                const commands=el('section','card bot-card');commands.append(el('h3','','Queue a command for one bot'));
+                const targetLabel=el('label','','Send as '),target=el('select');target.setAttribute('aria-label','Command target bot');targetLabel.append(target);
+                const input=el('input');input.type='text';input.maxLength=256;input.placeholder='/rtp or /pay player amount';input.setAttribute('aria-label','Manual command');
+                const review=el('div'), history=el('div');let reviewId='';
+                const clearReview=()=>{reviewId='';review.replaceChildren();};input.oninput=clearReview;target.onchange=clearReview;
+                commands.append(targetLabel,input,el('p','muted','Commands wait in the selected bot’s normal paced queue for a safe checkpoint. Payments never retry automatically. Sent means handed to the game connection, not confirmed paid or teleported. Queued work expires after two minutes and is not replayed after a client restart.'));
+                commands.append(button('','Review command',async()=>{
+                  clearReview();const r=await change('bots',{action:'review',bot:target.value,command:input.value});if(!r?.ok)return;
+                  reviewId=r.review;review.append(el('p','','Send as '+r.bot),el('pre','',r.command),button('go','Confirm and queue once',async()=>{
+                    const id=reviewId;if(!id)return;clearReview();await change('bots',{action:'send',review:id});await poll();
+                  }));
+                }),review,history);own.append(commands);
+                let shape='';
+                function update(d) {
+                  status.textContent=d.setup||'Select a bot below. No game window is required.';
+                  const rows=d.bots||[],newShape=JSON.stringify(rows.map(b=>[b.id,b.label,b.sameHive,b.self,b.hiveSize]));
+                  if(newShape!==shape){
+                    const refill=(select,list,preferred)=>{const chosen=select.value;select.replaceChildren();for(const b of list){const o=el('option','',b.label+(b.self?' (this panel)':''));o.value=b.id;select.append(o);}if(list.some(b=>b.id===chosen))select.value=chosen;else if(list.some(b=>b.id===preferred))select.value=preferred;};
+                    const self=rows.find(b=>b.self),shared=self&&(self.hiveSize>1||self.linked);
+                    const newBot=shared?rows.find(b=>!b.sameHive&&b.hiveSize===1):self;
+                    const existing=shared?self:rows.find(b=>!b.sameHive&&b.hiveSize>1)||rows.find(b=>!b.sameHive);
+                    const groups=new Map();for(const b of rows){const key=b.group||b.id;if(!groups.has(key)||b.self)groups.set(key,b);}
+                    refill(bot,rows,newBot?.id);refill(hive,[...groups.values()],existing?.id);refill(target,rows.filter(b=>b.sameHive),d.self);
+                    clearReview();shape=newShape;
+                  }
+                  roster.replaceChildren();for(const b of rows)roster.append(el('p','',b.label+' · '+(b.sameHive?'In this Hive':'Separate instance')+(b.setup?' · '+b.setup:'')));
+                  history.replaceChildren();for(const b of rows.filter(b=>b.sameHive))for(const j of b.commands||[]){
+                    const row=el('p','',b.label+' · '+j.command+' · '+j.status+' · '+j.note);
+                    if(j.status==='QUEUED'||j.status==='WAITING')row.append(button('','Cancel before sending',async()=>{await change('bots',{action:'cancel',bot:b.id,id:j.id});await poll();}));history.append(row);
+                  }
+                }
+                async function poll(){if(view!=='bots'||!status.isConnected)return;try{const d=await api('bots',{bot:target.value});if(view==='bots')update(d);}catch(e){status.textContent='Could not refresh bot status; commands are not resubmitted.';}}
+                update(initial);const again=()=>{if(view!=='bots'||!status.isConnected)return;poll().finally(()=>setTimeout(again,2000));};setTimeout(again,2000);
+              }catch(e){failed();}
+            }
             async function act(id, value, text) {
               const body = new URLSearchParams();
               body.set('id', id);
@@ -369,6 +425,7 @@ final class Pages {
               auction: { label: 'Auction settings', open: async()=>{S.section='AUCTION';await openSettings();} },
               orders: { label: 'Order settings', open: async()=>{S.section='ORDERS';await openSettings();} },
               dashboard: { label: 'Dashboard', open: openDashboard },
+              bots: { label: 'Hive & commands', open: openBots },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
               items: { label: 'Items', open: openItems },
@@ -408,7 +465,7 @@ final class Pages {
                 pages.appendChild(b);
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name));
-              mine('reports'); mine('proxies');
+              mine('bots'); mine('reports'); mine('proxies');
               if (hostedPanel) {
                 const back = el('a', '', 'Dashboard');
                 back.href = 'https://gonuts.at/dashboard/';

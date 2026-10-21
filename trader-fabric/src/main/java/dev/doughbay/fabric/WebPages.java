@@ -55,6 +55,7 @@ public final class WebPages {
         return switch (name == null ? "" : name) {
             case "settings" -> settings();
             case "dashboard" -> dashboard();
+            case "bots" -> PanelBots.data(query==null?Map.of():query);
             case "savedpresets" -> savedPresetsData();
             case "analyzer" -> analyzerData();
             case "evasion" -> evasion();
@@ -73,6 +74,7 @@ public final class WebPages {
 
     /** A change one of the pages asks for, or null when there is no such change. The answer says what was done. */
     public static String change(String name, Map<String, String> form) {
+        if ("bots".equals(name)) return onClientPanel(() -> PanelBots.change(form)); // Never log manual commands or reviews.
         if ("proxies".equals(name)) return dev.doughbay.fabric.proxy.ProxyAccess.settings().change(form);
         if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
@@ -964,6 +966,19 @@ public final class WebPages {
 
     private static String onClient(Supplier<String> work) {
         return onClient(work, answer(false, "The game did not answer in time. Try again.").toString());
+    }
+
+    private static String onClientPanel(Supplier<String> work) {
+        var mc=net.minecraft.client.Minecraft.getInstance();
+        if(mc==null||mc.isSameThread())return work.get();
+        return boundedPanelAction(mc::execute,work,answer(false,"Submission was not confirmed. Check the selected bot's queue before sending again.").toString(),4000);
+    }
+    /** A timed-out local HTTP request cannot leave an unclaimed payment callback behind. */
+    static <T> T boundedPanelAction(java.util.concurrent.Executor executor,Supplier<T> work,T otherwise,long millis) {
+        var claimed=new java.util.concurrent.atomic.AtomicBoolean();var done=new CompletableFuture<T>();
+        executor.execute(()->{if(!claimed.compareAndSet(false,true))return;try{done.complete(work.get());}catch(Throwable e){done.completeExceptionally(e);}});
+        try{return done.get(millis,TimeUnit.MILLISECONDS);}
+        catch(Exception e){claimed.compareAndSet(false,true);if(e instanceof InterruptedException)Thread.currentThread().interrupt();return otherwise;}
     }
 
     /**

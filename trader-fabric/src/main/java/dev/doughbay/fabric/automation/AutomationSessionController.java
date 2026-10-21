@@ -360,6 +360,19 @@ public final class AutomationSessionController {
         return persistence.status().durable(persistence.status().lastAcceptedGeneration());
     }
 
+    /** Manual commands wait for native ownership, persistence and connection gates. */
+    public synchronized String panelCommandBlocker(Minecraft client) {
+        if(client==null||client.player==null||client.getConnection()==null||client.hasSingleplayerServer())return "Waiting for a multiplayer connection";
+        var server=client.getCurrentServer();
+        if(server==null||!dev.doughbay.fabric.staffwatch.DonutServer.matches(server.ip))return "Waiting for DonutSMP";
+        if(staffTransferHold||dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()
+                ||dev.doughbay.fabric.staffwatch.StaffWatchClient.controlsConnection())return "Waiting for connection recovery or protective escape";
+        if(uncertainExposure.active()||snapshot().unresolvedExposure())return "Waiting for native recovery; commands do not bypass holds";
+        if(!safeToLeave()||!nothingInFlight()||!externalSafe(client)||driver.commandPending())return "Waiting for the current action and durable checkpoint";
+        if(!client.player.containerMenu.getCarried().isEmpty())return "Waiting for the cursor to be empty";
+        return null;
+    }
+
     private boolean staffTransferHold;
 
     /** A connection escape owns this hold, independently of the player's pause choice. */

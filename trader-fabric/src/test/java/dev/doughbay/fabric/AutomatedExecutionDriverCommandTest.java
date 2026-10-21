@@ -13,6 +13,23 @@ class AutomatedExecutionDriverCommandTest {
     private final AutomatedExecutionDriver driver = new AutomatedExecutionDriver();
     private final FakeTransport transport = new FakeTransport();
 
+    @Test void panelPaymentUsesNativePacingGatesAndSendsAtMostOnce() throws Exception {
+        Object connection=new Object();transport.connection=connection;transport.panelAllowed=false;
+        driver.queuePanelCommand("request-one","pay ExamplePlayer 123",200_000,connection);
+        driver.queuePanelCommand("request-one","pay ExamplePlayer 123",200_000,connection);
+        driver.drainExternalCommands(transport,100_000);assertTrue(transport.sent.isEmpty());
+        transport.panelAllowed=true;transport.holdUntil=110_000;driver.drainExternalCommands(transport,109_999);assertTrue(transport.sent.isEmpty());
+        driver.setExternalAllowed(false);driver.drainExternalCommands(transport,110_000);assertTrue(transport.sent.isEmpty());
+        driver.setExternalAllowed(true);driver.drainExternalCommands(transport,110_001);driver.drainExternalCommands(transport,120_000);
+        assertEquals(List.of("pay ExamplePlayer 123"),transport.sent);assertEquals("SENT",driver.panelCommandStatus("request-one"));
+    }
+    @Test void paymentCannotBeSentOnAReplacementConnectionOrCancelledAsPayroll() {
+        Object connection=new Object();transport.connection=new Object();transport.panelAllowed=true;
+        driver.queuePanelCommand("request-two","pay ExamplePlayer 123",200_000,connection);
+        assertFalse(driver.withdrawExternal("pay ExamplePlayer 123"));
+        driver.drainExternalCommands(transport,100_000);assertTrue(transport.sent.isEmpty());assertEquals("CANCELLED",driver.panelCommandStatus("request-two"));
+    }
+
     @Test
     void genericQueueReproducesUnsentEscapeBehindIdleOrders() {
         transport.menu = true;
@@ -346,6 +363,9 @@ class AutomatedExecutionDriverCommandTest {
     }
 
     private static final class FakeTransport implements AutomatedExecutionDriver.CommandTransport {
+        Object connection;boolean panelAllowed;
+        public Object connection(){return connection;}
+        public boolean panelCommandAllowed(){return panelAllowed;}
         boolean menu;
         boolean stickyMenu;
         boolean escapeClose;

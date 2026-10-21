@@ -87,6 +87,15 @@ class DashboardPanelTest {
         var text=frame("text","act");text.putObject("act").put("id","tune:set").put("text","45");
         reply=request(text);game.removeFirst().run();assertEquals(204,reply.get().path("status").asInt());assertEquals(2,presses.get());
     }
+    @Test void hostedBotCommandsUseGameQueueAndDuplicateSuppression()throws Exception{
+        var command=frame("manual","change").put("name","bots");command.putObject("form").put("action","send").put("review","one-use");
+        var reply=request(command);assertEquals(0,presses.get());game.removeFirst().run();
+        assertEquals(200,reply.get(2,TimeUnit.SECONDS).path("status").asInt());
+        assertEquals(200,request(command).get(2,TimeUnit.SECONDS).path("status").asInt());assertEquals(1,presses.get());
+        var expired=frame("manualexpired","change").put("name","bots").put("expiresAt",System.currentTimeMillis()+100);
+        expired.putObject("form").put("action","send").put("review","expired");
+        var late=request(expired);assertEquals(504,late.get(2,TimeUnit.SECONDS).path("status").asInt());game.removeFirst().run();assertEquals(1,presses.get());
+    }
     @Test void timedOutGameQueueDoesNotApplyLateMutation()throws Exception{
         var action=frame("timeout","act").put("expiresAt",System.currentTimeMillis()+100);action.putObject("act").put("id","ctl:start");
         var reply=request(action);assertEquals(504,reply.get(2,TimeUnit.SECONDS).path("status").asInt());game.removeFirst().run();assertEquals(0,presses.get());
