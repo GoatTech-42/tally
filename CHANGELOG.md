@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 05:28 UTC
+
+- Release PR #204: Made read savings a master Hive total in the in-game Swarm tab and both panels. The combined total is shown first, with per-account details collapsed below it. Each fresh account is counted once; stale, offline and older clients are explicitly unmeasured. Local totals sum current reporting sessions and are labelled bot-time, not elapsed wall-clock. No per-account speed ratios are summed or averaged.
+- Added the confirmed schema 1 read-savings capability and bounded per-client cumulative snapshots over the existing authenticated dashboard connection. The server must explicitly advertise support; sharing and ownership gates remain in place. Repeated timestamps do not increase the existing telemetry cadence. The separately deployed dashboard (commit 0da06dd, 70 passing tests) persists/de-duplicates session snapshots and shows owner-only Hive and anonymous Whole Swarm master groups in the existing Swarm stats card, including measured skips/wait, estimated net bot-time, calibration, coverage and window start. Older clients are unmeasured; estimates are not proof of trading speed or profit.
+- Client artifact published October 20 at 22:28:52 Los Angeles time (October 21 05:28:52 UTC). Build 1792560364228; SHA256: `8dec5e5d68473b7f301c5ce3eb3ce12bf1cdf7430da8d9555a153236528a5c07`. Full build: 1,437 tests, zero failures/errors, one skipped. Existing VPS owner independently compiled the actual client wire classes and verified their output against the deployed server parser/ledger offline. Authenticated live website master cells verified; real measuring-client ingestion remains the post-installation check. Public JAR, source and checksum manifest independently downloaded and matched. Production entrypoint retained with no smoke classes.
+
 ## 2026-10-21 04:58 UTC
 
 - Release PR #202: Added passive Swarm read-savings measurements in the in-game Swarm tab and a new Swarm savings page in both local and hosted panels. Select each Hive account to see actual broad discovery scans skipped, shared lookups, fallbacks and measured lookup wait for its current session. Existing bounded local session history retains the measurements; no extra collector, experiment or scan is started.
