@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-21 23:51 UTC
+
+- **Release PR #224:** Added **Reserve Stock** under Settings → Orders, off by default. Automatic stack markets can keep one batch selling and one buy order filling or waiting uncollected. A completed reserve is collected only after owned stock of that item is gone from listings, queued purchases and repricing. Existing smaller orders and histories are retained.
+- **Reserve batch stacks** defaults to 12, bounded by **Stacks per bid**. Full batches must fit the existing per-purchase/session caps, order capacity and market-depth limits; the mode waits rather than silently reducing a reserve batch. Two batches maximum per item, including held and ordered goods. Delivered but uncollected goods remain counted at purchase cost against the spending cap.
+- The mode uses whole-stack order-house buying for automatic markets and leaves manual Flips rules intact. It does not outbid its own reserve order, rereads native orders between placements, ignores old completed/collected rows when selecting collection, and rechecks stock before dispatching queued work. Stop, winding-down cleanup, recovery, ownership and persistence gates remain authoritative. Switching the feature off deletes no orders.
+
+- Production clean/build: **1,471 tests, zero failures/errors, one skipped**. Regressions cover batch coverage, the last unsold stack, restart reconstruction, identical completed rows, budgets/depth, delivered reserve cost, the actual controller's recovered/repricing stock, legacy retail intent and native duplicate-order confirmation.
+- **Publication:** PR224 merge `5b21377b32e3900d6c84e4c36d8b626ba6af3724`; build `1792626499322`; public JAR upload completed **2026-10-21 23:51:08 UTC** (Oct 21, 16:51:08 America/Los_Angeles). JAR SHA-256 `a5aff3115d6fbfa605e736afc92f1f70dbdcf6d5693a96f4fadaa6d45392c498`; source ZIP SHA-256 `deeb8bfbe249aaf2a82b76f0bcc144b35e1c819ec3f1b4e58efba6d165e9fcf6`. Public client/source/checksums independently downloaded and matched. Separate client publication after PR219; PR221 was tutorial media only. This following publication record is documentation only.
+
 ## 2026-10-21 16:52 UTC
 
 - **Release PR #219:** Added a gold **START HERE** button at the beginning of navigation on every in-game tab. New installs open a beginner landing page; existing installations keep their normal entry, with help always available. The main path is **B → START HERE → Set up trading → choose limits → Review & Start**. Existing trading, pause and recovery controls remain on Trade.
