@@ -137,3 +137,27 @@ sale-history imports are useful but are not assigned invented time savings.
 estimates. The existing bounded per-installation `performance.json` session
 history records them once a minute and retains up to seven days/168 sessions.
 No telemetry contract or server deployment is needed for the client-served panels.
+
+
+## Master totals (follow-up to PR202)
+
+The primary in-game readout and the default panel view are now the Hive total;
+per-account detail is secondary. A Hive total sums valid, fresh IPC snapshots once
+per stable account ID and recomputes net estimates from their components. Offline,
+stale and older clients are unmeasured, never assumed zero. The current local
+view explicitly sums the reporting clients' current sessions; it is not an
+all-time counter and its window differs when clients restart. Per-account speed
+ratios are never summed or averaged. Summed duration is bot-time, not elapsed
+wall-clock time.
+
+The separately owned website/backend work will maintain authenticated,
+de-duplicated master counters in the existing whole-Swarm stats area, including
+coverage and a stated window/start date. It requires server support; client
+publication alone cannot populate whole-Swarm totals. A proposed optional
+`welcome.readSavingsSchema=1` negotiates bounded per-client cumulative
+`telemetry.readSavings` snapshots on the existing authenticated relay, only while
+linked contribution/guidance is enabled. Old servers get no new field. The
+proposal includes schema, random process-session UUID, start/observation times,
+actual skips/lookups/fallbacks, lookup waiting, calibration counts and explicitly
+estimated avoided/net duration. It excludes names, paths, price data, credentials
+and per-account ratios. Server contract/deployment verification remains required.

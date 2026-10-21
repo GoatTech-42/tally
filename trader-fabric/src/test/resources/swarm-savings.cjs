@@ -8,12 +8,15 @@ function el(tag,cls,text=''){
 }
 let rows=[{id:'a',label:'A',available:true,community:{readSavings:{attempts:4,actualSkippedReads:2,fallbackReads:2,lookupWaitMs:3000,estimateAvailable:true,estimateComplete:true,estimatedNetSavedMs:-1000,calibratedSkippedReads:2,estimatedMatchedReadSpeedRatio:.5}}},
  {id:'b',label:'B',available:true,community:{readSavings:{attempts:1,actualSkippedReads:1}}}];
-const c=vm.createContext({el,own:el('main'),view:'savings',document:{getElementById:id=>nodes.find(n=>n.id===id)},api:async()=>({accounts:rows}),failed:()=>{throw Error('Panel failed');}});
+const hive={reportingAccounts:2,knownAccounts:3,hasMeasurements:true,actualSkippedReads:3,attempts:5,fallbackReads:2,lookupWaitMs:5000,estimatedNetSavedMs:-2000,estimateAvailable:true,estimateComplete:false,calibratedSkippedReads:2,uncalibratedSkippedReads:1};
+const c=vm.createContext({el,own:el('main'),view:'savings',document:{getElementById:id=>nodes.find(n=>n.id===id)},api:async()=>({accounts:rows,hiveReadSavings:hive}),failed:()=>{throw Error('Panel failed');}});
 vm.runInContext(source,c);
 (async()=>{
  assert.match(c.readSavingsLines({}).join(' '),/unavailable/);
  assert.match(c.readSavingsLines({attempts:1}).join(' '),/not calibrated/);
  await c.openSwarmSavings();const result=nodes.find(n=>n.id==='savings-result');
+ const master=nodes.find(n=>n.id==='savings-hive-total');assert.match(master.children.map(n=>n.textContent).join(' '),/2 \/ 3 accounts reporting.*Scans skipped: 3.*-2.0s/);
+ assert(nodes.some(n=>n.tag==='details'&&n.children.some(c=>c.tag==='summary'&&c.textContent==='Per-account details')));
  assert.match(result.children.map(n=>n.textContent).join(' '),/-1.0s.*0.50x/);
  const select=nodes.find(n=>n.id==='savings-account');select.value='b';await select.onchange();
  assert.match(result.children.map(n=>n.textContent).join(' '),/not calibrated/);

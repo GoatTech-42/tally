@@ -124,6 +124,7 @@ public final class WebPages {
             if(state!=null){row.setAll(state);row.remove("run");row.remove("at");}
             else row.put("status","Unavailable: offline or this client needs the dashboard test build");
         }
+        root.set("hiveReadSavings",dev.doughbay.fabric.hosted.SwarmSavingsTotals.hive(rows));
         return root.toString();
     }
     private static String changeDashboard(Map<String,String> form) {
