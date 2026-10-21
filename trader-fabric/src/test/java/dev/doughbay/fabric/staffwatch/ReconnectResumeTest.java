@@ -6,6 +6,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReconnectResumeTest {
+    @Test void retryWithoutRecentUnexpectedRunningDepartureCannotAuthorizeTrading() {
+        var recovery=new ReconnectResume();
+        recovery.automaticRetryScheduled(1000);
+        assertFalse(recovery.pending(), "A failed manual connection creates no trading intent");
+        recovery.noteUnexpectedDisconnect(false,1000);
+        recovery.automaticRetryScheduled(1001);
+        assertFalse(recovery.pending(), "A stopped account remains stopped");
+        recovery.noteUnexpectedDisconnect(true,2000);
+        recovery.cancel();
+        recovery.automaticRetryScheduled(2001);
+        assertFalse(recovery.pending(), "Cancellation discards the captured departure");
+        recovery.noteUnexpectedDisconnect(true,3000);
+        recovery.automaticRetryScheduled(33001);
+        assertFalse(recovery.pending(), "Stale departure evidence cannot authorize a later retry");
+    }
+    @Test void stopAfterNetworkRetryCancelsButAlreadyRunningInReadyWorldNeedsNoResume() {
+        var recovery=new ReconnectResume();
+        recovery.arm(true,1000);
+        assertNull(recovery.tick(1001,false,false,true,()->fail("Wait for controller pause")));
+        assertTrue(recovery.pending());
+        assertNull(recovery.tick(1002,false,false,false,()->fail("Operator Stop")));
+        assertFalse(recovery.pending());
+        recovery.arm(true,2000);
+        assertNull(recovery.tick(3000,true,false,true,()->fail("Already trading normally")));
+        assertFalse(recovery.pending());
+    }
     @Test void noRunningSessionMeansNothingIsAutomaticallyResumed() {
         var recovery = new ReconnectResume();
         recovery.arm(false, 1000);

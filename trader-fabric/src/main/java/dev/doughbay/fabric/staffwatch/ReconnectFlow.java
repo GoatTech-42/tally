@@ -5,6 +5,7 @@ public final class ReconnectFlow {
   boolean multiplayer(); boolean connected(); boolean connecting();
   boolean disconnectedScreen(); boolean countdownScreen(); String currentAddress();
   void disconnect(String watcher); void showCountdown(); void connect(String address);
+  default void automaticRetryScheduled() { }
  }
  public enum Phase { IDLE, DISCONNECTING, WAITING, ATTEMPTING }
  private final Client client;
@@ -49,6 +50,7 @@ public final class ReconnectFlow {
   String address=destination(configured,sessionAddress);
   if (address==null || address.isBlank()) { cancel(); return; }
   sessionAddress=address;
+  client.automaticRetryScheduled();
   schedule.beginRetry(address);
   phase=Phase.WAITING;
   client.showCountdown();

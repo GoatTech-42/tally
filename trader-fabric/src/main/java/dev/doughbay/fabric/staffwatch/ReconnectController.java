@@ -23,6 +23,9 @@ public final class ReconnectController {
   public boolean disconnectedScreen(){return mc().gui.screen() instanceof DisconnectedScreen;}
   public boolean countdownScreen(){return mc().gui.screen() instanceof ReconnectScreen;}
   public String currentAddress(){var server=mc().getCurrentServer();return server==null?null:server.ip;}
+  public void automaticRetryScheduled(){
+   tradingResume.automaticRetryScheduled(System.currentTimeMillis());
+  }
   public void disconnect(String watcher){mc().getConnection().getConnection().disconnect(Component.literal("Staff Watch: "+watcher+" triggered a watcher alert. Reconnecting in 5-10 minutes."));}
   public void showCountdown(){mc().gui.setScreen(new ReconnectScreen());}
   public void connect(String address){var server=target;if(server==null||!address.equals(server.ip))server=new ServerData("Staff Watch",address,ServerData.Type.OTHER);automaticAttempt=true;try{ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()),mc(),ServerAddress.parseString(address),server,false,null);}finally{automaticAttempt=false;}}
@@ -30,6 +33,12 @@ public final class ReconnectController {
  private final StaffRegionEscapeController regionEscape = new StaffRegionEscapeController(this::disconnectNow);
  public String evasionRtpCommand(){return regionEscape.evasionRtpCommand();}
  private ReconnectController(){}
+ public void unexpectedConnectionLost(){
+  var config=WatchConfig.get();
+  if(!config.enabled||!config.autoDisconnect||cancelledByUser)return;
+  var session=dev.doughbay.fabric.DoughBayClient.automationSessionController();
+  tradingResume.noteUnexpectedDisconnect(session.snapshot().active()||session.restartRecoveryMayResume(),System.currentTimeMillis());
+ }
  public void alert(String watcher){
   var config=WatchConfig.get();
   if(schedule.active()||flow.phase()==ReconnectFlow.Phase.DISCONNECTING||flow.phase()==ReconnectFlow.Phase.WAITING)return;
@@ -88,7 +97,7 @@ public final class ReconnectController {
      &&!dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()
      &&!session.serverRestarting()
      &&dev.doughbay.fabric.SidebarBalance.freshSince(tradingResume.startedAt());
-   var result=tradingResume.tick(System.currentTimeMillis(),ready,session.restartRecoveryMayResume(),session::resumeAfterRestart);
+   var result=tradingResume.tick(System.currentTimeMillis(),ready,session.restartRecoveryMayResume(),session.snapshot().active(),session::resumeAfterRestart);
    if(result!=null&&result.ok()){
     dev.doughbay.fabric.DoughBayClient.LOGGER.info("Staff Watch reconnect: session resumed with retained caps");
     lastResumeBlocker="";
