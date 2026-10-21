@@ -112,14 +112,15 @@ public final class PositionRepository {
                     sale_price=excluded.sale_price,
                     realized_profit=excluded.realized_profit,
                     status=excluded.status,
-                    client=excluded.client,
+                    client=positions.client,
                     loan_id=CASE WHEN excluded.loan_id > 0 THEN excluded.loan_id ELSE positions.loan_id END
                 WHERE positions.mode=excluded.mode
                   AND positions.item_key=excluded.item_key
                   AND positions.stack_bucket=excluded.stack_bucket
                   AND positions.quantity=excluded.quantity
                   AND positions.purchase_price=excluded.purchase_price
-                  AND positions.purchased_at=excluded.purchased_at""";
+                  AND positions.purchased_at=excluded.purchased_at
+                  AND (positions.client=excluded.client OR positions.client='')""";
         try (PreparedStatement ps = db.connection().prepareStatement(sql)) {
             ps.setLong(1, p.positionId());
             bind(ps, p, 2);
