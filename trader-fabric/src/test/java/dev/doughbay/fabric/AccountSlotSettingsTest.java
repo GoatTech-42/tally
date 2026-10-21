@@ -36,6 +36,21 @@ class AccountSlotSettingsTest {
         config.fields().forEachRemaining(e->{try{values().put(e.getKey(),e.getValue().asDouble());}catch(Exception ex){throw new RuntimeException(ex);}});
         Tuning.loadLocalFrom(local);
     }
+    @Test void beginnerDisplayHelpOnlyChangesThisAccountsTwoDisplayPreferences() throws Exception {
+        Path shared=shared(),one=root.resolve("one.json"),two=root.resolve("two.json");
+        activate(shared,one);
+        Tuning.setLocalBatch(Map.of("quiet.hide_containers",1.0,"quiet.hide_hotbar",1.0,
+                "privacy.hide_name",1.0,"slots.max",18.0,"session.auto_resume",0.0));
+        byte[] common=Files.readAllBytes(shared.resolve("tuning.json"));
+        BeginnerHelp.showGameUi();
+        assertEquals(0,Tuning.get("quiet.hide_containers"));assertEquals(0,Tuning.get("quiet.hide_hotbar"));
+        assertEquals(1,Tuning.get("privacy.hide_name"));assertEquals(18,Tuning.get("slots.max"));
+        assertEquals(0,Tuning.get("session.auto_resume"));
+        assertArrayEquals(common,Files.readAllBytes(shared.resolve("tuning.json")));
+        activate(shared,two);Tuning.setLocalBatch(Map.of("quiet.hide_containers",1.0,"quiet.hide_hotbar",1.0));
+        activate(shared,one);assertEquals(0,Tuning.get("quiet.hide_containers"));
+        activate(shared,two);assertEquals(1,Tuning.get("quiet.hide_containers"));assertEquals(1,Tuning.get("quiet.hide_hotbar"));
+    }
     @Test void manuallyChosenCapacityCannotBeOverwrittenByMenuOrApiLearning() throws Exception {
         Path shared=shared(),local=root.resolve("own.json");activate(shared,local);
         Tuning.set("slots.max",18);Tuning.set("orders.bid_slots",18);

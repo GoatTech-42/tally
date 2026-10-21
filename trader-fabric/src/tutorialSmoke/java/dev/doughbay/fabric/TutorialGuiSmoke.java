@@ -8,12 +8,13 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 public final class TutorialGuiSmoke implements ClientModInitializer {
- private int ticks,phase;private DoughBayScreen main;private TutorialScreen guide;private QuickStartScreen setup;
+ private int ticks,phase;private DoughBayScreen main;private TutorialScreen guide;private QuickStartScreen setup;private StartHereScreen beginner;
  public void onInitializeClient(){Tuning.set("join.auto",0);Tuning.set("update.auto",0);Tuning.set("session.auto_resume",0);ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
  private void tick(Minecraft mc){try{
   if(mc.level!=null)throw new IllegalStateException("Tutorial preview must remain offline");
   if(mc.gui.overlay()!=null||++ticks<45)return;ticks=0;
   if("1".equals(System.getenv("GONUTS_RECOVERY_PREVIEW"))){recoveryPreview(mc);return;}
+  if("1".equals(System.getenv("GONUTS_BEGINNER_PREVIEW"))){beginnerPreview(mc);return;}
   switch(phase++){
    case 0->{mc.options.guiScale().set(3);mc.resizeGui();main=new DoughBayScreen(DoughBayClient.watcher());guide=new TutorialScreen(main,false);setup=new QuickStartScreen(main);mc.gui.setScreen(setup);}
    case 1->{capture(mc,"quick-start-limits.png");var field=QuickStartScreen.class.getDeclaredField("review");field.setAccessible(true);field.set(setup,true);mc.gui.setScreen(setup);}
@@ -31,6 +32,26 @@ public final class TutorialGuiSmoke implements ClientModInitializer {
     Files.writeString(Path.of("tutorial-preview-success.txt"),"Fresh offline capture: limits, review, tutorial library, Dashboard, Trade and Evasion; no server joined or Start pressed");mc.stop();}
   }
  }catch(Throwable e){try{Files.writeString(Path.of("tutorial-preview-error.txt"),e.toString());}catch(Exception ignored){}mc.stop();}}
+ private void press(net.minecraft.client.gui.screens.Screen screen,String label)throws Exception{
+  for(var child:screen.children())if(child instanceof net.minecraft.client.gui.components.Button b&&b.getMessage().getString().equals(label)){
+   for(var f:net.minecraft.client.gui.components.Button.class.getDeclaredFields())if(f.getType()==net.minecraft.client.gui.components.Button.OnPress.class){f.setAccessible(true);((net.minecraft.client.gui.components.Button.OnPress)f.get(b)).onPress(b);return;}
+  }
+  throw new IllegalStateException("Missing beginner action: "+label);
+ }
+ private void beginnerPreview(Minecraft mc)throws Exception{
+  switch(phase++){
+   case 0->{mc.options.guiScale().set(2);mc.resizeGui();main=new DoughBayScreen(DoughBayClient.watcher());beginner=new StartHereScreen(main);mc.gui.setScreen(beginner);}
+   case 1->{capture(mc,"beginner-start-here.png");press(beginner,"1  SET UP TRADING - START HERE");if(!(mc.gui.screen() instanceof QuickStartScreen))throw new IllegalStateException("Setup route failed");}
+   case 2->{capture(mc,"beginner-choose-limits.png");mc.gui.screen().onClose();if(mc.gui.screen()!=beginner)throw new IllegalStateException("Setup back route failed");press(beginner,"2  Open Trade - status, Start, Stop and recovery");}
+   case 3->{capture(mc,"beginner-trade-route.png");press(main,"START HERE");if(!(mc.gui.screen() instanceof StartHereScreen))throw new IllegalStateException("Persistent entry failed");mc.options.guiScale().set(4);mc.resizeGui();mc.gui.setScreen(beginner);}
+   case 4->{
+    for(var child:beginner.children())if(child instanceof net.minecraft.client.gui.components.Button b){if(b.getY()<0||b.getY()+b.getHeight()>beginner.height)throw new IllegalStateException("Beginner control clipped");}
+    capture(mc,"beginner-start-here-compact.png");
+    if(DoughBayClient.donutAutomationEnabled())throw new IllegalStateException("Help navigation enabled trading");
+    Files.writeString(Path.of("beginner-preview-success.txt"),"Offline real GUI: Start here desktop/compact, setup/back, Trade and persistent entry; no trading enabled or server joined.");mc.stop();
+   }
+  }
+ }
  private void set(Object target,String name,Object value)throws Exception{var f=target.getClass().getDeclaredField(name);f.setAccessible(true);f.set(target,value);}
  private void recoveryPreview(Minecraft mc)throws Exception{
   var c=DoughBayClient.automationSessionController();
