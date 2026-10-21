@@ -2,6 +2,20 @@ package dev.doughbay.fabric.hosted;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class CommunityPerformanceTest {
+    @Test void realReadTimingsCalibrateReuseButFailedAndChangedRegionReadsDoNot() {
+        var stats=new CommunityPerformance();stats.enable();
+        for(int i=0;i<3;i++)stats.end(stats.begin(false,0,"west-1",0),false,0,"west-1",200,100,10_000_000_000L);
+        stats.discoveryLookup(true,"west-1",200,500,System.currentTimeMillis());
+        assertFalse(stats.view().path("discoverySavings").path("estimateAvailable").asBoolean());
+        for(int i=0;i<3;i++)stats.end(stats.begin(false,0,"west-1",0),true,0,"east-1",200,100,10_000_000_000L);
+        stats.discoveryLookup(true,"west-1",200,500,System.currentTimeMillis());
+        assertFalse(stats.view().path("discoverySavings").path("estimateAvailable").asBoolean());
+        for(int i=0;i<3;i++)stats.end(stats.begin(false,0,"west-1",0),true,0,"west-1",200,100,10_000_000_000L);
+        stats.discoveryLookup(true,"west-1",200,500,System.currentTimeMillis());
+        var v=stats.view();assertEquals(3,v.path("actualSkippedReads").asLong());
+        assertEquals(8500,v.path("discoverySavings").path("estimatedNetSavedMs").asLong());
+        assertEquals(0,v.path("actualSavedMs").asLong());
+    }
     @Test void offlineAndFrozenIntervalsAreNotConnectedTime() {
         var stats = new CommunityPerformance(); stats.enable();
         stats.tick(true, 1_000_000_000L); stats.tick(true, 2_000_000_000L);

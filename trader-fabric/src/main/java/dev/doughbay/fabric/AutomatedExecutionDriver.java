@@ -2309,7 +2309,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         opportunity = null;
         operation = Operation.ORDERS;
-        communityReadTiming=dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.begin(false,0,"",System.nanoTime());
+        communityReadTiming=dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.begin(false,0,
+                dev.doughbay.fabric.hosted.CommunityRegion.current(),System.nanoTime());
         targetListingKey = "orders:scan";
         targetItemKey = "";
         targetItemId = "";
@@ -6595,7 +6596,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         var timing=communityReadTiming;communityReadTiming=null;if(timing==null)return;
         double price=operation==Operation.PROBE&&!lastProbeAsks.isEmpty()?lastProbeAsks.get(0)/(double)Math.max(1,targetCount):0;
         dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.end(timing,succeeded,price,
-                dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.marketScope(),operation==Operation.ORDERS?ordersPagesRead:0,
+                operation==Operation.ORDERS?dev.doughbay.fabric.hosted.CommunityRegion.current():dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.marketScope(),operation==Operation.ORDERS?ordersPagesRead:0,
                 operation==Operation.ORDERS?ordersRead.size():0,System.nanoTime());
     }
     private void publishTerminal(TerminalOutcome outcome, String detail) {

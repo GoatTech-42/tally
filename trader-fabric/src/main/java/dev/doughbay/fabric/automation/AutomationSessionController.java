@@ -8542,6 +8542,9 @@ public final class AutomationSessionController {
         });return live;
     }
     /** Returns true only while fetching or after an eligible broad discovery reuse. No historical prices enter the book. */
+    private long discoveryLookupNanos;
+    private String discoveryLookupRegion = "";
+    private int discoveryLookupPages;
     private boolean tryCommunityDiscovery(long now) {
         if(!communityGuidanceEnabled())return false;
         if(ownOrdersReadAt<=0||now-ownOrdersReadAt>60000) {
@@ -8553,12 +8556,19 @@ public final class AutomationSessionController {
             experimentLookupCycle=service.beginOrderShadow(required,true,ownOrders.size(),200,now);
             experimentLookupStarted=now;
             if(experimentLookupCycle==0)return false;
+            discoveryLookupNanos=System.nanoTime();
+            discoveryLookupRegion=dev.doughbay.fabric.hosted.CommunityRegion.current();
+            int configuredPages=(int)dev.doughbay.fabric.Tuning.get("orders.pages");
+            discoveryLookupPages=now>=nextFullSweepAt||configuredPages<=0?200:configuredPages;
             return true;
         }
         var snapshot=service.orderShadowSnapshot(experimentLookupCycle);
         if(snapshot==null&&now-experimentLookupStarted<10000)return true;
         var decision=dev.doughbay.fabric.hosted.CommunityDiscoveryGate.evaluate(snapshot,required,200,now,ownOrdersReadAt,
                 !capsFollowBank()||lastKnownBalance>0,isolatedGuardsClear()&&!uncertainExposure.active());
+        dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.discoveryLookup(decision.reusable(),
+                discoveryLookupRegion.equals(dev.doughbay.fabric.hosted.CommunityRegion.current())?discoveryLookupRegion:"",
+                discoveryLookupPages,Math.max(0,(System.nanoTime()-discoveryLookupNanos)/1_000_000),now);
         service.discardOrderShadow(experimentLookupCycle);experimentLookupCycle=0;
         var report=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode().put("evaluatedAt",now)
                 .put("phase","private_production_discovery").put("executionEnabled",true)
