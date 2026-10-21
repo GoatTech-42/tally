@@ -17,6 +17,37 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class AutomationSessionControllerPersistenceTest {
+    @Test void freshStoppedAccountNeedsNoInventedCheckpointToLeaveSafely() throws Exception {
+        var p=new FakePersistence();
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
+                AutomationSessionRecovery.empty(),0,0,"Empty recovery loaded");
+        var c=new AutomationSessionController(new AutomatedExecutionDriver());c.setPersistence(p);
+        assertFalse(c.safeToLeave(),"Loading/applying recovery must finish first");
+        c.tick(null,null);
+        assertTrue(c.safeToLeave(),"A never-started empty account has no write to acknowledge");
+        assertEquals(0,p.submissions.get(),"Do not fabricate a checkpoint or start trading");
+    }
+
+    @Test void zeroGenerationCannotHideAnOpenSessionOrRefusedWrite() throws Exception {
+        var p=new FakePersistence();
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
+                AutomationSessionRecovery.empty(),0,0,"Empty recovery loaded");
+        var c=new AutomationSessionController(new AutomatedExecutionDriver());c.setPersistence(p);c.tick(null,null);
+        setField(c,"sessionOpen",true);assertFalse(c.safeToLeave());
+        setField(c,"sessionOpen",false);
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
+                AutomationSessionRecovery.empty(),0,0,"Refused write",1);
+        assertFalse(c.safeToLeave());
+    }
+
+    @Test void acceptedCheckpointStillNeedsItsActualDurableAcknowledgement() throws Exception {
+        var p=new FakePersistence();
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
+                AutomationSessionRecovery.empty(),1,0,"Write pending");
+        var c=new AutomationSessionController(new AutomatedExecutionDriver());c.setPersistence(p);c.tick(null,null);
+        assertFalse(c.safeToLeave());p.acknowledgeAll();assertTrue(c.safeToLeave());
+    }
+
     @Test void flipsOnlyModeReleasesAnUndispatchedWatchThroughADurableCheckpoint() throws Exception {
         double previous = dev.doughbay.fabric.Tuning.get("prices.only");
         try {

@@ -357,7 +357,16 @@ public final class AutomationSessionController {
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return false;
         if (uncertainExposure.active()) return false;
         if (pendingOpportunity != null) return false;
-        return persistence.status().durable(persistence.status().lastAcceptedGeneration());
+        if (persistence == null || !recoveryApplied) return false;
+        var status = persistence.status();
+        if (!status.ready() || status.refusalOutstanding() || hasPendingControllerPersistence()) return false;
+        if (status.lastAcceptedGeneration() == 0) {
+            // A never-started account has no checkpoint to acknowledge. This is
+            // an empty, fully loaded STOPPED state, not a fabricated write ACK.
+            return status.lastDurableGeneration() == 0 && state == State.STOPPED
+                    && !sessionOpen && !armed && nothingInFlight() && !recoveredExposureRemains();
+        }
+        return status.durable(status.lastAcceptedGeneration());
     }
 
     /** Manual commands wait for native ownership, persistence and connection gates. */
