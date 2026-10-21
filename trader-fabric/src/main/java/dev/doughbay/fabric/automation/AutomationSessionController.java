@@ -6222,7 +6222,7 @@ public final class AutomationSessionController {
                     sharedDiscovery.get(m.itemKey()+"|"+m.bucket().exactCount()),"bid_plan");
             if(experimentDiscoveryItems.contains(m.itemKey()))dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hintsConsumed","ordersSnapshot",1);
             var reusedBook=dev.doughbay.fabric.DoughBayClient.orderBook();
-            if(reusedBook!=null&&reusedBook.loadedFromLocalStore())dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hintsConsumed","hiveLocal",1);
+            if(reusedBook!=null&&reusedBook.loadedFromLocalStore()&&topBid.containsKey(m.itemKey()))dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hintsConsumed","hiveLocal",1);
         }
         // Price checks on markets of the bot's own choosing are for the bot's own trading.
         int retailChecks = onlyOwn ? 0 : enqueueRetailQuotes(snapshot, now,sharedDiscovery);
