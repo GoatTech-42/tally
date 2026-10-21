@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-21 11:58 UTC
+
+- **Release PR #217:** Automatic account slot detection now reconciles the own-listings cells and navigation total before changing capacity. A locked second page alone cannot prove 45 slots: an 18-slot account can have the same page. A usable first page plus its locked second page can still establish 18/45 slots within the same scan; that evidence is discarded when the scan resets.
+- Conflicting totals, unloaded/unrecognized cells and pending page turns keep the current limit. Compatible 18/45/90 evidence remains supported, and PR215's per-account manual override remains in effect. No trade records, positions, orders, caps or live clients are reset or upgraded by this publication.
+- **Related to #211:** These inference paths were established in code and a locked-page regression fails against the prior implementation. The exact historical menu that produced the reported 90 is still unavailable; the report remains open and is not claimed fully resolved. Full build: 1,458 tests, zero failures/errors, one skipped.
+- **Publication:** PR217 merge `57d7000bf1d7cc9ca8ef94d687881fcb27835bab`; build `1792583756123`; public JAR upload completed **2026-10-21 11:58:39 UTC** (Oct 21, 04:58:39 America/Los_Angeles). JAR SHA-256 `66c39a30e92da38f9059ec1134acaf32e3078935b146609781cca124f7265389`. Public JAR, source archive and checksums independently downloaded and verified. This is a separate client binary after PR215; the following changelog commit is documentation only.
+
 ## 2026-10-21 10:15 UTC
 
 - Release PR #215: Fixed automatic capacity observations overwriting auction/order slot limits the player had just chosen manually. Editing either capacity now keeps both configured values under manual control for that account, including across reloads. Confirmed menu and API rank learning honor this choice; other Hive accounts keep their own detection mode. No positions, existing orders, limits or safety gates are reset.
