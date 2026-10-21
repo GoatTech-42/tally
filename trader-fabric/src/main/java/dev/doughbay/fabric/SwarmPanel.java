@@ -104,8 +104,8 @@ final class SwarmPanel {
         long uploaded=swarm.path("lastUpload").asLong();
         row=paragraph(g,font,uploaded<=0?"Waiting for the first accepted upload.":"Last accepted upload: "+Math.max(0,(now-uploaded)/1000)+" seconds ago",row,UiTheme.SECONDARY);
         row=paragraph(g,font,"Shared guidance: "+(!swarm.path("enabled").asBoolean()?"not connected":!swarm.path("guidanceEnabled").asBoolean()?"off — use Retry to join":swarm.path("eligible").asBoolean()?"active":"waiting for accepted contribution"),row,UiTheme.SECONDARY);
-        row=paragraph(g,font,"SWARM READ SAVINGS",row,UiTheme.GOLD);
-        for(String line:SwarmReadSavings.lines(swarm.path("performance").path("discoverySavings")))
+        row=paragraph(g,font,"YOUR HIVE - READ SAVINGS TOTAL",row,UiTheme.GOLD);
+        for(String line:SwarmSavingsTotals.lines(HostedDashboardClient.INSTANCE.hiveReadSavings()))
             row=paragraph(g,font,line,row,UiTheme.SECONDARY);
         row=paragraph(g,font,"WHY JOIN?",row,UiTheme.GOLD);
         row=paragraph(g,font,"Startup history: "+swarm.path("warmup").path("status").asText("Local collection"),row,UiTheme.SECONDARY);

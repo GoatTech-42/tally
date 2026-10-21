@@ -150,6 +150,7 @@ public final class CommunityClient {
     }
     public void dashboardUnlinked(){linkConsentApplied=false;disableSharing();}
     public boolean guidanceEnabled(){return guidanceEnabled(HostedDashboardClient.INSTANCE.view().linked());}
+    public boolean readSavingsSharing(){return started&&enabled&&eligible&&HostedDashboardClient.INSTANCE.view().linked();}
     boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
     public void enable(){enable(false);}
     private void enable(boolean freshPairing){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;generation.incrementAndGet();status="Connecting Swarm through your linked dashboard";worker.execute(()->{try{if(freshPairing){credentialRejected=true;linkConsentApplied=true;}renewRejectedCredential();enabled=true;guidanceConsent=true;save();nextCapabilities=nextUpload=nextStatus=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}

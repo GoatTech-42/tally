@@ -137,3 +137,27 @@ sale-history imports are useful but are not assigned invented time savings.
 estimates. The existing bounded per-installation `performance.json` session
 history records them once a minute and retains up to seven days/168 sessions.
 No telemetry contract or server deployment is needed for the client-served panels.
+
+
+## Master totals (follow-up to PR202)
+
+The primary in-game readout and the default panel view are now the Hive total;
+per-account detail is secondary. A Hive total sums valid, fresh IPC snapshots once
+per stable account ID and recomputes net estimates from their components. Offline,
+stale and older clients are unmeasured, never assumed zero. The current local
+view explicitly sums the reporting clients' current sessions; it is not an
+all-time counter and its window differs when clients restart. Per-account speed
+ratios are never summed or averaged. Summed duration is bot-time, not elapsed
+wall-clock time.
+
+The separately owned website/backend maintains authenticated,
+de-duplicated master counters in the existing whole-Swarm stats area, including
+coverage and a stated window/start date. It requires server support; client
+publication alone cannot populate whole-Swarm totals. The client hello advertises `read_savings`; only a supporting server replies with
+`welcome.readSavingsSchema=1`, negotiating bounded per-client cumulative
+`telemetry.readSavings` snapshots on the existing authenticated relay, only while
+linked contribution/guidance is enabled. Old servers get no new field. The
+proposal includes schema, random process-session UUID, start/observation times,
+actual skips/lookups/fallbacks, lookup waiting, calibration counts and explicitly
+estimated avoided/net duration. It excludes names, paths, price data, credentials
+and per-account ratios. The existing VPS owner confirmed schema1 and deployed dashboard commit0da06dd at2026-10-21T05:16:31Z (70 dashboard tests). It accepts exactly12 fields, counters up to1e9 and durations up to1e12ms, enforces monotonic session snapshots bound to the first authenticated installation, persists them on the existing service, and exposes anonymous Swarm/owner-only Hive totals in stats.readSavings. The latest snapshot per session is counted once; repeats, reconnects and server restarts do not add again. Server-linked active contribution gates remain required. Live measured-client negotiation and aggregate rendering still require verification after client publication.

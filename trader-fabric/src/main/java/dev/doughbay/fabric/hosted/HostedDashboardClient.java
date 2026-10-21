@@ -29,6 +29,13 @@ public final class HostedDashboardClient {
     private final DashboardPanel panel=new DashboardPanel(DoughBayClient::panelBackend,
             task->Minecraft.getInstance().execute(task),worker);
     private DashboardHive hivePanel;private volatile String panelAccount="";private long panelPublishedAt;
+    private record SavingsCapture(long at,ObjectNode value){}
+    private volatile SavingsCapture hiveSavings;
+    public ObjectNode hiveReadSavings(){
+        var capture=hiveSavings;long now=System.currentTimeMillis();
+        return capture!=null&&now>=capture.at()&&now-capture.at()<DashboardHive.FRESH_MS
+                ?capture.value().deepCopy():SwarmSavingsTotals.hive(DashboardProtocol.JSON.createArrayNode());
+    }
     private DashboardStore store;private DashboardStore.Link link;private Path database;private String hive="",build="";
     private WebSocket socket;private volatile boolean started;
     private record Capture(String account,ObjectNode telemetry){}
@@ -38,7 +45,7 @@ public final class HostedDashboardClient {
     private final AtomicBoolean staffQueued=new AtomicBoolean();
     private DashboardActivityCounters activity;private String activityAccount="";private long observedTerminal;
     private long capturedAt,nextConnect,connectedAt,lastPing,lastTelemetry,metricsAt;private volatile long epoch;private long lastReceived;
-    private int attempts;private boolean connecting,welcome;
+    private int attempts;private boolean connecting,welcome,readSavingsSupported;
     private ObjectNode metrics;private String lastShape="";
     private Path rankDirectory;private SwarmRankCoverage rankCoverage;private String rankAccount="",rankingSalt="",publishedAccountId="";
     private CompletableFuture<Void> writes=CompletableFuture.completedFuture(null);private int pendingWrites;private boolean forceTelemetry;
@@ -174,6 +181,15 @@ public final class HostedDashboardClient {
                     case "community_disable" -> CommunityClient.INSTANCE.disable();
                 }
                 hivePanel.publish(panelAccount,view,now);
+                var accounts=new java.util.TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+                accounts.addAll(DoughBayClient.hiveAccounts());accounts.add(panelAccount);
+                var rows=DashboardProtocol.JSON.createArrayNode();
+                for(String account:accounts){
+                    var status=hivePanel.status(account,now);var row=rows.addObject()
+                            .put("id",DashboardHive.id(account)).put("available",status!=null);
+                    if(status!=null)row.set("community",status.path("community"));
+                }
+                hiveSavings=new SavingsCapture(now,SwarmSavingsTotals.hive(rows));
             }catch(Exception ignored){/* IPC failure never stops trading or exposes pairing data. */}
         }
         if(link==null||view.busy())return;
@@ -185,7 +201,7 @@ public final class HostedDashboardClient {
         publish(false);
     }
     private void connect() {
-        if(link==null)return;connecting=true;welcome=false;epoch=epochs.incrementAndGet();long own=epoch;
+        if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;epoch=epochs.incrementAndGet();long own=epoch;
         view=new View(true,false,false,link.name,"Checking link",0);
         var request=HttpRequest.newBuilder(DashboardProtocol.CHECK).timeout(Duration.ofSeconds(10)).header("Authorization","Bearer "+link.credential)
             .header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build();
@@ -220,6 +236,7 @@ public final class HostedDashboardClient {
                 if(welcome||j.path("protocol").asInt()!=1||j.path("installationId").asLong()!=link.installationId||!j.path("commands").isArray())throw new IllegalArgumentException();
                 for(var action:j.path("commands"))if(!DashboardProtocol.CAPABILITIES.contains(action.asText()))throw new IllegalArgumentException();
                 rankingSalt=j.path("rankingSalt").asText("");SwarmRank.clear();publishedAccountId="";
+                readSavingsSupported=SwarmSavingsWire.negotiated(j);
                 welcome=true;commands.connected(own);view=new View(true,true,false,link.name,"Online",0);publish(true);return;
             }
             if(!welcome)throw new IllegalArgumentException();
@@ -292,8 +309,10 @@ public final class HostedDashboardClient {
         String identity=metrics==null?"":SwarmRank.accountId(rankingSalt,captured.account());
         if(!identity.equals(publishedAccountId)){SwarmRank.clear();publishedAccountId=identity;}
         if(metrics!=null&&!identity.isEmpty())j.put("accountId",identity);
+        SwarmSavingsWire.attach(j,CommunityPerformance.INSTANCE.view(),welcome&&readSavingsSupported&&metrics!=null&&!identity.isEmpty(),
+                CommunityClient.INSTANCE.readSavingsSharing(),now);
         j.set("staffSightings",SwarmStaffSightings.INSTANCE.snapshot(CommunityClient.INSTANCE.sharingStaffSightings(now),now));
-        var shape=j.deepCopy();shape.remove("at");String encoded=shape.toString();
+        var shape=SwarmSavingsWire.comparison(j);String encoded=shape.toString();
         if(!forceTelemetry&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
         send(j);lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
     }

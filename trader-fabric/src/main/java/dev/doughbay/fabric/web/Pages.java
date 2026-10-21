@@ -1297,15 +1297,30 @@ final class Pages {
                   select=el('select');select.id='savings-account';select.setAttribute('aria-label','Read savings account');
                   select.onchange=openSwarmSavings;
                   const result=el('div');result.id='savings-result';
-                  own.replaceChildren(el('h2','title','Swarm read savings'),el('label','','Account'),select,result);
+                  const master=el('div');master.id='savings-hive-total';
+                  const detail=el('details');detail.replaceChildren(el('summary','','Per-account details'),el('label','','Account'),select,result);
+                  own.replaceChildren(el('h2','title','Your Hive - master read savings'),master,detail,
+                    el('p','muted','Whole-Swarm counters are in the website dashboard’s Swarm stats section.'));
                 }
                 const rows=d.accounts||[],selected=select.value;
+                document.getElementById('savings-hive-total').replaceChildren(...hiveSavingsLines(d.hiveReadSavings).map(t=>el('p','desc',t)));
                 select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
                 if(rows.some(r=>r.id===selected))select.value=selected;
                 const current=rows.find(r=>r.id===select.value)||{};
                 const lines=!current.available?['Selected bot is offline or its status is stale; no current measurements.']:readSavingsLines(current.community?.readSavings);
                 document.getElementById('savings-result').replaceChildren(...lines.map(t=>el('p','muted',t)));
               }catch(e){failed();}
+            }
+            function hiveSavingsLines(total){
+              const s=total||{},seconds=n=>((n||0)/1000).toFixed(1)+'s';
+              const lines=['Your Hive: '+(s.reportingAccounts||0)+' / '+(s.knownAccounts||0)+' accounts reporting'];
+              if(!s.hasMeasurements){lines.push('Measurements unavailable; offline, stale and older clients are unmeasured, not zero.');return lines;}
+              lines.push('Scans skipped: '+s.actualSkippedReads+' | shared lookups: '+s.attempts+' | fallbacks: '+s.fallbackReads,
+                'Measured shared lookup wait: '+seconds(s.lookupWaitMs),
+                s.estimateAvailable?'Estimated net bot-time saved: '+seconds(s.estimatedNetSavedMs)+(s.estimateComplete?'':' (partial baseline)'):'Estimated time saved: not calibrated yet.',
+                'Calibrated skips: '+s.calibratedSkippedReads+' | without baseline: '+s.uncalibratedSkippedReads,
+                'Sum of fresh client sessions. Missing accounts are excluded. Bot-time is not elapsed wall-clock or a proven trading-speed/profit gain.');
+              return lines;
             }
             function readSavingsLines(s) {
               s=s||{};const seconds=n=>((n||0)/1000).toFixed(1)+'s';
