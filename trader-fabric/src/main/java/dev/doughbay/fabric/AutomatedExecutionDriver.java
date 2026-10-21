@@ -4202,6 +4202,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     // without opening Minecraft or sending commands to a server.
     interface CommandTransport {
         boolean menuOpen();
+        default Object connection(){return null;}
+        default boolean panelCommandAllowed(){return false;}
         void closeMenu();
         void send(String command);
         default long notBeforeMillis() { return 0; }
@@ -4212,6 +4214,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private CommandTransport commandTransport(Minecraft client) {
         return new CommandTransport() {
             public boolean menuOpen() { return AutomatedExecutionDriver.menuOpen(client); }
+            public Object connection(){return client==null?null:client.getConnection();}
+            public boolean panelCommandAllowed(){return DoughBayClient.automationSessionController().panelCommandBlocker(client)==null;}
             public void closeMenu() { closeAuctionScreen(client); }
             public long notBeforeMillis() { return ServerStrain.commandNotBeforeMillis(); }
             public String listingBlocker() { return listingCommandBlocker(client); }
@@ -4514,7 +4518,24 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     /** Commands from payroll and evasion, waiting for the gap after whatever went out last. */
-    private final java.util.ArrayDeque<String> externalCommands = new java.util.ArrayDeque<>();
+    private record ExternalCommand(String command,String request,long expires,Object connection) {}
+    private final java.util.ArrayDeque<ExternalCommand> externalCommands = new java.util.ArrayDeque<>();
+    private final java.util.LinkedHashMap<String,String> panelCommandOutcomes=new java.util.LinkedHashMap<>();
+    public synchronized void queuePanelCommand(Minecraft client,String id,String command,long expires) {
+        queuePanelCommand(id,command,expires,client==null?null:client.getConnection());
+    }
+    void queuePanelCommand(String id,String command,long expires,Object connection) {
+        if(panelCommandOutcomes.containsKey(id))return;
+        if(connection==null)throw new IllegalStateException("No game connection");
+        panelCommandOutcomes.put(id,"QUEUED");
+        externalCommands.addLast(new ExternalCommand(command,id,expires,connection));
+        while(panelCommandOutcomes.size()>64){String remove=panelCommandOutcomes.entrySet().stream().filter(e->!e.getValue().equals("QUEUED")).map(java.util.Map.Entry::getKey).findFirst().orElse(null);if(remove==null)break;panelCommandOutcomes.remove(remove);}
+    }
+    public synchronized String panelCommandStatus(String id){return panelCommandOutcomes.getOrDefault(id,"UNKNOWN");}
+    public synchronized boolean cancelPanelCommand(String id){
+        boolean removed=externalCommands.removeIf(e->e.request().equals(id));
+        if(removed)panelCommandOutcomes.put(id,"CANCELLED");return removed;
+    }
     private final java.util.Set<String> escapeCommands = new java.util.HashSet<>();
 
     /** An idle trading page may be dismissed for an escape, never an unknown container or confirmation. */
@@ -4534,7 +4555,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (!connected || isTeleport(command)) return;
         // Escape ownership is explicit: payroll must never gain permission to close a menu.
         if (!(command.equals("rtp") || command.startsWith("rtp ") || command.startsWith("home "))) return;
-        if (escapeCommands.add(command)) externalCommands.addFirst(command);
+        if (escapeCommands.add(command)) externalCommands.addFirst(new ExternalCommand(command,"",0,null));
         drainExternalCommands(transport, now);
     }
 
@@ -4584,7 +4605,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             noteEscapeSent(command, now);
             return;
         }
-        externalCommands.addLast(command);
+        externalCommands.addLast(new ExternalCommand(command,"",0,null));
     }
 
     /**
@@ -4612,12 +4633,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     /** Whether this exact command is still waiting in the queue, not yet sent. */
     public synchronized boolean externalQueued(String command) {
-        return externalCommands.contains(command);
+        return externalCommands.stream().anyMatch(e->e.request().isEmpty()&&e.command().equals(command));
     }
 
     public synchronized boolean withdrawExternal(String command) {
         escapeCommands.remove(command);
-        return externalCommands.remove(command);
+        var it=externalCommands.iterator();while(it.hasNext()){var e=it.next();if(e.request().isEmpty()&&e.command().equals(command)){it.remove();return true;}}return false;
     }
 
     private void drainExternalCommands(Minecraft client) {
@@ -4630,20 +4651,35 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (!externalAllowed) return;
         if (now < transport.notBeforeMillis()) return;
         if (now - lastCommandSentAt < commandGapMillis()) return;
+        var entry=externalCommands.peekFirst();
+        if(!entry.request().isEmpty()) {
+            if(now>=entry.expires()||entry.connection()!=transport.connection()) {
+                externalCommands.removeFirst();panelCommandOutcomes.put(entry.request(),"CANCELLED");return;
+            }
+            if(!transport.panelCommandAllowed())return;
+        }
         // Background work never owns a menu, including a late confirmation.
         if (transport.menuOpen()) {
-            if (escapeCommands.contains(externalCommands.peekFirst()) && transport.escapeMenuMayClose()) {
+            if ((escapeCommands.contains(externalCommands.peekFirst().command())||!entry.request().isEmpty()) && transport.escapeMenuMayClose()) {
                 transport.closeMenu();
                 // Wait for a later tick to observe the menu actually closed before sending.
             }
             return;
         }
-        String command = externalCommands.pollFirst();
+        String command=externalCommands.removeFirst().command();
         escapeCommands.remove(command);
         if (isTeleport(command)) {
+            if(!entry.request().isEmpty()){panelCommandOutcomes.put(entry.request(),"REFUSED");return;}
             DoughBayClient.LOGGER.warn(
                     "DoughBay dropped queued /{}: teleports leave this server's connection one-way", command);
             return;
+        }
+        if(!entry.request().isEmpty()) {
+            panelCommandOutcomes.put(entry.request(),"UNCERTAIN");
+            try{transport.send(command);panelCommandOutcomes.put(entry.request(),"SENT");}
+            catch(RuntimeException e){lastCommandSentAt=now;return;}
+            lastCommandSentAt=now;lastDispatchedCommand="";noteEscapeSent(command,now);
+            return; // Never log manual command text, recipients or amounts.
         }
         transport.send(command);
         lastCommandSentAt = now;

@@ -471,6 +471,8 @@ public class DoughBayClient implements ClientModInitializer {
         dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
         dev.doughbay.fabric.staffwatch.ManualRegionTransfer.init();
         ClientTickEvents.END_CLIENT_TICK.register(dev.doughbay.fabric.staffwatch.ManualRegionTransfer::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(PanelBots::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(PanelCommands::tick);
         UpdateCheck.start();
         ClientTickEvents.END_CLIENT_TICK.register(UpdateCheck::tick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> { if (WEB_PANEL != null) WEB_PANEL.tick(); });
@@ -619,7 +621,7 @@ public class DoughBayClient implements ClientModInitializer {
             boolean staffOwnsConnection = dev.doughbay.fabric.staffwatch.StaffWatchClient.controlsConnection();
             if (!staffOwnsConnection) RESTART.tick(client, AUTOMATION_SESSION);
             if (AUTO_JOIN == null) AUTO_JOIN = new AutoJoin(client);
-            if (!staffOwnsConnection && !RESTART.active()) AUTO_JOIN.tick();
+            if (!staffOwnsConnection && !RESTART.active() && !PanelBots.ownsConnection()) AUTO_JOIN.tick();
             autoRespawn(client);
             if (!staffOwnsConnection && EVASION != null && !RESTART.active()) EVASION.tick(client, AUTOMATION_SESSION);
             pollCommandInbox(client);
