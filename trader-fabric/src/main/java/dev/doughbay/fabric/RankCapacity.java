@@ -30,11 +30,37 @@ final class RankCapacity {
             if (cells.size() == 45 && AutomatedExecutionDriver.ownCells(cells) == 45)
                 return new PageCapacity(45, false); // First page alone cannot distinguish 45 from 90.
         } else if (pageIndex == 1) {
-            if (AutomatedExecutionDriver.lockedPage(cells)) return new PageCapacity(45, true);
+            // Both 18-slot and 45-slot accounts can have a locked second page.
+            // It proves the end of the book, not the account's exact capacity.
+            if (AutomatedExecutionDriver.lockedPage(cells)) return new PageCapacity(0, false);
             if (cells.size() == 45 && AutomatedExecutionDriver.ownCells(cells) == 45)
                 return new PageCapacity(90, true);
         }
         return new PageCapacity(0, false);
+    }
+
+    /** Reconcile one arrived own-listings page before allowing any setting write. */
+    static PageCapacity auctionEvidence(List<AutomatedExecutionDriver.OwnListingCell> cells,
+                                        int pageIndex, List<String> controls, boolean pageTurnPending) {
+        return auctionEvidence(cells, pageIndex, controls, pageTurnPending, new PageCapacity(0, false));
+    }
+
+    static PageCapacity auctionEvidence(List<AutomatedExecutionDriver.OwnListingCell> cells,
+                                        int pageIndex, List<String> controls, boolean pageTurnPending,
+                                        PageCapacity firstPage) {
+        var unknown = new PageCapacity(0, false);
+        if (pageTurnPending || cells.size() != 45) return unknown;
+        var physical = auctionPage(cells, pageIndex);
+        boolean locked = AutomatedExecutionDriver.lockedPage(cells);
+        if (locked && pageIndex == 1 && (firstPage.slots() == 18 || firstPage.slots() == 45))
+            physical = new PageCapacity(firstPage.slots(), true);
+        if (physical.slots() == 0 && !locked) return unknown; // Loading/unrecognized furniture.
+        int explicit = explicitTotal(controls);
+        if (explicit == 0) return physical;
+        if (locked && (pageIndex != 1 || explicit > 45)) return unknown;
+        if (physical.exact() && physical.slots() != explicit) return unknown;
+        if (!physical.exact() && physical.slots() > explicit) return unknown;
+        return new PageCapacity(explicit, true);
     }
 
     static boolean apply(PageCapacity evidence) {
