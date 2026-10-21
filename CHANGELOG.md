@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 03:13 UTC
+
+- Release PR #197: The Hive page remains visible even before a second account is recognized. Previously it disappeared when the panel saw fewer than two accounts, making incomplete setup look like missing Hive support. Both the local panel and hosted Open panel now explicitly distinguish bots sharing this panel's ledger, separate running instances, only one detected bot and discovery still waiting. Each roster identifies the hosting bot. Swarm linking alone does not combine local Hives.
+- Joining an already-shared Hive is disabled with a direct explanation that no linking or deletion is needed. Hive account totals say recorded accounts rather than claiming all are trading. Membership is reported from fresh same-computer discovery; no automatic linking, data deletion, history merge, guard bypass or live upgrade is performed. Existing trading histories still require the supported combination flow. These fix reproduced UI paths; the affected player's complete setup and earlier panel incident remain unconfirmed.
+- Client artifact published October 20 at 20:13:59 Los Angeles time (October 21 03:13:59 UTC). Build 1792552282918; SHA256: `ca7207f5804a6741297039262b8a5a69edec98e0fedd06b856b1bf477ffb56d7`. Full clean suite/build: 1,414 tests, zero failures/errors, one skip. Real panel-picker regression failed before the fix; shipped JavaScript covers five membership and command scenarios. Offline browser preview checked the membership explanation and disabled redundant join. Public JAR, source and checksum manifest independently downloaded and matched; CLI/server checksum filenames match their existing release assets. Healthy running bots were left on their installed builds.
+
 ## 2026-10-21 02:56 UTC
 
 - Release PR #195: Fixed the checkpoint save path assigning an old unowned trade to the account inspecting it. Existing position ownership now stays unchanged, and another named account cannot overwrite the position. Together with PR #193's account-scoped recovery, this prevents a fresh Hive member becoming stuck on another session's trade after closing an older client. Genuine recovery holds remain enforced.
