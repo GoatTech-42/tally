@@ -3631,6 +3631,10 @@ public final class AutomationSessionController {
                     continue;
                 }
                 Opportunity ok = one.opportunity().orElseThrow();
+                if (reserveMarket(ok.listing().itemId())) {
+                    lastGateDetail = "Reserve Stock: automatic stack purchases use the two order-house batches";
+                    continue;
+                }
                 if (listingReconciler.ownershipOf(ok.listing(), localUuid(client), localName(client))
                         == ActiveListingReconciler.Ownership.OWN) continue;
                 // Another client of the same hive listed it. Buying it would
@@ -4889,8 +4893,47 @@ public final class AutomationSessionController {
         return d.endsWith("y") && n.equals(d.substring(0, d.length() - 1) + "ies");
     }
 
+    private static boolean reserveEnabled() {
+        return dev.doughbay.fabric.Tuning.get("orders.reserve_stock") >= 0.5;
+    }
+
+    private boolean reserveMarket(String item) {
+        return item != null && !item.isBlank() && reserveEnabled() && !ownOnly() && ownPrice(item) == null && !ownSingles(item)
+                && !singlesListingEnabled() && fullStack(item) > 1;
+    }
+
+    private int reserveBatchUnits(String item) {
+        return Math.min((int)dev.doughbay.fabric.Tuning.get("orders.reserve_stacks"),
+                (int)dev.doughbay.fabric.Tuning.get("orders.bid_stacks")) * fullStack(item);
+    }
+
+    private long reserveHeldUnits(String item) {
+        java.util.Map<Long,Position> held = new java.util.HashMap<>();
+        for (Position p : openListings) held.put(p.positionId(),p);
+        for (Position p : stockInHand()) held.put(p.positionId(),p);
+        // Include all recovered purchases, not only the special singles/retail lots.
+        for (Position p : recoveredQueue) held.put(p.positionId(),p);
+        long units = 0;
+        for (Position p : held.values()) if (baseItemId(p.itemKey()).equals(baseItemId(item)))
+            units += Math.max(0,p.quantity());
+        return units;
+    }
+
+    private boolean reserveRoom(String item) {
+        var book = ReserveStock.book(item,ownOrders,collectedByKey);
+        if (book.units() == 0 && pendingFills.stream().anyMatch(f -> {
+            var bid = bidForFill(f); return bid != null && bid.itemId().equals(item);
+        })) return false; // A delivery absent from the native book still needs reconciliation.
+        return ReserveStock.mayPlace(book,reserveHeldUnits(item),reserveBatchUnits(item));
+    }
+
     /** Money sitting in the player's open bids: out of the bank, so counted against the cap like listings. */
     private long bidsOut() {
+        if (reserveEnabled()) {
+            var capital = dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt,ownOrders,collectedByKey);
+            if (capital.reserved() == null || capital.awaitingCollection() == null) return Long.MAX_VALUE / 4;
+            return capital.reserved() + capital.awaitingCollection();
+        }
         long out = 0;
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders)
             if (!r.alreadyCancelled()) out += r.unitPrice() * r.remaining();
@@ -5270,6 +5313,26 @@ public final class AutomationSessionController {
             detail = "Bid desk: dropped a bid outside the current market focus";
             return true;
         }
+        if (reserveMarket(step.itemId()) && (step.action() == DeskAction.PLACE || step.action() == DeskAction.COLLECT)) {
+            if (ownOrdersReadAt <= 0 || now-ownOrdersReadAt > 60_000) {
+                deskQueue.clear(); deskReadDue = true;
+                detail = "Reserve Stock waits for fresh Your Orders";
+                return true;
+            }
+            if (step.action() == DeskAction.PLACE && (!reserveRoom(step.itemId())
+                    || step.count() != reserveBatchUnits(step.itemId())
+                    || step.unitPrice() <= 0 || step.count() > effectivePurchaseCap()/step.unitPrice()
+                    || step.count() > (effectiveSpendCap()-committedSpend-bidsOut())/step.unitPrice())) {
+                deskReadDue = true;
+                detail = "Reserve Stock: selling batch and reserve are already covered";
+                return true;
+            }
+            if (step.action() == DeskAction.COLLECT && !windingDown()
+                    && !ReserveStock.mayCollect(reserveHeldUnits(step.itemId()),true)) {
+                detail = "Reserve Stock: leaving delivery uncollected until the selling batch is gone";
+                return true;
+            }
+        }
         if (step.action() == DeskAction.PLACE && step.retailTarget() > 0) {
             double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
             double minimumRoi = Math.max(Math.max(policy.minimumRoiPercent(), riskConfig.minimumRoiPercent()),
@@ -5301,7 +5364,7 @@ public final class AutomationSessionController {
             case READ -> driver.readOwnOrders();
             case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.count(), step.ordinal(),
                     dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why())
-                            && !ownSingles(step.itemId()));
+                            && !ownSingles(step.itemId()), reserveMarket(step.itemId()) && !takesAll(step.why()) && !windingDown());
             case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
             case PLACE -> driver.placeOrder(step.itemId(), step.count(), step.unitPrice());
             case SWEEP -> driver.probeCheapest(step.itemId(), step.count(), dev.doughbay.fabric.DoughBayClient.account());
@@ -5463,6 +5526,11 @@ public final class AutomationSessionController {
                 bidPlacedAt.put(new BidKey(step.itemId(), step.unitPrice()), now);
                 placedBids.put(step.itemId(), new PlacedBid(step.itemId(), step.unitPrice(), step.count(), now));
                 saveBidsAndFills();
+                if (reserveMarket(step.itemId())) {
+                    ownOrdersReadAt = 0;
+                    deskQueue.removeIf(q -> q.action() == DeskAction.PLACE);
+                    deskReadDue = true;
+                }
                 // The order house has taken the whole price of the order. The
                 // slot check has to know, or it reads the fall in the bank as
                 // sales that never happened.
@@ -5685,22 +5753,27 @@ public final class AutomationSessionController {
                     && now - partStackAt.getOrDefault(k, 0L) > PART_STACK_REST_MILLIS;
             // Sold one at a time, what has not been collected is better left in
             // the order, which keeps it for months, than carried in the pack.
-            boolean lotStillSelling = ownSingles(r.itemId()) && hasRetailStock(r.itemId()) && !windingDown();
+            boolean reserve = reserveMarket(r.itemId());
+            if (reserve) listablePart &= r.remaining() == 0 || r.alreadyCancelled();
+            boolean lotStillSelling = (ownSingles(r.itemId()) && hasRetailStock(r.itemId())
+                    || reserve && reserveHeldUnits(r.itemId()) > 0) && !windingDown();
+            int reserveOrdinal = reserve ? ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey) : 0;
+            if (reserve && reserveOrdinal < 0) listablePart = false;
             if (pending > 0 && listablePart && !lotStillSelling
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
-                        "collecting " + pending + " " + r.itemId(), 0));
+                        "collecting " + pending + " " + r.itemId(), reserveOrdinal));
             }
             // Closed rows remain on Your Orders after their refund and collection.
             // Only goods still owed reserve this market, not the unfilled quantity
             // of an order the server has already cancelled. Do not chase, quote or
             // collect the old delivered total again after it has been accounted for.
             if (r.alreadyCancelled()) {
-                if (pending > 0 && !lotStillSelling && collectQueued.add(k)
+                if (pending > 0 && !lotStillSelling && (!reserve || reserveOrdinal >= 0) && collectQueued.add(k)
                         && collectAttempts.getOrDefault(k, 0) < 4) {
                     deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(),
                             r.requested(), r.unitPrice(), "the order was cancelled with goods still on it",
-                            0));
+                            reserveOrdinal));
                 }
                 continue;
             }
@@ -5766,6 +5839,9 @@ public final class AutomationSessionController {
             // best one, but only while that still clears the chase margin,
             // and not more than once in ten minutes per item.
             long best = bestOrder.getOrDefault(r.itemId(), 0L);
+            final long observedBest = best;
+            if (reserve && ownOrders.stream().anyMatch(other -> other.itemId().equals(r.itemId())
+                    && !other.alreadyCancelled() && other.remaining()>0 && other.unitPrice() == observedBest)) best = r.unitPrice();
             boolean chaseThisOrder = false;
             if (why == null && priced == null && chasing && best > r.unitPrice()
                     && now - chasedAt.getOrDefault(r.itemId(), 0L) > 10 * 60_000L) {
@@ -5788,7 +5864,7 @@ public final class AutomationSessionController {
             }
             // An order that is to be pulled gives up what is on it first,
             // part stack or not: nothing more is coming to it.
-            if (wholeOnly && (bidding || denied || winding) && why != null && pending > 0 && !listablePart
+            if (wholeOnly && (bidding || denied || winding) && why != null && pending > 0 && !listablePart && (!reserve || !lotStillSelling)
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         TAKE_ALL + pending + " " + r.itemId() + " before pulling the order (" + why + ")",
@@ -5820,7 +5896,7 @@ public final class AutomationSessionController {
                     // whole stacks only it is looked into like any other quiet
                     // order: if it has been outbid it is pulled, and what is
                     // on it is taken then.
-                    if (pending > 0 && !wholeOnly) {
+                    if (pending > 0 && !wholeOnly && !reserve) {
                         if (collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                             deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                                     "taking " + pending + " " + r.itemId() + "; nothing more delivered for " + minutes + " min",
@@ -5878,7 +5954,9 @@ public final class AutomationSessionController {
             if (onlyOwn) { bump(why, "only your price list is traded"); continue; }
             if (!m.hasPrices() || m.itemKey().indexOf('#') >= 0) { bump(why, "no prices"); continue; }
             if (hasRetailStock(m.itemKey())) { bump(why, "retail stock already held"); continue; }
-            if (bidItems.contains(m.itemKey())) { bump(why, "bid already out"); continue; }
+            if (reserveMarket(m.itemKey()) ? !reserveRoom(m.itemKey()) : bidItems.contains(m.itemKey())) {
+                bump(why, "bid or reserve already out"); continue;
+            }
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
             if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemKey())) { bump(why, "not allowed by Items"); continue; }
             if (ownPrice(m.itemKey()) != null) { bump(why, "on your own price list"); continue; }
@@ -5950,7 +6028,7 @@ public final class AutomationSessionController {
         int underdogSlots = (int) dev.doughbay.fabric.Tuning.get("underdog.order_slots");
         int oldGround = 0;
         java.util.Set<String> chosen = new java.util.HashSet<>();
-        if (underdogSlots > 0 && !onlyOwn && dev.doughbay.fabric.Tuning.get("underdog.enabled") >= 0.5) {
+        if (underdogSlots > 0 && !onlyOwn && !reserveEnabled() && dev.doughbay.fabric.Tuning.get("underdog.enabled") >= 0.5) {
             dev.doughbay.fabric.RivalIntel.Snapshot rs = rivals();
             if (rs != null) {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
@@ -6115,7 +6193,12 @@ public final class AutomationSessionController {
                     continue;
                 }
             }
-            if (standing > 0 && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
+            long ourStanding = reserveMarket(m.itemKey()) ? ownOrders.stream()
+                    .filter(r -> r.itemId().equals(m.itemKey()) && !r.alreadyCancelled() && r.remaining()>0)
+                    .mapToLong(AutomatedExecutionDriver.OwnOrderRow::unitPrice).max().orElse(0) : 0;
+            boolean sharingOurPrice = ourStanding > 0 && standing == ourStanding && unit >= ourStanding;
+            if (sharingOurPrice) unit = ourStanding;
+            if (standing > 0 && !sharingOurPrice && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
             // Far above every standing bid means the statistic is wrong, not
             // that the market is generous: a polluted single-item median.
             if (standing > 0 && unit > standing * 5) { bump(why, "price looks wrong"); continue; }
@@ -6182,7 +6265,8 @@ public final class AutomationSessionController {
                 roomInMarket = sized;
                 count = Math.max(1, Math.min(allotment, full));
             } else {
-                if (roomInMarket <= 0) { bump(why, "market already at its listing cap"); continue; }
+                if (roomInMarket <= 0 && !reserveMarket(m.itemKey())) { bump(why, "market already at its listing cap"); continue; }
+                if (reserveMarket(m.itemKey())) roomInMarket = Math.max(1,sized);
                 count = per * Math.min(sized, roomInMarket);
             }
             // Under a thousand, so the order house shows it exactly. From 1,000
@@ -6196,6 +6280,20 @@ public final class AutomationSessionController {
                 count = OrderShape.stackOrderCount(count / per, full, unit,
                         (long) Math.min(effectivePurchaseCap(), room), roomInMarket);
                 if (count <= 0) { bump(why, "no whole stack fits the caps"); continue; }
+            }
+            if (reserveMarket(m.itemKey())) {
+                if (per != full || shaped == OrderShape.Mode.SINGLES || retail != null) {
+                    bump(why,"reserve requires a whole-stack market"); continue;
+                }
+                var reserveBook = ReserveStock.book(m.itemKey(),ownOrders,collectedByKey);
+                int requestedStacks = Math.min(stacks,(int)dev.doughbay.fabric.Tuning.get("orders.reserve_stacks"));
+                count = ReserveStock.batchUnits(requestedStacks,full,unit,
+                        (long)Math.min(effectivePurchaseCap(),room),
+                        sharePct >= 100 ? -1 : (long)depthStacks*per,
+                        reserveHeldUnits(m.itemKey())+reserveBook.units());
+                if (count <= 0 || !ReserveStock.mayPlace(reserveBook,reserveHeldUnits(m.itemKey()),count)) {
+                    bump(why,"full reserve batch waits for caps/depth"); continue;
+                }
             }
             String quantityKind = full > 1 && per == full ? "stack(s)" : "item(s)";
             String trimmed = String.format(java.util.Locale.ROOT, "; %d of up to %d %s, margin %.0f%%%s%s",
@@ -7228,9 +7326,15 @@ public final class AutomationSessionController {
         return ownSingles(itemKey) && ownOnly() ? Math.max(set, (int) dev.doughbay.fabric.Tuning.get("slots.max")) : set;
     }
 
+    private boolean existingSinglesEnabled(Position p) {
+        // Reserve Stock changes new purchases, not the durable intent/cost of an older retail lot.
+        return ownSingles(p.itemKey()) || retailLots.containsKey(p.positionId())
+                && dev.doughbay.fabric.Tuning.get("list.singles") >= 0.5;
+    }
+
     private boolean retailWaiting(Position p, long now) {
         if (!retailLots.containsKey(p.positionId())) return false;
-        return !(singlesListingEnabled() || ownSingles(p.itemKey()))
+        return !existingSinglesEnabled(p)
                 || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
                 || openSinglesOf(p.itemKey()) >= singlesCap(p.itemKey());
     }
@@ -7420,7 +7524,7 @@ public final class AutomationSessionController {
     }
 
     private boolean singlesListingEnabled() {
-        return dev.doughbay.fabric.Tuning.get("list.singles") >= 0.5;
+        return !reserveEnabled() && dev.doughbay.fabric.Tuning.get("list.singles") >= 0.5;
     }
 
     /** Persisted single target, bounded by a fresh quote and the fee-aware cost floor. */
@@ -7502,7 +7606,7 @@ public final class AutomationSessionController {
                 singlePeelFailedPositionId = 0;
                 return deferRetail(now, "retrying an interrupted split later");
             }
-            if (!singlesListingEnabled() && !ownSingles(trackedPosition.itemKey())) {
+            if (!existingSinglesEnabled(trackedPosition)) {
                 return deferRetail(now, "individual listing is disabled");
             }
             if (retailStackDue(client, trackedPosition, now)) return listRetailStack(client, now);
@@ -7652,7 +7756,7 @@ public final class AutomationSessionController {
             return stackSlotUpTo(client, p.itemKey(), p.quantity()) >= 0;
         }
         if (p == null || p.quantity() < 2 || !retailLots.containsKey(p.positionId())
-                || !singlesListingEnabled() || p.itemKey().indexOf('#') >= 0
+                || !existingSinglesEnabled(p) || p.itemKey().indexOf('#') >= 0
                 || now < retailRetryAfter.getOrDefault(p.positionId(), 0L)
                 || openSinglesOf(p.itemKey()) < (int) dev.doughbay.fabric.Tuning.get("list.singles_max")) return false;
         return stackSlotUpTo(client, p.itemKey(), p.quantity()) >= 0;

@@ -841,6 +841,15 @@ public final class Tuning {
                     + "minutes of demand in a busy market and five days of it in a thin one; this scales the ask to "
                     + "what the market actually clears. 100 disables it and uses the stack count alone",
                     5, 1, 100, Kind.PERCENT),
+            new Setting("orders.reserve_stock", "Orders", "Reserve Stock",
+                    "Keep one stack batch selling and a second buy order filling or waiting uncollected. "
+                    + "Collect the next completed batch only when no stock of this item remains listed, queued or in hand. "
+                    + "Uses whole stacks and order-house buying for automatic markets; manual Flips keep their own rules. Uncollected stock "
+                    + "counts against spending caps. Off by default (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("orders.reserve_stacks", "Orders", "Reserve batch stacks",
+                    "Whole stacks in each Reserve Stock batch, limited by Stacks per bid. Two batches maximum per market, "
+                    + "including selling stock. A full batch must fit existing spending and market-depth limits or it waits. "
+                    + "Turning Reserve Stock off returns to normal collection without deleting any orders", 12, 1, 15, Kind.COUNT),
             new Setting("orders.bid_stacks", "Orders", "Stacks per bid",
                     "The most stacks one bid may ask for. Each order is sized under this from the market's "
                     + "margin, its daily volume, and how fast our own recent stacks of it sold", 3, 1, 30, Kind.COUNT),

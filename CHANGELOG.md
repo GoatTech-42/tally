@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-21 — Reserve Stock
+
+- Added **Reserve Stock** under Settings → Orders, off by default. Automatic stack markets can keep one batch selling and one buy order filling or waiting uncollected. A completed reserve is collected only after owned stock of that item is gone from listings, queued purchases and repricing. Existing smaller orders and histories are retained.
+- **Reserve batch stacks** defaults to 12, bounded by **Stacks per bid**. Full batches must fit the existing per-purchase/session caps, order capacity and market-depth limits; the mode waits rather than silently reducing a reserve batch. Two batches maximum per item, including held and ordered goods. Delivered but uncollected goods remain counted at purchase cost against the spending cap.
+- The mode uses whole-stack order-house buying for automatic markets and leaves manual Flips rules intact. It does not outbid its own reserve order, rereads native orders between placements, ignores old completed/collected rows when selecting collection, and rechecks stock before dispatching queued work. Stop, winding-down cleanup, recovery, ownership and persistence gates remain authoritative. Switching the feature off deletes no orders.
+
 ## 2026-10-21 16:52 UTC
 
 - **Release PR #219:** Added a gold **START HERE** button at the beginning of navigation on every in-game tab. New installs open a beginner landing page; existing installations keep their normal entry, with help always available. The main path is **B → START HERE → Set up trading → choose limits → Review & Start**. Existing trading, pause and recovery controls remain on Trade.
