@@ -4,6 +4,12 @@ What each published update changed, newest first. Times are UTC publication time
 the update notice, after an update installs, and under What's new on the
 About tab.
 
+## 2026-10-21 02:35 UTC
+
+- Release PR #193: Fixed a fresh Hive account displaying an interrupted trade it never made. Native joined-account profiles now load only their own positions, checkpoint, runtime and cancelled-stock candidates before recovery starts. Old unowned records stay in the shared ledger for legacy reconciliation; they are not assigned to the new account, removed or marked resolved. Genuine owned exposure still requires the normal native recovery process. Recovery spend/trade reconstruction excludes other named accounts while retaining the account's stored caps.
+- Reproduced with a shared ledger containing an old unowned Bundle and other-account history: the legacy read included it in the new account's recovery. Tests now show empty recovery for a fresh joined member, retained recovery/caps for its genuine owned purchase, unchanged legacy rows, rejection when the owner is missing, the actual asynchronous persistence-worker path and native joined-profile classification. Existing legacy clients retain their supported recovery access. This does not automatically enable trading or require healthy peer restarts.
+- Client artifact published October 20 at 19:35:16 Los Angeles time (October 21 02:35:16 UTC). Build 1792549976740; SHA256: `3a2eb467ed93a5b12edbb8d59fce094ffdc88e75d2a738fad8d37df652e4ed41`. Full clean suite/build: 1,409 tests, zero failures/errors, one skip. Production JAR has only the normal client entrypoint and no test/Smoke classes. Public JAR, source and SHA manifest independently downloaded and hash-verified. No manual audit acknowledgement or position/ownership rewrite is part of this repair.
+
 ## 2026-10-21 02:12 UTC
 
 - Release PR #191: Fixed a fresh-account Hive join that waited for a checkpoint which had never existed. A never-started account reports generation zero; the shared safe-to-leave gate now recognizes a fully loaded STOPPED state with no open session, armed work, in-flight operation or recovered exposure. It does not invent a durable acknowledgement or start trading. Real accepted checkpoints still require their actual durable acknowledgement; unavailable recovery, refused writes and pending controller checkpoints remain blocked.
