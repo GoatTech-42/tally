@@ -432,6 +432,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private final ListingPageTurn auditPageTurn = new ListingPageTurn();
     /** Pages of your own listings the slot audit has walked so far. */
     private int auditPagesTurned;
+    private RankCapacity.PageCapacity firstListingCapacity = new RankCapacity.PageCapacity(0, false);
     /** Rows gathered across those pages; the audit's answer is all of them, not the first page. */
     private final List<OwnListingRow> auditRows = new ArrayList<>();
     /**
@@ -822,6 +823,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
@@ -1908,6 +1910,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
@@ -2325,6 +2328,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
@@ -2941,6 +2945,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
@@ -3023,6 +3028,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
@@ -3398,6 +3404,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditUnreadable = 0;
         auditCollects = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         lastOwnListings = all;
         lastOwnListingsUnreadable = couldNotPrice;
         complete(client, "Auction slots checked: " + all.size() + " of your listings are up"
@@ -3602,6 +3609,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditRows.clear();
         auditUnreadable = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         cancelPagesTurned = 0;
         auditPageTurn.reset();
         cancelPageTurn.reset();
@@ -3695,10 +3703,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             cells.add(new OwnListingCell(stack.isEmpty() ? "minecraft:air" : itemId(stack), stack.getCount(),
                     stack.isEmpty() ? List.of() : tooltipLines(client, stack)));
         }
-        int explicit = learnRankCapacityFromControls(client, container);
         int pageIndex = operation == Operation.CANCEL ? cancelPagesTurned : auditPagesTurned;
-        var capacity = explicit > 0 ? new RankCapacity.PageCapacity(explicit, true)
-                : RankCapacity.auctionPage(cells, pageIndex);
+        boolean turning = (operation == Operation.CANCEL ? cancelPageTurn : auditPageTurn).pending();
+        if (pageIndex == 0 && !turning) firstListingCapacity = RankCapacity.auctionPage(cells, 0);
+        var capacity = RankCapacity.auctionEvidence(cells, pageIndex,
+                rankCapacityControlLines(client, container), turning, firstListingCapacity);
         RankCapacity.apply(capacity);
         int slots = (int) Math.round(Tuning.get("slots.max"));
         return ownListingPageEvidence(cells, Math.min(45, slots));
@@ -3706,15 +3715,19 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     /** Only server navigation furniture; never player inventory or market item lore. */
     private int learnRankCapacityFromControls(Minecraft client, AbstractContainerScreen<?> container) {
+        int total = RankCapacity.explicitTotal(rankCapacityControlLines(client, container));
+        if (total > 0) RankCapacity.apply(new RankCapacity.PageCapacity(total, true));
+        return total;
+    }
+
+    private List<String> rankCapacityControlLines(Minecraft client, AbstractContainerScreen<?> container) {
         List<String> lines = new ArrayList<>();
         for (int i = 45; i < container.getMenu().slots.size(); i++) {
             Slot slot = container.getMenu().slots.get(i);
             if (slot.container == client.player.getInventory() || slot.getItem().isEmpty()) continue;
             lines.addAll(tooltipLines(client, slot.getItem()));
         }
-        int total = RankCapacity.explicitTotal(lines);
-        if (total > 0) RankCapacity.apply(new RankCapacity.PageCapacity(total, true));
-        return total;
+        return lines;
     }
 
     private static void tellPlayer(Minecraft client, String message) {
@@ -6569,6 +6582,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         auditPageTurn.reset();
         cancelNavRetries = 0;
         auditPagesTurned = 0;
+        firstListingCapacity = new RankCapacity.PageCapacity(0, false);
         auditRows.clear();
         auditUnreadable = 0;
         auditCollects = 0;
