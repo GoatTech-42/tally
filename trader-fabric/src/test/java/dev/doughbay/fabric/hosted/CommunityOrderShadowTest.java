@@ -16,6 +16,15 @@ class CommunityOrderShadowTest {
         if(page==1)response.put("next",2);else response.putNull("next");return response;
     }
     private ObjectNode last(){var response=DashboardProtocol.JSON.createObjectNode().put("regionScope","net-donut");response.set("read",marker());return response;}
+    @Test void eligibleLookupRequestsMatchingPeerAndEnforcesNinetySecondsLocally() throws Exception {
+        var paths=new ArrayList<String>();var accepted=new ArrayList<String>();
+        CommunityOrderShadow.Fetch transport=path->{paths.add(path);var reply=path.contains("last-read")?last():page(path.endsWith("page=1")?1:2);
+            ((ObjectNode)reply.path("read")).put("endedAt",now-60000).put("ageSeconds",60);return reply;};
+        var result=CommunityOrderShadow.fetch(transport,context(),now,"eligible",accepted::add);
+        assertEquals(1001,result.rows().size());assertTrue(paths.getFirst().contains("eligible=1&maxAgeSeconds=90&minPages=200&sameOwner=1&notSelf=1"));
+        assertFalse(paths.get(1).contains("eligible="));assertEquals(List.of("ordersLastRead","ordersSnapshot","ordersSnapshot"),accepted);
+        assertThrows(IllegalArgumentException.class,()->CommunityOrderShadow.fetch(path->last(),context(),now,"eligible",accepted::add),"100-second read is too old even if an old server ignores filters");
+    }
     @Test void emittedCountMayDifferFromFrozenRowsAndAllPagesAreRequired() throws Exception {
         var snapshot=CommunityOrderShadow.fetch(path->path.contains("last-read")?last():page(path.endsWith("page=1")?1:2),context(),now);
         assertEquals(1001,snapshot.rows().size());assertEquals(1300,snapshot.marker().path("levels").asInt());assertEquals("",snapshot.reason());

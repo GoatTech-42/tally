@@ -48,6 +48,8 @@ public final class DashboardHive {
             var item=value.path("readSavings").get(key);
             if(item!=null&&(item.isNumber()||item.isBoolean()))savings.set(key,item);
         }
+        var dataUse=SharedDataUse.validated(value.path("dataUse"));
+        if(dataUse!=null)out.set("dataUse",dataUse);
         return out;
     }
     public void publish(String account,HostedDashboardClient.View view,long now) throws Exception {

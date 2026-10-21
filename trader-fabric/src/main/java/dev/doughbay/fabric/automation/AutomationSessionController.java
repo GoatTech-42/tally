@@ -6220,6 +6220,9 @@ public final class AutomationSessionController {
                     0, retail == null ? 0 : retail.singlePrice()));
             dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.noteDiscoveryUse(
                     sharedDiscovery.get(m.itemKey()+"|"+m.bucket().exactCount()),"bid_plan");
+            if(experimentDiscoveryItems.contains(m.itemKey()))dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hintsConsumed","ordersSnapshot",1);
+            var reusedBook=dev.doughbay.fabric.DoughBayClient.orderBook();
+            if(reusedBook!=null&&reusedBook.loadedFromLocalStore())dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hintsConsumed","hiveLocal",1);
         }
         // Price checks on markets of the bot's own choosing are for the bot's own trading.
         int retailChecks = onlyOwn ? 0 : enqueueRetailQuotes(snapshot, now,sharedDiscovery);
@@ -8553,7 +8556,7 @@ public final class AutomationSessionController {
         var service=dev.doughbay.fabric.hosted.CommunityClient.INSTANCE;
         var required=experimentRequiredMarkets();
         if(experimentLookupCycle==0) {
-            experimentLookupCycle=service.beginOrderShadow(required,true,ownOrders.size(),200,now);
+            experimentLookupCycle=service.beginEligibleOrderShadow(required,true,ownOrders.size(),200,now);
             experimentLookupStarted=now;
             if(experimentLookupCycle==0)return false;
             discoveryLookupNanos=System.nanoTime();
@@ -8568,7 +8571,7 @@ public final class AutomationSessionController {
                 !capsFollowBank()||lastKnownBalance>0,isolatedGuardsClear()&&!uncertainExposure.active());
         dev.doughbay.fabric.hosted.CommunityPerformance.INSTANCE.discoveryLookup(decision.reusable(),
                 discoveryLookupRegion.equals(dev.doughbay.fabric.hosted.CommunityRegion.current())?discoveryLookupRegion:"",
-                discoveryLookupPages,Math.max(0,(System.nanoTime()-discoveryLookupNanos)/1_000_000),now);
+                discoveryLookupPages,Math.max(0,(System.nanoTime()-discoveryLookupNanos)/1_000_000),now,decision.reason());
         service.discardOrderShadow(experimentLookupCycle);experimentLookupCycle=0;
         var report=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.createObjectNode().put("evaluatedAt",now)
                 .put("phase","private_production_discovery").put("executionEnabled",true)

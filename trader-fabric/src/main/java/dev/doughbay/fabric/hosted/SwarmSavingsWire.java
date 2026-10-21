@@ -33,6 +33,7 @@ public final class SwarmSavingsWire {
     public static ObjectNode comparison(ObjectNode telemetry){
         var shape=telemetry.deepCopy();shape.remove("at");
         if(shape.path("readSavings") instanceof ObjectNode savings)savings.remove("observedAt");
+        if(shape.path("dataUse") instanceof ObjectNode use)use.remove("observedAt");
         return shape;
     }
     private SwarmSavingsWire(){}

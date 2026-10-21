@@ -20,19 +20,24 @@ public final class CommunityOrderShadow {
         return fetch(fetch,context,now,"");
     }
     public static Snapshot fetch(Fetch fetch,Context context,long now,String purpose) throws Exception {
-        require(purpose.isEmpty()||purpose.equals("validation"),"invalid_purpose");
-        String tag=purpose.isEmpty()?"":"&purpose=validation";
+        return fetch(fetch,context,now,purpose,k->{});
+    }
+    public static Snapshot fetch(Fetch fetch,Context context,long now,String purpose,java.util.function.Consumer<String> accepted) throws Exception {
+        require(purpose.isEmpty()||purpose.equals("validation")||purpose.equals("eligible"),"invalid_purpose");
+        String tag=purpose.equals("eligible")?"&eligible=1&maxAgeSeconds=90&minPages="+context.pageCap()+"&sameOwner=1&notSelf=1":purpose.isEmpty()?"":"&purpose=validation";
+        long maxAge=purpose.equals("validation")?86_400:purpose.equals("eligible")?90:900;
         JsonNode reply=fetch.get("orders/last-read?region=net-donut"+tag);
         scope(reply);JsonNode raw=reply.path("read");
-        if(raw.isNull())return unavailable("no_full_read");
-        ObjectNode marker=marker(raw,context,now,purpose.equals("validation")?86_400:900);
+        if(raw.isNull()){accepted.accept("ordersLastRead");return unavailable("no_full_read");}
+        ObjectNode marker=marker(raw,context,now,maxAge);
+        accepted.accept("ordersLastRead");
         String reason=eligibility(marker,context,purpose.equals("validation"));
         if(!reason.isEmpty())return new Snapshot(marker,List.of(),reason);
         int total=marker.path("rows").asInt();var rows=new ArrayList<ObjectNode>();
         var identities=new HashSet<String>();int bytes=0;
         for(int page=1;page<=MAX_PAGES;page++){
-            var data=fetch.get("orders/snapshot?region=net-donut&read="+URLEncoder.encode(marker.path("readId").asText(),StandardCharsets.UTF_8)+"&page="+page+tag);
-            scope(data);var repeated=marker(data.path("read"),context,now,purpose.equals("validation")?86_400:900);
+            var data=fetch.get("orders/snapshot?region=net-donut&read="+URLEncoder.encode(marker.path("readId").asText(),StandardCharsets.UTF_8)+"&page="+page+(purpose.equals("validation")?"&purpose=validation":""));
+            scope(data);var repeated=marker(data.path("read"),context,now,maxAge);
             for(String field:List.of("readId","startedAt","endedAt","pages","levels","rows","status","capped","self","sameOwner"))
                 require(marker.path(field).equals(repeated.path(field)),"snapshot_changed");
             require(number(data,"page")==page&&number(data,"pageSize")==1000&&number(data,"rowsTotal")==total,"pagination_changed");
@@ -44,9 +49,11 @@ public final class CommunityOrderShadow {
             require(data.has("next"),"missing_next");
             if(data.path("next").isNull()){
                 require(rows.size()==total,"snapshot_count_mismatch");
+                accepted.accept("ordersSnapshot");
                 return new Snapshot(marker,rows,"");
             }
             require(data.path("rows").size()==1000&&number(data,"next")==page+1,"invalid_next");
+            accepted.accept("ordersSnapshot");
         }
         throw new IllegalArgumentException("snapshot_page_limit");
     }
