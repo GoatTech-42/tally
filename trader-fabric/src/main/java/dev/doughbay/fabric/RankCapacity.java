@@ -38,6 +38,7 @@ final class RankCapacity {
     }
 
     static boolean apply(PageCapacity evidence) {
+        if (Tuning.get("slots.auto_detect") < 0.5) return false;
         int capacity = evidence.slots();
         if ((capacity != 18 && capacity != 45 && capacity != 90)
                 || (!evidence.exact() && Math.max(Tuning.get("slots.max"), Tuning.get("orders.bid_slots")) > capacity)) return false;

@@ -36,6 +36,44 @@ class AccountSlotSettingsTest {
         config.fields().forEachRemaining(e->{try{values().put(e.getKey(),e.getValue().asDouble());}catch(Exception ex){throw new RuntimeException(ex);}});
         Tuning.loadLocalFrom(local);
     }
+    @Test void manuallyChosenCapacityCannotBeOverwrittenByMenuOrApiLearning() throws Exception {
+        Path shared=shared(),local=root.resolve("own.json");activate(shared,local);
+        Tuning.set("slots.max",18);Tuning.set("orders.bid_slots",18);
+        assertFalse(RankCapacity.apply(new RankCapacity.PageCapacity(90,true)),
+                "A later menu observation must not replace the operator's explicit limit");
+        Tuning.learnAccountCapacity(90);
+        assertEquals(18,Tuning.get("slots.max"));assertEquals(18,Tuning.get("orders.bid_slots"));
+        activate(shared,local);Tuning.learnAccountCapacity(90);
+        assertEquals(18,Tuning.get("slots.max"));assertEquals(18,Tuning.get("orders.bid_slots"));
+    }
+    @Test void manualCapacityModeIsLocalAndExplicitReenableAllowsRankUpgrade() throws Exception {
+        Path shared=shared(),one=root.resolve("one.json"),two=root.resolve("two.json");
+        activate(shared,one);Tuning.set("slots.max",18);Tuning.set("orders.bid_slots",12);
+        assertEquals(0,Tuning.get("slots.auto_detect"));
+        assertTrue(Tuning.thisClientOnly("slots.auto_detect"));
+        activate(shared,two);assertEquals(1,Tuning.get("slots.auto_detect"));
+        assertTrue(RankCapacity.apply(new RankCapacity.PageCapacity(90,true)));
+        activate(shared,one);assertEquals(0,Tuning.get("slots.auto_detect"));
+        assertFalse(RankCapacity.apply(new RankCapacity.PageCapacity(90,true)));
+        assertEquals(18,Tuning.get("slots.max"));assertEquals(12,Tuning.get("orders.bid_slots"));
+        Tuning.set("slots.auto_detect",1);
+        assertTrue(RankCapacity.apply(new RankCapacity.PageCapacity(90,true)));
+        activate(shared,one);assertEquals(1,Tuning.get("slots.auto_detect"));
+        assertEquals(90,Tuning.get("slots.max"));assertEquals(90,Tuning.get("orders.bid_slots"));
+        var common=JSON.readTree(Files.readString(shared.resolve("tuning.json")));
+        assertFalse(common.has("slots.auto_detect"),"No Hive-wide detection policy may be saved");
+    }
+    @Test void existingLocalCountsArePreservedAndDetectionRemainsOnUntilOperatorChooses() throws Exception {
+        Path shared=shared(),local=root.resolve("own.json");
+        Files.writeString(local,"{\"slots.max\":18,\"orders.bid_slots\":18}");activate(shared,local);
+        assertEquals(18,Tuning.get("slots.max"));assertEquals(1,Tuning.get("slots.auto_detect"));
+        Tuning.set("orders.bid_slots",18);assertEquals(0,Tuning.get("slots.auto_detect"));
+        activate(shared,local);assertEquals(0,Tuning.get("slots.auto_detect"));
+        assertFalse(RankCapacity.apply(new RankCapacity.PageCapacity(45,false)));
+        Tuning.reset("slots.max");Tuning.learnAccountCapacity(90);
+        assertEquals(Tuning.setting("slots.max").defaultValue(),Tuning.get("slots.max"));
+        assertEquals(18,Tuning.get("orders.bid_slots"));
+    }
     @Test void settingSlotsOnAFreshClientWritesLocallyInsteadOfChangingTheHive() throws Exception {
         Path shared=shared(),local=root.resolve("alt-local.json");activate(shared,local);
         Tuning.set("slots.max",45);Tuning.set("orders.bid_slots",45);
@@ -90,6 +128,18 @@ class AccountSlotSettingsTest {
         Files.setLastModifiedTime(shared.resolve("tuning.json"),java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis()+5000));
         Tuning.pollExternalChanges();
         assertEquals(45,Tuning.get("slots.max"));assertEquals(30,Tuning.get("orders.bid_slots"));
+        assertEquals("{broken",Files.readString(local));
+        assertEquals(0,Tuning.get("slots.auto_detect"));
+        Tuning.learnAccountCapacity(90);
+        assertEquals(45,Tuning.get("slots.max"));assertEquals(30,Tuning.get("orders.bid_slots"));
+    }
+    @Test void malformedLocalReloadCannotReenableDetectionOrOverwriteTheBrokenFile() throws Exception {
+        Path shared=shared(),local=root.resolve("own.json");activate(shared,local);
+        Tuning.set("slots.max",18);Tuning.set("orders.bid_slots",12);
+        Files.writeString(local,"{broken");Tuning.loadLocalFrom(local);
+        Tuning.learnAccountCapacity(90);
+        assertEquals(0,Tuning.get("slots.auto_detect"));
+        assertEquals(18,Tuning.get("slots.max"));assertEquals(12,Tuning.get("orders.bid_slots"));
         assertEquals("{broken",Files.readString(local));
     }
     @Test void confirmedRankUpgradeUpdatesBothLimitsOnlyForTheOwningAccount() throws Exception {
