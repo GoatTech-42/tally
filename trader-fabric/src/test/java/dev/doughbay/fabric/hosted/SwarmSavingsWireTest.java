@@ -11,6 +11,8 @@ class SwarmSavingsWireTest {
         SwarmSavingsWire.attach(frame,p,false,true,2000);assertFalse(frame.has("readSavings"));
         SwarmSavingsWire.attach(frame,p,true,false,2000);assertFalse(frame.has("readSavings"));
         SwarmSavingsWire.attach(frame,p,true,true,2000);assertTrue(frame.has("readSavings"));
+        assertEquals(12,frame.path("readSavings").size());
+        assertTrue(DashboardProtocol.hello("test","fixture","fixture").path("capabilities").toString().contains("read_savings"));
         assertFalse(frame.toString().contains("credential"));assertEquals(0,frame.path("readSavings").path("attempts").asLong());
         SwarmSavingsWire.attach(frame,p,false,true,2000);assertFalse(frame.has("readSavings"));
         assertTrue(SwarmSavingsWire.negotiated(DashboardProtocol.JSON.createObjectNode().put("readSavingsSchema",1)));
@@ -24,5 +26,15 @@ class SwarmSavingsWireTest {
         assertNull(SwarmSavingsWire.snapshot(performance(),40000));
         var p=performance();((com.fasterxml.jackson.databind.node.ObjectNode)p.path("discoverySavings")).put("attempts",99);
         assertNull(SwarmSavingsWire.snapshot(p,2000));
+        p=performance();((com.fasterxml.jackson.databind.node.ObjectNode)p.path("discoverySavings")).put("attempts",1_000_000_001L).put("fallbackReads",1_000_000_001L);
+        assertNull(SwarmSavingsWire.snapshot(p,2000));
+    }
+    @Test void advancingClockAloneDoesNotIncreaseTelemetryFrequency(){
+        var a=DashboardProtocol.JSON.createObjectNode().put("at",2000);SwarmSavingsWire.attach(a,performance(),true,true,2000);
+        var b=a.deepCopy().put("at",3000);((com.fasterxml.jackson.databind.node.ObjectNode)b.get("readSavings")).put("observedAt",3000);
+        assertEquals(SwarmSavingsWire.comparison(a),SwarmSavingsWire.comparison(b));
+        assertEquals(2000,a.path("readSavings").path("observedAt").asLong());
+        ((com.fasterxml.jackson.databind.node.ObjectNode)b.get("readSavings")).put("attempts",1).put("fallbackReads",1);
+        assertNotEquals(SwarmSavingsWire.comparison(a),SwarmSavingsWire.comparison(b));
     }
 }

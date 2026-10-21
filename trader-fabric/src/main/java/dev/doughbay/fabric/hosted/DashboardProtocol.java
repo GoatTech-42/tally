@@ -15,7 +15,7 @@ public final class DashboardProtocol {
     public static final URI SOCKET=URI.create("wss://gonuts.at/dashboard/ws/client");
     public static final int MAX_BYTES=32768;
     public static final int MAX_PANEL_FRAME_BYTES=768*1024;
-    public static final List<String> CAPABILITIES=List.of("pause","resume","snapshot","panel","swarm_enable","swarm_disable","swarm_rank","swarm_staff");
+    public static final List<String> CAPABILITIES=List.of("pause","resume","snapshot","panel","swarm_enable","swarm_disable","swarm_rank","swarm_staff","read_savings");
     private DashboardProtocol(){}
     public static String code(String input){
         String value=Objects.requireNonNullElse(input,"").toUpperCase(Locale.ROOT).replace("-","").replace(" ","").replace('0','O').replace('1','L').replace('I','L');

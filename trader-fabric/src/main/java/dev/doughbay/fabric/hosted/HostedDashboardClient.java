@@ -310,9 +310,9 @@ public final class HostedDashboardClient {
         if(!identity.equals(publishedAccountId)){SwarmRank.clear();publishedAccountId=identity;}
         if(metrics!=null&&!identity.isEmpty())j.put("accountId",identity);
         SwarmSavingsWire.attach(j,CommunityPerformance.INSTANCE.view(),welcome&&readSavingsSupported&&metrics!=null&&!identity.isEmpty(),
-                CommunityClient.INSTANCE.guidanceEnabled(),now);
+                CommunityClient.INSTANCE.readSavingsSharing(),now);
         j.set("staffSightings",SwarmStaffSightings.INSTANCE.snapshot(CommunityClient.INSTANCE.sharingStaffSightings(now),now));
-        var shape=j.deepCopy();shape.remove("at");String encoded=shape.toString();
+        var shape=SwarmSavingsWire.comparison(j);String encoded=shape.toString();
         if(!forceTelemetry&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
         send(j);lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
     }
