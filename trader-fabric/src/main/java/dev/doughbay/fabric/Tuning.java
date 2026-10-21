@@ -209,9 +209,12 @@ public final class Tuning {
                     "How much of its equal share a scanning client actually takes, leaving the rest to the trading client. "
                     + "A scanner's real value is the pages it walks, which cost no API requests at all",
                     50, 10, 100, Kind.PERCENT),
+            new Setting("slots.auto_detect", "Tiers", "Detect account slots automatically",
+                    "Use confirmed server rank/menu capacity for this account. Editing Auction slots or Order slots turns this off and keeps your numbers. Turn it back on here after a rank upgrade if you want automatic detection again. Other Hive accounts keep their own choice",
+                    1, 0, 1, Kind.TOGGLE),
             new Setting("slots.max", "Tiers", "Auction slots",
                     "Listings your rank allows at once: 18 with no rank, 45 with Donut+, 90 with Donut++ and up. "
-                    + "Confirmed capacity from your own server menus automatically updates both auction and order slots, including rank upgrades. Each account keeps its own values",
+                    + "Editing this keeps your chosen capacity and turns off automatic slot detection for this account. Each account keeps its own values",
                     45, 1, 90, Kind.COUNT),
             new Setting("list.singles", "Selling", "Piece out premium markets",
                     "For the markets that measurably pay more per unit for a single than for a stack, break the bought "
@@ -832,7 +835,7 @@ public final class Tuning {
             new Setting("orders.bid", "Orders", "Place bids",
                     "Post your own buy orders on liquid markets under the quick-sale price and relist the fills (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid_slots", "Orders", "Order slots",
-                    "Your account's order capacity. Confirmed server-menu capacity automatically keeps this equal to your auction slots, including rank upgrades", 20, 1, 90, Kind.COUNT),
+                    "Your account's order capacity. Editing this keeps your chosen capacity and turns off automatic slot detection for this account. You can turn detection back on under Tiers after a rank upgrade", 20, 1, 90, Kind.COUNT),
             new Setting("orders.depth_share_pct", "Orders", "Order size against market depth",
                     "The most of a market's own daily volume one order may ask for. A flat order size is sixteen "
                     + "minutes of demand in a busy market and five days of it in a thin one; this scales the ask to "
@@ -1245,11 +1248,15 @@ public final class Tuning {
     }
 
     /** Clamps, applies, and saves; returns the value actually stored. */
-    public static double set(String key, double value) {
+    public static synchronized double set(String key, double value) {
         Setting s = setting(key);
         double clamped = s.clamp(value);
         double before = get(key);
         if (ACCOUNT_SLOT_KEYS.contains(key)) LOCAL_KEYS.add(key);
+        if (key.equals("slots.max") || key.equals("orders.bid_slots")) {
+            LOCAL_KEYS.add("slots.auto_detect");
+            VALUES.put("slots.auto_detect", 0.0);
+        }
         VALUES.put(key, clamped);
         save();
         UpdateCheck.settingChanged(key, before, clamped);
@@ -1322,7 +1329,11 @@ public final class Tuning {
         seenLocalModifiedAt = modifiedAt(local);
     }
 
-    public static void reset(String key) {
+    public static synchronized void reset(String key) {
+        if (key.equals("slots.max") || key.equals("orders.bid_slots")) {
+            LOCAL_KEYS.add("slots.auto_detect");
+            VALUES.put("slots.auto_detect", 0.0);
+        }
         VALUES.remove(key);
         save();
     }
@@ -1422,9 +1433,12 @@ public final class Tuning {
 
     /** Reads this client's own file; null forgets it. Apart from the tests, only ever given the game folder's. */
     static void loadLocalFrom(Path local) {
+        Path previousLocal = localFile;
         localFile = local;
         LOCAL_KEYS.clear();
         LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
+        if (!java.util.Objects.equals(previousLocal, local) || local == null)
+            VALUES.put("slots.auto_detect", setting("slots.auto_detect").defaultValue());
         LOCAL_KEYS.add("evasion.enabled");
         // Consent can never be inherited from another client through shared tuning.json.
         LOCAL_KEYS.add("reports.auto_critical");
@@ -1437,7 +1451,10 @@ public final class Tuning {
         }
         try {
             JsonNode root = new ObjectMapper().readTree(Files.readString(local, StandardCharsets.UTF_8));
-            if (root == null || !root.isObject()) return;
+            if (root == null || !root.isObject()) {
+                VALUES.put("slots.auto_detect", 0.0);
+                return;
+            }
             int loaded = 0;
             Iterator<Map.Entry<String, JsonNode>> it = root.fields();
             while (it.hasNext()) {
@@ -1465,12 +1482,13 @@ public final class Tuning {
             // Existing per-client values above win; unrelated local options remain intact.
             saveLocal();
         } catch (IOException | RuntimeException e) {
+            VALUES.put("slots.auto_detect", 0.0);
             LOG.warn("DoughBay could not read {}: {}", local, e.toString());
         }
     }
 
     private static volatile Path localFile;
-    private static final java.util.Set<String> ACCOUNT_SLOT_KEYS = java.util.Set.of("slots.max", "orders.bid_slots");
+    private static final java.util.Set<String> ACCOUNT_SLOT_KEYS = java.util.Set.of("slots.max", "orders.bid_slots", "slots.auto_detect");
     /** The same log the rest of the mod writes to, reached without starting the mod: the tests read this class too. */
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("DoughBay");
     /** The settings whose value this client's own file gave, and so the ones saved back to it. */
@@ -1487,6 +1505,7 @@ public final class Tuning {
     /** The server grants the same auction and order capacity to this account. */
     public static synchronized void learnAccountCapacity(int slots) {
         if (slots != 18 && slots != 45 && slots != 90) return;
+        if (get("slots.auto_detect") < 0.5) return;
         LOCAL_KEYS.addAll(ACCOUNT_SLOT_KEYS);
         VALUES.put("slots.max", (double) slots);
         VALUES.put("orders.bid_slots", (double) slots);
