@@ -48,6 +48,7 @@ public final class CommunityClient {
             warmupBatch=null;warmupMarkets=Set.of();
             warmupStatus="Shared history could not be saved; collecting locally";return 0;
         }
+        SharedDataUse.INSTANCE.add("historyImported","sales",imported);
         warmupImported+=imported;warmupBatch=null;warmupMarkets=Set.of();
         warmupStatus=imported>0?"Imported "+imported+" shared completed-sale observations; live checks still required"
                 :"Shared history had no sufficiently fresh, covered market; collecting locally";
@@ -77,6 +78,7 @@ public final class CommunityClient {
     }
     public void noteDiscoveryUse(CommunityDiscoveryFeed.Hint hint,String purpose) {
         if(hint==null||!Set.of("bid_plan","auction_check","order_quote").contains(purpose))return;
+        SharedDataUse.INSTANCE.hint(hint);
         if(purpose.equals("bid_plan"))discoveryBidPlans++;else discoveryChecks++;
         var view=DashboardProtocol.JSON.createObjectNode().put("at",System.currentTimeMillis()).put("market",hint.market())
                 .put("observedAt",hint.observedAt()).put("purpose",purpose).put("historicalBidNotExecutable",hint.historicalBid())
@@ -204,6 +206,7 @@ public final class CommunityClient {
         value.set("orderSnapshotValidation",snapshotValidation.deepCopy());
         value.set("performance",CommunityPerformance.INSTANCE.view().put("snapshotStatus",measurementStatus));
         value.set("readSavings",CommunityPerformance.INSTANCE.view().path("discoverySavings"));
+        value.set("dataUse",SharedDataUse.INSTANCE.view());
         var codes=value.putObject("rejectionCodes");rejectionCodes.forEach(codes::put);return value;
     }
     public synchronized void observe(ObjectNode record){
@@ -270,7 +273,7 @@ public final class CommunityClient {
             try{
                 var context=new CommunityOrderShadow.Context(now,200,Set.of(),false,0,false);
                 CommunityOrderShadow.Snapshot snapshot;
-                try{snapshot=CommunityOrderShadow.fetch(this::shadowGet,context,System.currentTimeMillis(),"validation");}
+                try{snapshot=CommunityOrderShadow.fetch(this::shadowGet,context,System.currentTimeMillis(),"validation",k->SharedDataUse.INSTANCE.add("cloudAccepted",k,1));}
                 catch(Exception error){String reason=error instanceof IllegalArgumentException?error.getMessage():"snapshot_unavailable";
                     snapshot=CommunityOrderShadow.unavailable(reason!=null&&reason.matches("[a-z_]{1,64}")?reason:"snapshot_unavailable");}
                 if(!enabled)return;
@@ -283,13 +286,19 @@ public final class CommunityClient {
         });
     }
     public long beginOrderShadow(Set<String> managed,boolean ownFresh,int ownOrders,int pageCap,long at){
+        return beginOrderShadow(managed,ownFresh,ownOrders,pageCap,at,false);
+    }
+    public long beginEligibleOrderShadow(Set<String> managed,boolean ownFresh,int ownOrders,int pageCap,long at){
+        return beginOrderShadow(managed,ownFresh,ownOrders,pageCap,at,true);
+    }
+    private long beginOrderShadow(Set<String> managed,boolean ownFresh,int ownOrders,int pageCap,long at,boolean eligibleRead){
         if(!started||!enabled||!enrolled||!connected||shadowCycles.size()>=4)return 0;
         long id=shadowSequence.incrementAndGet();
         var context=new CommunityOrderShadow.Context(at,pageCap,managed,ownFresh,ownOrders,lastServiceFailure==0||at-lastServiceFailure>=300_000);
         String scope=marketScope();
         var future=CompletableFuture.supplyAsync(()->{
             if(!scope.equals("net-donut"))return CommunityOrderShadow.unavailable("scope_unavailable");
-            try{return CommunityOrderShadow.fetch(this::shadowGet,context,System.currentTimeMillis());}
+            try{return CommunityOrderShadow.fetch(this::shadowGet,context,System.currentTimeMillis(),eligibleRead?"eligible":"",k->SharedDataUse.INSTANCE.add("cloudAccepted",k,1));}
             catch(Exception error){String reason=error instanceof IllegalArgumentException?error.getMessage():"snapshot_unavailable";
                 return CommunityOrderShadow.unavailable(reason!=null&&reason.matches("[a-z_]{1,64}")?reason:"snapshot_unavailable");}
         },shadowWorker).completeOnTimeout(CommunityOrderShadow.unavailable("snapshot_timeout"),60,TimeUnit.SECONDS);
@@ -426,6 +435,8 @@ public final class CommunityClient {
                 if(old!=null&&!old.equals(row))throw new IllegalArgumentException("Conflicting history id");
             }
             if(warmupRows.size()>50_000||warmupPages>64||!page.next().isEmpty()&&page.next().equals(warmupCursor))throw new IllegalArgumentException("Unbounded history snapshot");
+            SharedDataUse.INSTANCE.add("cloudAccepted","salesHistory",1);
+            SharedDataUse.INSTANCE.add("historyImported","pages",1);
             warmupCursor=page.next();
             if(warmupCursor.isEmpty()){
                 warmupBatch=new HistoryBatch(List.copyOf(warmupRows.values()),owner,own);warmupRows.clear();
@@ -490,7 +501,10 @@ public final class CommunityClient {
         String region=marketScope();var response=request("GET","market/"+URLEncoder.encode(key,StandardCharsets.UTF_8)+(region.isBlank()?"":"?region="+URLEncoder.encode(region,StandardCharsets.UTF_8)),null,true);lastQuery=System.currentTimeMillis();
         if(response.statusCode()==429){synchronized(this){if(queries.size()<100)queries.add(key);}status="Market queries rate limited; local scanning continues";return;}
         if(response.statusCode()!=200)return;
-        var result=json(response);lastQueryScope=region;long ttl=Math.min(30,Math.max(1,result.path("ttlSeconds").asLong(30)))*1000;
+        var result=json(response);
+        if(!result.path("itemKey").asText().equals(key)||!result.path("regionScope").asText().equals(region))return;
+        SharedDataUse.INSTANCE.add("cloudAccepted","market",1);
+        lastQueryScope=region;long ttl=Math.min(30,Math.max(1,result.path("ttlSeconds").asLong(30)))*1000;
         if(cache.size()>=100)cache.entrySet().removeIf(e->e.getValue().expires()<now);
         if(cache.size()<100||cache.containsKey(key))cache.put(key,new Cached(result,lastQuery,lastQuery+ttl,region));
     }
@@ -510,6 +524,7 @@ public final class CommunityClient {
             String key=item.path("itemKey").asText();long ttl=Math.min(30,Math.max(1,item.path("ttlSeconds").asLong(30)))*1000;
             if(cache.size()<100||cache.containsKey(key))cache.put(key,new Cached(item,now,now+ttl,"net-donut"));
         }
+        SharedDataUse.INSTANCE.add("cloudAccepted","marketBatch",1);
         lastQueryScope="net-donut";discoveryResponses++;
     }
     private static long retryAfter(HttpResponse<?> response){try{return Math.min(3600,Math.max(10,Long.parseLong(response.headers().firstValue("Retry-After").orElse("60"))))*1000;}catch(Exception e){return 60_000;}}

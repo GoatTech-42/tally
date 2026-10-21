@@ -19,7 +19,11 @@ class CommunityDiscoveryCacheTest {
         response.putObject("orderLevels").put("usability","history").putArray("rows").addObject().put("unitPrice",1000).put("remaining",64).put("lastSeenAt",now-1000);
         assertTrue(client.discoveryHints(Set.of(key),now).isEmpty(),"cache miss returns immediately, without starting HTTP");
         cache.put(key,build.newInstance(response,now-1000,now+1000,"net-donut"));
-        assertNotNull(client.discoveryHints(Set.of(key),now).get(key));
+        long before=SharedDataUse.INSTANCE.view().path("hintsConsumed").path("cloudAggregate").asLong();
+        var hint=client.discoveryHints(Set.of(key),now).get(key);assertNotNull(hint);
+        assertEquals(before,SharedDataUse.INSTANCE.view().path("hintsConsumed").path("cloudAggregate").asLong(),"availability is not consumption");
+        client.noteDiscoveryUse(hint,"bid_plan");
+        assertEquals(before+1,SharedDataUse.INSTANCE.view().path("hintsConsumed").path("cloudAggregate").asLong());
         assertTrue(client.discoveryHints(Set.of(key),now+1001).isEmpty(),"expired response cannot keep influencing plans");
         cache.put(key,build.newInstance(response,now+1,now+1000,"net-donut"));assertTrue(client.discoveryHints(Set.of(key),now).isEmpty());
         cache.put(key,build.newInstance(response,now-1000,now+1000,"mixed"));assertTrue(client.discoveryHints(Set.of(key),now).isEmpty());

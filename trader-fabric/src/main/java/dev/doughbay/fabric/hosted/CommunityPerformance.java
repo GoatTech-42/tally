@@ -17,7 +17,13 @@ public final class CommunityPerformance {
     private final SwarmReadSavings savings = new SwarmReadSavings();
 
     public synchronized void discoveryLookup(boolean reused, String region, int pages, long elapsedMs, long now) {
-        if (enabled) savings.lookup(reused, region, pages, elapsedMs, now);
+        discoveryLookup(reused,region,pages,elapsedMs,now,"");
+    }
+    public synchronized void discoveryLookup(boolean reused,String region,int pages,long elapsedMs,long now,String reason) {
+        if (enabled && elapsedMs>=0) {
+            savings.lookup(reused, region, pages, elapsedMs, now);
+            if(!reused)SharedDataUse.INSTANCE.add("fallbacks",SharedDataUse.fallback(reason),1);
+        }
     }
 
     public synchronized void enable() { enabled = true; }

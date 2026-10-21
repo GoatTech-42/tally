@@ -1303,13 +1303,26 @@ final class Pages {
                     el('p','muted','Whole-Swarm counters are in the website dashboard’s Swarm stats section.'));
                 }
                 const rows=d.accounts||[],selected=select.value;
-                document.getElementById('savings-hive-total').replaceChildren(...hiveSavingsLines(d.hiveReadSavings).map(t=>el('p','desc',t)));
+                document.getElementById('savings-hive-total').replaceChildren(...[...hiveDataUseLines(d.hiveDataUse),...hiveSavingsLines(d.hiveReadSavings)].map(t=>el('p','desc',t)));
                 select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
                 if(rows.some(r=>r.id===selected))select.value=selected;
                 const current=rows.find(r=>r.id===select.value)||{};
                 const lines=!current.available?['Selected bot is offline or its status is stale; no current measurements.']:readSavingsLines(current.community?.readSavings);
                 document.getElementById('savings-result').replaceChildren(...lines.map(t=>el('p','muted',t)));
               }catch(e){failed();}
+            }
+            function hiveDataUseLines(total){
+              const s=total||{},c=s.cloudAccepted||{},h=s.hintsConsumed||{},i=s.historyImported||{};
+              if(!s.reportingAccounts)return ['Shared data use: measurements unavailable from these clients; older clients are unmeasured.'];
+              return ['SHARED DATA ACTUALLY USED - '+s.reportingAccounts+' / '+s.knownAccounts+' accounts reporting',
+                'Validated cloud responses: '+Object.values(c).reduce((a,b)=>a+b,0)+' | market batches: '+(c.marketBatch||0),
+                'Cloud hints used in decisions: '+(h.cloudAggregate||0),
+                'Included sources: follow activity '+(h.followTrade||0)+' | price levels '+(h.priceLevel||0)+' (can overlap)',
+                'Shared history imported: '+(i.sales||0)+' sale rows',
+                'Local stored-book reads: '+(s.hiveLocalReuse?.reads||0)+' | local-book planning uses: '+(h.hiveLocal||0),
+                'Rejected scan-replacement lookups: '+(Object.entries(s.fallbacks||{}).filter(([k,n])=>n>0).map(([k,n])=>k.replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase()+': '+n).join('; ')||'none recorded'),
+                'Data use does not prove a scan or time was saved. Local reads may reuse this account’s own saved book.',
+                'BROAD SCANS AVOIDED (SEPARATE)'];
             }
             function hiveSavingsLines(total){
               const s=total||{},seconds=n=>((n||0)/1000).toFixed(1)+'s';

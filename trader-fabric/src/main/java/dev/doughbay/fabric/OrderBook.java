@@ -35,6 +35,8 @@ public final class OrderBook {
     });
     private volatile List<Order> orders = List.of();
     private volatile long readAt;
+    private volatile boolean loadedFromLocalStore;
+    public boolean loadedFromLocalStore(){return loadedFromLocalStore;}
     private volatile int pagesRead;
     private volatile String status = "not read yet";
 
@@ -97,6 +99,8 @@ public final class OrderBook {
             return;
         }
         orders = List.copyOf(merged.values());
+        loadedFromLocalStore=!orders.isEmpty();
+        if(loadedFromLocalStore)dev.doughbay.fabric.hosted.SharedDataUse.INSTANCE.add("hiveLocalReuse","reads",1);
         status = orders.size() + " open from the last read " + (now - readAt) / 60_000 + " min ago";
         DoughBayClient.LOGGER.info("DoughBay order book: {} order(s) reloaded from the read {} min ago", orders.size(), (now - readAt) / 60_000);
     }
@@ -138,6 +142,7 @@ public final class OrderBook {
     }
 
     public void record(List<Order> read, int pages, long now, boolean full) {
+        loadedFromLocalStore=false;
         if (full) lastFullAt = now;
         java.util.LinkedHashMap<String, Order> merged = new java.util.LinkedHashMap<>();
         for (Order o : orders) {

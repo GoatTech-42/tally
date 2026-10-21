@@ -12,6 +12,11 @@ const hive={reportingAccounts:2,knownAccounts:3,hasMeasurements:true,actualSkipp
 const c=vm.createContext({el,own:el('main'),view:'savings',document:{getElementById:id=>nodes.find(n=>n.id===id)},api:async()=>({accounts:rows,hiveReadSavings:hive}),failed:()=>{throw Error('Panel failed');}});
 vm.runInContext(source,c);
 (async()=>{
+ assert.match(c.hiveDataUseLines({}).join(' '),/unavailable.*unmeasured/);
+ const actual=c.hiveDataUseLines({reportingAccounts:3,knownAccounts:3,cloudAccepted:{marketBatch:120,ordersLastRead:2},hintsConsumed:{cloudAggregate:42,followTrade:20,priceLevel:30},historyImported:{sales:50},hiveLocalReuse:{reads:3}}).join(' ');
+ assert.match(actual,/122.*market batches: 120.*decisions: 42/);
+ assert.match(actual,/follow activity 20.*price levels 30.*can overlap/);
+ assert.match(actual,/does not prove a scan or time was saved/);
  assert.match(c.readSavingsLines({}).join(' '),/unavailable/);
  assert.match(c.readSavingsLines({attempts:1}).join(' '),/not calibrated/);
  await c.openSwarmSavings();const result=nodes.find(n=>n.id==='savings-result');
