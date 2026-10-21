@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-21 16:52 UTC
+
+- **Release PR #219:** Added a gold **START HERE** button at the beginning of navigation on every in-game tab. New installs open a beginner landing page; existing installations keep their normal entry, with help always available. The main path is **B → START HERE → Set up trading → choose limits → Review & Start**. Existing trading, pause and recovery controls remain on Trade.
+- The landing page has direct links to Trade, the setup video and further tutorials. Setup returns to Start here instead of losing the beginner in the full dashboard. An explicit **Show menus + hotbar** action changes only those two display preferences for that account; name privacy, trading settings, positions, spending limits and other Hive members stay intact. Opening help does not enable or start trading.
+- Updated the website handbook and install-video instructions with a real screenshot of the landing page. The existing video covers the limits/review steps; the new gold setup button comes first. Offline GUI verification covered desktop/compact layout, setup/back, Trade and the persistent entry without joining a server or enabling trading. Production clean/build: **1,459 tests, zero failures/errors, one skipped**; normal production entrypoint only, no smoke/preview classes.
+- **Publication:** PR219 merge `a202d6d2ed51e410b0a0f1341c241bff40d03ce4`; build `1792601358696`; public JAR upload completed **2026-10-21 16:52:42 UTC** (Oct 21, 09:52:42 America/Los_Angeles). JAR SHA-256 `5dd422a4a0ba4d8c226fbb6869e9f393341fc33583f9a2647c876436919874d3`. Public JAR/source/checksums independently downloaded and matched. Separate client publication after PR217; no running bots were upgraded. The subsequent changelog commit is documentation only.
+
 ## 2026-10-21 11:58 UTC
 
 - **Release PR #217:** Automatic account slot detection now reconciles the own-listings cells and navigation total before changing capacity. A locked second page alone cannot prove 45 slots: an 18-slot account can have the same page. A usable first page plus its locked second page can still establish 18/45 slots within the same scan; that evidence is discarded when the scan resets.
