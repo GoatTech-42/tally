@@ -20,6 +20,15 @@ public final class HiveSetup {
     static String activeId() { return active == null ? "" : active.id(); }
     public static Path sharedDirectoryOr(Path fallback) { return active == null ? fallback : Path.of(active.directory()); }
 
+    static boolean joinedProfile(Path configuration) {
+        return active != null && joinedProfile(Path.of(active.directory()), configuration);
+    }
+
+    static boolean joinedProfile(Path shared, Path configuration) {
+        Path parent = configuration.toAbsolutePath().normalize().getParent();
+        return shared.toAbsolutePath().normalize().resolve("joined-profiles").equals(parent);
+    }
+
     /** A broken link must not quietly create another ledger and start trading against it. */
     static Path resolve(Path game, Path fallback) throws IOException {
         return resolve(game,fallback,null,false);

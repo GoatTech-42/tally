@@ -27,6 +27,15 @@ public final class PositionRepository {
      * repository stamps an owner and hands back only that client's positions.
      */
     private String client = "";
+    private boolean legacyRecovery = true;
+
+    /** Fresh Hive members must never adopt the shared ledger's pre-ownership records. */
+    public void setLegacyRecovery(boolean allowed) { legacyRecovery = allowed; }
+
+    private String recoveryOwnerClause() throws SQLException {
+        if (!legacyRecovery && client.isBlank()) throw new SQLException("Recovery requires a named account");
+        return legacyRecovery ? "(client=? OR client='')" : "client=?";
+    }
 
     public void setClient(String name) {
         this.client = name == null ? "" : name;
@@ -260,7 +269,9 @@ public final class PositionRepository {
                 "SELECT position_id FROM retail_positions WHERE position_id <> root_position_id")) {
             while (rs.next()) retailChildren.add(rs.getLong(1));
         }
-        for (Position position : findAll("REAL")) {
+        List<Position> history = client.isEmpty() && legacyRecovery ? findAll("REAL")
+                : queryForClient("SELECT * FROM positions WHERE mode=? AND " + recoveryOwnerClause(), "REAL");
+        for (Position position : history) {
             if (!belongsToSession(position, stored.sessionStartedAt())) continue;
             if (position.status() == PositionStatus.SIGNAL
                     || position.status() == PositionStatus.MISSED_BEFORE_PURCHASE) continue;
@@ -377,13 +388,13 @@ public final class PositionRepository {
 
     public List<Position> findOpen(String mode) throws SQLException {
         String sql = "SELECT * FROM positions WHERE mode=? AND status NOT IN (" + CLOSED_STATUSES + ")";
-        if (client.isEmpty()) return query(sql, mode);
+        if (client.isEmpty() && legacyRecovery) return query(sql, mode);
         // Positions from before this column have no owner. They are not
         // claimed: with two clients running, whichever loaded first would take
         // the other's listings and then try to reprice what it cannot see.
         // Both clients read them, as they did before ownership existed, and
         // they drain as they sell; everything bought from now on is stamped.
-        return queryForClient(sql + " AND (client=? OR client='')", mode);
+        return queryForClient(sql + " AND " + recoveryOwnerClause(), mode);
     }
 
     /**
@@ -405,8 +416,8 @@ public final class PositionRepository {
                 + " AND COALESCE(realized_profit,0)=0"
                 + " AND NOT EXISTS (SELECT 1 FROM retail_positions r WHERE r.position_id=positions.position_id)";
         String tail = " ORDER BY closed_at DESC LIMIT 500";
-        if (client.isEmpty()) return query(where + tail, mode);
-        return queryForClient(where + " AND (client=? OR client='')" + tail, mode);
+        if (client.isEmpty() && legacyRecovery) return query(where + tail, mode);
+        return queryForClient(where + " AND " + recoveryOwnerClause() + tail, mode);
     }
 
     private List<Position> queryForClient(String sql, String mode) throws SQLException {
@@ -619,7 +630,7 @@ public final class PositionRepository {
         // migration when it has never written its own. Never another
         // client's: reading their committed spend against this balance is
         // what stopped the second account trading at all.
-        String sql = "SELECT * FROM automation_session_state WHERE client=? OR client='' "
+        String sql = "SELECT * FROM automation_session_state WHERE " + recoveryOwnerClause() + " "
                 + "ORDER BY (client=?) DESC LIMIT 1";
         try (PreparedStatement st = db.connection().prepareStatement(sql)) {
             st.setString(1, client);
@@ -749,11 +760,9 @@ public final class PositionRepository {
      * heartbeat interval of additional in-memory runtime.
      */
     public AutomationRuntimeSummary automationRuntimeSummary() throws SQLException {
-        String sql = """
-                SELECT session_active_millis, lifetime_active_millis,
-                       session_started_at, session_open, updated_at
-                FROM automation_session_state WHERE client=? OR client='' 
-                ORDER BY (client=?) DESC LIMIT 1""";
+        String sql = "SELECT session_active_millis, lifetime_active_millis, session_started_at, session_open, updated_at "
+                + "FROM automation_session_state WHERE " + recoveryOwnerClause()
+                + " ORDER BY (client=?) DESC LIMIT 1";
         try (PreparedStatement st = db.connection().prepareStatement(sql)) {
             st.setString(1, client);
             st.setString(2, client);

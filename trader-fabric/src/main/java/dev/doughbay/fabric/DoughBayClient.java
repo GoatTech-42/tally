@@ -330,7 +330,8 @@ public class DoughBayClient implements ClientModInitializer {
         } catch (Exception e) {
             LOGGER.warn("DoughBay could not read the markets we already trade: {}", e.toString());
         }
-        automationPersistence = new AutomationPersistenceWorker(config.databasePath());
+        automationPersistence = new AutomationPersistenceWorker(config.databasePath(),
+                !HiveSetup.joinedProfile(config.directory()));
         // The owning account has to be known before the ledger is read, not
         // after: recovery runs long before the player exists in a world, and a
         // second client that loaded with no owner would adopt the first's

@@ -22,6 +22,7 @@ public final class AutomationPersistenceWorker implements AutomationPersistenceP
             System.getLogger("dev.doughbay.storage.AutomationPersistenceWorker");
 
     private final Path databasePath;
+    private final boolean legacyRecovery;
     private final BlockingQueue<Command> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     private final AtomicLong nextGeneration = new AtomicLong();
     private final AtomicReference<Status> status = new AtomicReference<>(new Status(
@@ -100,7 +101,13 @@ public final class AutomationPersistenceWorker implements AutomationPersistenceP
     }
 
     public AutomationPersistenceWorker(Path databasePath) {
+        this(databasePath, true);
+    }
+
+    /** Existing standalone/legacy clients retain legacy recovery; fresh joined profiles do not. */
+    public AutomationPersistenceWorker(Path databasePath, boolean legacyRecovery) {
         this.databasePath = Objects.requireNonNull(databasePath, "databasePath");
+        this.legacyRecovery = legacyRecovery;
     }
 
     @Override
@@ -169,6 +176,7 @@ public final class AutomationPersistenceWorker implements AutomationPersistenceP
         try (Database database = new Database(databasePath)) {
             PositionRepository positions = new PositionRepository(database);
             positions.setClient(client);
+            positions.setLegacyRecovery(legacyRecovery);
             positions.setLoanId(loanId);
             recovery = positions.loadAutomationRecovery();
             retailLots = positions.retailLots();
