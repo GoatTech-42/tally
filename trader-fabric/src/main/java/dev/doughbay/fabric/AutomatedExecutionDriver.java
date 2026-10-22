@@ -4425,6 +4425,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     void sendCommand(CommandTransport transport, String command, long now, long gap) {
+        OutgoingCommandText.requireValid(command);
         if (isTeleport(command)) {
             DoughBayClient.LOGGER.warn(
                     "DoughBay refused to send /{}: teleports leave this server's connection one-way", command);
@@ -4469,6 +4470,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void dispatchCommand(CommandTransport transport, String command, long now) {
+        OutgoingCommandText.requireValid(command);
         if(operation == Operation.LIST && command.startsWith("ah sell ")) {
             String blocker=transport.listingBlocker();
             if(blocker!=null)throw new IllegalStateException(blocker);
@@ -4640,6 +4642,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     void sendWhenClear(CommandTransport transport, String command, long now, boolean connected) {
+        OutgoingCommandText.requireValid(command);
         // This path does not go through sendCommand, so the teleport block has
         // to be repeated here - and this is the path that matters, because it
         // is the one evasion escapes on.
@@ -4720,6 +4723,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         String command=externalCommands.removeFirst().command();
         escapeCommands.remove(command);
+        if (!OutgoingCommandText.valid(command)) {
+            if (!entry.request().isEmpty()) panelCommandOutcomes.put(entry.request(), "REFUSED");
+            lastMessage = "Command refused: remove formatting codes or control characters";
+            return;
+        }
         if (isTeleport(command)) {
             if(!entry.request().isEmpty()){panelCommandOutcomes.put(entry.request(),"REFUSED");return;}
             DoughBayClient.LOGGER.warn(

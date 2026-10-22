@@ -4,6 +4,26 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CommandSendProbeTest {
+    @Test void illegalCharactersNeverReachTheConnectionCallback() {
+        for (int code : new int[]{0, 9, 10, 13, 31, 127, 167}) {
+            String command = "ah search gold" + (char) code;
+            assertThrows(IllegalArgumentException.class, () -> CommandSendProbe.verify(command,
+                    () -> fail("Invalid command reached connection")));
+        }
+    }
+
+    @Test void validUnicodeAndPaymentTextAreHandedOffUnchanged() {
+        for (String command : new String[]{"ah search \u91d1", "msg ExamplePlayer caf\u00e9", "pay ExamplePlayer 200m"}) {
+            assertDoesNotThrow(() -> CommandSendProbe.verify(command, () -> CommandSendProbe.observe(command)));
+        }
+    }
+
+    @Test void refusalDoesNotExposeArguments() {
+        var error = assertThrows(IllegalArgumentException.class, () -> CommandSendProbe.verify(
+                "pay ExamplePlayer 200m\u00a7", () -> fail("Invalid payment reached connection")));
+        assertFalse(error.getMessage().contains("ExamplePlayer"));
+        assertFalse(error.getMessage().contains("200m"));
+    }
     @Test void voidSendReturningNormallyIsNotProofOfAPacket() {
         var error = assertThrows(IllegalStateException.class,
                 () -> CommandSendProbe.verify("ah sell 15500", () -> { }));
