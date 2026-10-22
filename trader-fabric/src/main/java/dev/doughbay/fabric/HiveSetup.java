@@ -160,9 +160,9 @@ public final class HiveSetup {
             if(m.owner().equalsIgnoreCase(account)||hasAccountFolder(shared.resolve("accounts"),account)
                     ||hasAccountFolder(shared.resolve("member-profiles"),account)
                     ||hasAccountFolder(shared.resolve("joined-profiles"),account))
-                throw new IOException("This account already has data in that hive. Open its existing instance; nothing was replaced.");
+                throw new IOException("This account already has data in that Hive. Use Restore existing Hive account below if its old instance was deleted. Nothing was replaced.");
             try(var c=DriverManager.getConnection("jdbc:sqlite:"+shared.resolve("doughbay.db").toUri()+"?mode=ro");var s=c.prepareStatement("SELECT 1 FROM positions WHERE lower(client)=lower(?) LIMIT 1")) {
-                s.setString(1,account);try(var r=s.executeQuery()){if(r.next())throw new IOException("This account already has trading history in that hive. Open its existing instance; nothing was replaced.");}
+                s.setString(1,account);try(var r=s.executeQuery()){if(r.next())throw new IOException("This account already has trading history in that Hive. Use Restore existing Hive account below; its stock and orders must be preserved.");}
             }catch(java.sql.SQLException e){throw new IOException("Could not verify the destination account safely. Nothing was linked.",e);}
             Path profiles=shared.resolve("joined-profiles");Files.createDirectories(profiles);
             Path staging=Files.createTempDirectory(profiles,"preparing-");
@@ -173,6 +173,47 @@ public final class HiveSetup {
             writePointer(game,m);
         }catch(IOException e){throw e;}catch(Exception e){throw new IOException("Could not prepare this account's settings. Nothing was overwritten.",e);}
         return m;
+    }
+
+    /** Reattach a replacement instance to this signed-in account's preserved records. */
+    static Membership restoreExisting(Path game, Path local, String code, String account) throws IOException {
+        return restoreExisting(game,local,code,account,()->{
+            var registry=new PanelBotRegistry(Path.of(System.getProperty("user.home"),".gonuts","panel-bots"),UUID.randomUUID().toString());
+            return registry.bots(System.currentTimeMillis()).stream().anyMatch(b->b.account().equalsIgnoreCase(account)
+                    && !Path.of(b.game()).toAbsolutePath().normalize().equals(game.toAbsolutePath().normalize()));
+        });
+    }
+
+    static Membership restoreExisting(Path game, Path local, String code, String account,
+                                      java.util.function.BooleanSupplier anotherInstanceRunning) throws IOException {
+        Membership m=decode(code);
+        if(account==null||!account.matches("[A-Za-z0-9_]{1,16}"))
+            throw new IOException("Sign into the Minecraft account whose saved Hive profile you want to restore");
+        if(Files.exists(game.resolve(POINTER))) {
+            if(!configured(game).id().equals(m.id()))throw new IOException("This instance is linked to another Hive. Its link was kept.");
+            return m;
+        }
+        if(Files.exists(game.resolve("gonuts-hive-combine.json")))
+            throw new IOException("Cancel the queued combination before restoring an account");
+        requireLocalLedger(local);requireEmpty(local);
+        Path shared=Path.of(m.directory());
+        try(var lease=HiveCombine.joinLease(shared)) {
+            if(!validate(m).id().equals(m.id()))throw new IOException("The Hive changed. Copy its current code and review again.");
+            if(anotherInstanceRunning.getAsBoolean())throw new IOException("This Minecraft account is open in another instance. Close that instance first, then restore here.");
+            boolean known=m.owner().equalsIgnoreCase(account)||hasAccountFolder(shared.resolve("accounts"),account)
+                    ||hasAccountFolder(shared.resolve("member-profiles"),account)||hasAccountFolder(shared.resolve("joined-profiles"),account);
+            if(!known)try(var c=DriverManager.getConnection("jdbc:sqlite:"+shared.resolve("doughbay.db").toUri()+"?mode=ro");
+                         var q=c.prepareStatement("SELECT 1 FROM positions WHERE lower(client)=lower(?) LIMIT 1")) {
+                q.setString(1,account);try(var r=q.executeQuery()){known=r.next();}
+            }
+            if(!known)throw new IOException("This signed-in account has no saved profile in that Hive. Use Join existing hive for a new account instead.");
+            // Validate the original account profile before publishing a link. No data is copied,
+            // reset, reassigned or reconciled here. Startup retains the native recovery gates.
+            Path preserved=HiveCombine.configuration(m,account);
+            if(!Files.isRegularFile(preserved.resolve("config.json")))throw new IOException("The saved account settings are missing. Restore the original folder backup; nothing was linked.");
+            writePointer(game,m);
+            return m;
+        }catch(IOException e){throw e;}catch(Exception e){throw new IOException("Could not verify the saved Hive account safely. Nothing was replaced.",e);}
     }
 
     private static boolean hasAccountFolder(Path parent,String account) throws IOException {

@@ -141,4 +141,77 @@ class HiveSetupTest {
         assertEquals("source orders",Files.readString(owner.resolve("orders-bids.txt")));
         assertEquals("source orders",Files.readString(data(main).resolve("orders-bids.txt")));
     }
+    @Test void joinedDiscordHostReadsAndUpdatesTheSharedPanelWithoutCopyingCredentials() throws Exception {
+        Path main=instance("discord-owner",true),third=instance("discord-joined",false);
+        HiveSetup.resolve(main,data(main));
+        var original=new dev.doughbay.fabric.discord.DiscordConfig("test-token","test-guild","test-channel","test-operator","old-panel");
+        original.save(data(main));
+        var membership=HiveSetup.create(main,data(main),"SourcePlayer");
+        HiveSetup.joinFresh(third,data(third),HiveSetup.code(membership),"ThirdPlayer");
+        try {
+            Path profile=HiveSetup.resolve(third,data(third),"ThirdPlayer");
+            assertNotEquals(data(main),profile);
+            var loaded=dev.doughbay.fabric.discord.DiscordConfig.load(profile);
+            assertTrue(loaded.complete(),"an elected joined host must find the existing Hive bot");
+            assertEquals("old-panel",loaded.messageId());
+            loaded.withMessageId("replacement-panel").save(profile);
+            assertEquals("replacement-panel",dev.doughbay.fabric.discord.DiscordConfig.load(data(main)).messageId());
+            assertFalse(Files.exists(profile.resolve("discord.json")),"credentials must not be copied to joined profiles");
+            assertTrue(Files.exists(profile.resolve("config.json")),"per-account trading configuration stays separate");
+        } finally { HiveSetup.resolve(root.resolve("unlinked"),root); }
+    }
+
+    @Test void soloDiscordConfigurationStaysLocal() throws Exception {
+        Path game=instance("discord-solo",false);
+        HiveSetup.resolve(game,data(game));
+        try {
+            var original=new dev.doughbay.fabric.discord.DiscordConfig("solo-token","guild","channel","operator","panel");
+            original.save(data(game));
+            assertEquals(original,dev.doughbay.fabric.discord.DiscordConfig.load(data(game)));
+            assertEquals(data(game).resolve("discord.json"),dev.doughbay.fabric.discord.DiscordConfig.file(data(game)));
+        } finally { HiveSetup.resolve(root.resolve("unlinked"),root); }
+    }
+    @Test void replacementInstanceRestoresSavedAccountWithoutChangingAnyOwnedRecords() throws Exception {
+        Path main=instance("restore-owner",true),old=instance("deleted-instance",false),replacement=instance("replacement",false);
+        var m=HiveSetup.create(main,data(main),"SourcePlayer");
+        HiveSetup.joinFresh(old,data(old),HiveSetup.code(m),"ThirdPlayer");
+        Path profile=HiveCombine.configuration(m,"ThirdPlayer");
+        Files.writeString(profile.resolve("orders-bids.txt"),"owned pending orders");
+        try(var c=DriverManager.getConnection("jdbc:sqlite:"+data(main).resolve("doughbay.db"));var q=c.createStatement()) {
+            q.execute("INSERT INTO positions VALUES(2,'ThirdPlayer')");
+        }
+        byte[] ledger=Files.readAllBytes(data(main).resolve("doughbay.db")),settings=Files.readAllBytes(profile.resolve("config.json"));
+        assertThrows(java.io.IOException.class,()->HiveSetup.joinFresh(replacement,data(replacement),HiveSetup.code(m),"ThirdPlayer"));
+        assertEquals(m,HiveSetup.restoreExisting(replacement,data(replacement),HiveSetup.code(m),"ThirdPlayer",()->false));
+        assertEquals(m,HiveSetup.configured(replacement));
+        assertArrayEquals(ledger,Files.readAllBytes(data(main).resolve("doughbay.db")));
+        assertArrayEquals(settings,Files.readAllBytes(profile.resolve("config.json")));
+        assertEquals("owned pending orders",Files.readString(profile.resolve("orders-bids.txt")));
+        assertTrue(Files.exists(old.resolve("gonuts-hive.json")),"the original instance is not deleted or rewritten");
+    }
+
+    @Test void restoreRefusesOtherRunningInstanceUnknownAccountAndLocalHistory() throws Exception {
+        Path main=instance("restore-source",true),fresh=instance("restore-fresh",false),used=instance("restore-used",true);
+        var m=HiveSetup.create(main,data(main),"SourcePlayer");String code=HiveSetup.code(m);
+        assertThrows(java.io.IOException.class,()->HiveSetup.restoreExisting(fresh,data(fresh),code,"SourcePlayer",()->true));
+        assertThrows(java.io.IOException.class,()->HiveSetup.restoreExisting(fresh,data(fresh),code,"UnknownPlayer",()->false));
+        assertThrows(java.io.IOException.class,()->HiveSetup.restoreExisting(used,data(used),code,"SourcePlayer",()->false));
+        assertFalse(Files.exists(fresh.resolve("gonuts-hive.json")));
+        assertFalse(Files.exists(used.resolve("gonuts-hive.json")));
+    }
+
+    @Test void restoreRefusesMissingPreservedProfileAndKeepsExistingLink() throws Exception {
+        Path main=instance("restore-missing",true),old=instance("restore-old",false),fresh=instance("restore-new",false),other=instance("restore-other",false);
+        var m=HiveSetup.create(main,data(main),"SourcePlayer");String code=HiveSetup.code(m);
+        HiveSetup.joinFresh(old,data(old),code,"ThirdPlayer");
+        Path profile=HiveCombine.configuration(m,"ThirdPlayer");
+        Files.delete(profile.resolve("config.json"));
+        assertThrows(java.io.IOException.class,()->HiveSetup.restoreExisting(fresh,data(fresh),code,"ThirdPlayer",()->false));
+        assertFalse(Files.exists(fresh.resolve("gonuts-hive.json")));
+        var different=HiveSetup.create(other,data(other),"OtherPlayer");
+        String before=Files.readString(other.resolve("gonuts-hive.json"));
+        assertThrows(java.io.IOException.class,()->HiveSetup.restoreExisting(other,data(other),code,"SourcePlayer",()->false));
+        assertEquals(before,Files.readString(other.resolve("gonuts-hive.json")));
+        assertEquals(different,HiveSetup.configured(other));
+    }
 }
