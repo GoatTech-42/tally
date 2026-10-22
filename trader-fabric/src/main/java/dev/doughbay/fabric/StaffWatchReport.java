@@ -67,9 +67,11 @@ public final class StaffWatchReport {
     }
     public static synchronized void start(Path directory,Supplier<String> account) {
         if(worker!=null)return;owner=account;
+        Path history = historyDirectory(directory);
         worker=Executors.newSingleThreadScheduledExecutor(r->{var thread=new Thread(r,"GoNuts-staff-activity");thread.setDaemon(true);return thread;});
-        worker.scheduleWithFixedDelay(()->refresh(directory),0,5,TimeUnit.SECONDS);
+        worker.scheduleWithFixedDelay(()->refresh(history),0,5,TimeUnit.SECONDS);
     }
+    static Path historyDirectory(Path configuration) { return HiveSetup.sharedDirectoryOr(configuration); }
     private static void refresh(Path directory) {
         long now=System.currentTimeMillis();var observation=sample;if(observation==null)return;
         try {

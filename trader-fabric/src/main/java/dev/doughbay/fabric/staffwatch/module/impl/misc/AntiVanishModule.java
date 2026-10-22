@@ -40,6 +40,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
 import net.minecraft.network.protocol.game.ClientboundExplodePacket;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
@@ -71,6 +72,12 @@ import net.minecraft.world.phys.Vec3;
 @Environment(EnvType.CLIENT)
 public final class AntiVanishModule extends ClientModule {
    private static final Minecraft MC = Minecraft.getInstance();
+   private final dev.doughbay.fabric.staffwatch.AntiVanishHealth health = new dev.doughbay.fabric.staffwatch.AntiVanishHealth();
+
+   public static String healthSummary() {
+      AntiVanishModule module = instance();
+      return module == null ? "avAvailable=false" : "avEnabled=" + module.isEnabled() + " " + module.health.summary();
+   }
    private static final String PROBE_COMMAND = "minecraft:msg";
    private static final int SENSOR_RANGE = 64;
    private static final long SIGNAL_WINDOW_MS = 15000L;
@@ -238,30 +245,20 @@ public final class AntiVanishModule extends ClientModule {
    }
 
    private boolean handleInbound(Packet<?> packet) {
-      if (packet instanceof ClientboundPlayerInfoRemovePacket remove) {
+      if (packet instanceof ClientboundBundlePacket bundle) {
+         this.health.bundle();
+         // Inspect every child, but never cancel siblings needed by vanilla.
+         for (Packet<?> child : bundle.subPackets()) this.handleInbound(child);
+      } else if (packet instanceof ClientboundPlayerInfoRemovePacket remove) {
          if (remove.profileIds().size() < 4) {
             for (UUID id : remove.profileIds()) {
                this.observations.offer(AntiVanishModule.Observation.tabRemove(id));
             }
          }
-      } else if (packet instanceof ClientboundPlayerInfoUpdatePacket info && info.actions().contains(Action.UPDATE_LISTED)) {
-         int unlisted = 0;
-
-         for (Entry entry : info.entries()) {
-            if (entry != null && !entry.listed()) {
-               unlisted++;
-            }
-         }
-
-         if (unlisted > 0 && unlisted < 4) {
-            for (Entry entryx : info.entries()) {
-               if (entryx != null && !entryx.listed()) {
-                  this.observations.offer(AntiVanishModule.Observation.tabHide(entryx.profileId()));
-               }
-            }
-         }
-      } else if (packet instanceof ClientboundPlayerInfoUpdatePacket info && info.actions().contains(Action.UPDATE_GAME_MODE)) {
-         this.queueGamemodeUpdates(info);
+      } else if (packet instanceof ClientboundPlayerInfoUpdatePacket info) {
+         // Actions are independent flags: visibility must not swallow a mode update.
+         if (info.actions().contains(Action.UPDATE_LISTED)) this.queueListedUpdates(info);
+         if (info.actions().contains(Action.UPDATE_GAME_MODE)) this.queueGamemodeUpdates(info);
       } else if (packet instanceof ClientboundSystemChatPacket chat) {
          String text = chat.content() == null ? "" : chat.content().getString();
          if (!text.isBlank()) {
@@ -283,7 +280,9 @@ public final class AntiVanishModule extends ClientModule {
                }
             }
 
-            return this.completionInbox.complete(suggestions.id(), names);
+            boolean owned = this.completionInbox.complete(suggestions.id(), names);
+            if (owned) this.health.probeReply(names.size());
+            return owned;
          }
 
          if (packet instanceof ClientboundSetEntityDataPacket metadata) {
@@ -306,6 +305,24 @@ public final class AntiVanishModule extends ClientModule {
       }
 
       return false;
+   }
+
+   private void queueListedUpdates(ClientboundPlayerInfoUpdatePacket info) {
+      int unlisted = 0;
+
+      for (Entry entry : info.entries()) {
+         if (entry != null && !entry.listed()) {
+            unlisted++;
+         }
+      }
+
+      if (unlisted > 0 && unlisted < 4) {
+         for (Entry entry : info.entries()) {
+            if (entry != null && !entry.listed()) {
+               this.observations.offer(AntiVanishModule.Observation.tabHide(entry.profileId()));
+            }
+         }
+      }
    }
 
    private void onSoundPacket(ClientboundSoundPacket packet) {
@@ -635,6 +652,7 @@ public final class AntiVanishModule extends ClientModule {
          }
 
          this.completionInbox.register(id);
+         this.health.probeRequest();
 
          try {
             MC.getConnection().send(new ServerboundCommandSuggestionPacket(id, command.trim() + " "));
@@ -657,8 +675,10 @@ public final class AntiVanishModule extends ClientModule {
 
             String self = MC.player.getName().getString();
             List<String> hidden = new ArrayList<>();
+            int knownStaff = 0;
 
             for (String name : current) {
+               if (StaffListModule.isStaffName(name)) knownStaff++;
                if (StaffListModule.isStaffName(name)
                   && AntiVanishText.isPlausiblePlayerName(name)
                   && !name.equalsIgnoreCase(self)
@@ -668,11 +688,13 @@ public final class AntiVanishModule extends ClientModule {
                }
             }
 
+            this.health.reviewedProbe(knownStaff, hidden.size());
             if (!hidden.isEmpty() && hidden.size() <= 3) {
                for (String namex : hidden) {
                   this.reportHidden(this.knownUuid(namex), namex, false, "Vanish Event: hidden but targetable", "off TAB, still targetable", 90);
                   // This exact vanilla completion probe was measured as shard-local.
                   // A hidden name need not have a UUID in the current player list.
+                  this.health.alertRequest();
                   dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.alert(namex);
                }
             }
@@ -937,6 +959,7 @@ public final class AntiVanishModule extends ClientModule {
    }
 
    private void watchingYou(String name, AntiVanishModule.RegionProof proof) {
+      this.health.alertRequest();
       dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.alert(name);
       long now = System.currentTimeMillis();
       this.lastCriticalMs = now;
@@ -971,10 +994,12 @@ public final class AntiVanishModule extends ClientModule {
    }
 
    private void queueGamemodeUpdates(ClientboundPlayerInfoUpdatePacket info) {
+      this.health.modePacket(info.actions().contains(Action.ADD_PLAYER));
       if (!info.actions().contains(Action.ADD_PLAYER)) {
          for (Entry entry : info.entries()) {
             if (entry != null && entry.gameMode() != null && entry.profileId() != null) {
                this.observations.offer(AntiVanishModule.Observation.gamemode(entry.profileId(), entry.gameMode().getName()));
+               this.health.queuedMode();
             }
          }
       }

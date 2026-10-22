@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased
+
+- Staff Watch history now uses the validated shared Hive directory even when an added member has separate account settings. New observations from added members join the shared history; existing profile-local history files are retained without an automatic historical merge. Solo histories keep their existing location.
+- Staff Watch: Anti Vanish now processes visibility and game-mode flags independently and inspects updates inside packet bundles. Full player-list additions remain excluded from local game-mode evidence; detection thresholds and response settings are unchanged.
+- Added anonymous Anti Vanish counters to the existing minute detector log: bundled updates, queued versus initial mode updates, completion attempts/replies, recognized staff candidates, and alert requests. No additional game requests or background workers. These repairs address reproduced packet-handling defects; the reported multi-day loss of staff alerts remains under investigation.
+
 ## 2026-10-22 01:21 UTC
 
 - **Release PR #228:** Bounded recovery history reads.
