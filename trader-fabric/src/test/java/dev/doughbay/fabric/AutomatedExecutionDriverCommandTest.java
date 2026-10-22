@@ -13,6 +13,33 @@ class AutomatedExecutionDriverCommandTest {
     private final AutomatedExecutionDriver driver = new AutomatedExecutionDriver();
     private final FakeTransport transport = new FakeTransport();
 
+    @Test void illegalSearchTextIsRefusedBeforeSendingOrDeferring() {
+        for (String command : List.of("ah search \u00a7aGold", "ah search gold\nhelp", "ah search gold\u007f")) {
+            transport.menu = true;
+            assertThrows(IllegalArgumentException.class, () -> driver.sendCommand(transport, command, 100_000, 600));
+            assertTrue(transport.sent.isEmpty());
+            assertEquals(0, transport.closes);
+        }
+    }
+
+    @Test void illegalPanelTextIsRefusedWithoutAnUncertainHandoff() {
+        Object connection = new Object(); transport.connection = connection; transport.panelAllowed = true;
+        driver.queuePanelCommand("invalid-message", "msg ExamplePlayer \u00a7hello", 200_000, connection);
+        driver.drainExternalCommands(transport, 100_000);
+        assertTrue(transport.sent.isEmpty());
+        assertEquals("REFUSED", driver.panelCommandStatus("invalid-message"));
+    }
+
+    @Test void backgroundCommandsCannotSendOrQueueIllegalText() {
+        for (boolean menu : new boolean[]{false, true}) {
+            transport.menu = menu;
+            assertThrows(IllegalArgumentException.class, () -> driver.sendWhenClear(
+                    transport, "pay ExamplePlayer 200m\u00a7", 100_000, true));
+            assertFalse(driver.externalCommandQueued());
+            assertTrue(transport.sent.isEmpty());
+        }
+    }
+
     @Test void panelPaymentUsesNativePacingGatesAndSendsAtMostOnce() throws Exception {
         Object connection=new Object();transport.connection=connection;transport.panelAllowed=false;
         driver.queuePanelCommand("request-one","pay ExamplePlayer 123",200_000,connection);

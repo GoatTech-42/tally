@@ -11,6 +11,7 @@ public final class CommandSendProbe {
     private CommandSendProbe() { }
 
     static void verify(String expected, Runnable send) {
+        OutgoingCommandText.requireValid(expected);
         Attempt previous = CURRENT.get();
         Attempt attempt = new Attempt();
         CURRENT.set(attempt);
