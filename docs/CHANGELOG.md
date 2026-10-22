@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-22 20:54 UTC — PR238: Restore Hive accounts and repair Discord updates
+
+- Client artifact published October 22 at 13:54:50 Los Angeles time (20:54:50 UTC). Build 1792702297322; SHA256 `b7ea6f0e9e80c32e56d7fd09e811ab56905a7f60cd2784c75a659feb8a4c657d`. Full production build: 1,500 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. Offline GUI preview verified the restore instructions, separate action buttons and Back without changing data.
+
+- Added a reviewed Restore existing Hive account GUI flow for replacement Minecraft instances. It reuses the signed-in account’s saved profile and records, refuses active duplicate instances or conflicting local history, and preserves owned stock, orders, settings, limits and native recovery gates without deleting or resetting data.
+
+- Fixed Discord panel updates stopping when a joined Hive profile wins host election. All hosts read and save the shared Hive Discord configuration and message identity without copying credentials into per-account settings. Trading ownership, recovery and safety gates are unchanged.
+
 ## 2026-10-22 04:51 UTC
 
 - **Release PR #234:** Manual network reconnect controls and visible disconnect reasons.
