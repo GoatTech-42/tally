@@ -20,10 +20,10 @@ class ReserveStockTest {
         assertFalse(ReserveStock.mayPlace(two,0,BATCH));
         assertFalse(ReserveStock.mayPlace(one,BATCH,BATCH));
         assertTrue(ReserveStock.mayPlace(empty,BATCH,BATCH));
-        // Eleven stacks sold is not sold out. No early refill/collection.
-        assertFalse(ReserveStock.mayCollect(64,true));
-        assertTrue(ReserveStock.mayCollect(0,true));
-        assertFalse(ReserveStock.mayCollect(0,false));
+        // One sold stack leaves exactly one stack of shelf space.
+        assertEquals(64,ReserveStock.collectUnits(11*64,BATCH,64,90));
+        assertEquals(0,ReserveStock.collectUnits(BATCH,BATCH,64,90));
+        assertEquals(BATCH,ReserveStock.collectUnits(0,BATCH,64,90));
     }
 
     @Test void identicalOldCompletedOrdersDoNotCreateAnotherReserveOrCollectTheWrongRow() {
@@ -65,9 +65,9 @@ class ReserveStockTest {
         var rows=List.of(row(BATCH),row(BATCH));
         var saved=Map.of(ReserveStock.key(row(BATCH)),BATCH);
         assertEquals(1,ReserveStock.book(ITEM,rows,saved).batches());
-        assertFalse(ReserveStock.mayPlace(ReserveStock.book(ITEM,rows,saved),64,BATCH));
-        assertFalse(ReserveStock.mayCollect(64,true));
-        assertTrue(ReserveStock.mayCollect(0,true));
+        assertFalse(ReserveStock.mayPlace(ReserveStock.book(ITEM,rows,saved),BATCH,BATCH));
+        assertEquals(11*64,ReserveStock.collectUnits(64,BATCH,64,90));
+        assertEquals(BATCH,ReserveStock.collectUnits(0,BATCH,64,90));
     }
 
     @Test void unknownCounterOrInvalidRowsFailClosedAndOtherMarketsStayIndependent() {
@@ -99,7 +99,7 @@ class ReserveStockTest {
         repricing.set(c,unlisted);
         var held=AutomationSessionController.class.getDeclaredMethod("reserveHeldUnits",String.class);held.setAccessible(true);
         assertEquals(128L,held.invoke(c,ITEM));
-        assertFalse(ReserveStock.mayCollect((long)held.invoke(c,ITEM),true));
+        assertEquals(10*64,ReserveStock.collectUnits((long)held.invoke(c,ITEM),BATCH,64,90));
         assertEquals(0L,held.invoke(c,"minecraft:dirt"));
     }
 

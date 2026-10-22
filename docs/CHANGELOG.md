@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased — Reserve Stock shelf restocking
+
+- Reserve Stock now refills its selling shelf as whole stacks sell. Collection is limited to the missing shelf quantity and available auction/inventory slots; remaining delivered stock stays on the order house. Already queued, held and repricing stock count toward the shelf.
+- Delivered whole stacks can be taken from partially filled orders. Collection keeps the exact order key and duplicate-row ordinal, measures the actual inventory change, and requires a fresh native order read before another top-up.
+- Each market buys at most two batches per cycle. After those purchases, both the shelf and outstanding/uncollected orders must drain before the next pair. The cycle record is saved before placement and restored across restarts; upgrades adopt existing exposure conservatively. Spending, market-depth, ownership, persistence and recovery guards are unchanged.
+
 ## 2026-10-21 23:51 UTC
 
 - **Release PR #224:** Added **Reserve Stock** under Settings → Orders, off by default. Automatic stack markets can keep one batch selling and one buy order filling or waiting uncollected. A completed reserve is collected only after owned stock of that item is gone from listings, queued purchases and repricing. Existing smaller orders and histories are retained.

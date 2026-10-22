@@ -3,7 +3,7 @@ package dev.doughbay.fabric.automation;
 import dev.doughbay.fabric.AutomatedExecutionDriver.OwnOrderRow;
 import java.util.*;
 
-/** One selling batch and one uncollected batch. Rebuilt from native orders and durable stock, not timers. */
+/** One selling shelf and one uncollected reserve. Rebuilt from native orders and durable stock. */
 final class ReserveStock {
     record Book(int batches, long units, boolean valid) {}
 
@@ -31,8 +31,12 @@ final class ReserveStock {
         return new Book(batches,units,true);
     }
 
-    /** Ordinal among finished matching rows, skipping old already-collected completed orders. */
+    /** Ordinal among matching rows, skipping already-collected deliveries, including partial orders. */
     static int collectOrdinal(String item, long unit, int requested, List<OwnOrderRow> rows, Map<String,Integer> collected) {
+        return collectOrdinal(item,unit,requested,rows,collected,1);
+    }
+
+    static int collectOrdinal(String item, long unit, int requested, List<OwnOrderRow> rows, Map<String,Integer> collected, int minimumUnits) {
         String key = item+"|"+unit+"|"+requested;
         long credit = collected.getOrDefault(key,0);
         int ordinal = 0;
@@ -40,8 +44,7 @@ final class ReserveStock {
         for (var row : rows) {
             if (!row.itemId().equals(item) || row.unitPrice()!=unit || row.requested()!=requested) continue;
             long used = Math.min(credit,row.delivered()); credit -= used;
-            if (row.remaining()!=0 && !row.alreadyCancelled()) continue;
-            if (row.delivered()-used > 0) return ordinal;
+            if (row.delivered()-used >= minimumUnits) return ordinal;
             ordinal++;
         }
         return -1;
@@ -51,12 +54,14 @@ final class ReserveStock {
 
     static boolean mayPlace(Book book, long heldUnits, int batchUnits) {
         if (!book.valid() || heldUnits < 0 || batchUnits <= 0) return false;
-        int limit = heldUnits > 0 ? 1 : 2;
-        return book.batches() < limit && heldUnits+book.units()+batchUnits <= 2L*batchUnits;
+        return book.batches() < 2 && heldUnits+book.units()+batchUnits <= 2L*batchUnits;
     }
 
-    static boolean mayCollect(long heldUnits, boolean finished) {
-        return heldUnits == 0 && finished;
+    /** Only whole stacks that fit the shelf and available auction/inventory slots are collected. */
+    static int collectUnits(long heldUnits, int batchUnits, int fullStack, int freeSlots) {
+        if (heldUnits < 0 || batchUnits <= 0 || fullStack <= 1 || freeSlots <= 0) return 0;
+        long gap = Math.max(0,batchUnits-heldUnits);
+        return (int)Math.min(gap/fullStack,freeSlots)*fullStack;
     }
 
     /** A reserve batch is never silently reduced to a part batch to fit a cap. */
