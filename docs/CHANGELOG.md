@@ -1,9 +1,13 @@
 # GoNuts changelog
 
-## Unreleased — bounded recovery history reads
+## 2026-10-22 01:21 UTC
+
+- **Release PR #228:** Bounded recovery history reads.
 
 - Recovery/panel reads now load only REAL positions bought at or after the saved session start instead of deserializing lifetime history and discarding older positions in Java. With no known session start, reconstruction reuses the already-read open positions. The inclusive boundary, owner/legacy scope, durable counter floors, retail children, uncertainty and spending reconstruction remain unchanged.
 - A bounded local CPU profile identified recovery reads as one source of client work. An owner-scoped, read-only SQL benchmark on one ledger returned 39,868 instead of 142,864 rows, with median row-read time 94.66 ms instead of 258.13 ms across five runs. This is about 2.7 times faster for that query, not an end-to-end Java/client CPU or FPS result; other machines and ledgers can differ.
+
+- **Validation/publication:** 1,478 tests, zero failures/errors, one skipped. Release PR #228 merge `bf55b0cff2a29df6bf4fa3b1722d8be6e5105137`; build `1792631929192`. Public JAR upload completed **2026-10-22 01:21:54 UTC** (Oct 21, 18:21:54 America/Los_Angeles). JAR SHA-256 `d996cd1a78a9b17122e96da5ed3e2a44c513239d583cf4ade57c1c7fa3106210`; source ZIP SHA-256 `bc8385a097166ad73c5e6b13a766acd4ccee48e456460c7b449ce4b72adf9ac7`. Public client/source/checksums independently downloaded and matched. Separate binary after PR226; this publication-record commit is documentation only.
 
 ## 2026-10-22 00:26 UTC
 
