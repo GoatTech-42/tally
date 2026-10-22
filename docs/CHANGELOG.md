@@ -1,5 +1,15 @@
 # GoNuts changelog
 
+## 2026-10-22 22:05 UTC
+
+- **Release PR #243:** Refuse illegal characters before sending game commands.
+
+- Client artifact published October 22 at 15:05:28 Los Angeles time (22:05:28 UTC). Build 1792706523474; SHA256 `9f9e5d70511b0bc4fcf926c8a1160429f53cfd1cca5eddf2c5db6943992d32d3`. Full production build: 1,507 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified.
+
+- Custom auction searches and manual messages could contain formatting codes or control characters that Minecraft rejects with an illegal-characters disconnect. Commands now use Minecraft's own character validator before queuing or sending. Invalid text is refused without rewriting commands; valid Unicode, payment amounts, pacing and safety gates are preserved.
+
+- Report #242 remains open: its diagnostics record disconnect notices but do not identify the offending command or exact disconnect packet. This repairs a reproduced unsafe text path; the cause of that reporter's kick remains unconfirmed. Running bots were not upgraded for this publication.
+
 ## 2026-10-22 20:54 UTC
 
 - **Release PR #238:** Restore existing Hive accounts safely and repair shared Discord host configuration.
