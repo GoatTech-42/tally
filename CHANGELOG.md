@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased
+
+- Added a reviewed Restore existing Hive account GUI flow for replacement Minecraft instances. It reuses the signed-in account’s saved profile and records, refuses active duplicate instances or conflicting local history, and preserves owned stock, orders, settings, limits and native recovery gates without deleting or resetting data.
+
+- Fixed Discord panel updates stopping when a joined Hive profile wins host election. All hosts read and save the shared Hive Discord configuration and message identity without copying credentials into per-account settings. Trading ownership, recovery and safety gates are unchanged.
+
 ## 2026-10-22 04:51 UTC
 
 - **Release PR #234:** Manual network reconnect controls and visible disconnect reasons.

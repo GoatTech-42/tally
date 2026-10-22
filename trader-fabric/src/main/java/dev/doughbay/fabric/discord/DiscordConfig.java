@@ -46,7 +46,10 @@ public record DiscordConfig(String token, String guildId, String channelId, Stri
     }
 
     public static Path file(Path directory) {
-        return directory.resolve("discord.json");
+        // Host election spans the shared Hive, including joined profiles whose
+        // trading settings deliberately stay private. Read and save the same panel
+        // configuration on every possible host; never copy its credentials.
+        return dev.doughbay.fabric.HiveSetup.sharedDirectoryOr(directory).resolve("discord.json");
     }
 
     public static DiscordConfig load(Path directory) {

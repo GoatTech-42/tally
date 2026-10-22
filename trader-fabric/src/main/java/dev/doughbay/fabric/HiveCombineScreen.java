@@ -22,7 +22,17 @@ final class HiveCombineScreen extends Screen {
                 message="Account linked. Close and restart ONLY this Minecraft instance. Existing hive members can keep running. Your settings and Swarm link are kept; trading is not started by joining.";
             }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException?e.getMessage():"This account could not join safely. Existing data was kept.";}
             rebuildWidgets();
-        }).bounds(x,height-81,w,22).build();join.active=!queued&&!joined;addRenderableWidget(join);
+        }).bounds(x,height-107,w,22).build();join.active=!queued&&!joined;addRenderableWidget(join);
+        var restore=CockpitButton.builder(Component.literal(joined?"Account linked - restart this instance":"Restore existing Hive account"),b->{
+            try {
+                if(minecraft.getConnection()!=null)throw new java.io.IOException("Disconnect before restoring a Hive account");
+                var game=net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
+                HiveSetup.restoreExisting(game,DoughBayClient.activeConfig().directory(),code,DoughBayClient.account());
+                joined=true;scroll=0;
+                message="Saved account restored. Close and restart ONLY this instance. Its original settings, stock, orders, limits and recovery state remain in the Hive. Nothing was deleted, reset or transferred; native recovery checks still apply.";
+            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException?e.getMessage():"The saved account could not be restored safely. Existing data was kept.";}
+            rebuildWidgets();
+        }).bounds(x,height-81,w,22).build();restore.active=!queued&&!joined;addRenderableWidget(restore);
         var confirm=CockpitButton.builder(Component.literal(queued?"Combination queued":"Queue safe combination"),b->{
             try {
                 if(minecraft.getConnection()!=null)throw new java.io.IOException("Disconnect before setting up a hive");
@@ -41,11 +51,12 @@ final class HiveCombineScreen extends Screen {
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050910);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
         g.text(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
-        int top=40,end=Math.max(40,height-94);g.enableScissor(x,top,x+w,end);y=top-scroll;
+        int top=40,end=Math.max(40,height-120);g.enableScissor(x,top,x+w,end);y=top-scroll;
         if(joined){
             y=card(g,y,x,w,"ACCOUNT LINKED / NEXT STEP",message,UiTheme.GOOD);
         }else{
         y=card(g,y,x,w,"ADDING ANOTHER ACCOUNT TO A HIVE?","A hive can have many accounts. For a fresh account without trading history, choose Join existing hive. Only this new instance needs a restart; existing members can keep running. Your settings and Swarm link stay separate.",UiTheme.GOOD);
+        y=card(g,y,x,w,"DELETED THE OLD INSTANCE?","Sign into that same Minecraft account in this fresh instance, select its original Hive, then choose Restore existing Hive account. Close any other instance using that account first. The original saved profile and owned records are reused; this is not a reset or a way to delete an account.",UiTheme.TEAL);
         y=card(g,y,x,w,"ALREADY HAVE TRADING HISTORY?","Do not use the fresh-account join to discard it. The separate combination tool below preserves two supported single-account histories. Its two-hive restriction is not a limit on hive membership.",UiTheme.GOLD);
         y=card(g,y,x,w,queued?"COMBINATION QUEUED / NEXT STEP":"ONLY WHEN COMBINING EXISTING HISTORIES",queued?"Close BOTH Minecraft instances completely. Start this requesting instance first. Wait for the import confirmation before opening the other. If validation fails, read the reason in Hive setup; do not repeatedly restart.":"Use the same GoNuts build in both instances. Queue safe combination, close BOTH Minecraft windows, then start this requesting instance first. Wait for import confirmation before opening the other. Both original folders are kept; each account keeps its settings, limits and recovery state. Cancel queued combine is available in Hive setup until switching begins.",UiTheme.TEAL);
         if(!message.isEmpty())y=card(g,y,x,w,"SETUP STATUS",message,UiTheme.WARN);
