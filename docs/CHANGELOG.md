@@ -1,6 +1,10 @@
 # GoNuts changelog
 
-## Unreleased
+## 2026-10-22 22:39 UTC
+
+- **Release PR #245:** Hourly numeric settings snapshots for private Swarm analysis.
+
+- Client artifact published October 22 at 15:39:41 Los Angeles time (22:39:41 UTC). Build 1792708705184; SHA256 `c791e129bd4afddbe6f59be2c52816056dd1d565a36f4d3b06997c8790d037d6`. Full production build: 1,512 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. This is a separate client publication after PR243; the running bots were not upgraded.
 
 - Linked Swarm clients share hourly snapshots of recognized numeric trading settings with diagnostic and performance metrics for private service analysis, feature/default refinement and bug investigation. Text/list settings, credentials, webhook URLs, player names and local paths are excluded from these snapshots.
 - Snapshots use the existing authenticated dashboard connection only after server support is negotiated. Unlinking stops future sharing. The admin analysis view compares configurations and observed outcomes without automatically changing anyone's settings; snapshot times are observation times and do not establish causation.
