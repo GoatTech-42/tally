@@ -368,7 +368,7 @@ public final class StaffListModule extends ClientModule {
       if (conn != null && mc.player != null && mc.level != null) {
          String health = this.packetHealth.report(observedAt, reportRows.size(),
                  (int) reportRows.stream().filter(row -> row.presence().equals("SPECTATOR")).count());
-         if (health != null) dev.doughbay.fabric.DoughBayClient.LOGGER.info("{} regionAlerts={}", health, this.regionAlert.get());
+         if (health != null) dev.doughbay.fabric.DoughBayClient.LOGGER.info("{} regionAlerts={} {}", health, this.regionAlert.get(), AntiVanishModule.healthSummary());
       }
    }
 
