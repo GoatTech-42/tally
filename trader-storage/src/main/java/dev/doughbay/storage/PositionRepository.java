@@ -270,8 +270,12 @@ public final class PositionRepository {
                 "SELECT position_id FROM retail_positions WHERE position_id <> root_position_id")) {
             while (rs.next()) retailChildren.add(rs.getLong(1));
         }
-        List<Position> history = client.isEmpty() && legacyRecovery ? findAll("REAL")
-                : queryForClient("SELECT * FROM positions WHERE mode=? AND " + recoveryOwnerClause(), "REAL");
+        // Recovery is read repeatedly by the live panel. Do not deserialize a
+        // lifetime ledger only to discard old rows in belongsToSession below.
+        // With no session start, that predicate accepts only the open rows we
+        // already loaded; otherwise push its exact inclusive boundary into SQL.
+        List<Position> history = stored.sessionStartedAt() <= 0 ? open
+                : sessionHistory(stored.sessionStartedAt());
         for (Position position : history) {
             if (!belongsToSession(position, stored.sessionStartedAt())) continue;
             if (position.status() == PositionStatus.SIGNAL
@@ -310,6 +314,18 @@ public final class PositionRepository {
                 stored.boundListingKey(),
                 stored.uncertainExposure(),
                 open);
+    }
+
+    private List<Position> sessionHistory(long startedAt) throws SQLException {
+        boolean allLegacy = client.isEmpty() && legacyRecovery;
+        String sql = "SELECT * FROM positions WHERE mode=? AND purchased_at>=?"
+                + (allLegacy ? "" : " AND " + recoveryOwnerClause());
+        try (PreparedStatement ps = db.connection().prepareStatement(sql)) {
+            ps.setString(1,"REAL");
+            ps.setLong(2,startedAt);
+            if (!allLegacy) ps.setString(3,client);
+            try (ResultSet rs = ps.executeQuery()) { return read(rs); }
+        }
     }
 
     /**
