@@ -1,5 +1,15 @@
 # GoNuts changelog
 
+## 2026-10-22 02:22 UTC
+
+- **Release PR #230:** Staff Watch packet intake and shared Hive history.
+
+- Staff Watch history now uses the validated shared Hive directory even when an added member has separate account settings. New observations from added members join the shared history; existing profile-local history files are retained without an automatic historical merge. Solo histories keep their existing location.
+- Staff Watch: Anti Vanish now processes visibility and game-mode flags independently and inspects updates inside packet bundles. Full player-list additions remain excluded from local game-mode evidence; detection thresholds and response settings are unchanged.
+- Added anonymous Anti Vanish counters to the existing minute detector log: bundled updates, queued versus initial mode updates, completion attempts/replies, recognized staff candidates, and alert requests. No additional game requests or background workers. These repairs address reproduced packet-handling defects; the reported multi-day loss of staff alerts remains under investigation.
+
+- **Validation/publication:** 1,487 tests, zero failures/errors, one skipped. Release PR #230 merge `97dcf9cea7d042f0eb1967cf33c8c4d7896f1292`; build `1792635431186`. Public JAR upload completed **2026-10-22 02:22:50 UTC** (Oct 21, 19:22:50 America/Los_Angeles). JAR SHA-256 `5d50c72ad9f98b22ec2e446f577d0e806876dc6aba21e4c88ff99d3ff90e02c6`; source ZIP SHA-256 `9c7164bdf411c91edaf3365059d8e086d93ea2e353689d2bebb2cb181ae28228`. Public JAR/source/checksums independently downloaded and matched. Separate binary after PR228; this publication-record commit is documentation only.
+
 ## 2026-10-22 01:21 UTC
 
 - **Release PR #228:** Bounded recovery history reads.
