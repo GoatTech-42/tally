@@ -51,6 +51,8 @@ public final class HostedDashboardClient {
     private long capturedAt,nextConnect,connectedAt,lastPing,lastTelemetry,metricsAt;private volatile long epoch;private long lastReceived;
     private int attempts;private boolean connecting,welcome,readSavingsSupported,dataUseSupported;
     private ObjectNode metrics;private String lastShape="";
+    private final SettingsAnalysis settingsAnalysis = new SettingsAnalysis();
+    private boolean settingsAnalysisSupported;
     private Path rankDirectory;private SwarmRankCoverage rankCoverage;private String rankAccount="",rankingSalt="",publishedAccountId="";
     private CompletableFuture<Void> writes=CompletableFuture.completedFuture(null);private int pendingWrites;private boolean forceTelemetry;
     private HostedDashboardClient(){}
@@ -126,6 +128,7 @@ public final class HostedDashboardClient {
         catch(Exception e){return System.currentTimeMillis()+60_000;}
     }
     public synchronized void unlink(){
+        settingsAnalysis.clear();
         staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();
@@ -153,6 +156,11 @@ public final class HostedDashboardClient {
         observedTerminal=Math.max(observedTerminal,terminal.sequence());
         activity.observe(terminal.sequence(),terminal.intent().name(),terminal.outcome().name(),reprice,terminal.occurredAtMillis(),now);
         if(!view.linked()||now-capturedAt<1000)return;capturedAt=now;
+        try {
+            settingsAnalysis.capture(account, CommunityClient.INSTANCE.readSavingsSharing(), now, SettingsCode::exportForReport);
+        } catch (RuntimeException ignored) {
+            settingsAnalysis.clear(); // Analysis must never interrupt trading or expose configuration in an exception log.
+        }
         var update=UpdateCheck.status();boolean newer=update.state()==UpdateCheck.State.NEWER||update.state()==UpdateCheck.State.READY;
         var j=DashboardProtocol.telemetry(now,session.state().name(),NameMask.on()?"Account":account,
             Math.max(session.openListings(),Math.max(0,DoughBayClient.automationSessionController().serverListedSlots())),Math.round(Tuning.get("slots.max")),Math.max(0,SidebarBalance.current()),session.tradesStarted(),build,newer,session.updatedAtMillis());
@@ -206,7 +214,7 @@ public final class HostedDashboardClient {
         publish(false);
     }
     private void connect() {
-        if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;dataUseSupported=false;epoch=epochs.incrementAndGet();long own=epoch;
+        if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;dataUseSupported=false;settingsAnalysisSupported=false;epoch=epochs.incrementAndGet();long own=epoch;
         view=new View(true,false,false,link.name,"Checking link",0);
         var request=HttpRequest.newBuilder(DashboardProtocol.CHECK).timeout(Duration.ofSeconds(10)).header("Authorization","Bearer "+link.credential)
             .header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build();
@@ -243,6 +251,7 @@ public final class HostedDashboardClient {
                 rankingSalt=j.path("rankingSalt").asText("");SwarmRank.clear();publishedAccountId="";
                 readSavingsSupported=SwarmSavingsWire.negotiated(j);
                 dataUseSupported=SharedDataUse.negotiated(j);
+                settingsAnalysisSupported=SettingsAnalysis.negotiated(j);
                 welcome=true;commands.connected(own);view=new View(true,true,false,link.name,"Online",0);publish(true);return;
             }
             if(!welcome)throw new IllegalArgumentException();
@@ -321,13 +330,20 @@ public final class HostedDashboardClient {
                 CommunityClient.INSTANCE.readSavingsSharing(),now);
         j.set("staffSightings",SwarmStaffSightings.INSTANCE.snapshot(CommunityClient.INSTANCE.sharingStaffSightings(now),now));
         var shape=SwarmSavingsWire.comparison(j);String encoded=shape.toString();
-        if(!forceTelemetry&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
-        send(j);lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
+        var settingsSnapshot = settingsAnalysis.pending(captured.account(), epoch,
+                welcome && settingsAnalysisSupported && metrics != null && metricsAccount.equals(captured.account()) && !identity.isEmpty(),
+                CommunityClient.INSTANCE.readSavingsSharing(), now);
+        if(!forceTelemetry&&settingsSnapshot==null&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
+        if(settingsSnapshot!=null)j.set("settingsAnalysis",settingsSnapshot);
+        if(send(j)) {
+            if(settingsSnapshot!=null)settingsAnalysis.sent(captured.account(),epoch,settingsSnapshot.path("sampledAt").asLong());
+            lastShape=encoded;lastTelemetry=now;forceTelemetry=false;
+        }
     }
-    private void send(ObjectNode j){
-        if(socket==null)return;String body=j.toString();int limit=j.path("type").asText().equals("panel_result")?DashboardProtocol.MAX_PANEL_FRAME_BYTES:DashboardProtocol.MAX_BYTES;if(body.getBytes(StandardCharsets.UTF_8).length>limit)return;
+    private boolean send(ObjectNode j){
+        if(socket==null)return false;String body=j.toString();int limit=j.path("type").asText().equals("panel_result")?DashboardProtocol.MAX_PANEL_FRAME_BYTES:DashboardProtocol.MAX_BYTES;if(body.getBytes(StandardCharsets.UTF_8).length>limit)return false;
         WebSocket current=socket;long own=epoch;
-        if(pendingWrites>=64){failed("Dashboard send queue full; reconnecting");return;}
+        if(pendingWrites>=64){failed("Dashboard send queue full; reconnecting");return false;}
         pendingWrites++;
         writes=writes.handle((v,e)->null).thenCompose(v->{
             if(epochs.get()!=own)return CompletableFuture.completedFuture(null);
@@ -337,6 +353,7 @@ public final class HostedDashboardClient {
             if(epochs.get()!=own)return;pendingWrites=Math.max(0,pendingWrites-1);
             if(error!=null)failed("Dashboard send failed; retrying");
         }));
+        return true;
     }
     private void failed(String message){
         dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.RETRY,dev.doughbay.fabric.ActionTrace.Code.SOCKET,"IO_FAILURE",-1,-1,-1);
