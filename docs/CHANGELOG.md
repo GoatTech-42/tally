@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased
+
+- Linked Swarm clients share hourly snapshots of recognized numeric trading settings with diagnostic and performance metrics for private service analysis, feature/default refinement and bug investigation. Text/list settings, credentials, webhook URLs, player names and local paths are excluded from these snapshots.
+- Snapshots use the existing authenticated dashboard connection only after server support is negotiated. Unlinking stops future sharing. The admin analysis view compares configurations and observed outcomes without automatically changing anyone's settings; snapshot times are observation times and do not establish causation.
+
 ## 2026-10-22 22:05 UTC
 
 - **Release PR #243:** Refuse illegal characters before sending game commands.
