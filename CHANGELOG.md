@@ -1,9 +1,13 @@
 # GoNuts changelog
 
-## Unreleased
+## 2026-10-22 04:51 UTC
+
+- **Release PR #234:** Manual network reconnect controls and visible disconnect reasons.
 
 - Reconnect screen: added **Reconnect now** for an ordinary connection-loss countdown and an explicit **Cancel / server list** route. Manual retries connect once and do not grant permission to resume trading; active staff-alert cooldowns and intentional restart ownership remain authoritative.
 - Ordinary network retries now say **Connection lost** and show the latest available disconnect reason, instead of labelling every lost connection as Staff Watch. This implements the manual retry control requested in report #233; it does not establish or fix the underlying server rejection in that older-build report.
+
+- **Validation/publication:** 1,495 tests, zero failures/errors, one skipped. Release PR #234 merge `96473ff29aa83865a634a9ee3a5625df0e1f4323`; build `1792644520377`. Public JAR upload completed **2026-10-22 04:51:12 UTC** (Oct 21, 21:51:12 America/Los_Angeles). JAR SHA-256 `8a7aac703c3d86beb2a37a4f21d3d65cc79eb4de5f6434169d7c93eb14957091`; source ZIP SHA-256 `894e7bd3c5c16623e92f20144421f7242ac1347620b676f5ca124e29a43acd8c`. Public JAR/source/checksums independently downloaded and matched. Separate binary after PR230; this publication-record commit is documentation only. Running bots were not upgraded.
 
 ## 2026-10-22 02:22 UTC
 
