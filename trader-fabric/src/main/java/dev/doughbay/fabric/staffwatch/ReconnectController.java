@@ -12,6 +12,8 @@ public final class ReconnectController {
  private boolean cancelledByUser;
  private final ReconnectResume tradingResume=new ReconnectResume();
  private String lastResumeBlocker="";
+ private String disconnectReason="";
+ public String disconnectReason(){return disconnectReason;}
  public boolean controlsConnection(){if(regionEscape.flow.ownsConnection())return true;if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&schedule.watcher()==null)return false;var c=WatchConfig.get();return c.enabled&&c.autoDisconnect&&donutSession&&(cancelledByUser||schedule.active()||flow.phase()!=ReconnectFlow.Phase.IDLE||Minecraft.getInstance().gui.screen() instanceof DisconnectedScreen);}
  private String lastWatcher="";
  public String lastWatcher(){return lastWatcher;}
@@ -33,7 +35,10 @@ public final class ReconnectController {
  private final StaffRegionEscapeController regionEscape = new StaffRegionEscapeController(this::disconnectNow);
  public String evasionRtpCommand(){return regionEscape.evasionRtpCommand();}
  private ReconnectController(){}
- public void unexpectedConnectionLost(){
+ public void unexpectedConnectionLost(){unexpectedConnectionLost("");}
+ public void unexpectedConnectionLost(String reason){
+  disconnectReason=reason==null?"":reason.replaceAll("[\\p{Cntrl}]"," ").strip();
+  if(disconnectReason.length()>500)disconnectReason=disconnectReason.substring(0,500);
   var config=WatchConfig.get();
   if(!config.enabled||!config.autoDisconnect||cancelledByUser)return;
   var session=dev.doughbay.fabric.DoughBayClient.automationSessionController();
@@ -77,6 +82,12 @@ public final class ReconnectController {
   if(!automaticAttempt){tradingResume.cancel();flow.connectionStarted(WatchConfig.get().reconnectAddress(),donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);}
  }
  public void cancel(){tradingResume.cancel();regionEscape.cancel();flow.cancel();target=null;cancelledByUser=true;}
+ public boolean canReconnectNow(){return !regionEscape.flow.ownsConnection()&&!dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&flow.canReconnectNow();}
+ public boolean reconnectNow(){
+  if(!canReconnectNow())return false;
+  // Only the connection is requested here; retained trading intent and native gates remain unchanged.
+  cancelledByUser=false;return flow.reconnectNow();
+ }
  public void tick(){
   // Detector callbacks finish before world teardown, avoiding invalidating their iterators.
   if(flow.phase()==ReconnectFlow.Phase.DISCONNECTING){

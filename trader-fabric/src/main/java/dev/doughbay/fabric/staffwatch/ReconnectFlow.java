@@ -45,6 +45,18 @@ public final class ReconnectFlow {
   }
  }
  public void cancel() { phase=Phase.IDLE; sessionAddress=null; schedule.cancel(); }
+ /** Explicit user retry skips only the ordinary network delay, never a pending staff cooldown. */
+ public boolean canReconnectNow() {
+  return phase==Phase.WAITING && schedule.active() && client.countdownScreen()
+      && !client.connected() && !client.connecting() && (schedule.watcher()==null || schedule.due());
+ }
+ public boolean reconnectNow() {
+  if(!canReconnectNow())return false;
+  beginAttempt();return true;
+ }
+ private void beginAttempt() {
+  String address=schedule.address();schedule.cancel();phase=Phase.ATTEMPTING;client.connect(address);
+ }
  public void tick(boolean enabled) { tick(enabled,""); }
  private void retry(String configured) {
   String address=destination(configured,sessionAddress);
@@ -78,10 +90,7 @@ public final class ReconnectFlow {
    case WAITING -> {
     if (client.connected() || client.connecting() || !client.countdownScreen()) { cancel(); return; }
     if (schedule.due()) {
-     String address=schedule.address();
-     schedule.cancel();
-     phase=Phase.ATTEMPTING;
-     client.connect(address);
+     beginAttempt();
     }
    }
    case ATTEMPTING -> {
