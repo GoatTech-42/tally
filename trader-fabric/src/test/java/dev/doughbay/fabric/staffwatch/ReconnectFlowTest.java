@@ -66,4 +66,50 @@ class ReconnectFlowTest {
  @Test void regionalRestartOwnsOrdinaryDisconnectAndConnectionAttempts(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true,"main.example",true);assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertEquals(0,client.shows);assertFalse(timer.active());flow.connectionStarted("east.example",true);flow.tick(true,"main.example",true);assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertFalse(timer.active());}
  @Test void regionalRecoveryDoesNotCancelAStaffCooldown(){start("main.example");client.connected=false;client.disconnected=true;long left=timer.remainingMillis();flow.tick(true,"main.example",true);assertEquals(ReconnectFlow.Phase.WAITING,flow.phase());assertEquals(left,timer.remainingMillis());assertEquals("KnownStaff",timer.watcher());}
  @Test void regionDisconnectFailureStillGetsStaffDelayInsteadOfTwoMinutes(){client.connected=false;client.disconnected=true;assertTrue(flow.staffCooldown("Staff","main.example",true));assertEquals(0,client.disconnects);flow.tick(true);assertEquals(ReconnectFlow.Phase.WAITING,flow.phase());assertEquals("Staff",timer.watcher());assertTrue(timer.remainingMillis()>=300000&&timer.remainingMillis()<=600000);}
+ @Test void explicitNetworkRetryConnectsOnceWithoutWaitingTwoMinutes(){
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
+  assertEquals(120000,timer.remainingMillis());assertTrue(flow.canReconnectNow());
+  assertTrue(flow.reconnectNow());assertEquals(1,client.connects);assertEquals("current.example:25566",client.destination);
+  assertFalse(timer.active());assertEquals(ReconnectFlow.Phase.ATTEMPTING,flow.phase());
+  assertFalse(flow.reconnectNow());assertEquals(1,client.connects);
+ }
+ @Test void explicitRetryCannotShortenAnActiveStaffCooldown(){
+  start("target.example");offline();long wait=timer.remainingMillis();
+  assertFalse(flow.canReconnectNow());assertFalse(flow.reconnectNow());
+  assertEquals(wait,timer.remainingMillis());assertEquals(0,client.connects);
+  now.addAndGet(wait*1000000);assertTrue(flow.reconnectNow());assertEquals(1,client.connects);
+ }
+ @Test void cancellationThenManualJoinIsNotReplacedByTheOldCountdown(){
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);flow.cancel();
+  client.countdown=false;client.disconnected=false;client.connecting=true;flow.connectionStarted("manual.example",true);
+  flow.tick(true);assertEquals(ReconnectFlow.Phase.ATTEMPTING,flow.phase());assertFalse(timer.active());
+  client.connecting=false;client.connected=true;flow.tick(true);assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertFalse(timer.active());
+ }
+ @Test void reconnectButtonCannotStartASecondManualConnection(){
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);client.connecting=true;
+  assertFalse(flow.reconnectNow());assertEquals(0,client.connects);flow.tick(true);assertFalse(timer.active());
+ }
+ @Test void leavingTheCountdownInvalidatesAnOldReconnectButton(){
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);client.countdown=false;
+  assertFalse(flow.reconnectNow());assertEquals(0,client.connects);
+ }
+ @Test void explicitRetryCannotTakeOverAnIntentionalRestartHop(){
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
+  flow.tick(true,"current.example",true);assertFalse(flow.reconnectNow());assertEquals(0,client.connects);
+ }
+ @Test void explicitRetryRetainsOwnedRecoveryButCannotSkipItsNativeGate(){
+  var recovery=new ReconnectResume();recovery.noteUnexpectedDisconnect(true,999);
+  client.retryScheduled=()->recovery.automaticRetryScheduled(1000);
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
+  assertTrue(recovery.pending());assertTrue(flow.reconnectNow());assertTrue(recovery.pending());
+  client.connecting=false;client.connected=true;flow.tick(true);
+  assertNull(recovery.tick(1000,true,true,false,()->fail("World settling still applies")));
+  var result=recovery.tick(16000,true,true,false,()->dev.doughbay.core.execution.ExecutionResult.refused("Native ownership gate"));
+  assertNotNull(result);assertFalse(result.ok());assertTrue(recovery.pending());
+ }
+ @Test void explicitConnectionWithoutRunningIntentDoesNotCreateTradingRecovery(){
+  var recovery=new ReconnectResume();client.retryScheduled=()->recovery.automaticRetryScheduled(1000);
+  flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
+  assertTrue(flow.reconnectNow());assertFalse(recovery.pending());
+ }
 }

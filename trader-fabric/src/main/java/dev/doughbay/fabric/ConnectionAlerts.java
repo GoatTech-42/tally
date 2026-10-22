@@ -11,7 +11,7 @@ public final class ConnectionAlerts {
 
     public static void disconnected(String server, String reason) {
         if (!DonutServer.matches(server) || DisconnectRecovery.intentional(reason)) return;
-        dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.unexpectedConnectionLost();
+        dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.unexpectedConnectionLost(reason);
         String recovery = "Pacing unchanged.";
         if (DisconnectRecovery.clickSpam(reason) && Tuning.get("pace.recover_click_spam") >= .5) {
             try {

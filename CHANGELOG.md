@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased
+
+- Reconnect screen: added **Reconnect now** for an ordinary connection-loss countdown and an explicit **Cancel / server list** route. Manual retries connect once and do not grant permission to resume trading; active staff-alert cooldowns and intentional restart ownership remain authoritative.
+- Ordinary network retries now say **Connection lost** and show the latest available disconnect reason, instead of labelling every lost connection as Staff Watch. This implements the manual retry control requested in report #233; it does not establish or fix the underlying server rejection in that older-build report.
+
 ## 2026-10-22 02:22 UTC
 
 - **Release PR #230:** Staff Watch packet intake and shared Hive history.
