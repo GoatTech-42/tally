@@ -4853,6 +4853,11 @@ public final class AutomationSessionController {
 
     public synchronized void setCollectedStore(java.nio.file.Path path) {
         collectedStore = path;
+        try {
+            reserveCycles.load(path == null ? null : path.resolveSibling("orders-reserve-cycles.txt"));
+        } catch (java.io.IOException e) {
+            LOGGER.error("Reserve Stock cycle record could not be loaded; new reserve bids are blocked",e);
+        }
         loadBidsAndFills();
         loadOwnBought();
         try {
@@ -4897,6 +4902,19 @@ public final class AutomationSessionController {
         return dev.doughbay.fabric.Tuning.get("orders.reserve_stock") >= 0.5;
     }
 
+    private final ReserveCycles reserveCycles = new ReserveCycles();
+
+    private int reserveCollectUnits(String item) {
+        int server = serverListedSlots();
+        if (server < 0) {
+            slotAuditPending = true;
+            return 0;
+        }
+        int free = Math.max(0,maxOpenListings()-Math.max(openListings.size(),server)
+                -slotsSpokenFor()-recoveredQueue.size());
+        return ReserveStock.collectUnits(reserveHeldUnits(item),reserveBatchUnits(item),fullStack(item),free);
+    }
+
     private boolean reserveMarket(String item) {
         return item != null && !item.isBlank() && reserveEnabled() && !ownOnly() && ownPrice(item) == null && !ownSingles(item)
                 && !singlesListingEnabled() && fullStack(item) > 1;
@@ -4924,7 +4942,12 @@ public final class AutomationSessionController {
         if (book.units() == 0 && pendingFills.stream().anyMatch(f -> {
             var bid = bidForFill(f); return bid != null && bid.itemId().equals(item);
         })) return false; // A delivery absent from the native book still needs reconciliation.
-        return ReserveStock.mayPlace(book,reserveHeldUnits(item),reserveBatchUnits(item));
+        try {
+            return reserveCycles.mayPlace(item,book,reserveHeldUnits(item),reserveBatchUnits(item));
+        } catch (java.io.IOException e) {
+            LOGGER.error("Reserve Stock cycle could not be saved; no reserve bid sent",e);
+            return false;
+        }
     }
 
     /** Money sitting in the player's open bids: out of the bank, so counted against the cap like listings. */
@@ -5313,6 +5336,7 @@ public final class AutomationSessionController {
             detail = "Bid desk: dropped a bid outside the current market focus";
             return true;
         }
+        int collectionLimit = 0; // Zero retains ordinary/cleanup collection; reserve top-ups must be positive.
         if (reserveMarket(step.itemId()) && (step.action() == DeskAction.PLACE || step.action() == DeskAction.COLLECT)) {
             if (ownOrdersReadAt <= 0 || now-ownOrdersReadAt > 60_000) {
                 deskQueue.clear(); deskReadDue = true;
@@ -5327,10 +5351,18 @@ public final class AutomationSessionController {
                 detail = "Reserve Stock: selling batch and reserve are already covered";
                 return true;
             }
-            if (step.action() == DeskAction.COLLECT && !windingDown()
-                    && !ReserveStock.mayCollect(reserveHeldUnits(step.itemId()),true)) {
-                detail = "Reserve Stock: leaving delivery uncollected until the selling batch is gone";
+            if (step.action() == DeskAction.COLLECT && !windingDown())
+                collectionLimit = Math.min(reserveCollectUnits(step.itemId()),Math.max(0,freeInventorySlots(client)-4)*fullStack(step.itemId()));
+            if (step.action() == DeskAction.COLLECT && !windingDown() && collectionLimit <= 0) {
+                detail = "Reserve Stock: shelf is stocked or auction slots need a fresh check";
                 return true;
+            }
+            if (step.action() == DeskAction.PLACE) {
+                try { reserveCycles.reservePurchase(step.itemId()); }
+                catch (java.io.IOException e) {
+                    pauseInternal("Reserve Stock cycle could not be saved; no order sent");
+                    return true;
+                }
             }
         }
         if (step.action() == DeskAction.PLACE && step.retailTarget() > 0) {
@@ -5364,7 +5396,7 @@ public final class AutomationSessionController {
             case READ -> driver.readOwnOrders();
             case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.count(), step.ordinal(),
                     dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why())
-                            && !ownSingles(step.itemId()), reserveMarket(step.itemId()) && !takesAll(step.why()) && !windingDown());
+                            && !ownSingles(step.itemId()), false, collectionLimit);
             case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
             case PLACE -> driver.placeOrder(step.itemId(), step.count(), step.unitPrice());
             case SWEEP -> driver.probeCheapest(step.itemId(), step.count(), dev.doughbay.fabric.DoughBayClient.account());
@@ -5591,6 +5623,14 @@ public final class AutomationSessionController {
                 collectedByKey.merge(orderKey(step.itemId(), step.unitPrice(), step.count()), count, Integer::sum);
                 if (count > 0) collectAttempts.remove(orderKey(step.itemId(), step.unitPrice(), step.count()));
                 saveCollected();
+                if (reserveMarket(step.itemId())) {
+                    // The next top-up must use a new native book, never a second queued copy of this delivery.
+                    ownOrdersReadAt = 0;
+                    deskQueue.removeIf(q -> q.action() == DeskAction.COLLECT && q.itemId().equals(step.itemId()));
+                    deskReadDue = true;
+                    LOGGER.info("DoughBay Reserve Stock: shelf restock collected {} x{}; remaining reserve stays on the order",
+                            step.itemId(),count);
+                }
                 if (count > 0) consumeFills(step.itemId(), count);
                 if (count > 0) bookCollected(client, now, step.itemId(), count, step.unitPrice());
                 return;   // bookCollected moves the session on
@@ -5754,10 +5794,11 @@ public final class AutomationSessionController {
             // Sold one at a time, what has not been collected is better left in
             // the order, which keeps it for months, than carried in the pack.
             boolean reserve = reserveMarket(r.itemId());
-            if (reserve) listablePart &= r.remaining() == 0 || r.alreadyCancelled();
+            if (reserve && !winding) listablePart = pending >= fullStack(r.itemId()) && reserveCollectUnits(r.itemId()) > 0;
             boolean lotStillSelling = (ownSingles(r.itemId()) && hasRetailStock(r.itemId())
-                    || reserve && reserveHeldUnits(r.itemId()) > 0) && !windingDown();
-            int reserveOrdinal = reserve ? ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey) : 0;
+                    || reserve && reserveCollectUnits(r.itemId()) <= 0) && !windingDown();
+            int reserveOrdinal = reserve ? ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey,
+                    winding ? 1 : fullStack(r.itemId())) : 0;
             if (reserve && reserveOrdinal < 0) listablePart = false;
             if (pending > 0 && listablePart && !lotStillSelling
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {

@@ -940,6 +940,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
                                                      int ordinal, boolean wholeStacksOnly, boolean finishedOnly) {
+        return collectOrder(itemId,unitPrice,requested,ordinal,wholeStacksOnly,finishedOnly,0);
+    }
+
+    /** Positive maximumUnits takes only whole stacks up to the shelf deficit. Zero keeps legacy collection. */
+    public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
+                                                     int ordinal, boolean wholeStacksOnly, boolean finishedOnly, int maximumUnits) {
+        if (maximumUnits < 0) return ExecutionResult.refused("Invalid collection limit");
         ExecutionResult result = beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
                 "Collecting " + shortName(itemId) + " delivered to your order");
         if (result.ok()) {
@@ -947,6 +954,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             ownMatchRequested = Math.max(0, requested);
             collectWholeStacksOnly = wholeStacksOnly;
             collectFinishedOnly = finishedOnly;
+            collectMaximumUnits = maximumUnits;
             ownTargetFinished = false;
         }
         return result;
@@ -956,6 +964,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     public static final String PART_STACK_WAITING = "Only part of a stack is waiting on the order";
     private boolean collectWholeStacksOnly;
     private boolean collectFinishedOnly;
+    private int collectMaximumUnits;
+
+    static boolean collectionStackFits(int taken, int count, int full, int maximum) {
+        return maximum == 0 || taken >= 0 && count == full && full > 1 && (long)taken+count <= maximum;
+    }
     /** The order being collected shows on Your Orders as fully delivered or cancelled. */
     private boolean ownTargetFinished;
 
@@ -1469,6 +1482,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (slot.container == inventory) continue;
                     ItemStack stack = slot.getItem();
                     if (stack.isEmpty() || !itemId(stack).equals(targetItemId)) continue;
+                    if (!collectionStackFits(now-inventoryCountBefore,stack.getCount(),stack.getMaxStackSize(),collectMaximumUnits)) {
+                        partsLeft++;
+                        continue;
+                    }
                     if (!partsToo && stack.getCount() < stack.getMaxStackSize()) {
                         partsLeft++;
                         continue;
