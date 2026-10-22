@@ -1,10 +1,15 @@
 # GoNuts changelog
 
-## Unreleased — Reserve Stock shelf restocking
+## 2026-10-22 00:26 UTC
+
+- **Release PR #226:** Reserve Stock shelf restocking.
 
 - Reserve Stock now refills its selling shelf as whole stacks sell. Collection is limited to the missing shelf quantity and available auction/inventory slots; remaining delivered stock stays on the order house. Already queued, held and repricing stock count toward the shelf.
 - Delivered whole stacks can be taken from partially filled orders. Collection keeps the exact order key and duplicate-row ordinal, measures the actual inventory change, and requires a fresh native order read before another top-up.
 - Each market buys at most two batches per cycle. After those purchases, both the shelf and outstanding/uncollected orders must drain before the next pair. The cycle record is saved before placement and restored across restarts; upgrades adopt existing exposure conservatively. Spending, market-depth, ownership, persistence and recovery guards are unchanged.
+
+- **Production validation:** 1,476 tests, zero failures/errors, one skipped.
+- **Publication:** Release PR #226 merge `aac2ab81a620db77930e4567ca642f7f4a2d0b15`; build `1792628580525`; public JAR upload completed **2026-10-22 00:26:02 UTC** (Oct 21, 17:26:02 America/Los_Angeles). JAR SHA-256 `7c9b46be899b2fd26ca067f7338b1003d8c41ac3e861fb4d22534f6900c14961`; source ZIP SHA-256 `7f5d6563719982ed1526bae05a948de1f34076e1cef59ec08fda07c96d1433ec`. Public client, source and checksums independently downloaded and matched. This is a separate client update after PR224; the following publication record is documentation only.
 
 ## 2026-10-21 23:51 UTC
 
