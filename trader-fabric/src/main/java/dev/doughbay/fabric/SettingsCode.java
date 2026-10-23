@@ -104,6 +104,7 @@ public final class SettingsCode {
 
     /** Explicit privacy allowlist. Never export list/text settings or arbitrary config fields. */
     static final Set<String> REPORT_KEYS = Set.of(
+            "buy.focus",
             "buy.scale_with_bank",
             "buy.purchase_cap_pct",
             "buy.outstanding_cap_pct",
