@@ -1,6 +1,9 @@
 # GoNuts changelog
 
-## 2026-10-23 — Required private diagnostic history
+## 2026-10-23 21:40 UTC
+
+- **Release PR #268: Required private diagnostic history across clients and restarts.**
+- Client artifact published October 23 at 14:40:07 Los Angeles time (21:40:07 UTC). Build `1792791320879`; SHA256 `12e0f4a24e96e4b04854f1bbb4730d1d03575cba66a620a64c9dc279cb46a027`. Full production build: 1,554 tests, zero failures/errors, two skipped, plus a separately enabled passing live receiver smoke test. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR263.
 
 - All installations, including headless clients outside Swarm, upload typed,
   sanitized action/decision/fault evidence and numeric settings for bug diagnosis

@@ -1,5 +1,24 @@
 # GoNuts changelog
 
+## 2026-10-23 21:40 UTC
+
+- **Release PR #268: Required private diagnostic history across clients and restarts.**
+- Client artifact published October 23 at 14:40:07 Los Angeles time (21:40:07 UTC). Build `1792791320879`; SHA256 `12e0f4a24e96e4b04854f1bbb4730d1d03575cba66a620a64c9dc279cb46a027`. Full production build: 1,554 tests, zero failures/errors, two skipped, plus a separately enabled passing live receiver smoke test. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR263.
+
+- All installations, including headless clients outside Swarm, upload typed,
+  sanitized action/decision/fault evidence and numeric settings for bug diagnosis
+  and recurring-failure investigation. History is private and bounded to up to
+  24 hours; chat, names, locations, credentials and raw log/settings files are excluded.
+- A durable diagnostics-only outbox survives restarts, retries outages and
+  declares coverage gaps. Reports can privately link available history across
+  sessions. Network failures never stop trading. About and report screens disclose
+  the collection and show its availability.
+- Preserve specific GUI/command timeout and listing-failure reasons rather than
+  replacing them with UNCLASSIFIED. The VPS also repairs dotted settings parsing
+  and reserves order decisions in selected history. Cross-client signatures are
+  investigation leads, not automatic claims that a bug is proven.
+- The separate Simple/Advanced UI overhaul remains a local preview.
+
 ## 2026-10-23 18:08 UTC
 
 - **Release PR #263: Validate actual order offers before rejecting bulk bids.**
