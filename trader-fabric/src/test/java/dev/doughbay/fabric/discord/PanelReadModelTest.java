@@ -50,4 +50,19 @@ class PanelReadModelTest {
         assertEquals("stone x64",result.path("rows").get(0).get(1).asText());
         assertEquals("Observed fills only",result.path("footer").asText());assertFalse(result.has("faces"));
     }
+    @Test void changingAmountsAndTemporarilyUnavailableSourcesDoNotMoveMoneyFields() throws Exception {
+        var first=PanelReadModel.moneyHeadline(List.<String[]>of(new String[]{"Profit 1h","$900K"},
+            new String[]{"Swarm rank","Waiting for current Swarm data"}),270,false);
+        var second=PanelReadModel.moneyHeadline(List.<String[]>of(new String[]{"Profit 1h","$123456789.12B"},
+            new String[]{"Estimated Swarm rank","#3 of 10 active Hives"},new String[]{"Swarm basis","Reported profit"},
+            new String[]{"Your Hive reported booked profit · 24h","123,456,789"}),270,false);
+        assertEquals(first.stream().map(r->r[0]).toList(),second.stream().map(r->r[0]).toList());
+        assertArrayEquals(StatsImage.moneyHeadlineSpans(first),StatsImage.moneyHeadlineSpans(second));
+        var a=new StatsImage.Page("Money","Example","green",first,14,270,new String[]{"Item"},new boolean[]{false},List.of(),"Example");
+        var b=new StatsImage.Page("Money","Example","green",second,14,270,new String[]{"Item"},new boolean[]{false},List.of(),"Example");
+        var before=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(StatsImage.render(a)));
+        var after=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(StatsImage.render(b)));
+        assertEquals(before.getHeight(),after.getHeight());
+        var out=Path.of("build/reports/mobile-money");Files.createDirectories(out);Files.write(out.resolve("summary.png"),StatsImage.render(b));
+    }
 }

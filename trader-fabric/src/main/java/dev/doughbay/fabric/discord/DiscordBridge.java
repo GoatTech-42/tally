@@ -1331,7 +1331,7 @@ public final class DiscordBridge {
         } catch (Exception e) {
             rows.add(new String[] {"", "ledger unavailable: " + e.getMessage(), "", "", ""});
         }
-        StatsImage.Page money = new StatsImage.Page("Money", subtitle, color, head, v.listed(), slots,
+        StatsImage.Page money = new StatsImage.Page("Money", subtitle, color, PanelReadModel.moneyHeadline(head,slots,v.live()), v.listed(), slots,
                 new String[] {"Time", "Last sales", "Cost", "Sold", "Profit"}, new boolean[] {false, false, true, true, true},
                 rows, icons, 1, footer);
         boolean hive = account.isBlank() && panelAccounts().size() > 1;

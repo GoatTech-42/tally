@@ -253,7 +253,7 @@ final class Pages {
               .mobile-account { flex:none; display:flex; gap:8px; align-items:center; }
               .mobile-account select { flex:1; min-width:0; min-height:44px; padding:6px 10px; font-size:16px; background:var(--inset); }
               .hud .account-tile { display:none; }
-              .app-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding-bottom:12px; }
+              .app-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding-bottom:12px; scrollbar-width:thin; scrollbar-color:var(--edge) transparent; }
               .mobile-tabs { flex:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px;
                 padding:6px 0 max(6px,env(safe-area-inset-bottom)); border-top:1px solid var(--edge); background:var(--background); }
               .mobile-tabs button { padding:6px 2px; min-height:48px; border:0; background:none; font-size:12px; color:var(--secondary); }
@@ -355,7 +355,8 @@ final class Pages {
             + "<section class=\"panel\"><h1 class=\"title\" id=\"page\">&nbsp;</h1><div class=\"body\">"
             + "<div id=\"pic\">"
             + "<div id=\"readable-report\"></div><div class=\"wide\" id=\"image-view\" tabindex=\"0\" aria-label=\"The page on view; scroll sideways to see all of it\">"
-            + "<img id=\"shot\" alt=\"The page of the panel on view\" src=\"/panel.png\"></div>"
+            + "<img id=\"shot\" alt=\"The page of the panel on view\" hidden></div>"
+            + "<p id=\"image-status\" class=\"money-footnote\" role=\"status\"></p>"
             + "<button id=\"image-toggle\" type=\"button\" aria-pressed=\"false\">View original summary image</button><div id=\"notice\" role=\"status\"></div>"
             + "<div id=\"controls\"></div></div>"
             + "<div id=\"own\" hidden></div></div></section></div></div>"
@@ -458,7 +459,27 @@ final class Pages {
               if (press) b.addEventListener('click', press);
               return b;
             }
-            function picture() { shot.src = '/panel.png?t=' + Date.now(); }
+            let imageScope='',imageVersion=0,imagePending=false,lastImageAt=0;
+            function imageScopeChanged(scope){
+              if(scope===imageScope)return;
+              imageScope=scope;imageVersion++;imagePending=false;lastImageAt=0;shot.hidden=true;
+              $('image-status').textContent='Loading this account’s summary…';
+            }
+            function picture() {
+              if(imagePending)return;
+              imagePending=true;const version=++imageVersion,next=new Image();
+              next.onload=async()=>{
+                try{if(next.decode)await next.decode();}catch(e){next.onerror();return;}
+                if(version!==imageVersion)return;
+                imagePending=false;shot.src=next.src;shot.hidden=false;lastImageAt=Date.now();
+                $('image-status').textContent='';
+              };
+              next.onerror=()=>{
+                if(version!==imageVersion)return;imagePending=false;
+                $('image-status').textContent=lastImageAt?'Image refresh delayed. Showing the last successful summary from '+new Date(lastImageAt).toLocaleTimeString()+'. Retrying automatically.':'The summary image has not loaded yet. Retrying automatically.';
+              };
+              next.src='/panel.png?t='+Date.now();
+            }
             let toastTimer = 0;
             function toast(text, bad) {
               const t = $('toast');
@@ -680,6 +701,7 @@ final class Pages {
             }
             function draw(state) {
               hud(state.hud);
+              imageScopeChanged((state.page||'')+'|'+(state.hud?.who||''));
               activityCards(state.activity);
               accountPicker(state.components);
               setting = state.setting || null;

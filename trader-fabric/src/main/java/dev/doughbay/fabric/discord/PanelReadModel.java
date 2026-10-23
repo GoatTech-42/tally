@@ -25,6 +25,29 @@ final class PanelReadModel {
         return OrderMetrics.currentMembers(connected, current);
     }
 
+    /** Fields keep their positions across delayed source observations and changing digit counts. */
+    static List<String[]> moneyHeadline(List<String[]> observed, int slots, boolean own) {
+        var fields=new LinkedHashMap<String,String[]>();
+        for(var row:observed) fields.put(row[0].equals("Swarm rank")?"Estimated Swarm rank":row[0],row);
+        var labels=new ArrayList<>(List.of("Bank","Profit 1h","Profit 24h","Margin 1h","~spark","Sales 1h","Sales 6h",
+                "Sales 24h","Revenue 24h","Payments (Hive)","Payroll share","Listed","Tracked cost","Asking","Trades",
+                "Unfilled orders","Orders filled","Order funds","Awaiting collect","Order data","Auction capacity",
+                "Estimated Swarm rank","Swarm basis","Your Hive reported booked profit · 24h","Your Hive booked sale records · 24h"));
+        // The individual-account label is deliberately different from aggregate payroll.
+        if(fields.containsKey("Payments"))labels.set(labels.indexOf("Payments (Hive)"),"Payments");
+        if(own){labels.add("Mode");labels.add("Warm-up");}
+        labels.add("Players");labels.add("Rivals");
+        var out=new ArrayList<String[]>();
+        for(String label:labels){
+            var row=fields.get(label);
+            if(row!=null) out.add(new String[]{label,row[1],row.length>2?row[2]:""});
+            else if(label.equals("~spark"))out.add(new String[]{"~spark","Profit/h · history unavailable|0","dim"});
+            else if(label.equals("Auction capacity"))out.add(new String[]{label,slots>0?slots+" slots":"unknown — current capacity unavailable","dim"});
+            else out.add(new String[]{label,"Unavailable","dim"});
+        }
+        return out;
+    }
+
     /** Historical accounts stay selectable, but do not supply live auction capacity. */
     static List<OrderMetrics.Account> capacityAccounts(Path root, String selected, List<String> current) {
         return OrderMetrics.select(root, selected, current);

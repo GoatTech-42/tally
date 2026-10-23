@@ -281,7 +281,7 @@ button.link:hover:not(:disabled) { background:none; color:var(--gold); }
   .val.long { max-width:100%; white-space:normal; }
   .line input { width:100%; }
 }
-</style></head><body><main><header class="panel"><img src="/logo.png" alt="GoNuts"><span id="state">...</span><span class="gap"></span><span id="clock"></span><form class="out" method="post" action="/logout"><button type="submit">Lock</button></form></header><label class="mobile-account" for="mobile-account"><span class="label">Account</span><select id="mobile-account" aria-label="View account"></select></label><div class="app-scroll" id="app-scroll"><details class="view-options"><summary>Customize this view</summary><label><input type="checkbox" id="show-hud" checked>Show summary tiles</label><label><input type="checkbox" id="show-activity" checked>Show each bot’s current action</label><p>Saved on this browser only. Trading settings stay unchanged.</p></details><section class="hud" aria-label="The trader now"><div class="tile"><span class="label">Auction slots</span><b id="slots">-</b></div><div class="tile"><span class="label">Bank</span><b id="bank">-</b></div><div class="tile"><span class="label">Trades</span><b id="trades">-</b></div><div class="tile account-tile"><span class="label">Account</span><b id="who">-</b></div></section><section class="panel now"><span class="label">Now</span><div id="now" role="status"></div></section><section class="panel" id="reportalert" role="status" hidden></section><div id="activity-cards" class="activity-cards" aria-label="Current bot activity" hidden></div><div class="work"><label class="panel mobile-nav" for="mobile-page"><span class="label">Go to page</span><select id="mobile-page"></select></label><nav class="panel" id="pages" aria-label="Pages"></nav><section class="panel"><h1 class="title" id="page">&nbsp;</h1><div class="body"><div id="pic"><div id="readable-report"></div><div class="wide" id="image-view" tabindex="0" aria-label="The page on view; scroll sideways to see all of it"><img id="shot" alt="The page of the panel on view" src="/panel.png"></div><button id="image-toggle" type="button" aria-pressed="false">View original summary image</button><div id="notice" role="status"></div><div id="controls"></div></div><div id="own" hidden></div></div></section></div></div><nav class="mobile-tabs" aria-label="Quick pages"><button data-mobile="MONEY" type="button">Money</button><button data-mobile="STATUS" type="button">Activity</button><button data-mobile="ORDERS" type="button">Orders</button><button data-mobile="settings" type="button">Settings</button><button data-mobile="more" type="button">More</button></nav><div id="toast" role="status" aria-live="polite" hidden></div></main><script>const $ = id => document.getElementById(id);
+</style></head><body><main><header class="panel"><img src="/logo.png" alt="GoNuts"><span id="state">...</span><span class="gap"></span><span id="clock"></span><form class="out" method="post" action="/logout"><button type="submit">Lock</button></form></header><label class="mobile-account" for="mobile-account"><span class="label">Account</span><select id="mobile-account" aria-label="View account"></select></label><div class="app-scroll" id="app-scroll"><details class="view-options"><summary>Customize this view</summary><label><input type="checkbox" id="show-hud" checked>Show summary tiles</label><label><input type="checkbox" id="show-activity" checked>Show each bot’s current action</label><p>Saved on this browser only. Trading settings stay unchanged.</p></details><section class="hud" aria-label="The trader now"><div class="tile"><span class="label">Auction slots</span><b id="slots">-</b></div><div class="tile"><span class="label">Bank</span><b id="bank">-</b></div><div class="tile"><span class="label">Trades</span><b id="trades">-</b></div><div class="tile account-tile"><span class="label">Account</span><b id="who">-</b></div></section><section class="panel now"><span class="label">Now</span><div id="now" role="status"></div></section><section class="panel" id="reportalert" role="status" hidden></section><div id="activity-cards" class="activity-cards" aria-label="Current bot activity" hidden></div><div class="work"><label class="panel mobile-nav" for="mobile-page"><span class="label">Go to page</span><select id="mobile-page"></select></label><nav class="panel" id="pages" aria-label="Pages"></nav><section class="panel"><h1 class="title" id="page">&nbsp;</h1><div class="body"><div id="pic"><div id="readable-report"></div><div class="wide" id="image-view" tabindex="0" aria-label="The page on view; scroll sideways to see all of it"><img id="shot" alt="The page of the panel on view" hidden></div><p id="image-status" class="money-footnote" role="status"></p><button id="image-toggle" type="button" aria-pressed="false">View original summary image</button><div id="notice" role="status"></div><div id="controls"></div></div><div id="own" hidden></div></div></section></div></div><nav class="mobile-tabs" aria-label="Quick pages"><button data-mobile="MONEY" type="button">Money</button><button data-mobile="STATUS" type="button">Activity</button><button data-mobile="ORDERS" type="button">Orders</button><button data-mobile="settings" type="button">Settings</button><button data-mobile="more" type="button">More</button></nav><div id="toast" role="status" aria-live="polite" hidden></div></main><script>const $ = id => document.getElementById(id);
 const shot = $('shot');
 const controls = $('controls');
 const pages = $('pages');
@@ -377,7 +377,27 @@ function button(cls, text, press) {
   if (press) b.addEventListener('click', press);
   return b;
 }
-function picture() { shot.src = '/panel.png?t=' + Date.now(); }
+let imageScope='',imageVersion=0,imagePending=false,lastImageAt=0;
+function imageScopeChanged(scope){
+  if(scope===imageScope)return;
+  imageScope=scope;imageVersion++;imagePending=false;lastImageAt=0;shot.hidden=true;
+  $('image-status').textContent='Loading this account’s summary…';
+}
+function picture() {
+  if(imagePending)return;
+  imagePending=true;const version=++imageVersion,next=new Image();
+  next.onload=async()=>{
+    try{if(next.decode)await next.decode();}catch(e){next.onerror();return;}
+    if(version!==imageVersion)return;
+    imagePending=false;shot.src=next.src;shot.hidden=false;lastImageAt=Date.now();
+    $('image-status').textContent='';
+  };
+  next.onerror=()=>{
+    if(version!==imageVersion)return;imagePending=false;
+    $('image-status').textContent=lastImageAt?'Image refresh delayed. Showing the last successful summary from '+new Date(lastImageAt).toLocaleTimeString()+'. Retrying automatically.':'The summary image has not loaded yet. Retrying automatically.';
+  };
+  next.src='/panel.png?t='+Date.now();
+}
 let toastTimer = 0;
 function toast(text, bad) {
   const t = $('toast');
@@ -599,6 +619,7 @@ function tabs(pick) {
 }
 function draw(state) {
   hud(state.hud);
+  imageScopeChanged((state.page||'')+'|'+(state.hud?.who||''));
   activityCards(state.activity);
   accountPicker(state.components);
   setting = state.setting || null;
