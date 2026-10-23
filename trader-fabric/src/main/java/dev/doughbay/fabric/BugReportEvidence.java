@@ -10,6 +10,7 @@ public final class BugReportEvidence {
         return readForReport(path,"");
     }
     public static String readForReport(Path path,String description) {
+        String historyToken=dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.diagnosticReportToken();
         ReportTopic topic=ReportTopic.infer(description);
         String context;
         try {context=DoughBayClient.automationSessionController().bugReportContext(System.currentTimeMillis());}
@@ -18,7 +19,10 @@ public final class BugReportEvidence {
         context+=FaultTrace.INSTANCE.report(System.currentTimeMillis());
         context+=ActionTrace.INSTANCE.report(System.currentTimeMillis(),topic);
         context+="ctx historical_counters_available="+!log.equals(BugReportLog.UNAVAILABLE)+"\n";
-        return combine(context,log,topic);
+        String evidence=combine(context,log,topic);
+        if(historyToken.equals(dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.diagnosticReportToken()))
+            SwarmReportLinks.remember(evidence,historyToken,System.currentTimeMillis());
+        return evidence;
     }
     static String combine(String context,String log) {
         return combine(context,log,ReportTopic.GENERAL);

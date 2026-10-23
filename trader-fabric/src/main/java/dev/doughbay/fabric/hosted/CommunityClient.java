@@ -152,6 +152,7 @@ public final class CommunityClient {
     }
     public void dashboardUnlinked(){linkConsentApplied=false;disableSharing();}
     public boolean guidanceEnabled(){return guidanceEnabled(HostedDashboardClient.INSTANCE.view().linked());}
+    public boolean diagnosticSharing(){return started&&enabled&&HostedDashboardClient.INSTANCE.view().linked();}
     public boolean readSavingsSharing(){return started&&enabled&&eligible&&HostedDashboardClient.INSTANCE.view().linked();}
     boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
     public void enable(){enable(false);}

@@ -92,7 +92,7 @@ public final class BugReportScreen extends Screen {
             } catch (Exception e) { return null; }
         }).thenAccept(result -> minecraft.execute(() -> {
             collecting = false; payload = result == null ? null : result.payload(); diagnosticLog = result == null ? "" : result.log();
-            report = result == null ? "" : payload.preview() + "\n\n" + BugReporterKey.NOTICE + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
+            report = result == null ? "" : payload.preview() + "\n\n" + BugReporterKey.NOTICE + "\n" + SwarmReportLinks.NOTICE + (diagnosticLog.isEmpty() ? "" : "\n\nAttached filtered log:\n" + diagnosticLog);
             var config = DoughBayClient.activeConfig();
             status = result == null ? "Preparation failed. Describe the problem (10+ characters); no raw-log fallback."
                 : diagnosticLog.contains(BugReportLog.UNAVAILABLE)?"Historical log unavailable; current controller evidence is included. Review before sending.":"Preview ready. Sanitized diagnostics are attached automatically.";

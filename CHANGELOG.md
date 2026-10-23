@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased - Swarm diagnostic history
+
+- Swarm participants share a rolling 24-hour history of sanitized mod diagnostics and recognized numeric settings for private support analysis. Usernames, chat, credentials, home names, paths and raw Minecraft logs/settings are excluded from this history. Pausing trading does not disconnect sharing; disabling Swarm or unlinking stops new uploads.
+- Reports can privately link to the authenticated client history and observed settings versions through a server-issued Swarm ID, allowing the existing support worker to compare the lead-up to a failure. Settings-change times are observation intervals and do not establish cause. Optional linkage never prevents ordinary reporting; private tokens and timelines do not appear in public issues.
+- Bounded retry batches, acknowledgments, sequence-gap reporting, expiry and per-account identity checks preserve trading independence and show incomplete evidence honestly. The admin timeline is restricted by the existing server-side admin authorization. Backend capability is required; old clients remain compatible.
+
 ## 2026-10-22 22:39 UTC
 
 - **Release PR #245:** Hourly numeric settings snapshots for private Swarm analysis.

@@ -53,6 +53,9 @@ public final class HostedDashboardClient {
     private ObjectNode metrics;private String lastShape="";
     private final SettingsAnalysis settingsAnalysis = new SettingsAnalysis();
     private boolean settingsAnalysisSupported;
+    private final DiagnosticHistory diagnosticHistory=new DiagnosticHistory();
+    private long historyLastAttempt;
+    public String diagnosticReportToken(){return diagnosticHistory.reportToken(panelAccount,CommunityClient.INSTANCE.diagnosticSharing(),System.currentTimeMillis());}
     private Path rankDirectory;private SwarmRankCoverage rankCoverage;private String rankAccount="",rankingSalt="",publishedAccountId="";
     private CompletableFuture<Void> writes=CompletableFuture.completedFuture(null);private int pendingWrites;private boolean forceTelemetry;
     private HostedDashboardClient(){}
@@ -129,6 +132,7 @@ public final class HostedDashboardClient {
     }
     public synchronized void unlink(){
         settingsAnalysis.clear();
+        diagnosticHistory.clear();
         staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();
@@ -157,7 +161,10 @@ public final class HostedDashboardClient {
         activity.observe(terminal.sequence(),terminal.intent().name(),terminal.outcome().name(),reprice,terminal.occurredAtMillis(),now);
         if(!view.linked()||now-capturedAt<1000)return;capturedAt=now;
         try {
-            settingsAnalysis.capture(account, CommunityClient.INSTANCE.readSavingsSharing(), now, SettingsCode::exportForReport);
+            settingsAnalysis.capture(account, CommunityClient.INSTANCE.diagnosticSharing(), now, SettingsCode::exportForReport);
+            if(diagnosticHistory.accountChanged(account)){diagnosticHistory.clear();reconnect();}
+            diagnosticHistory.capture(account,CommunityClient.INSTANCE.diagnosticSharing(),now,
+                    ()->FaultTrace.INSTANCE.report(now)+ActionTrace.INSTANCE.report(now).lines().filter(line->line.startsWith("act ")).limit(3).collect(java.util.stream.Collectors.joining("\n","","\n"))+controller.bugReportContext(now),SettingsCode::exportForReport);
         } catch (RuntimeException ignored) {
             settingsAnalysis.clear(); // Analysis must never interrupt trading or expose configuration in an exception log.
         }
@@ -212,9 +219,16 @@ public final class HostedDashboardClient {
         if(now-lastReceived>=80_000){failed("Dashboard heartbeat timed out; reconnecting");return;}
         if(now-lastPing>=20_000){send(DashboardProtocol.JSON.createObjectNode().put("type","ping").put("at",now));lastPing=now;}
         publish(false);
+        publishDiagnostics(now);
+    }
+    private void publishDiagnostics(long now){
+        if(!welcome||latest==null||now-historyLastAttempt<5000)return;
+        var batch=diagnosticHistory.batch(latest.account(),CommunityClient.INSTANCE.diagnosticSharing(),now);
+        if(batch==null)return;historyLastAttempt=now;
+        if(send(batch))diagnosticHistory.sent(batch);
     }
     private void connect() {
-        if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;dataUseSupported=false;settingsAnalysisSupported=false;epoch=epochs.incrementAndGet();long own=epoch;
+        if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;dataUseSupported=false;settingsAnalysisSupported=false;diagnosticHistory.disconnected();epoch=epochs.incrementAndGet();long own=epoch;
         view=new View(true,false,false,link.name,"Checking link",0);
         var request=HttpRequest.newBuilder(DashboardProtocol.CHECK).timeout(Duration.ofSeconds(10)).header("Authorization","Bearer "+link.credential)
             .header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build();
@@ -252,12 +266,15 @@ public final class HostedDashboardClient {
                 readSavingsSupported=SwarmSavingsWire.negotiated(j);
                 dataUseSupported=SharedDataUse.negotiated(j);
                 settingsAnalysisSupported=SettingsAnalysis.negotiated(j);
+                diagnosticHistory.welcome(j,System.currentTimeMillis());
                 welcome=true;commands.connected(own);view=new View(true,true,false,link.name,"Online",0);publish(true);return;
             }
             if(!welcome)throw new IllegalArgumentException();
             if(type.equals("panel"))panel.receive(own,j,()->epochs.get()==own&&welcome,
                     reply->worker.execute(()->{if(epochs.get()==own&&welcome)send(reply);}));
             else if(type.equals("command"))command(own,j);
+            else if(type.equals("diagnostic_history_ack"))diagnosticHistory.acknowledge(j);
+            else if(type.equals("diagnostic_report_token"))diagnosticHistory.token(j,System.currentTimeMillis());
             else if(type.equals("swarm_rank")){
                 long now=System.currentTimeMillis();
                 SwarmRank.receive(j,publishedAccountId,now);
@@ -332,7 +349,7 @@ public final class HostedDashboardClient {
         var shape=SwarmSavingsWire.comparison(j);String encoded=shape.toString();
         var settingsSnapshot = settingsAnalysis.pending(captured.account(), epoch,
                 welcome && settingsAnalysisSupported && metrics != null && metricsAccount.equals(captured.account()) && !identity.isEmpty(),
-                CommunityClient.INSTANCE.readSavingsSharing(), now);
+                CommunityClient.INSTANCE.diagnosticSharing(), now);
         if(!forceTelemetry&&settingsSnapshot==null&&encoded.equals(lastShape)&&now-lastTelemetry<15_000)return;
         if(settingsSnapshot!=null)j.set("settingsAnalysis",settingsSnapshot);
         if(send(j)) {
