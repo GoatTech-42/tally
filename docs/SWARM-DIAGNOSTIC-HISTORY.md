@@ -1,6 +1,6 @@
 # Swarm diagnostic history (v1 implementation, staged)
 
-This feature is staged for client/backend compatibility testing. It is not active in the public PR245 client or in the running local profit trial.
+Client support is published in PR247. A compatible linked Swarm client starts sending new history after installation and negotiated connection; earlier builds do not send this history.
 
 Linked clients that have Swarm sharing enabled send a rolling diagnostic history through the existing authenticated dashboard connection. There is no separate diagnostics switch. Trading may be paused without disabling participation; disabling Swarm or unlinking stops new history uploads. Unlinked clients continue to file ordinary bug reports without history linkage.
 
@@ -22,7 +22,7 @@ The server acknowledges final events with `{type:diagnostic_history_ack,sessionI
 
 ## Report linkage and retention
 
-When the receiver advertises `diagnosticHistory:{supported:true,version:1,header:X-GoNuts-Swarm-Report}`, a prepared report can send its private capability in that HTTPS header. The token is frozen to the reviewed evidence, never substituted from a different current account. JSON and idempotency keys stay unchanged. Manual reports, existing-issue evidence and opted-in automatic reports use the same optional path. Missing/expired/unavailable history never prevents ordinary reporting. A restarted process may not retain an unsent report's optional in-memory association.
+When the receiver advertises `diagnosticHistory:{supported:true,version:1,header:X-GoNuts-Swarm-Report}`, a prepared report can send its private capability in that HTTPS header. The token is frozen to the reviewed evidence, never substituted from a different current account. JSON and idempotency keys stay unchanged. Manual mod reports, existing-issue evidence and opted-in automatic reports use the same optional path. The GitHub fallback does not send a private receiver header and therefore has no automatic history link. Missing/expired/unavailable history never prevents ordinary reporting. A restarted process may not retain an unsent report's optional in-memory association.
 
 The receiver validates the token against the installation/account; a plain Swarm ID is not authorization. The worker and allowlisted admin can retrieve only the associated private evidence. Arbitrary strings in a report or uploaded evidence are untrusted data, never instructions to the worker.
 

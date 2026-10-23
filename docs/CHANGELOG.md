@@ -1,5 +1,15 @@
 # GoNuts changelog
 
+## 2026-10-23 01:50 UTC
+
+- **Release PR #247:** Private 24-hour Swarm diagnostic history linked to reports and observed settings.
+
+- Client artifact published October 22 at 18:50:41 Los Angeles time (01:50:41 UTC). Build 1792719202825; SHA256 `ab24e58f64e61c058fd188e1d21e0721064b120911f6f66a3f2d5e94a7302533`. Full production build: 1,525 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. This is a separate client publication after PR245.
+
+- Swarm sharing now includes a rolling 24-hour private timeline of typed mod diagnostics and recognized numeric settings. This history excludes usernames, chat, credentials, home names, paths, text settings and raw Minecraft logs. Paused trading remains part of an enabled Swarm; disabling Swarm or unlinking stops new uploads.
+- A server-issued Swarm client ID privately connects the timeline and settings versions to submitted reports. The support worker can inspect earlier failures and configuration changes even when the client has since closed. Sampling gaps and capture times are labelled; settings chronology is evidence to investigate, not proof of cause. Reports remain available without optional history linkage, and private tokens/timelines never appear in public issues.
+- The allowlisted admin has a per-client timeline with observed settings changes. Uploaded timeline data expires after 24 hours; filed reports retain only a bounded selected diagnostic excerpt and relevant settings under the existing report policy. Old clients need this update before sending history; no historical data is invented or backfilled.
+
 ## 2026-10-22 22:39 UTC
 
 - **Release PR #245:** Hourly numeric settings snapshots for private Swarm analysis.
