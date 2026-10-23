@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-23 17:42 UTC
+
+- **Release PR #261: Preserve order-sizing evidence through diagnostic floods.**
+- Client artifact published October 23 at 10:42:22 Los Angeles time (17:42:22 UTC). Build `1792777097722`; SHA256 `ce0191f774478fa9fd87bce29dcafc243bd55ef7ea229b65f318075ec2ec04d6`. Full clean production build: 1,537 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR258.
+- Report #260 exposed a coverage gap: recent driver phases and rejected candidates could displace the accepted order's sizing explanation. A separate bounded latest-per-market projection now reserves recent order plans and sizing inputs after baseline subsystem evidence. Original timestamps remain visible, pinned evidence expires after 15 minutes, and attachment limits, privacy filtering and omission counters remain enforced. The 6,000-event flood regression failed before the fix and passes afterward.
+- This fixes report retention, not the underlying trading complaint in #260. Trading choices, quantities, price checks and safety gates are unchanged. Older missing decisions are not reconstructed. Continuous cloud-log collection remains separate; existing live bots are not automatically upgraded or restarted.
+
 ## 2026-10-23 16:15 UTC
 
 - **Release PR #258:** Preserve system-wide decision evidence in current bug reports.
