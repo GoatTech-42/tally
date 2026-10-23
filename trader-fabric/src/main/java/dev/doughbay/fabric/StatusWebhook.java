@@ -326,8 +326,7 @@ public final class StatusWebhook {
     }
 
     private java.util.List<String> reportAccounts() {
-        return OrderMetrics.members(databasePath, DoughBayClient.hiveAccounts(), DoughBayClient.account(),
-                HiveSetup.active() || Tuning.get("multi.enabled") >= .5);
+        return OrderMetrics.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account());
     }
 
     static int reportSlots(java.util.List<OrderMetrics.Account> reports, long now) {

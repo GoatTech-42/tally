@@ -78,6 +78,33 @@ button.go:disabled, button.stop:disabled { border-color:var(--edge); color:var(-
 #shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
 #evasion-shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
 #notice { min-height:22px; margin:8px 2px 2px; color:var(--secondary); overflow-wrap:anywhere; }
+.mobile-nav { display:none; }
+.mobile-account { display:none; }
+.mobile-tabs,.view-options { display:none; }
+.activity-cards { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:10px; }
+.activity-card { padding:10px 12px; }
+.activity-heading { display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+.activity-card p { margin:4px 0; overflow-wrap:anywhere; }
+.activity-card small { color:var(--muted); }
+.activity-state { color:var(--good); font-size:12px; }
+.activity-card.stale .activity-state { color:var(--warn); }
+#readable-report { display:none; }
+#image-toggle { display:none; margin-top:10px; width:100%; }
+.money-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.money-metric { padding:10px; background:var(--inset); border:1px solid var(--edge); border-radius:5px; }
+.money-metric dt { color:var(--secondary); font-size:13px; }
+.money-metric dd { margin:5px 0 0; font-size:17px; overflow-wrap:anywhere; }
+.money-footnote { color:var(--secondary); font-size:13px; overflow-wrap:anywhere; }
+.slot-overview { padding:12px; margin:0 0 12px; background:var(--inset); border:1px solid var(--edge); border-radius:5px; }
+.slot-overview p { margin:0 0 8px; }
+.slot-grid { display:grid; grid-template-columns:repeat(18,minmax(0,1fr)); gap:3px; }
+.slot-grid i { height:9px; border-radius:2px; background:var(--barzero); border:1px solid var(--edge); }
+.slot-grid i.occupied { background:var(--bar); border-color:var(--bar); }
+.sale-card { margin-top:8px; padding:10px; background:var(--inset); border:1px solid var(--edge); border-radius:5px; }
+.sale-card h3 { margin:0 0 6px; font-size:15px; }
+.sale-card dl { margin:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 12px; }
+.sale-card dt { color:var(--secondary); }
+.sale-card dd { margin:0; text-align:right; overflow-wrap:anywhere; }
 .row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .bot-card { padding:12px; margin-top:12px; }
 .bot-card h3 { margin:0 0 12px; }
@@ -198,23 +225,63 @@ button.link:hover:not(:disabled) { background:none; color:var(--gold); }
 .door p { color:var(--secondary); font-size:13px; }
 .door .bad { color:var(--bad); }
 @media (max-width:859px) {
-  nav { flex-wrap:wrap; overflow:visible; }
+  html,body { height:100%; overflow:hidden; }
+  main { height:100dvh; height:100svh; max-width:none; display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top,0px) 10px 0; gap:8px; }
+  main > header { flex:none; margin-top:8px; }
+  .mobile-account { flex:none; display:flex; gap:8px; align-items:center; }
+  .mobile-account select { flex:1; min-width:0; min-height:44px; padding:6px 10px; font-size:16px; background:var(--inset); }
+  .hud .account-tile { display:none; }
+  .app-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding-bottom:12px; }
+  .mobile-tabs { flex:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px;
+    padding:6px 0 max(6px,env(safe-area-inset-bottom)); border-top:1px solid var(--edge); background:var(--background); }
+  .mobile-tabs button { padding:6px 2px; min-height:48px; border:0; background:none; font-size:12px; color:var(--secondary); }
+  .mobile-tabs button[aria-current=page] { background:var(--selected); color:var(--gold); border-radius:9px; }
+  .view-options { display:block; padding:8px 10px; color:var(--secondary); font-size:13px; }
+  .view-options summary { cursor:pointer; min-height:30px; padding:4px 0; }
+  .view-options label { display:flex; align-items:center; gap:10px; padding:6px 0; }
+  .view-options input { min-height:22px; width:22px; }
+  body.hide-hud .hud,body.hide-activity #activity-cards,body.hide-activity .now { display:none !important; }
+  .work { margin-top:0; }
+  #toast { bottom:calc(70px + env(safe-area-inset-bottom)); }
+  #pages { display:none; }
+  .mobile-nav { display:grid; gap:4px; padding:8px 10px; }
+  .mobile-nav select { width:100%; font-size:16px; min-height:44px; background:var(--inset); }
+  #pic.has-report #readable-report { display:block; }
+  #pic.has-report #image-view { display:none; }
+  #pic.has-report #image-toggle { display:block; }
+  #pic.has-report.original #image-view { display:block; }
+  #pic.has-report.original #readable-report { display:none; }
+  #pic.original #shot { min-width:850px; max-width:none; }
   nav button, nav a { flex:1 1 130px; white-space:normal; overflow-wrap:anywhere; }
   button { white-space:normal; overflow-wrap:anywhere; }
   .wide { max-width:100%; }
   .bug-row .card { padding:8px; overflow-wrap:anywhere; }
 }
 @media (max-width:480px) {
-  main { padding:8px 10px 24px; }
+  main { padding:env(safe-area-inset-top,0px) 10px 0; }
   header { gap:8px; padding:8px; }
-  #clock { flex:1 1 100%; }
+  header img { height:32px; }
+  #clock { font-size:12px; }
+  header .gap { display:none; }
+  header .out { margin-left:auto; }
+  #state { font-size:11px; padding:3px 6px; }
+  header .out button { min-height:36px; padding:5px 8px; }
+  .hud { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  .hud .label { font-size:10px; }
+  .tile b { font-size:16px; }
+  .activity-cards { grid-template-columns:minmax(0,1fr); }
+  .activity-card { padding:7px 10px; }
+  .activity-card p { margin:2px 0; font-size:14px; }
+  .activity-card small { font-size:11px; }
+  input,textarea,select { font-size:16px; }
   .body { padding:8px; }
   .cards { columns:1; }
   .setline { flex-wrap:wrap; }
   .val.long { max-width:100%; white-space:normal; }
   .line input { width:100%; }
 }
-</style></head><body><main><header class="panel"><img src="/logo.png" alt="GoNuts"><span id="state">...</span><span class="gap"></span><span id="clock"></span><form class="out" method="post" action="/logout"><button type="submit">Lock</button></form></header><section class="hud" aria-label="The trader now"><div class="tile"><span class="label">Auction slots</span><b id="slots">-</b></div><div class="tile"><span class="label">Bank</span><b id="bank">-</b></div><div class="tile"><span class="label">Trades</span><b id="trades">-</b></div><div class="tile"><span class="label">Account</span><b id="who">-</b></div></section><section class="panel now"><span class="label">Now</span><div id="now" role="status"></div></section><section class="panel" id="reportalert" role="status" hidden></section><div class="work"><nav class="panel" id="pages" aria-label="Pages"></nav><section class="panel"><h1 class="title" id="page">&nbsp;</h1><div class="body"><div id="pic"><div class="wide" tabindex="0" aria-label="The page on view; scroll sideways to see all of it"><img id="shot" alt="The page of the panel on view" src="/panel.png"></div><div id="notice" role="status"></div><div id="controls"></div></div><div id="own" hidden></div></div></section></div><div id="toast" role="status" aria-live="polite" hidden></div></main><script>const $ = id => document.getElementById(id);
+</style></head><body><main><header class="panel"><img src="/logo.png" alt="GoNuts"><span id="state">...</span><span class="gap"></span><span id="clock"></span><form class="out" method="post" action="/logout"><button type="submit">Lock</button></form></header><label class="mobile-account" for="mobile-account"><span class="label">Account</span><select id="mobile-account" aria-label="View account"></select></label><div class="app-scroll" id="app-scroll"><details class="view-options"><summary>Customize this view</summary><label><input type="checkbox" id="show-hud" checked>Show summary tiles</label><label><input type="checkbox" id="show-activity" checked>Show each bot’s current action</label><p>Saved on this browser only. Trading settings stay unchanged.</p></details><section class="hud" aria-label="The trader now"><div class="tile"><span class="label">Auction slots</span><b id="slots">-</b></div><div class="tile"><span class="label">Bank</span><b id="bank">-</b></div><div class="tile"><span class="label">Trades</span><b id="trades">-</b></div><div class="tile account-tile"><span class="label">Account</span><b id="who">-</b></div></section><section class="panel now"><span class="label">Now</span><div id="now" role="status"></div></section><section class="panel" id="reportalert" role="status" hidden></section><div id="activity-cards" class="activity-cards" aria-label="Current bot activity" hidden></div><div class="work"><label class="panel mobile-nav" for="mobile-page"><span class="label">Go to page</span><select id="mobile-page"></select></label><nav class="panel" id="pages" aria-label="Pages"></nav><section class="panel"><h1 class="title" id="page">&nbsp;</h1><div class="body"><div id="pic"><div id="readable-report"></div><div class="wide" id="image-view" tabindex="0" aria-label="The page on view; scroll sideways to see all of it"><img id="shot" alt="The page of the panel on view" src="/panel.png"></div><button id="image-toggle" type="button" aria-pressed="false">View original summary image</button><div id="notice" role="status"></div><div id="controls"></div></div><div id="own" hidden></div></div></section></div></div><nav class="mobile-tabs" aria-label="Quick pages"><button data-mobile="MONEY" type="button">Money</button><button data-mobile="STATUS" type="button">Activity</button><button data-mobile="ORDERS" type="button">Orders</button><button data-mobile="settings" type="button">Settings</button><button data-mobile="more" type="button">More</button></nav><div id="toast" role="status" aria-live="polite" hidden></div></main><script>const $ = id => document.getElementById(id);
 const shot = $('shot');
 const controls = $('controls');
 const pages = $('pages');
@@ -225,6 +292,78 @@ let lastPages = '';
 let setting = null;
 let view = '';
 let ticks = 0;
+let activityShape='', reportShape='', accountShape='';
+const mobileActions=new Map();
+const mobileRoutes=new Map();
+for(const key of ['hud','activity']){
+  const input=$('show-'+key);try{input.checked=localStorage.getItem('gonuts.view.'+key)!=='hide';}catch(e){}
+  document.body.classList.toggle('hide-'+key,!input.checked);
+  input.addEventListener('change',()=>{document.body.classList.toggle('hide-'+key,!input.checked);try{localStorage.setItem('gonuts.view.'+key,input.checked?'show':'hide');}catch(e){}});
+}
+document.querySelectorAll('[data-mobile]').forEach(b=>b.addEventListener('click',()=>{
+  const key=b.dataset.mobile;
+  if(key==='settings'){show('settings');$('app-scroll').scrollTop=0;}
+  else if(key==='more'){$('mobile-page').scrollIntoView({block:'start'});$('mobile-page').focus();}
+  else {mobileRoutes.get(key)?.();$('app-scroll').scrollTop=0;}
+}));
+$('mobile-page').addEventListener('change',e=>mobileActions.get(e.target.value)?.());
+$('mobile-account').addEventListener('change',e=>{e.target.blur();act('acct:pick',e.target.value);});
+function accountPicker(components){
+  const pick=(components||[]).flatMap(r=>r.components||[]).find(c=>c.custom_id==='acct:pick');
+  const select=$('mobile-account'),shape=JSON.stringify(pick);
+  select.parentElement.hidden=!pick;if(shape===accountShape||document.activeElement===select)return;accountShape=shape;
+  select.replaceChildren();
+  for(const item of pick?.options||[]){const option=el('option','',item.label);option.value=item.value;option.selected=!!item.default;select.append(option);}
+}
+$('image-toggle').addEventListener('click',()=>{
+  const original=$('pic').classList.toggle('original');
+  $('image-toggle').setAttribute('aria-pressed',String(original));
+  $('image-toggle').textContent=original?'Back to readable summary':'View original summary image';
+});
+function activityCards(rows) {
+  const box=$('activity-cards');box.hidden=!rows?.length;
+  document.querySelector('.now').hidden=!!rows?.length;
+  const shape=JSON.stringify(rows);if(shape===activityShape)return;activityShape=shape;
+  box.replaceChildren();
+  for(const row of rows||[]){
+    const card=el('section','panel activity-card'+(row.current?'':' stale'));
+    const head=el('div','activity-heading');head.append(el('strong','',row.account),el('span','activity-state',row.current?row.state.replaceAll('_',' ').toLowerCase():row.connected?'Waiting for fresh activity':'Offline · history'));
+    const age=row.at>0?Math.max(0,Math.floor((Date.now()-row.at)/1000)):null;
+    card.append(head,el('p','',row.detail||'Waiting for activity'),el('small','',age===null?'No observation received':'Last action update '+age+'s ago'));
+    box.append(card);
+  }
+}
+function readableReport(report) {
+  $('pic').classList.toggle('has-report',!!report);
+  const shape=JSON.stringify(report);if(shape===reportShape)return;reportShape=shape;
+  const box=$('readable-report');box.replaceChildren();if(!report)return;
+  if(Number.isInteger(report.slotsTotal)&&report.slotsTotal>0&&report.slotsTotal<=1800&&report.slotsUsed>=0){
+    const total=report.slotsTotal,used=Math.min(total,report.slotsUsed),overview=el('section','slot-overview'),grid=el('div','slot-grid');
+    const summary=used+' / '+total+' auction slots occupied';grid.setAttribute('role','img');grid.setAttribute('aria-label',summary);
+    overview.append(el('p','',summary),el('p','money-footnote','Green: occupied · dark: free'));
+    for(let i=0;i<total;i++){const slot=el('i',i<used?'occupied':'');slot.setAttribute('aria-hidden','true');grid.append(slot);}
+    overview.append(grid);box.append(overview);
+  }
+  const metrics=el('dl','money-metrics');
+  for(const pair of report.headline||[]){
+    if(pair[0]==='~spark'){
+      const pieces=String(pair[1]).split('|'),values=(pieces[1]||'').split(',').map(Number).filter(Number.isFinite),peak=Math.max(1,...values.map(Math.abs));
+      const metric=el('div','money-metric'),chart=el('div','strip');chart.style.height='44px';chart.setAttribute('aria-label',pieces[0]||'Profit history');
+      for(const value of values){const bar=el('i',value<0?'n':'');bar.style.height=Math.max(1,Math.abs(value)*100/peak)+'%';bar.title=String(value);chart.append(bar);}
+      metric.append(el('dt','',pieces[0]||'Profit history'),chart);metrics.append(metric);continue;
+    }
+    const metric=el('div','money-metric');metric.append(el('dt','',pair[0]),el('dd','',pair[1]));metrics.append(metric);
+  }
+  box.append(metrics);
+  if(report.rows?.length)box.append(el('h2','label','Recent sales'));
+  for(const row of report.rows||[]){
+    const card=el('section','sale-card'), details=el('dl');
+    card.append(el('h3','',row[1]||row[0]));
+    for(let i=0;i<row.length;i++){if(i===1)continue;details.append(el('dt','',report.columns?.[i]||'Detail'),el('dd','',row[i]));}
+    card.append(details);box.append(card);
+  }
+  box.append(el('p','money-footnote',report.footer));
+}
 function put(id, text) { $(id).textContent = text; }
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -417,13 +556,19 @@ function tabs(pick) {
   if (shape === lastPages) return;
   lastPages = shape;
   pages.replaceChildren();
+  const mobile=$('mobile-page');mobile.replaceChildren();mobileActions.clear();
+  mobileRoutes.clear();
   const groups={};
+  const mobileGroups={};
   for(const label of ['Trading','Markets','Accounts','Safety','Settings']){
     const group=el('details','nav-group');group.append(el('summary','',label));pages.append(group);groups[label]=group;
+    const optgroup=el('optgroup');optgroup.label=label;mobile.append(optgroup);mobileGroups[label]=optgroup;
   }
   const destinations={settings:'Settings',auction:'Settings',orders:'Settings',analyzer:'Settings',reports:'Settings',items:'Trading',prices:'Trading',rivals:'Markets',staff:'Safety',evasion:'Safety',bots:'Accounts',savings:'Accounts',proxies:'Accounts',dashboard:'Trading'};
   const add = (label, current, go, group='Trading') => {
     const b = button('', label, go);
+    const id=String(mobileActions.size);mobileActions.set(id,go);
+    const option=el('option','',label);option.value=id;option.selected=!!current;mobileGroups[group].append(option);
     if (current) { b.setAttribute('aria-current', 'page');groups[group].open=true; }
     groups[group].appendChild(b);
   };
@@ -433,10 +578,12 @@ function tabs(pick) {
     const back = el('a', '', 'Dashboard');
     back.href = 'https://gonuts.at/dashboard/';
     groups.Trading.appendChild(back);
+    const option=el('option','','Dashboard');option.value='dashboard-home';mobileGroups.Trading.append(option);mobileActions.set(option.value,()=>location.assign(back.href));
   } else mine('dashboard');
   mine('analyzer');
   if(!options.some(o=>o.value==='TUNE')){mine('settings');mine('auction');mine('orders');mine('items');}
   for (const o of options) {
+    mobileRoutes.set(o.value,()=>{if(view)show('');act('page:pick',o.value);});
     // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
     if (o.value === 'RIVALS') { mine('rivals'); continue; }
     if (o.value === 'STAFF') { mine('staff'); continue; }
@@ -452,6 +599,8 @@ function tabs(pick) {
 }
 function draw(state) {
   hud(state.hud);
+  activityCards(state.activity);
+  accountPicker(state.components);
   setting = state.setting || null;
   let pick = null;
   const rows = [];
@@ -463,7 +612,12 @@ function draw(state) {
     if (rest.length) rows.push(rest);
   }
   tabs(pick);
+  document.querySelectorAll('[data-mobile]').forEach(b=>{
+    const selected=b.dataset.mobile===view||(!view&&(pick?.options||[]).some(o=>o.value===b.dataset.mobile&&o.default));
+    if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  });
   if (view) return;
+  readableReport(state.report);
   put('page', state.page || '');
   put('notice', state.notice || '');
   const shape = JSON.stringify(rows);

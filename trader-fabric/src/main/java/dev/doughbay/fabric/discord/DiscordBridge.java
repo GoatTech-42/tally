@@ -164,6 +164,9 @@ public final class DiscordBridge {
         root.put("page", label(page));
         root.put("notice", notice.isBlank() || System.currentTimeMillis() - noticeAt > 120_000 ? "" : notice);
         root.set("components", components());
+        if (page == Page.MONEY) root.set("report", PanelReadModel.report(DiscordPrivacy.page(renderedPage())));
+        var current = PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account());
+        root.set("activity", PanelReadModel.activity(ledgerPath, current, account, System.currentTimeMillis()));
         // What the HUD in game shows across its top, for the page to show across its own.
         AutomationSessionController.SessionSnapshot s = session.snapshot();
         MarketWatcher watcher = DoughBayClient.watcher();
@@ -173,9 +176,11 @@ public final class DiscordBridge {
         hud.put("state", account.isBlank() && !v.live() ? "hive" : v.state());
         hud.put("now", v.live() ? (s.detail() == null ? "" : s.detail())
                 : account.isBlank() ? "Combined Hive view; choose one account for its records." : "Selected account: " + v.state());
-        hud.put("listed", v.listed());
-        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(orderAccounts(), System.currentTimeMillis());
+        hud.put("listed", PanelReadModel.listed(ledgerPath, current, account));
+        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(capacityAccounts(), System.currentTimeMillis());
         hud.put("slots", capacity.known() == capacity.accounts() ? capacity.total() : -1);
+        hud.put("slotCoverage", capacity.known() + "/" + capacity.accounts() + " current accounts reporting capacity");
+        hud.put("accountCoverage", current.size() + " current · " + Math.max(0, panelAccounts().size()-current.size()) + " historical");
         hud.put("bank", v.bank() < 0 ? "unknown" : money(v.bank()));
         hud.put("trades", v.trades());
         hud.put("who", v.label());
@@ -496,7 +501,7 @@ public final class DiscordBridge {
 
     private List<String> faces() {
         if (!account.isBlank()) return List.of(account);
-        List<String> hive = panelAccounts();
+        List<String> hive = PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account());
         if (hive.size() > 1) return hive;
         String me = DoughBayClient.account();
         return me.isBlank() ? List.of() : List.of(me);
@@ -546,7 +551,8 @@ public final class DiscordBridge {
             ArrayNode aopts = apick.putArray("options");
             option(aopts, "All accounts", "*", account.isBlank());
             for (String name : accounts) {
-                option(aopts, name.equalsIgnoreCase(DoughBayClient.account()) ? name + " (this client)" : name,
+                boolean current = PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()).stream().anyMatch(name::equalsIgnoreCase);
+                option(aopts, name.equalsIgnoreCase(DoughBayClient.account()) ? name + " (this client)" : name + (current ? "" : " (historical)"),
                         name, name.equalsIgnoreCase(account));
             }
         }
@@ -1101,19 +1107,22 @@ public final class DiscordBridge {
             default -> "green";
         };
         Viewed v = viewed(s, balance);
+        int liveListed = PanelReadModel.listed(ledgerPath,
+                PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()), account);
+        v = new Viewed(v.name(), v.state(), v.bank(), v.trades(), liveListed, v.live());
         // "SCANNING · 10:45 · bank $8.7m" on its own, as it always read; with a
         // hive, whose figures these are comes first, because that is the thing
         // it is now possible to be wrong about.
         String head = account.isBlank() && !v.live()
-                ? "hive of " + panelAccounts().size()
+                ? "hive of " + PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()).size()
                 : v.state();
         String subtitle = v.label() + " · " + head + " · " + CLOCK.format(Instant.now()) + " · bank " + (v.bank() < 0 ? "unknown" : money(v.bank()));
         String footer = v.live() ? (s.detail().length() > 110 ? s.detail().substring(0, 110) : s.detail())
                 : "Selected account scope. Missing or stale observations stay unknown; host values are not substituted.";
         // The slot grid belongs to whoever is being looked at, so one account's
         // allowance for one account and everybody's for the hive.
-        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(orderAccounts(), System.currentTimeMillis());
-        int slots = capacity.known() == capacity.accounts() ? capacity.total() : 0;
+        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(capacityAccounts(), System.currentTimeMillis());
+        int slots = liveListed >= 0 && capacity.known() == capacity.accounts() ? capacity.total() : 0;
         return switch (page) {
             case MONEY -> moneyPage(s, v, stateColor, subtitle, footer, slots);
             case STATUS -> statusPage(s, v, stateColor, subtitle, footer);
@@ -1415,7 +1424,8 @@ public final class DiscordBridge {
                 totalProfit24 += profit24;
                 totalSales24 += sales24;
             }
-            head.add(new String[] {"Accounts", accounts.size() + " recorded in this Hive", accounts.size() > 1 ? "green" : "dim"});
+            int currentCount = PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()).size();
+            head.add(new String[] {"Accounts", currentCount + " current · " + Math.max(0,accounts.size()-currentCount) + " historical", currentCount > 1 ? "green" : "dim"});
             head.add(new String[] {"Hive bank", money(totalBank), "gold"});
             head.add(new String[] {"Listed", totalListed + " · asking " + money(totalAsk)});
             head.add(new String[] {"Profit 1h", money(totalProfit) + " · " + totalSales + " sold", "green"});
@@ -1733,7 +1743,12 @@ public final class DiscordBridge {
     }
 
     private List<dev.doughbay.fabric.OrderMetrics.Account> orderAccounts() {
-        return dev.doughbay.fabric.OrderMetrics.select(ledgerPath.toAbsolutePath().getParent(), ledgerScope().account(), panelAccounts());
+        return capacityAccounts();
+    }
+
+    private List<dev.doughbay.fabric.OrderMetrics.Account> capacityAccounts() {
+        return PanelReadModel.capacityAccounts(ledgerPath.toAbsolutePath().getParent(), ledgerScope().account(),
+                PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()));
     }
 
     /** Who came near, when, and what the guard did about it - newest first. */

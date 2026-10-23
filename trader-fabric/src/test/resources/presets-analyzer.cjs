@@ -5,11 +5,13 @@ for(const hostedPanel of [false,true]) {
  const node=(tag,text='')=>({tag,text,children:[],attrs:{},replaceChildren(){this.children=[];},appendChild(n){this.children.push(n);},append(...nodes){this.children.push(...nodes);},setAttribute(k,v){this.attrs[k]=v;}});
  const pages=node('nav');
  const ownMap={bots:{label:'Hive & commands'},savings:{label:'Swarm savings'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'},settings:{label:'Settings'},auction:{label:'Auction settings'},orders:{label:'Order settings'},items:{label:'Items'}};
- const nav=vm.createContext({hostedPanel,pages,OWN:ownMap,view:'settings',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>node(tag,text),button:(cls,text,click)=>Object.assign(node('button',text),{click})});
+ const mobile=node('select');
+ const nav=vm.createContext({hostedPanel,pages,$:()=>mobile,mobileActions:new Map(),mobileRoutes:new Map(),OWN:ownMap,view:'settings',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>node(tag,text),button:(cls,text,click)=>Object.assign(node('button',text),{click})});
  vm.runInContext(html.slice(html.indexOf('function tabs(pick)'),html.indexOf('function draw(state)')),nav);
  nav.tabs(null);
  const flatten=n=>[n,...n.children.flatMap(flatten)],all=flatten(pages);
  assert.equal(pages.children.length,5,'Navigation is divided into five work areas');
+ assert.equal(mobile.children.length,5,'Mobile selector retains every work area');
  assert(all.some(n=>n.text==='Analyzer'),'Analyzer must be reachable in both sidebars');
  assert(all.some(n=>n.text==='Swarm savings'),'Swarm savings must be reachable in both sidebars');
  assert(all.some(n=>n.text==='Order settings'),'Settings are reachable even before the native page picker arrives');
