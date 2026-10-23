@@ -232,7 +232,7 @@ button.link:hover:not(:disabled) { background:none; color:var(--gold); }
   .mobile-account { flex:none; display:flex; gap:8px; align-items:center; }
   .mobile-account select { flex:1; min-width:0; min-height:44px; padding:6px 10px; font-size:16px; background:var(--inset); }
   .hud .account-tile { display:none; }
-  .app-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding-bottom:12px; }
+  .app-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding-bottom:12px; scrollbar-width:thin; scrollbar-color:var(--edge) transparent; }
   .mobile-tabs { flex:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px;
     padding:6px 0 max(6px,env(safe-area-inset-bottom)); border-top:1px solid var(--edge); background:var(--background); }
   .mobile-tabs button { padding:6px 2px; min-height:48px; border:0; background:none; font-size:12px; color:var(--secondary); }
