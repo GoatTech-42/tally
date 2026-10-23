@@ -19,6 +19,9 @@ public final class DecisionTrace {
     private record Entry(long sequence,long at,ActionTrace.Scope scope,ActionTrace.Event event,String line){}
     private final ArrayDeque<Entry> recent=new ArrayDeque<>();
     private final EnumMap<ActionTrace.Scope,Entry> latest=new EnumMap<>(ActionTrace.Scope.class),problems=new EnumMap<>(ActionTrace.Scope.class);
+    // A stream of rejected candidates must not erase why an accepted order was sized.
+    // Keep a bounded latest-per-market projection independently of the activity ring.
+    private final LinkedHashMap<String,Entry> sizing=new LinkedHashMap<>();
     private long sequence,evicted;
     private long settingsAt;
     private final Map<String,Double> settings=new HashMap<>();
@@ -44,6 +47,10 @@ public final class DecisionTrace {
         // Identical recurring observations keep their first/last timestamps without flooding the timeline.
         if(old!=null&&now>=old.at&&now-old.at<60_000&&shape(old.line).equals(shape(line)))return;
         Entry e=new Entry(++sequence,now,scope,event,line);latest.put(scope,e);recent.addLast(e);
+        if(scope==ActionTrace.Scope.DESK&&Set.of("ORDER_PLAN","ORDER_DEPTH","ORDER_SALES").contains(code)) {
+            String key=code+":"+item;sizing.remove(key);sizing.put(key,e);
+            while(sizing.size()>96)sizing.remove(sizing.keySet().iterator().next());
+        }
         if(Set.of(ActionTrace.Event.REFUSED,ActionTrace.Event.FAULT,ActionTrace.Event.ABORTED,ActionTrace.Event.EMERGENCY_STOPPED).contains(event))problems.put(scope,e);
         while(recent.size()>2048){recent.removeFirst();evicted++;}
         org.slf4j.LoggerFactory.getLogger("DoughBay").info("GoNuts decision {}",line);
@@ -76,10 +83,18 @@ public final class DecisionTrace {
         var selected=new LinkedHashMap<Long,Entry>();
         var baseline=new ArrayList<>(latest.values());baseline.addAll(problems.values());baseline.sort(Comparator.comparingLong(Entry::sequence).reversed());
         for(var e:baseline)selected.put(e.sequence,e);
+        var sizingEvidence=new ArrayList<>(sizing.values());
+        sizingEvidence.removeIf(e->now<e.at||now-e.at>15*60_000L);
+        sizingEvidence.sort(Comparator.<Entry>comparingInt(e->e.line.contains(" code=ORDER_PLAN ")?0:1)
+                .thenComparing(Comparator.comparingLong(Entry::sequence).reversed()));
+        int used=selected.values().stream().mapToInt(e->e.line.length()+1).sum();
+        int pinned=0;
+        for(var e:sizingEvidence)if(pinned<24&&!selected.containsKey(e.sequence)&&used+e.line.length()+1<=budget) {
+            selected.put(e.sequence,e);used+=e.line.length()+1;pinned++;
+        }
         var tail=new ArrayList<>(recent);Collections.reverse(tail);
         // Reserve broad context first; topic may only prioritize the remaining tail.
         tail.sort(Comparator.comparingInt(e->topic.relevant(e.scope)?0:1));
-        int used=selected.values().stream().mapToInt(e->e.line.length()+1).sum();
         for(var e:tail)if(!selected.containsKey(e.sequence)&&used+e.line.length()+1<=budget&&selected.size()<64){selected.put(e.sequence,e);used+=e.line.length()+1;}
         var ordered=new ArrayList<>(selected.values());ordered.sort(Comparator.comparingLong(Entry::sequence));
         while(used>budget&&!ordered.isEmpty()){var e=ordered.removeFirst();used-=e.line.length()+1;}
