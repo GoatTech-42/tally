@@ -6221,6 +6221,21 @@ public final class AutomationSessionController {
                 if (competitive > unit) { bump(why, "retail batch margin too small"); continue; }
                 unit = competitive;
             }
+            // Finalize the offer before validating it. The resale ceiling is
+            // a limit, not what this order will pay; checking the ceiling here
+            // rejected safe discounted offers before they could be calculated.
+            long ourStanding = reserveMarket(m.itemKey()) ? ownOrders.stream()
+                    .filter(r -> r.itemId().equals(m.itemKey()) && !r.alreadyCancelled() && r.remaining()>0)
+                    .mapToLong(AutomatedExecutionDriver.OwnOrderRow::unitPrice).max().orElse(0) : 0;
+            boolean sharingOurPrice = ourStanding > 0 && standing == ourStanding && unit >= ourStanding;
+            if (sharingOurPrice) unit = ourStanding;
+            if (standing > 0 && !sharingOurPrice && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
+            // Far above every standing bid means the statistic is wrong, not
+            // that the market is generous: a polluted single-item median.
+            if (standing > 0 && unit > standing * 5) { bump(why, "price looks wrong"); continue; }
+            if (standing > 0 && retail == null && shaped == null) {
+                unit = Math.min(unit, Math.max((long) (standing * 1.05), unit * 3 / 4));
+            }
             // Asks are only what sellers hope for. Junk markets carry rows of
             // troll listings that agree with each other - nine raw mutton
             // stacks at 9M to 10M - and on a fresh install those were the only
@@ -6239,18 +6254,6 @@ public final class AutomationSessionController {
                     bump(why, "no real trades or orders to price against");
                     continue;
                 }
-            }
-            long ourStanding = reserveMarket(m.itemKey()) ? ownOrders.stream()
-                    .filter(r -> r.itemId().equals(m.itemKey()) && !r.alreadyCancelled() && r.remaining()>0)
-                    .mapToLong(AutomatedExecutionDriver.OwnOrderRow::unitPrice).max().orElse(0) : 0;
-            boolean sharingOurPrice = ourStanding > 0 && standing == ourStanding && unit >= ourStanding;
-            if (sharingOurPrice) unit = ourStanding;
-            if (standing > 0 && !sharingOurPrice && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
-            // Far above every standing bid means the statistic is wrong, not
-            // that the market is generous: a polluted single-item median.
-            if (standing > 0 && unit > standing * 5) { bump(why, "price looks wrong"); continue; }
-            if (standing > 0 && retail == null && shaped == null) {
-                unit = Math.min(unit, Math.max((long) (standing * 1.05), unit * 3 / 4));
             }
             // The auction gate holds a market to a few open listings, but a
             // filled bid landed as three stacks of the same thing on top of
