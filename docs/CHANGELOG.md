@@ -1,5 +1,17 @@
 # GoNuts changelog
 
+## 2026-10-23 16:15 UTC
+
+- **Release PR #258:** Preserve system-wide decision evidence in current bug reports.
+
+- Client artifact published October 23 at 09:15:27 Los Angeles time (16:15:27 UTC). Build 1792771157556; SHA256 `4ec2104559686e90100068e81c4ce646f644e0d1a0eb9664f755a0f0ea968887`. Full production build: 1,536 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. This is a separate binary publication after PR254.
+
+- Reports now preserve a bounded timeline across the mod's subsystem traces, order-sizing inputs and final quantities, 37 closed planner rejection reasons, selected auction-watch markets, and observed numeric settings changes. Both description fields guide priority while baseline evidence remains available across subsystems. Capture-window, omitted-record and eviction counts make missing coverage explicit. Private identities, chat, commands and secrets remain excluded.
+
+- Current attachments support 24 KiB with a matching receiver and worker deployment. The worker now distinguishes progress from correctness: active cycles alone do not explain a quantity, scheduling or capacity complaint, and an intended protective hold does not resolve the original refused write. A generated manual/automatic fixture was checked against the real receiver and worker; no valid decision line was dropped.
+
+- This improves report evidence; it does not claim the trading behavior in reports #236/#257 or the original refusal in #256 fixed. Older reports cannot gain decisions their client never recorded. The separate continuous 24-hour cloud-log feature remains staged, not enabled by this release. Existing live bots are not automatically restarted or upgraded.
+
 ## 2026-10-23 02:29 UTC
 
 - **Release PR #254:** Preserve diagnostic samples across game-thread and upload-worker timing.
