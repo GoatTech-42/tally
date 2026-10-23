@@ -8,7 +8,7 @@ import net.minecraft.util.Util;
 import java.net.URI;
 
 /** Reopenable beginner entry point. Navigation alone never enables trading. */
-final class StartHereScreen extends Screen {
+final class StartHereScreen extends GoNutsScreen {
     private final DoughBayScreen parent;
     private String message = "";
     StartHereScreen(DoughBayScreen parent) {
@@ -50,7 +50,7 @@ final class StartHereScreen extends Screen {
         int x = left(), y = top(), w = bodyWidth();
         g.text(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);
         g.text(font, UiTheme.fit(font, "Join DonutSMP, choose your limits, then review and Start. No code needed.", w), x, y + 23, UiTheme.TEXT);
-        g.text(font, UiTheme.fit(font, "Lost? Press B and choose the gold START HERE button on any tab.", w), x, y + 42, UiTheme.MUTED);
+        g.text(font, UiTheme.fit(font, "Reopen this page: B > Settings > Help & setup.", w), x, y + 42, UiTheme.MUTED);
         int lineY = row(3) + 32;
         for (var line : font.split(Component.literal(message.isBlank()
                 ? "Trading is called Trade. If it is paused or blocked, open Trade to see why."

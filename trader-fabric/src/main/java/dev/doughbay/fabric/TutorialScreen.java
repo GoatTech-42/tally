@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 /** Reopenable lessons. Opening a target page delegates navigation only. */
-final class TutorialScreen extends Screen {
+final class TutorialScreen extends GoNutsScreen {
     private final DoughBayScreen parent;
     private final Screen home;
     private Tutorials.Course course;

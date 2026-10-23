@@ -10,7 +10,7 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 /** Local preview and explicit consent precede every direct submission. */
-public final class BugReportScreen extends Screen {
+public final class BugReportScreen extends GoNutsScreen {
     private final Screen parent;
     private final BugReportTransport transport = new BugReportTransport();
     private EditBox happened, expected;
@@ -122,7 +122,7 @@ public final class BugReportScreen extends Screen {
         return super.mouseScrolled(x, y, dx, dy);
     }
     @Override public void onClose() { if (!sending) { sendWhenReady = false; minecraft.gui.setScreen(parent); } }
-    @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); }
+    @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); super.removed(); }
     @Override public boolean isPauseScreen() { return false; }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         refreshSend();

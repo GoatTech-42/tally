@@ -1,14 +1,12 @@
 # GUI tour
 
-Open GoNuts in game with **B**. Wide windows use a grouped sidebar; smaller
-windows use multiple rows of navigation buttons. The selected page, feed health,
-and session control stay visible above the content.
-In the default **Observe** mode every tab is view-only, so you can explore the
-whole interface without a single trade being possible.
+Press **B** to open GoNuts. Five aligned workspaces organize navigation: **Trading**, **Markets**, **Accounts**, **Safety** and **Settings**. Each workspace shows its own pages. The in-game layout fits the window independently of Minecraft GUI scale, including compact windows. Observe mode does not execute trades; changing a setting remains an explicit action.
 
-A new install opens **Choose limits, then Review & Start**. Existing installs keep their normal entry screen. **Set up trading** reopens the two-step setup; **Tutorials** contains optional lessons for Swarm, protections, items, Flips, orders, updates and bug reports. Opening a lesson never starts trading.
+A new install opens **Start here**. Reopen it with **Settings → Help & setup**, then **Set up trading** for **Choose limits → Review & Start**. Opening setup or a tutorial never starts trading.
 
-**Auction** and **Orders** are main navigation tabs with direct access to their settings. The same settings remain under **Settings** (Auction, Orders, General, All). Orders also contains an **Order book** subtab.
+**Trading → Auction** and **Trading → Orders** provide direct controls. **Settings** opens four Simple groups: Order management, Trading style, Action pace and Order batch ceiling. Bundled changes show their exact before/after values and require Apply. **Custom — preserved** keeps unmatched values. Switching views changes no saved settings. **Advanced view** exposes all individual controls in searchable categories. See the [settings handbook](https://gonuts.at/guide/settings.html).
+
+**Settings → Advanced view → Tutorials** contains the updated optional lessons. **Accounts → Swarm / Hive setup** holds connections; **Safety → Evasion / Staff Watch / Region Map** holds protection controls.
 
 The Dashboard shows realized profit, active listings, a profit
 chart, the top opportunities, and recent activity. The ledger always shows real
@@ -17,7 +15,7 @@ records, even when market opportunities use explicitly labeled demo data.
 The rounded cream-and-teal robot has an upright antenna and independently
 animated eyes, eyelids and mouth: reading scans, rolling dollar reels, and a
 bored idle with glances and yawns. It appears once on the Dashboard.
-**Settings → HUD → Reduced motion** keeps its expression still and
+**Settings → Advanced view → Display & alerts → Reduced motion** keeps its expression still and
 removes HUD movement. Alerts have a visible lifetime bar and avoid other GoNuts
 HUD panels; the key legend and nearby-player panel use the same visual theme.
 The HUD separates state, slot usage, committed money, and current action.
@@ -80,10 +78,10 @@ so you can trade the demand side as well as the listings.
 
 ## Trade (formerly AutoPilot)
 
-AutoPilot is still available under **Trade**. The Dashboard shortcut is
+AutoPilot is still available under **Trading → Trade**. The Dashboard shortcut is
 **Manage trading**. Older walkthroughs may say AutoPilot or Automation.
 
-For guided setup, choose **Set up trading**, set your limits in **Choose limits**,
+For guided setup, choose **Settings → Help & setup → Set up trading**, set your limits in **Choose limits**,
 then review readiness in **Review & Start**. Starting is a separate, deliberate
 choice. Existing item choices, protections and recovery checks still apply.
 
@@ -144,3 +142,10 @@ Version, credits, and links.
 ---
 
 Back to the [README](../README.md).
+
+
+## Money and Orders account views
+
+In local, hosted and Discord panels, choose one account for its records or All accounts for the combined Hive. Order rows are account-labelled. Money retains its existing sales, profit and auction summary, adding unfilled orders, committed order funds, delivered stock awaiting collection and observed full-order completions in the last hour/day. Missing or stale reports are unknown rather than borrowed from the host. Completion history begins with this update and does not reconstruct offline activity. Total auction capacity sums each member's own reported limit: three 90-slot members total 270.
+
+The reporting selector does not redirect settings writes. Open the intended client's own panel to edit its settings.

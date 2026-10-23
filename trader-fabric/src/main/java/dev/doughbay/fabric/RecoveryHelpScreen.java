@@ -6,7 +6,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /** Readable recovery instructions; all actual actions still use the controller's gates. */
-final class RecoveryHelpScreen extends Screen {
+final class RecoveryHelpScreen extends GoNutsScreen {
     private final Screen parent;
     private final String instructions, confirmation;
     private final Runnable confirm;

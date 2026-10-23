@@ -23,6 +23,7 @@ public final class CapitalHistory {
       String key=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(nowAccount.toLowerCase(Locale.ROOT).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
       active=new CapitalHistory(game.resolve("gonuts-capital-history").resolve(key+".json"));account=nowAccount;
      }
+     OrderMetrics.publish(DoughBayClient.automationSessionController());
      active.record(capture());
     }
    }catch(Exception failure){if(active!=null)active.status="Capital history recording unavailable; existing observations kept";}

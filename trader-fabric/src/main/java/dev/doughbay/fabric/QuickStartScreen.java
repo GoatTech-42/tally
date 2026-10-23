@@ -6,7 +6,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
 /** Two-step setup: choose limits, then deliberately enable and start through existing safety gates. */
-final class QuickStartScreen extends Screen {
+final class QuickStartScreen extends GoNutsScreen {
     private final DoughBayScreen parent;
     private final Screen home;
     private boolean review;

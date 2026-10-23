@@ -1,34 +1,53 @@
 WEBVTT
 
-00:00.000 --> 00:06.000
-Run your trader from Discord. About five minutes, and you only do it once.
+00:00:00.000 --> 00:00:10.216
+The Discord panel is optional and separate from the browser
+panel. Use your own bot and operator account.
 
-00:06.000 --> 00:16.000
-A Discord account, a server of your own, and GoNuts already working in game.
+00:00:10.216 --> 00:00:18.000
+The written Discord guide covers the external application and
+permissions steps.
 
-00:16.000 --> 00:26.000
-Open the Discord developer page and make a new application. The name is up to you.
+00:00:18.000 --> 00:00:26.591
+In the Discord developer portal, create your application and
+bot, then invite it using the permissions in
 
-00:26.000 --> 00:37.000
-The token is the bot's password. Copy it now: Discord only shows it once.
+00:00:26.591 --> 00:00:35.100
+the written guide. External portal screens are not shown here.
+Never post a token in chat, a report or a
 
-00:37.000 --> 00:50.000
-Make an invite link with three permissions, open it, and pick your server.
+00:00:35.100 --> 00:00:36.000
+screenshot.
 
-00:50.000 --> 00:59.000
-Developer Mode lets you copy the ids that GoNuts asks for.
+00:00:36.000 --> 00:00:50.346
+Enable Developer Mode in Discord. Copy the target channel ID and
+your own user ID. Names and channel links
 
-00:59.000 --> 01:09.000
-Right-click the channel for its id, then right-click your own name for yours.
+00:00:50.346 --> 00:00:54.000
+do not replace numeric IDs.
 
-01:09.000 --> 01:19.000
-In game press B, open Autopilot, and click the top right button twice.
+00:00:54.000 --> 00:01:07.886
+Press B, choose Trading, then Trade. Cycle the top Tools button
+to Discord command centre and open it. These
 
-01:19.000 --> 01:30.000
-Paste the token, the channel id and your user id, then press Save.
+00:01:07.886 --> 00:01:12.000
+are the current client controls.
 
-01:30.000 --> 01:42.000
-The panel shows up in your channel. Pick a page from the dropdown, and Start or Stop from the buttons.
+00:01:12.000 --> 00:01:21.044
+Enter your token in the masked Bot token field, Channel id and
+Your Discord user id. Save and read the
 
-01:42.000 --> 01:51.000
-Check the three permissions, both ids, and the token. Then Save again.
+00:01:21.044 --> 00:01:30.000
+connection status. Keep credentials out of screenshots. Optional
+activity feed settings are separate.
+
+00:01:30.000 --> 00:01:37.158
+The Discord, local and hosted panels share the same image
+renderer. Select one account or All accounts.
+
+00:01:37.158 --> 00:01:44.664
+Money includes order funds, unfilled orders and observed
+completion counts alongside auction results. Filled
+
+00:01:44.664 --> 00:01:48.000
+orders are delivered stock, not sales or profit.

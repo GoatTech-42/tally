@@ -58,7 +58,7 @@ class WebPagesTest {
         int rows = 0;
         for (JsonNode group : page.path("groups")) rows += group.path("settings").size();
         assertEquals(Tuning.SETTINGS.size(), rows);
-        assertEquals(Tuning.groups().size(), page.path("groups").size());
+        assertEquals(SettingsSection.groups().size(), page.path("groups").size());
         assertEquals(Tuning.LISTS.size(), page.path("lists").size());
         assertEquals("Default", page.path("presets").get(0).asText());
         JsonNode cap = row(page, "buy.purchase_cap_pct");

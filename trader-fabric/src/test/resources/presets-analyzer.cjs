@@ -2,14 +2,19 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const html=fs.readFileSync(process.argv[2],'utf8');
 // Exercise the real navigation builder for local and hosted shells.
 for(const hostedPanel of [false,true]) {
- const pages={children:[],replaceChildren(){this.children=[];},appendChild(n){this.children.push(n);}};
- const ownMap={bots:{label:'Hive & commands'},savings:{label:'Swarm savings'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'}};
- const nav=vm.createContext({hostedPanel,pages,OWN:ownMap,view:'',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>({tag,text}),button:(cls,text,click)=>({text,click,setAttribute(){}})});
+ const node=(tag,text='')=>({tag,text,children:[],attrs:{},replaceChildren(){this.children=[];},appendChild(n){this.children.push(n);},append(...nodes){this.children.push(...nodes);},setAttribute(k,v){this.attrs[k]=v;}});
+ const pages=node('nav');
+ const ownMap={bots:{label:'Hive & commands'},savings:{label:'Swarm savings'},reports:{label:'Report bug'},proxies:{label:'Proxies'},dashboard:{label:'Dashboard'},analyzer:{label:'Analyzer'},settings:{label:'Settings'},auction:{label:'Auction settings'},orders:{label:'Order settings'},items:{label:'Items'}};
+ const nav=vm.createContext({hostedPanel,pages,OWN:ownMap,view:'settings',lastPages:'',JSON,show:()=>{},el:(tag,cls,text)=>node(tag,text),button:(cls,text,click)=>Object.assign(node('button',text),{click})});
  vm.runInContext(html.slice(html.indexOf('function tabs(pick)'),html.indexOf('function draw(state)')),nav);
  nav.tabs(null);
- assert(pages.children.some(n=>n.text==='Analyzer'),'Analyzer must be reachable in both sidebars');
- assert(pages.children.some(n=>n.text==='Swarm savings'),'Swarm savings must be reachable in both sidebars');
- const dashboard=pages.children.find(n=>n.text==='Dashboard');assert(dashboard);
+ const flatten=n=>[n,...n.children.flatMap(flatten)],all=flatten(pages);
+ assert.equal(pages.children.length,5,'Navigation is divided into five work areas');
+ assert(all.some(n=>n.text==='Analyzer'),'Analyzer must be reachable in both sidebars');
+ assert(all.some(n=>n.text==='Swarm savings'),'Swarm savings must be reachable in both sidebars');
+ assert(all.some(n=>n.text==='Order settings'),'Settings are reachable even before the native page picker arrives');
+ assert(pages.children.find(n=>n.children[0].text==='Settings').open,'Current work area is expanded');
+ const dashboard=all.find(n=>n.text==='Dashboard');assert(dashboard);
  if(hostedPanel)assert.equal(dashboard.href,'https://gonuts.at/dashboard/');else assert.equal(typeof dashboard.click,'function');
 }
 const source=html.slice(html.indexOf('async function openSavedPresets()'),html.indexOf('async function openSettings()'));

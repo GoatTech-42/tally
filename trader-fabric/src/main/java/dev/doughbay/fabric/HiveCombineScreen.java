@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 /** Review and consent only. The actual import can run only at a later startup. */
-final class HiveCombineScreen extends Screen {
+final class HiveCombineScreen extends GoNutsScreen {
     private final Screen parent;private final String code;
     private String message="";private boolean queued,joined;private int scroll,maxScroll;
     HiveCombineScreen(Screen parent,String code){super(Component.literal("Review joining these accounts"));this.parent=parent;this.code=code;}

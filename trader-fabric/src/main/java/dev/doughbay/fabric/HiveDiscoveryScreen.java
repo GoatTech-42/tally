@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 /** Offered only during deliberate panel navigation; never takes over an active trading screen. */
-final class HiveDiscoveryScreen extends Screen {
+final class HiveDiscoveryScreen extends GoNutsScreen {
     private final Screen parent;
     private int scroll,maxScroll;
     HiveDiscoveryScreen(Screen parent) { super(Component.literal("Another GoNuts account detected")); this.parent=parent; }

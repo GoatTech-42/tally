@@ -42,7 +42,7 @@ import java.util.Objects;
  * delegated to {@link AutomatedExecutionDriver}. Demo snapshots and the
  * default Observe configuration never expose an active execution control.
  */
-public final class DoughBayScreen extends Screen {
+public final class DoughBayScreen extends GoNutsScreen {
 
     private final ProxyPanel proxyPanel = new ProxyPanel();
     private final HivePanel hivePanel = new HivePanel();
@@ -545,6 +545,7 @@ public final class DoughBayScreen extends Screen {
     /** Settings tab: the row being edited, its draft text, scroll, and row hit boxes {top, bottom, index}. */
     private String selectedSetting;
     private SettingsSection settingsSection = SettingsSection.AUCTION;
+    private boolean settingsCategoriesExpanded;
     private net.minecraft.client.gui.screens.Screen tutorialReturn;
     private boolean ordersSettingsMode=true;
     private String settingsPreset = "Careful";
@@ -656,15 +657,24 @@ public final class DoughBayScreen extends Screen {
         int gap = 4;
         int buttonWidth = ui.sidebar() > 0 ? ui.sidebar() - 20
                 : (ui.innerWidth() - gap * (columns - 1)) / columns;
+        Tab[] roots={Tab.OVERVIEW,Tab.MARKETS,Tab.SWARM,Tab.EVASION,Tab.SETTINGS};
+        String[] labels={"Trading","Markets","Accounts","Safety","Settings"};
+        for(int group=0;group<roots.length;group++){
+            Tab root=roots[group];int gw=(ui.innerWidth()-16)/5;
+            var pick=CockpitButton.builder(Component.literal(labels[group]),b->navigate(root))
+                .bounds(ui.innerLeft()+group*(gw+4),ui.tabY(),gw,20).build();
+            ((CockpitButton)pick).navigation(workspaceTabs(root).contains(tab));addRenderableWidget(pick);
+        }
         int i = 0;
-        for (Tab value : Tab.values()) {
+        for (Tab value : workspaceTabs(tab)) {
             // Six Trade entries, six Operations entries, then six Workspace entries.
             int groupSpace = i >= 14 ? 32 : i >= 8 ? 16 : 0;
             int x = ui.sidebar() > 0 ? ui.left() + 10
                     : ui.innerLeft() + (i % columns) * (buttonWidth + gap);
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
-                    : ui.tabY() + (i / columns) * 22;
+                    : ui.tabY() + 24 + (i / columns) * 22;
             Button button = CockpitButton.builder(Component.literal(value.label), ignored -> {
+                if(value==Tab.SETTINGS){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this));return;}
                 if(value==Tab.START_HERE){
                     Minecraft.getInstance().gui.setScreen(new StartHereScreen(this));return;
                 }
@@ -1167,7 +1177,12 @@ public final class DoughBayScreen extends Screen {
     private record SignalHit(int x, int y, int width, int height, Opportunity opportunity) { }
     private final List<SignalHit> overviewSignals = new ArrayList<>();
 
+    void openAdvancedSettings(SettingsSection section){
+        tab=Tab.SETTINGS;settingsSection=section;selectedSetting=null;settingsSearch="";settingsScroll=0;
+        Minecraft.getInstance().gui.setScreen(this);
+    }
     private void navigate(Tab destination) {
+        if(destination==Tab.SETTINGS){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this));return;}
         if(destination==Tab.SWARM&&layout().bottom()-layout().contentTop()<128){
             Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
         }
@@ -1186,6 +1201,7 @@ public final class DoughBayScreen extends Screen {
     private void openGuidedTarget(String target,net.minecraft.client.gui.screens.Screen guide){
         if(target.equals("bugs")){Minecraft.getInstance().gui.setScreen(new BugReportScreen(guide));return;}
         tutorialReturn=guide;selectedSetting=null;settingsSearch="";settingsScroll=0;
+        if(target.equals("settings")){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this,guide));return;}
         Tab destination=switch(target){
             case "evasion" -> Tab.EVASION;
             case "staff" -> Tab.STAFF_WATCH;
@@ -3074,22 +3090,40 @@ public final class DoughBayScreen extends Screen {
         return tab==Tab.SETTINGS||tab==Tab.AUCTION||tab==Tab.EVASION||tab==Tab.ORDERS&&ordersSettingsMode;
     }
 
+    private boolean compactSettingsNavigation(UiLayout ui){return true;}
+    private int settingsNavigationHeight(UiLayout ui){
+        if(compactSettingsNavigation(ui)&&!settingsCategoriesExpanded)return 26;
+        int cols=Math.max(2,Math.min(5,ui.innerWidth()/110));
+        return ((SettingsSection.values().length+cols-1)/cols)*24+2+(compactSettingsNavigation(ui)?24:0);
+    }
+
     private void initSettingsWidgets(UiLayout ui) {
         settingField = null;
         if(tab==Tab.AUCTION)settingsSection=SettingsSection.AUCTION;
         if(tab==Tab.ORDERS)settingsSection=SettingsSection.ORDERS;
         int controlsTop = ui.contentTop();
         if(tab==Tab.SETTINGS){
-            int gap=4,w=(ui.innerWidth()-gap*3)/4,i=0;
-            for(var section:SettingsSection.values()){
-                Button button=CockpitButton.builder(Component.literal(section.label),b->{
-                    settingsSection=section;selectedSetting=null;settingsSearch="";settingsScroll=0;
-                    settingRowBounds.clear();settingRowKeys.clear();rebuildWidgets();
-                }).bounds(ui.innerLeft()+i++*(w+gap),controlsTop+2,w,20).build();
-                if(button instanceof CockpitButton cockpit)cockpit.navigation(settingsSection==section);
-                addRenderableWidget(button);
+            boolean compact=compactSettingsNavigation(ui);
+            int navTop=controlsTop;
+            if(compact){
+                addRenderableWidget(CockpitButton.builder(Component.literal(settingsSection.label+(settingsCategoriesExpanded?" — close categories":" — choose category")),b->{
+                    settingsCategoriesExpanded=!settingsCategoriesExpanded;rebuildWidgets();
+                }).bounds(ui.innerLeft(),controlsTop+2,Math.max(90,ui.innerWidth()-110),20).build());
+                addRenderableWidget(CockpitButton.builder(Component.literal("Simple view"),b->Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this))).bounds(ui.innerRight()-104,controlsTop+2,104,20).build());
+                navTop+=24;
             }
-            controlsTop+=26;
+            if(!compact||settingsCategoriesExpanded){
+                int gap=4,cols=Math.max(2,Math.min(5,ui.innerWidth()/110)),w=(ui.innerWidth()-gap*(cols-1))/cols,i=0;
+                for(var section:SettingsSection.values()){
+                    Button button=CockpitButton.builder(Component.literal(section.label),b->{
+                        settingsSection=section;settingsCategoriesExpanded=false;selectedSetting=null;settingsSearch="";settingsScroll=0;
+                        settingRowBounds.clear();settingRowKeys.clear();rebuildWidgets();
+                    }).bounds(ui.innerLeft()+(i%cols)*(w+gap),navTop+2+(i++/cols)*24,w,20).build();
+                    if(button instanceof CockpitButton cockpit)cockpit.navigation(settingsSection==section);
+                    addRenderableWidget(button);
+                }
+            }
+            controlsTop+=settingsNavigationHeight(ui);
         }
         // A search box on the title line: with this many settings, typing a few
         // letters is faster than reading down the cards.
@@ -3270,7 +3304,7 @@ public final class DoughBayScreen extends Screen {
 
         int listTopY = top + 16;
         if(tab!=Tab.EVASION){
-            int descriptionY=ui.contentTop()+(tab==Tab.SETTINGS?50:24)+(width<270?24:0);
+            int descriptionY=ui.contentTop()+24+(tab==Tab.SETTINGS?settingsNavigationHeight(ui):0)+(width<270?24:0);
             graphics.text(this.font,truncate(settingsSection.description,width),x,descriptionY,MUTED);
             listTopY=descriptionY+15;
         }
@@ -3291,14 +3325,34 @@ public final class DoughBayScreen extends Screen {
         int gap = 8;
         int colWidth = wide ? (width - gap) / 2 : width;
         int[] colY = {listTopY - settingsScroll, listTopY - settingsScroll};
-        int rowHeight = 13;
+        int rowHeight = 27;
         int index = 0;
         hoveredSetting = null;
-        List<String> groups = new ArrayList<>(Tuning.groups());
+        // Draft feedback and saved-state feedback use the same rules as both web panels.
+        List<SettingsFeedback.Notice> feedback;
+        try { feedback=selectedSetting==null?SettingsFeedback.current():SettingsFeedback.forKey(SettingsFeedback.preview(selectedSetting,settingDraft),selectedSetting); }
+        catch(IllegalArgumentException invalid){feedback=List.of();}
+        int feedbackY=listTopY-settingsScroll;
+        for(var notice:feedback){
+            if(selectedSetting==null&&!notice.level().equals("warning")&&!notice.keys().stream().anyMatch(k->{var st=Tuning.SETTINGS.stream().filter(s->s.key().equals(k)).findFirst().orElse(null);return settingsSection==SettingsSection.ALL||settingsSection.includes(k,st==null?"Items":st.group());}))continue;
+            var lines=this.font.split(Component.literal(notice.effect()),Math.max(80,width-20));
+            boolean expanded=notice.level().equals("warning")||selectedSetting!=null;
+            int h=expanded?27+lines.size()*11:22;
+            if(feedbackY+h>listTopY&&feedbackY<listBottomY){
+                graphics.fill(x,Math.max(listTopY,feedbackY),right,Math.min(listBottomY,feedbackY+h),CARD);
+                if(feedbackY>=listTopY&&feedbackY+14<=listBottomY)graphics.text(this.font,truncate((selectedSetting==null?"":"Draft: ")+notice.title(),width-16),x+8,feedbackY+5,notice.level().equals("warning")?WARN:GOOD);
+                int fy=feedbackY+20;
+                if(mouseX>=x&&mouseX<right&&mouseY>=Math.max(listTopY,feedbackY)&&mouseY<Math.min(listBottomY,feedbackY+h)&&selectedSetting==null)hoveredSetting=notice.keys().getFirst();
+                if(expanded)for(var line:lines){if(fy>=listTopY&&fy+10<=listBottomY)graphics.text(this.font,line,x+8,fy,SECONDARY);fy+=11;}
+            }
+            feedbackY+=h+6;
+        }
+        colY[0]=colY[1]=feedbackY;
+        List<String> groups = new ArrayList<>(SettingsSection.groups());
         groups.add("Keys");
         groups.add("Items");
         if (tab == Tab.EVASION) groups = new ArrayList<>(List.of("Homes", "Evasion"));
-        else groups.remove("Evasion");
+        else if(settingsSection!=SettingsSection.SAFETY&&settingsSection!=SettingsSection.ALL) groups.remove("Evasion");
         for (String group : groups) {
             boolean items = group.equals("Items");
             boolean keys = group.equals("Keys");
@@ -3313,7 +3367,7 @@ public final class DoughBayScreen extends Screen {
                 if (!settingHidden("key.stop", "Emergency stop", "")) rows++;
             } else {
                 for (Tuning.Setting setting : Tuning.SETTINGS) {
-                    if (setting.group().equals(group)
+                    if (SettingsSection.group(setting.key(),setting.group()).equals(group)
                             && !settingHidden(setting.key(), setting.label(), setting.description())) rows++;
                 }
             }
@@ -3366,8 +3420,8 @@ public final class DoughBayScreen extends Screen {
                             n == 0, index++, mouseX, mouseY);
                 }
             } else {
-                for (Tuning.Setting setting : Tuning.SETTINGS) {
-                    if (!setting.group().equals(group)) continue;
+                for (Tuning.Setting setting : Tuning.SETTINGS.stream().sorted(java.util.Comparator.comparingInt(s->SettingsSection.priority(s.key()))).toList()) {
+                    if (!SettingsSection.group(setting.key(),setting.group()).equals(group)) continue;
                     if (settingHidden(setting.key(), setting.label(), setting.description())) continue;
                     yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
                             setting.key(), setting.label(), setting.description(),
@@ -3431,6 +3485,7 @@ public final class DoughBayScreen extends Screen {
         int valueX = x + width - this.font.width(shownValue);
         graphics.text(this.font, truncate(label, valueX - x - 8), x, y + 2, TEXT);
         graphics.text(this.font, shownValue, valueX, y + 2, isDefault ? SECONDARY : GOLD);
+        graphics.text(this.font,truncate(description==null?"":description,Math.max(0,width-4)),x,y+15,MUTED);
         return y + rowHeight;
     }
 
@@ -3469,6 +3524,12 @@ public final class DoughBayScreen extends Screen {
             } else {
                 lines.add("Click to edit");
                 colors.add(MUTED);
+            }
+        }
+        for(var notice:SettingsFeedback.forKey(SettingsFeedback.current(),key)){
+            lines.add(notice.title());colors.add(WARN);
+            for(var line:this.font.split(Component.literal(notice.effect()),260)){
+                lines.add(null);colors.add(SECONDARY);wrappedTooltipLines.add(line);
             }
         }
         int width = 0;
@@ -6700,6 +6761,7 @@ public final class DoughBayScreen extends Screen {
                     }
                     if (settingField != null && settingField.isFocused()) settingField.setFocused(false);
                     selectedSetting = key;
+                    settingsScroll = 0;
                     settingDraft = settingDraftFor(key);
                     settingsMessage = "";
                     rebuildWidgets();
@@ -6989,6 +7051,14 @@ public final class DoughBayScreen extends Screen {
 
     // -------------------------------------------------------------------- layout
 
+    private static List<Tab> workspaceTabs(Tab page){
+        if(List.of(Tab.OPPORTUNITIES,Tab.MARKETS,Tab.SEARCH,Tab.RIVALS).contains(page))return List.of(Tab.MARKETS,Tab.OPPORTUNITIES,Tab.SEARCH,Tab.RIVALS);
+        if(List.of(Tab.SWARM,Tab.HIVE,Tab.PROXIES,Tab.PAYROLL).contains(page))return List.of(Tab.SWARM,Tab.HIVE,Tab.PROXIES,Tab.PAYROLL);
+        if(List.of(Tab.EVASION,Tab.STAFF_WATCH,Tab.REGION_MAP,Tab.ACTIVITY,Tab.DIAGNOSTICS,Tab.LOGS).contains(page))return List.of(Tab.EVASION,Tab.STAFF_WATCH,Tab.REGION_MAP,Tab.ACTIVITY,Tab.DIAGNOSTICS,Tab.LOGS);
+        if(List.of(Tab.SETTINGS,Tab.APPEARANCE,Tab.ANALYZER,Tab.TUTORIALS,Tab.ABOUT,Tab.START_HERE).contains(page))return List.of(Tab.SETTINGS,Tab.APPEARANCE,Tab.ANALYZER,Tab.TUTORIALS,Tab.ABOUT);
+        return List.of(Tab.OVERVIEW,Tab.AUTOMATION,Tab.AUCTION,Tab.ORDERS,Tab.ITEMS,Tab.FLIPS,Tab.STATS);
+    }
+
     private UiLayout layout() {
         int gutterX = clamp(this.width / 40, 6, 32);
         int gutterY = clamp(this.height / 50, 4, 16);
@@ -6998,10 +7068,10 @@ public final class DoughBayScreen extends Screen {
         int top = (this.height - panelHeight) / 2;
         int inset = panelWidth >= 700 ? 16 : 9;
         // Fit the actual last sidebar button plus its group spacing and bottom margin.
-        int sidebar = panelWidth >= 680 && panelHeight >= Math.max(499, 142 + (Tab.values().length - 1) * 21) ? 144 : 0;
-        int columns = Math.max(3, Math.min(7, (panelWidth - inset * 2) / 90));
-        int rows = (Tab.values().length + columns - 1) / columns;
-        int headerHeight = sidebar > 0 ? 64 : 58 + rows * 22;
+        int sidebar = 0; // Grouped navigation leaves room for the current task at every window size.
+        int columns = 5; // Match the five main areas; every subpage shares their column edges.
+        int rows = (workspaceTabs(tab).size() + columns - 1) / columns;
+        int headerHeight = 82 + rows * 22;
         if(tutorialReturn!=null)headerHeight+=28;
         if(tab==Tab.ORDERS)headerHeight+=26;
         return new UiLayout(left, top, left + panelWidth, top + panelHeight, inset,
