@@ -1,3 +1,4 @@
+buy.focus
 buy.scale_with_bank
 buy.purchase_cap_pct
 buy.outstanding_cap_pct

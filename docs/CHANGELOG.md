@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased - Focused trading
+
+- Added an optional, default-off trading focus for new purchases and bids. A narrower item list can retain broader market observations and management of existing stock and orders. Save presets for manual Original, Focused and Overnight selection; no automatic profit ranking or schedule. Existing caps, exclusions, ownership and safety gates remain authoritative.
+- A rejected single-item bid candidate no longer prevents a whole-stack quote refresh for that market. This restores quote acquisition without allowing a bid on insufficient price evidence.
+
 ## 2026-10-23 01:50 UTC
 
 - **Release PR #247:** Private 24-hour Swarm diagnostic history linked to reports and observed settings.

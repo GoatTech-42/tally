@@ -56,6 +56,10 @@ public final class Tuning {
 
     public static final List<Setting> SETTINGS = List.of(
             // Buying
+            new Setting("buy.focus", "Buying", "Use trading focus",
+                    "Limit new purchases and new bids to Trading focus items while continuing to observe the broader Items list. "
+                    + "Existing stock and orders finish normally. Saved presets can switch between Original, Focused and Overnight. "
+                    + "An enabled but empty focus buys nothing (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("buy.scale_with_bank", "Buying", "Limits follow your bank",
                     "On, the most one buy may cost and the most that may be out at once are shares of your balance "
                     + "(the two settings below), so they grow as the bank grows and shrink if it falls; the Max per "
@@ -963,6 +967,10 @@ public final class Tuning {
                     + "restart. Empty falls back to the tracked commodities set in config.json."),
             new ListSetting("items.allow", "Only trade these items",
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
+            new ListSetting("buy.focus_items", "Trading focus items",
+                    "When Use trading focus is on, only these Items-allowed markets receive new purchases or bids. "
+                    + "Observation, pricing and handling existing stock keep using the broader Items list. "
+                    + "Use =item_name for an exact item; an empty enabled focus buys nothing."),
             new ListSetting("items.deny", "Never trade these items",
                     "Comma-separated item names or ids that are always skipped. A name covers everything ending in it "
                     + "(glass is every stained glass too); =glass is that one item alone."),
@@ -1212,9 +1220,9 @@ public final class Tuning {
         return itemSet("items.allow").isEmpty() || setMatches("items.allow", id);
     }
 
-    /** The Items tab's include/exclude choices are the sole item-selection gate. */
+    /** Focus narrows new buying without excluding owned stock or its price checks. */
     public static boolean buyingAllowed(String itemId) {
-        return itemAllowed(itemId);
+        return itemAllowed(itemId) && (get("buy.focus") < 0.5 || setMatches("buy.focus_items", normalizeItem(itemId)));
     }
 
     /** Price lookups use the same visible Items filter; owned stock never bypasses exclusions. */
