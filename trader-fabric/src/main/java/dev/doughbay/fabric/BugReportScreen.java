@@ -134,6 +134,7 @@ public final class BugReportScreen extends Screen {
         g.text(font, "What did you expect?", x, 70, UiTheme.TEXT);
         if(issueUrl.isEmpty())g.text(font,UiTheme.fit(font,!capabilityResolved?"Checking sanitized log support...":attachmentReady
                 ?"Sanitized diagnostic logs are included automatically.":"Receiver log support unavailable; reopen to retry.",w),x,145,UiTheme.SECONDARY);
+        g.text(font,UiTheme.fit(font,"Required private cloud diagnostics (24h): "+MandatoryDiagnostics.status().get("state"),w),x,154,UiTheme.MUTED);
         int statusY = 163;
         for (var line : font.split(Component.literal(status), w)) { if (statusY > 173) break; g.text(font, line, x, statusY, UiTheme.SECONDARY); statusY += 10; }
         var lines = font.split(Component.literal(report), w);

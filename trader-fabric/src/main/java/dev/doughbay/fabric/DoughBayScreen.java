@@ -6569,8 +6569,9 @@ public final class DoughBayScreen extends Screen {
                         + "then ranks conservative resale opportunities.",
                 x + 9, yy, cardWidth - 18, y + cardHeight - 32, TEXT);
         drawWrapped(graphics,
-                "The goal is likely profit, sale probability, and time until capital is reusable — "
-                        + "not merely finding the cheapest listing.",
+                "Required private diagnostics: sanitized actions, decisions, faults and numeric settings "
+                        + "are uploaded for bug diagnosis, with up to 24 hours of history. Independent of Swarm. "
+                        + "No chat, player names, locations or credentials. Upload status is on Report a bug.",
                 x + 9, yy + 5, cardWidth - 18, y + cardHeight - 32, SECONDARY);
 
         int rightWidth = width - cardWidth - gap;

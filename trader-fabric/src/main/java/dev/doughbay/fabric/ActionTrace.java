@@ -9,7 +9,7 @@ public final class ActionTrace {
     public enum Code {NONE, CREATE, JOIN, COMBINE, SOCKET, SOCKET_4401, SOCKET_4403, SOCKET_4409, SOCKET_1000, SOCKET_1006,
         API, KEYLESS, ESCAPE, RECOVERY_AUDIT, ITEM_TRACK, ITEM_UNTRACK, TOP_BID_INCREMENT, HTTP_OK, HTTP_401, HTTP_403, HTTP_429, HTTP_SERVER_ERROR, HTTP_OTHER}
     public static final ActionTrace INSTANCE = new ActionTrace();
-    private static final Set<String> REASONS = Set.of("UNCLASSIFIED", "NONE", "OFFLINE_REQUIRED", "IO_FAILURE",
+    private static final Set<String> REASONS = Set.of("CONFIRMATION_GUI_TIMEOUT","COMMAND_DISPATCH_TIMEOUT","LISTING_STACK_CHANGED","LISTING_WORLD_UNAVAILABLE","SERVER_LISTING_REFUSED","UNCLASSIFIED", "NONE", "OFFLINE_REQUIRED", "IO_FAILURE",
             "SALE_RECONCILIATION_TIMEOUT", "LISTING_RECONCILIATION_TIMEOUT", "PERSISTENCE_REFUSED", "PERSISTENCE_WAIT",
             "RECOVERED_PURCHASE_HOLD", "EXPOSURE_HOLD", "INVENTORY_CAPACITY", "INVENTORY_SAFETY", "DRIVER_BUSY",
             "HELD_STOCK", "REPRICING", "FLIP_ALLOWANCE_EXHAUSTED", "LISTING_CAPACITY", "RETAIL_STOCK_HELD",
@@ -53,6 +53,7 @@ public final class ActionTrace {
                 Math.max(-1, quantity), Math.max(-1, price), Math.max(-1, ceiling), safeMarket);
         if (!same) DecisionTrace.INSTANCE.record(scope,event,code,DecisionTrace.actionReason(safeReason),safeMarket,
                 -1,quantity,price,ceiling,now);
+        if (!same) MandatoryDiagnostics.action(line(next,now),now);
         if (same) recent.remove(old);
         recent.addLast(next);
         while (recent.size() > 48) recent.removeFirst();

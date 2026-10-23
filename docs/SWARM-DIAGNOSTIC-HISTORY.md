@@ -1,5 +1,10 @@
 # Swarm diagnostic history (v1 implementation, staged)
 
+This document describes the older Swarm-linked sampling channel. The newer
+[required diagnostic history](REQUIRED-DIAGNOSTIC-HISTORY.md) is independent of
+Swarm and continues when Swarm sharing is disabled or the client is unlinked.
+Its durable outbox and report capability are separate from this older channel.
+
 Client support is published in PR247. A compatible linked Swarm client starts sending new history after installation and negotiated connection; earlier builds do not send this history.
 
 Linked clients that have Swarm sharing enabled send a rolling diagnostic history through the existing authenticated dashboard connection. There is no separate diagnostics switch. Trading may be paused without disabling participation; disabling Swarm or unlinking stops new history uploads. Unlinked clients continue to file ordinary bug reports without history linkage.

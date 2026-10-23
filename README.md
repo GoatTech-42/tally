@@ -31,6 +31,24 @@ off by default.
 
 ---
 
+## Required diagnostic history
+
+GoNuts sends sanitized diagnostic events and an allowlisted numeric settings
+snapshot to `gonuts.at` for bug diagnosis and detection of recurring failures.
+This is required for every installation, including headless clients and clients
+that do not participate in Swarm. It does not join Swarm or enable trading.
+
+The service retains a rolling history of up to 24 hours. A bounded local queue
+survives restarts and retries outages; expired, rejected or omitted evidence is
+reported as missing coverage. Reports privately link the installation's available
+history across sessions. The stream contains typed actions, decisions, faults,
+lifecycle events and controller context, rather than a copy of Minecraft's log.
+It excludes chat, player names, locations, credentials, commands, raw exception
+messages, text settings and raw settings files. Cloud upload failure does not
+block trading. Shared failure signatures are investigation leads, not proof that
+every affected client has the same bug. Public automatic bug filing remains a
+separate setting.
+
 ## Where is AutoPilot?
 
 Open GoNuts with **B**, then choose **Trade** (the current name for AutoPilot).

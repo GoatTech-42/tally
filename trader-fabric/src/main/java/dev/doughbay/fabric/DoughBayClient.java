@@ -463,6 +463,8 @@ public class DoughBayClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_PAGE_UP,
                 category));
 
+        MandatoryDiagnostics.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(),BugReportBuild.current());
+        ClientTickEvents.END_CLIENT_TICK.register(MandatoryDiagnostics::tick);
         ClientTickEvents.END_CLIENT_TICK.register(SidebarBalance::tick);
         ClientTickEvents.END_CLIENT_TICK.register(RegionMapReport::tick);
         dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.start(
@@ -709,6 +711,7 @@ public class DoughBayClient implements ClientModInitializer {
             // spend and, worse, the Discord panel it cannot publish.
             ApiBudget budget = API_BUDGET;
             if (budget != null) budget.release();
+            MandatoryDiagnostics.stop();
         });
     }
 
