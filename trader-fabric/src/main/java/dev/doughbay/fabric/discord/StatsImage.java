@@ -181,6 +181,14 @@ public final class StatsImage {
         return spans;
     }
 
+    static int[] moneyHeadlineSpans(List<String[]> headline) {
+        return headline.stream().mapToInt(row->switch(row[0]){
+            case "Bank","Profit 1h","Profit 24h","Sales 6h","Listed","Tracked cost","Unfilled orders","Rivals" -> 1;
+            case "Sales 1h","Payments","Payments (Hive)","Payroll share","Asking","Trades","Players" -> 2;
+            default -> 3;
+        }).toArray();
+    }
+
     /** Lines those spans take, which is what the image has to be tall enough for. */
     private static int headlineLines(int[] spans) {
         if (spans.length == 0) return 0;
@@ -206,7 +214,8 @@ public final class StatsImage {
         BufferedImage probe = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
         Graphics2D probeG = probe.createGraphics();
         probeG.setFont(headFont);
-        int[] headSpans = headlineSpans(probeG.getFontMetrics(), page.headline(), headUnit);
+        int[] headSpans = page.title().equals("Money") ? moneyHeadlineSpans(page.headline())
+                : headlineSpans(probeG.getFontMetrics(), page.headline(), headUnit);
         probeG.dispose();
 
         int rowsHeight = 33 * Math.max(1, page.rows().size()) + 42;
@@ -313,8 +322,11 @@ public final class StatsImage {
                 }
                 String[] kv = page.headline().get(i);
                 int x = 28 + used * headUnit;
+                var previousClip=g.getClip();
+                if(page.title().equals("Money"))g.clipRect(x,y,headSpans[i]*headUnit-6,31);
                 if (kv[0].startsWith("~spark")) {
                     drawSparkline(g, kv[1], x, y, WIDTH - 56, body, small);
+                    g.setClip(previousClip);
                     used += headSpans[i];
                     continue;
                 }
@@ -323,6 +335,7 @@ public final class StatsImage {
                 int lw = g.getFontMetrics().stringWidth(kv[0] + "  ");
                 g.setColor(kv.length > 2 ? colorOf(kv[2]) : TEXT);
                 g.drawString(kv[1], x + lw, y + 23);
+                g.setClip(previousClip);
                 used += headSpans[i];
             }
             y += 31;

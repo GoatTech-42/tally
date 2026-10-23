@@ -117,6 +117,11 @@ public final class OrderMetrics {
         return report != null && report.at() <= now && now - report.at() <= 90_000;
     }
     public record Capacity(int known, int total, int accounts) {}
+    public static List<String> currentMembers(List<String> connected, String current) {
+        var names = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER); names.addAll(connected);
+        if (current != null && !current.isBlank()) names.add(current);
+        return List.copyOf(names);
+    }
     public static Capacity capacity(List<Account> accounts, long now) {
         int known = 0, total = 0;
         for (var account : accounts) if (live(account.report(), now) && account.report().auctionSlots() > 0) {
