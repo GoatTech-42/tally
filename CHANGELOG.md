@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-23 18:08 UTC
+
+- **Release PR #263: Validate actual order offers before rejecting bulk bids.**
+- Client artifact published October 23 at 11:08:14 Los Angeles time (18:08:14 UTC). Build `1792778694619`; SHA256 `aad91c0be149dbd78cb2d57104f0d36ca10a28a240c302c9fd21c2f113a3da2d`. Full clean production build: 1,541 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR261.
+- The ordinary order planner checked its unused maximum resale ceiling against actual-trade and auction prices before calculating its lower offer. That could reject a safe whole-stack order and leave capacity unused. The existing offer calculation now runs first, and the same market-price gates validate the amount the order would actually pay. Previously eligible offer amounts, quantity sizing, spending limits, outbid checks and polluted-price checks remain in force.
+- The real-planner regression reproduces the price-sanity refusal before the fix and queues a whole-stack order after it. Offers actually above the trade-price reference remain refused, with both sale-based sizing modes covered. This is a trading-logic fix, not a reporting-only change. It matches a rejection category in report #260, but the missing historical comparison values prevent claiming every symptom had this cause. The report remains open for verification; no live client was automatically upgraded or restarted.
+
 ## 2026-10-23 17:42 UTC
 
 - **Release PR #261: Preserve order-sizing evidence through diagnostic floods.**
