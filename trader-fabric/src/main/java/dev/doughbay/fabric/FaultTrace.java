@@ -37,6 +37,7 @@ public final class FaultTrace {
             }
         }
         frames=String.join("\n",verified);
+        MandatoryDiagnostics.offer("FAULT",report(now).lines().toList(),now);
     }
     public synchronized String report(long now){
         return "ctx fault_stage="+stage.name()+" fault_type="+type+" fault_age_ms="+(at<=0||now<at?-1:now-at)

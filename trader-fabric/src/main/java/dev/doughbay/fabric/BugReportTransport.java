@@ -32,10 +32,11 @@ public final class BugReportTransport {
         var request=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type","application/json").header("Idempotency-Key",key)
             .POST(HttpRequest.BodyPublishers.ofByteArray(frozenBody)).build();
+        MandatoryDiagnostics.flushBeforeReport().orTimeout(3,TimeUnit.SECONDS).exceptionally(failure->null).join();
         HttpRequest outgoing=request;
         try {var body=JSON.readTree(frozenBody);outgoing=SwarmReportLinks.attach(request,body.path("diagnosticLog").asText(),automaticCapabilities(),System.currentTimeMillis());}
         catch(Exception ignored){} // Public reporting remains available if optional linkage is unavailable.
-        var response=http.sendAsync(outgoing,HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
+        var response=http.sendAsync(MandatoryDiagnostics.attach(outgoing),HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
         try(var stream=response.body()) {
             CompletableFuture.delayedExecutor(10,TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
             byte[] bytes=stream.readNBytes(16385);
@@ -160,8 +161,9 @@ public final class BugReportTransport {
     }
     private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter,int relatedIssue,com.fasterxml.jackson.databind.JsonNode capabilities) {
         try {
+            MandatoryDiagnostics.flushBeforeReport().orTimeout(3,TimeUnit.SECONDS).exceptionally(failure->null).join();
             var outgoing=SwarmReportLinks.attach(request(payload,key,token,diagnosticLog,reporter,relatedIssue),diagnosticLog,capabilities,System.currentTimeMillis());
-            return http.sendAsync(outgoing, HttpResponse.BodyHandlers.ofInputStream())
+            return http.sendAsync(MandatoryDiagnostics.attach(outgoing), HttpResponse.BodyHandlers.ofInputStream())
                 .thenApplyAsync(response -> {
                     try (var body = response.body()) {
                         CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {

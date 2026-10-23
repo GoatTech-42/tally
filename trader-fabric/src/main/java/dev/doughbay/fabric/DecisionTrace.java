@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 /** Bounded cross-subsystem decision timeline. Never stores descriptions, commands or identities. */
 public final class DecisionTrace {
     public static final DecisionTrace INSTANCE=new DecisionTrace();
-    public enum Reason {NONE,UNCLASSIFIED,SINGLE_ALLOTMENT,RETAIL_BATCH,STACK_BATCH,ADAPTIVE_BATCH,
+    public enum Reason {CONFIRMATION_GUI_TIMEOUT,COMMAND_DISPATCH_TIMEOUT,LISTING_STACK_CHANGED,LISTING_WORLD_UNAVAILABLE,SERVER_LISTING_REFUSED,NONE,UNCLASSIFIED,SINGLE_ALLOTMENT,RETAIL_BATCH,STACK_BATCH,ADAPTIVE_BATCH,
         NO_PRICES,STOCK_HELD,ORDER_EXISTS,SERVER_REFUSED,ITEM_FILTER,OWN_PRICE_LIST,HIVE_ALLOCATION,
         NO_MARGIN,NO_DEMAND,NO_CONFIDENCE,NO_SAMPLES,BUY_CAP,SPEND_CAP,LISTING_CAP,DEPTH_CAP,NO_STANDING_BID,
         OFFLINE_REQUIRED,IO_FAILURE,SALE_RECONCILIATION_TIMEOUT,LISTING_RECONCILIATION_TIMEOUT,PERSISTENCE_REFUSED,PERSISTENCE_WAIT,
@@ -43,6 +43,7 @@ public final class DecisionTrace {
         String item=market!=null&&market.matches("minecraft:[a-z0-9_]{1,64}")?market:"NONE";
         String line="dec v=1 at="+now+" scope="+scope+" event="+event+" code="+code+" reason="+reason+" market="+item
                 +" requested="+number(requested)+" selected="+number(selected)+" price="+number(price)+" limit="+number(limit);
+        MandatoryDiagnostics.decision(line,now);
         Entry old=latest.get(scope);
         // Identical recurring observations keep their first/last timestamps without flooding the timeline.
         if(old!=null&&now>=old.at&&now-old.at<60_000&&shape(old.line).equals(shape(line)))return;
