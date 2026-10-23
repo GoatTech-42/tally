@@ -81,13 +81,16 @@ public final class DiagnosticHistory {
         }
         return out.toString();
     }
-    private void prune(long now){while(!pending.isEmpty()&&(pending.peekFirst().at<now-RETENTION_MS||pending.peekFirst().at>now)){pending.removeFirst();dropped++;}}
+    private void prune(long now){while(!pending.isEmpty()&&pending.peekFirst().at<now-RETENTION_MS){pending.removeFirst();dropped++;}}
     public synchronized ObjectNode batch(String current,boolean sharing,long now){
         if(!sharing||!account.equals(current)){clearData();return null;}
         if(!supported)return null;prune(now);if(pending.isEmpty())return null;
         ObjectNode out=DashboardProtocol.JSON.createObjectNode().put("type","diagnostic_history").put("version",1).put("sessionId",session);
         var events=out.putArray("events");
         for(Entry e:pending){
+            // A game-thread capture can happen after the worker reads its clock.
+            // Keep that entry for the next attempt rather than treating it as corrupt.
+            if(e.at>now)break;
             events.addObject().put("sequence",e.sequence).put("observedAt",e.at).put("context",e.context).put("settingsCode",e.settings);
             if(out.toString().getBytes(StandardCharsets.UTF_8).length>MAX_BATCH_BYTES){events.remove(events.size()-1);break;}
             if(events.size()>=8)break;
