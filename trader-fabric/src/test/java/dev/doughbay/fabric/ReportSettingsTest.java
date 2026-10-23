@@ -5,6 +5,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 class ReportSettingsTest {
+    @Test void focusToggleChangesNumericSnapshotWithoutExportingItsItemList() throws Exception {
+        double before=Tuning.get("buy.focus");String items=Tuning.text("buy.focus_items");
+        try {
+            Tuning.set("buy.focus",0);String disabled=SettingsCode.exportForReport();
+            Tuning.set("buy.focus",1);String enabled=SettingsCode.exportForReport();
+            assertNotEquals(disabled,enabled,"Focus changes must be observable in report history");
+            SettingsCode.validateReportCode(enabled);
+            Tuning.setText("buy.focus_items","=moss_block");
+            assertEquals(enabled,SettingsCode.exportForReport(),"Text item lists must remain excluded");
+            assertTrue(SettingsCode.REPORT_KEYS.contains("buy.focus"));
+            assertFalse(SettingsCode.REPORT_KEYS.contains("buy.focus_items"));
+        } finally {Tuning.set("buy.focus",before);Tuning.setText("buy.focus_items",items);}
+    }
     @Test void numericSnapshotHasNoTextAndIncludesAccountLimits() throws Exception {
         String code=SettingsCode.exportForReport();
         SettingsCode.validateReportCode(code);
