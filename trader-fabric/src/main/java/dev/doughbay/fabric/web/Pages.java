@@ -110,7 +110,6 @@ final class Pages {
             .activity-state { color:var(--good); font-size:12px; }
             .activity-card.stale .activity-state { color:var(--warn); }
             #readable-report { display:none; }
-            #image-toggle { display:none; margin-top:10px; width:100%; }
             .money-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
             .money-metric { padding:10px; background:var(--inset); border:1px solid var(--edge); border-radius:5px; }
             .money-metric dt { color:var(--secondary); font-size:13px; }
@@ -269,11 +268,8 @@ final class Pages {
               .mobile-nav { display:grid; gap:4px; padding:8px 10px; }
               .mobile-nav select { width:100%; font-size:16px; min-height:44px; background:var(--inset); }
               #pic.has-report #readable-report { display:block; }
-              #pic.has-report #image-view { display:none; }
-              #pic.has-report #image-toggle { display:block; }
-              #pic.has-report.original #image-view { display:block; }
-              #pic.has-report.original #readable-report { display:none; }
-              #pic.original #shot { min-width:850px; max-width:none; }
+              #pic.has-report #image-view { display:block; }
+              #pic.has-report #readable-report { margin-top:16px; }
               nav button, nav a { flex:1 1 130px; white-space:normal; overflow-wrap:anywhere; }
               button { white-space:normal; overflow-wrap:anywhere; }
               .wide { max-width:100%; }
@@ -354,10 +350,10 @@ final class Pages {
             + "<div class=\"work\"><label class=\"panel mobile-nav\" for=\"mobile-page\"><span class=\"label\">Go to page</span><select id=\"mobile-page\"></select></label><nav class=\"panel\" id=\"pages\" aria-label=\"Pages\"></nav>"
             + "<section class=\"panel\"><h1 class=\"title\" id=\"page\">&nbsp;</h1><div class=\"body\">"
             + "<div id=\"pic\">"
-            + "<div id=\"readable-report\"></div><div class=\"wide\" id=\"image-view\" tabindex=\"0\" aria-label=\"The page on view; scroll sideways to see all of it\">"
+            + "<div class=\"wide\" id=\"image-view\" tabindex=\"0\" aria-label=\"Complete summary image; touch and hold to copy or share\">"
             + "<img id=\"shot\" alt=\"The page of the panel on view\" hidden></div>"
             + "<p id=\"image-status\" class=\"money-footnote\" role=\"status\"></p>"
-            + "<button id=\"image-toggle\" type=\"button\" aria-pressed=\"false\">View original summary image</button><div id=\"notice\" role=\"status\"></div>"
+            + "<div id=\"readable-report\"></div><div id=\"notice\" role=\"status\"></div>"
             + "<div id=\"controls\"></div></div>"
             + "<div id=\"own\" hidden></div></div></section></div></div>"
             + "<nav class=\"mobile-tabs\" aria-label=\"Quick pages\"><button data-mobile=\"MONEY\" type=\"button\">Money</button><button data-mobile=\"STATUS\" type=\"button\">Activity</button><button data-mobile=\"ORDERS\" type=\"button\">Orders</button><button data-mobile=\"settings\" type=\"button\">Settings</button><button data-mobile=\"more\" type=\"button\">More</button></nav>"
@@ -397,11 +393,6 @@ final class Pages {
               select.replaceChildren();
               for(const item of pick?.options||[]){const option=el('option','',item.label);option.value=item.value;option.selected=!!item.default;select.append(option);}
             }
-            $('image-toggle').addEventListener('click',()=>{
-              const original=$('pic').classList.toggle('original');
-              $('image-toggle').setAttribute('aria-pressed',String(original));
-              $('image-toggle').textContent=original?'Back to readable summary':'View original summary image';
-            });
             function activityCards(rows) {
               const box=$('activity-cards');box.hidden=!rows?.length;
               document.querySelector('.now').hidden=!!rows?.length;
