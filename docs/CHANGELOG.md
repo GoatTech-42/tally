@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-23 23:51 UTC
+
+- **Release PR #274: Complete Money summary image first, readable details below.**
+- Client artifact published October 23 at **16:51:21 Los Angeles time (23:51:21 UTC)**. Build `1792799271326`; SHA256 `7716799baccc40decf27b20dd0788a4de85d8a0879767ecca182b4acc476e8ea`. Clean production build: **1,590 tests, zero failures/errors, two skipped**. Normal production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR272.
+- PR274 merge `afec20c88dcc0567831c21f0a478739af3251e91`. Source ZIP is tested PR head `4dd828af4bdaf5511726e32748fd58e58360a24b`; SHA256 `4814174cd06228433835031a6580306c0670134cdac321face79c3cf8874d0f8`, published 23:51:24 UTC. This publication-record update is documentation only.
+- On the mobile Money page, the complete copyable/shareable summary image is always visible first and fits the phone width. Readable text cards and the occupied/free slot grid stay underneath. No extra toggle, and neither representation hides the other. Desktop and Discord summaries remain unchanged. Existing decoded refresh buffering, account scoping and trading settings are preserved. Mobile guide updated; actual served 390px layout verified with synthetic data.
+
 ## 2026-10-23 23:36 UTC
 
 - **Release PR #272: Mobile app layout, restored auction slot grids and stable Money refresh.**
