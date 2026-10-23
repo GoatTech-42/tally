@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-23 02:29 UTC
+
+- **Release PR #254:** Preserve diagnostic samples across game-thread and upload-worker timing.
+
+- Client artifact published October 22 at 19:29:50 Los Angeles time (02:29:50 UTC). Build 1792722426072; SHA256 `ecee13a49e7e05dbc971ced8cda41f96ec12502a2a6714669d7c89696fa4cb01`. Full production build: 1,531 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. Separate client publication after PR251.
+
+- A diagnostic capture queued just after the upload worker read its clock could be incorrectly discarded as future data. The outbox now retains that sample and waits for the next batch timestamp. The regression reproduces the interleaving and failed before the fix. Size and 24-hour retention limits, typed sanitization, acknowledgments, trading settings and safety gates are unchanged. Previously missing samples remain explicit gaps; there is no invented backfill or claim that every historical gap has this cause.
+
 ## 2026-10-23 02:19 UTC
 
 - **Release PR #251:** Include the Focused toggle in private numeric diagnostic snapshots.
