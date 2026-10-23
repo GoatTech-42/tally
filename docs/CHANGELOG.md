@@ -1,5 +1,15 @@
 # GoNuts changelog
 
+## 2026-10-23 23:36 UTC
+
+- **Release PR #272: Mobile app layout, restored auction slot grids and stable Money refresh.**
+- Client artifact published October 23 at **16:36:20 Los Angeles time (23:36:20 UTC)**. Build `1792798332337`; SHA256 `541618d74e38b70e9580678c9994041baa7b3a4aeacf1d329d6ec3fb5c08840f`. Clean production build: **1,590 tests, zero failures/errors, two skipped**. Normal client entrypoint only; no preview/smoke classes. Public client, source and manifest independently downloaded and hash-verified. This is a separate client binary after PR270.
+- PR272 merge `feed900e738009b521172f5583efb4bb184dde08`. Source ZIP is tested PR head `ad2e648ac98f760af92859fb6ce1b238e306832d`; SHA256 `afd207fabdad041a7a9b292c26e9290f55ead846a248d4bc34fa69d2b92870d2`, published 23:36:22 UTC. This publication-record update is documentation only.
+- On phones, a compact account chooser, fixed bottom work areas and a single scrolling content area replace the tall desktop navigation. Money presents the same financial/order summary in readable cards, with recent sales and the full occupied/free slot grid. The original summary image remains available. Customize this view changes presentation only.
+- All accounts uses current Hive members for capacity, occupied slots, activity, faces and order coverage. Three current 90-slot bots report 270 slots, without a historical fourth account making coverage unknown. Historical accounts remain explicitly selectable and keep their records; missing current observations remain unavailable instead of borrowing the host's data.
+- Each current bot has its own current-action card. Money fields retain stable order and image positions when values change or observations are temporarily unavailable. Buffered image refresh waits for a decoded replacement, retains the last valid same-account image on refresh failure and rejects late images from the previous account.
+- Phone/tablet/desktop layouts checked at 320, 390, 768 and 1280 pixels, with synthetic examples clearly labeled. New [mobile guide](guide/mobile.html) and UI preview images explain navigation and account scope. Existing desktop tutorials and required private diagnostics remain included. No trading sizing, Reserve Stock, spending/exposure/ROI cap or safety-gate change.
+
 ## 2026-10-23 22:35 UTC
 
 - **Release PR #270: Simple / Advanced settings, clearer navigation and account-specific order reporting.**
