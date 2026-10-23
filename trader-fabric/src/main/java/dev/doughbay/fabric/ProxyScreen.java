@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-public final class ProxyScreen extends Screen {
+public final class ProxyScreen extends GoNutsScreen {
     private final Screen parent;
     private final ProxyPanel panel=new ProxyPanel();
     public ProxyScreen(Screen parent){super(Component.literal("GoNuts proxies"));this.parent=parent;}

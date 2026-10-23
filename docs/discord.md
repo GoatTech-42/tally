@@ -5,8 +5,8 @@ edits it every 30 seconds with a rendered page of the trader's state. The
 buttons under it start, stop, and tune the trader, and only one Discord user,
 the operator, can press them.
 
-There is a two-minute video of everything below on
-[the site](https://cody-raves.github.io/Gonuts/#discord).
+There is a captioned walkthrough of the current GoNuts controls on
+[the site](https://gonuts.at/#discord).
 
 ## Setup, step by step
 
@@ -71,7 +71,7 @@ Both are long numbers, about 18 digits.
 ### 5. Paste them into GoNuts
 
 1. In game, press **B** to open GoNuts.
-2. Open **Trade** (formerly **AutoPilot**) in the navigation. The Dashboard
+2. Open **Trading → Trade** (formerly **AutoPilot**) in the navigation. The Dashboard
    shortcut is **Manage trading**.
 3. Click the button at the top right, labelled **Tools: API key / test**. Its
    label changes to **Discord command centre**. Click it again.

@@ -2779,6 +2779,10 @@ public final class AutomationSessionController {
         return dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt, List.copyOf(ownOrders), java.util.Map.copyOf(collectedByKey));
     }
 
+    public synchronized dev.doughbay.fabric.OrderMetrics.Report orderMetricsReport(dev.doughbay.fabric.OrderMetrics metrics) {
+        return metrics.snapshot(System.currentTimeMillis(), ownOrdersReadAt, List.copyOf(ownOrders), capitalOrders());
+    }
+
     /** One parked listing, for the slot tracker on the screen and the HUD. */
     public record OpenListingView(long positionId, String itemKey, int quantity,
                                   long purchasePrice, long targetPrice, long listedAt) {
@@ -5539,6 +5543,7 @@ public final class AutomationSessionController {
                 noticedSinceRead.clear();
                 ownOrders = List.copyOf(driver.lastOwnOrders());
                 ownOrdersReadAt = now;
+                dev.doughbay.fabric.OrderMetrics.observe(now, ownOrders);
                 planDesk(lastSnapshot, now);
                 LOGGER.info("DoughBay bid desk: {} bid(s) open holding {}; {} step(s) queued",
                         ownOrders.size(), bidsOut(), deskQueue.size());
@@ -5552,9 +5557,11 @@ public final class AutomationSessionController {
                 // placement. Only a verified post-placement page refreshes the
                 // book; a receipt alone requires another native read.
                 var placedBook = driver.lastPlacementOrders();
+                dev.doughbay.fabric.OrderMetrics.placed(step.itemId(), step.unitPrice(), step.count());
                 if (placedBook != null) {
                     ownOrders = placedBook;
                     ownOrdersReadAt = now;
+                    dev.doughbay.fabric.OrderMetrics.observe(now, ownOrders);
                 } else {
                     ownOrdersReadAt = 0;
                     deskReadDue = true;

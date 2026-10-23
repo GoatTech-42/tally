@@ -4,7 +4,7 @@ Use **Items → Include/Exclude** to choose eligible trading items, and **Track*
 
 ## Focus new buying while keeping broader observations
 
-In **Settings → Buying**, enable **Use trading focus** and set **Trading focus items** to the markets you want to prioritize for new purchases and bids. Use `=experience_bottle` for an exact item, with commas between items. Focus is off by default. An enabled empty focus buys nothing. Items exclusions and liquidation choices still take precedence.
+In **Settings → Advanced view → Items & focus**, enable **Use trading focus** and set **Trading focus items** to the markets you want to prioritize for new purchases and bids. Use `=experience_bottle` for an exact item, with commas between items. Focus is off by default. An enabled empty focus buys nothing. Items exclusions and liquidation choices still take precedence.
 
 Focus narrows new buying only. Broader market observation, price checks and management of existing stock and orders continue under the existing rules. It does not automatically cancel orders, sell stock, expand spending limits or make a market tradeable without valid quotes and demand.
 

@@ -104,7 +104,7 @@ Local community.orderCoverage.streamUpload reports recordsQueued, recordsAccepte
 
 ## Passive Swarm read savings
 
-The in-game Swarm tab and both panels' **Swarm savings** page show per-account,
+The in-game Accounts → Swarm page and both panels' **Swarm savings** page show per-account,
 current-session measurements. The panels allow selecting each Hive account;
 stale/offline accounts are labelled unavailable. No live experiment, extra scans,
 new worker, or trading-setting changes are required. Existing freshness, ownership,

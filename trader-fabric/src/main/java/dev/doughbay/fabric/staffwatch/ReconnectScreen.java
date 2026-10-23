@@ -1,7 +1,7 @@
 package dev.doughbay.fabric.staffwatch;
 import net.minecraft.client.gui.screens.*;import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.client.gui.components.Button;import net.minecraft.client.gui.GuiGraphicsExtractor;import net.minecraft.network.chat.Component;
-public final class ReconnectScreen extends Screen {
+public final class ReconnectScreen extends dev.doughbay.fabric.GoNutsScreen {
  private Button reconnect;
  public ReconnectScreen(){super(Component.literal("Disconnected"));}
  protected void init(){

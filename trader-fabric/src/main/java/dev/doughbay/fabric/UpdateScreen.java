@@ -23,7 +23,7 @@ import java.util.List;
  * has opened that. It never opens by itself: a screen appearing unasked would
  * stop the walk onto the server and take the mouse from someone playing.
  */
-public final class UpdateScreen extends Screen {
+public final class UpdateScreen extends GoNutsScreen {
     /** What this is showing. */
     enum Mode {
         /** A newer build is out or downloaded. */
@@ -211,6 +211,7 @@ public final class UpdateScreen extends Screen {
         // The session holds for this as it does for the screen behind it;
         // that screen takes the hold back as it opens.
         SESSION.setPanelOpen(false);
+        super.removed();
     }
 
     @Override

@@ -2,7 +2,7 @@
 
 ## Save a baseline before experimenting
 
-Open Settings → Saved presets in the game, or Settings → Saved presets in the local web panel. Enter a name and save your current settings as a new preset. Change settings normally, then save the experiment under another name. Select your baseline and apply it to switch back without restarting.
+Open Settings → Advanced view → Saved presets in the game, or Settings → Advanced view → Saved presets in the local web panel. Enter a name and save your current settings as a new preset. Change settings normally, then save the experiment under another name. Select your baseline and apply it to switch back without restarting.
 
 Saving a new preset never overwrites another one. Names are unique without regard to capitalization. Rename keeps its settings, Copy code shares its existing Settings code, and Replace with current/Delete require an explicit confirmation. Applying a preset changes current tuning and keeps the stored copy intact. Presets use the existing shareable Settings-code rules: per-account rank slot limits and follow options are not imported. The complete preset snapshot includes empty item lists so switching back clears a list that was previously empty. The normal Copy settings code feature keeps its existing format and behavior.
 

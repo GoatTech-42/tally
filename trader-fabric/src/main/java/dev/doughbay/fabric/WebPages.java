@@ -54,6 +54,7 @@ public final class WebPages {
     public static String data(String name, Map<String, String> query) {
         return switch (name == null ? "" : name) {
             case "settings" -> settings();
+            case "settingcheck" -> settingsPreview(query==null?Map.of():query);
             case "dashboard" -> dashboard();
             case "bots" -> PanelBots.data(query==null?Map.of():query);
             case "savedpresets" -> savedPresetsData();
@@ -79,6 +80,7 @@ public final class WebPages {
         if ("reports".equals(name)) return WebReports.change(form); // Never log report text or previews.
         String done = switch (name == null ? "" : name) {
             case "setting" -> onClient(() -> setting(form));
+            case "simple" -> onClient(() -> {try{int count=SimpleSettings.apply(form.get("group"),form.get("option"),form.get("expected"));return answer(true,"Applied "+count+" settings; everything else preserved").toString();}catch(IllegalArgumentException e){return answer(false,e.getMessage()).toString();}});
             case "dashboard" -> onClient(() -> changeDashboard(form));
             case "evasion" -> onClient(() -> changeEvasion(form));
             case "staff" -> onClient(() -> changeStaffResponse(form));
@@ -93,6 +95,10 @@ public final class WebPages {
             case "knownbots" -> onClient(WebPages::followKnownBots);
             default -> null;
         };
+        if(done!=null&&Set.of("setting","simple","list","preset","savedpresets","code","items","evasion").contains(name)){
+            try{var result=(ObjectNode)MAPPER.readTree(done);result.set("notices",MAPPER.valueToTree(SettingsFeedback.current()));done=result.toString();}
+            catch(java.io.IOException ignored){ /* Existing response remains authoritative. */ }
+        }
         if (done != null) LOG.info("DoughBay web panel: {} -> {}", name, note(done));
         return done;
     }
@@ -251,13 +257,19 @@ public final class WebPages {
 
     static String settings() {
         ObjectNode root = MAPPER.createObjectNode();
+        root.set("notices", MAPPER.valueToTree(SettingsFeedback.current()));
+        root.set("simple", MAPPER.valueToTree(SimpleSettings.current()));
+        ArrayNode sections=root.putArray("sections");
+        for(var section:SettingsSection.values()){
+            var entry=sections.addObject();entry.put("id",section.name());entry.put("label",section.label);entry.put("description",section.description);
+        }
         ArrayNode groups = root.putArray("groups");
-        for (String group : Tuning.groups()) {
+        for (String group : SettingsSection.groups()) {
             ObjectNode g = groups.addObject();
             g.put("name", group);
             ArrayNode rows = g.putArray("settings");
-            for (Tuning.Setting s : Tuning.SETTINGS) {
-                if (!s.group().equals(group)) continue;
+            for (Tuning.Setting s : Tuning.SETTINGS.stream().sorted(java.util.Comparator.comparingInt(st->SettingsSection.priority(st.key()))).toList()) {
+                if (!SettingsSection.group(s.key(),s.group()).equals(group)) continue;
                 double v = Tuning.get(s.key());
                 ObjectNode row = rows.addObject();
                 row.put("key", s.key());
@@ -274,7 +286,7 @@ public final class WebPages {
                 row.put("most", s.format(s.max()));
                 row.put("step", step(s));
                 row.put("toggle", s.kind() == Tuning.Kind.TOGGLE);
-                row.put("unit", unit(s.kind()));
+                row.put("unit", s.key().equals("orders.bid_min_confidence")?"":unit(s.kind()));
                 row.put("local", Tuning.thisClientOnly(s.key()));
             }
         }
@@ -303,8 +315,17 @@ public final class WebPages {
         return root.toString();
     }
 
+    static String settingsPreview(Map<String,String> query) {
+        try {
+            var root=answer(true,"Preview only; nothing saved");
+            root.set("notices",MAPPER.valueToTree(SettingsFeedback.preview(query.getOrDefault("key",""),query.getOrDefault("value",""))));
+            return root.toString();
+        }catch(IllegalArgumentException invalid){return answer(false,"Enter a valid setting value.").toString();}
+    }
+
     /** How far one press of plus or minus moves a setting; the same steps the Discord panel takes. */
     static double step(Tuning.Setting st) {
+        if(st.key().equals("orders.bid_min_confidence"))return .05;
         double span = st.max() - st.min();
         if (st.kind() == Tuning.Kind.PERCENT) return span >= 50 ? 5 : 1;
         if (span <= 20) return 1;

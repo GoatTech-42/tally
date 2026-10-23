@@ -19,7 +19,7 @@ stay green.
 
 ## In-game quick start
 
-Join the supported server and press **B**. New installs open **Choose limits**, followed by **Review & Start**. Choose maximum per trade and session spend, optionally link Swarm or review protections, then review readiness and deliberately start. Existing installs can use **Set up trading** or **Tutorials**. Auction and Orders have their own tabs, with the same controls retained in Settings.
+Join the supported server and press **B**. New installs open **Start here**. Reopen it through **Settings → Help & setup**, then choose **Set up trading**. Choose maximum per trade and session spend, review readiness and deliberately start. **Trading → Trade**, **Trading → Auction** and **Trading → Orders** hold trading controls. **Settings** opens Simple view; **Advanced view** exposes every individual setting. Switching views changes no saved values. Read the [settings guide](https://gonuts.at/guide/settings.html).
 
 Keyless mode needs no API key. A thin keyless ledger can use fresh shared completed-sale history after Swarm contribution and guidance are enabled. Insufficient or unavailable shared history falls back to local collection. Live prices, inventory, caps and safety gates still decide every trade; no immediate purchase or profit is promised.
 

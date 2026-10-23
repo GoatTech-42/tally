@@ -1,17 +1,17 @@
 [
   {
-    "title": "Start with the gold START HERE button",
+    "title": "Install, set up, then choose your view",
     "subtitle": "No code needed - follow one clear route",
     "bullets": [
       "Install the mod",
-      "B → START HERE",
+      "Settings → Help & setup",
       "Choose limits → Review & Start"
     ],
     "image": "start-here.png",
-    "captionText": "This walkthrough uses the new START HERE screen. Pause whenever you need. No code is required.",
+    "captionText": "Follow the current GoNuts interface. Simple and Advanced use the same saved settings. Pause at any step.",
     "duration": 7,
     "start": 0,
-    "captureSha256": "328cbeb78cf31a2ce40cb4af1d539e07fc5c5fa942b7b5550e767d6033896bb0"
+    "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
   },
   {
     "title": "1. Prepare Fabric",
@@ -65,21 +65,21 @@
     "captionText": "Launch your Fabric installation and join DonutSMP. Enable the sidebar scoreboard in the server settings so GoNuts can read your balance. Press B. Check Minecraft Controls if you changed that key binding.",
     "duration": 17,
     "start": 60,
-    "captureSha256": "4e0318b12749852ee64bb9a0f447f6fd34ea0dcfa373466e5afbbd8bf413e742"
+    "captureSha256": "b249ddded84195e23e964a09a6e1c787992945da933064abf1d503e360c14eba"
   },
   {
-    "title": "5. Click START HERE → Set up trading",
-    "subtitle": "The gold button is always at the start of navigation",
+    "title": "5. Open Help & setup",
+    "subtitle": "Settings is the reliable route back to setup",
     "bullets": [
       "New installs open Start here",
-      "Other tab? Click gold START HERE",
-      "Choose the large Set up trading button"
+      "B → Settings → Help & setup",
+      "Choose Set up trading"
     ],
     "image": "start-here.png",
-    "captionText": "A new install opens START HERE. If you see another tab, click the gold START HERE button at the beginning of navigation. Then click the large gold Set up trading button. Missing that button means your client needs the newer build.",
+    "captionText": "New installs open Start here. To return later, press B, choose Settings, then Help and setup. Choose Set up trading. Do not search for a separate START HERE navigation tab.",
     "duration": 19,
     "start": 77,
-    "captureSha256": "328cbeb78cf31a2ce40cb4af1d539e07fc5c5fa942b7b5550e767d6033896bb0"
+    "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
   },
   {
     "title": "6. Choose your spending limits",
@@ -93,7 +93,7 @@
     "captionText": "Enter maximum per trade and maximum session spend. Choose your own amounts; these screenshot values are examples, not recommendations. Swarm is optional. Review and continue opens the second step. It does not start trading.",
     "duration": 19,
     "start": 96,
-    "captureSha256": "3b8f350d7e9e606f4d2b6db6d1a426c2515c33cf8f03b0e2339d47743a10ec85"
+    "captureSha256": "8265cc9153814503f887018720db1ea6c94124c38acd0d6283c08e09acdaaa2d"
   },
   {
     "title": "7. Review protections if you use them",
@@ -107,7 +107,7 @@
     "captionText": "Review protections opens Evasion. Read its options and review Staff Watch separately if you use it. Return to setup afterward. Swarm linking and Discord are optional connections. Opening a guide does not start or resume trading.",
     "duration": 18,
     "start": 115,
-    "captureSha256": "3b8f350d7e9e606f4d2b6db6d1a426c2515c33cf8f03b0e2339d47743a10ec85"
+    "captureSha256": "8265cc9153814503f887018720db1ea6c94124c38acd0d6283c08e09acdaaa2d"
   },
   {
     "title": "8. Review, then Start trading",
@@ -121,34 +121,62 @@
     "captionText": "On Review and Start, check your limits and readiness. This offline demonstration has not joined a server, so Start is disabled. On your client, read the actual blocker. Choose Start trading only when ready. Existing recovery and trade checks still apply.",
     "duration": 24,
     "start": 133,
-    "captureSha256": "cf138399af7a1b28888eae06ad439217a95c33192c5f3a842371589b9cb712bd"
+    "captureSha256": "29d47336f193e9c13abef585ec692cfc3acd791f690d5d8a93e5f3dbd4285308"
   },
   {
-    "title": "9. Find Trade and get back to help",
+    "title": "9. Find trading status",
     "subtitle": "You do not need to search through every setting",
     "bullets": [
-      "B → gold START HERE",
-      "Open Trade for status and controls",
+      "Trading → Trade",
+      "Read status and blockers",
       "End is the default emergency stop"
     ],
-    "image": "start-here.png",
-    "captionText": "For trading status and controls, press B, choose START HERE, then Open Trade. Trade is the current name for AutoPilot. Use the displayed reason if a session is paused or blocked. End is the default emergency stop.",
+    "image": "install-trade.png",
+    "captionText": "Open Trading, then Trade for status and controls. A connected client is not necessarily trading. Read the actual reason before taking action. End is the default emergency stop.",
     "duration": 18,
     "start": 157,
-    "captureSha256": "328cbeb78cf31a2ce40cb4af1d539e07fc5c5fa942b7b5550e767d6033896bb0"
+    "captureSha256": "118b8db4ce76fcbf742621b2575750402220913489a8837f2c2213b70942dec9"
   },
   {
     "title": "10. Hidden menus or hotbar?",
     "subtitle": "Use the display shortcut instead of resetting everything",
     "bullets": [
-      "B → START HERE",
-      "Click Show menus + hotbar",
-      "Your other settings are kept"
+      "Settings → Help & setup",
+      "Choose Show menus + hotbar",
+      "Other settings are kept"
     ],
     "image": "start-here.png",
-    "captionText": "If you hid the game menus or hotbar, open START HERE and click Show menus plus hotbar. Only those two display options change for this account. Your name privacy and trading settings stay intact. Use the video or More tutorials whenever you get lost.",
+    "captionText": "Open Settings, Help and setup, then Show menus plus hotbar. Only those two display options change. This is not a full settings or trading-history reset.",
     "duration": 19,
     "start": 175,
-    "captureSha256": "328cbeb78cf31a2ce40cb4af1d539e07fc5c5fa942b7b5550e767d6033896bb0"
+    "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
+  },
+  {
+    "title": "11. Simple settings preserve your choices",
+    "subtitle": "Core controls without the wall of settings",
+    "bullets": [
+      "Four grouped controls",
+      "Custom means preserved",
+      "Preview → Apply or Cancel"
+    ],
+    "image": "settings-simple.png",
+    "captionText": "Simple groups order management, trading style, action pace and order batch ceiling. Custom means existing values stay as they are. Choosing an option opens an exact change preview. Only Apply saves those changes.",
+    "duration": 22,
+    "start": 194,
+    "captureSha256": "e3452e5126b718c5c3e9828503beacd06f90a3056ff137dd7009dd0c03046d5a"
+  },
+  {
+    "title": "12. Advanced settings and warnings",
+    "subtitle": "All individual controls, grouped by task",
+    "bullets": [
+      "Choose Advanced view",
+      "Pick a category or search",
+      "Read consequences before saving"
+    ],
+    "image": "settings-orders.png",
+    "captionText": "Advanced keeps every individual setting. Choose a category or search. Warnings explain interactions such as disabled bidding or sizing limits. A batch ceiling is a maximum, not a promised order size or profit. Switching views changes nothing.",
+    "duration": 22,
+    "start": 216,
+    "captureSha256": "9fa6ff09fb6aa22902e85de648c2acd701391c7e6f8783009f3fa14211deb1f0"
   }
 ]

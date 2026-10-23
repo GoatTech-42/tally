@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 
 /** Explicit pairing and a non-secret status view; relay connection never pauses trading. */
-public final class DashboardScreen extends Screen {
+public final class DashboardScreen extends GoNutsScreen {
     private final Screen parent;private EditBox code,name;
     private String codeDraft="",nameDraft="GoNuts client";
     private net.minecraft.client.gui.components.Button link,unlink,retry;
@@ -48,6 +48,6 @@ public final class DashboardScreen extends Screen {
         super.extractRenderState(g,mx,my,delta);
     }
     @Override public void onClose(){minecraft.gui.setScreen(parent);}
-    @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);}
+    @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

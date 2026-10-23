@@ -1,0 +1,1655 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="gonuts-panel" content="v2"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GoNuts panel</title><style>:root { --background:#0c121b; --surface:#182230; --inset:#101823; --edge:#2c3b4c; --hover:#243747;
+  --selected:#354034; --text:#f0eee7; --secondary:#b6c2cd; --muted:#8799aa; --gold:#f4cd7a;
+  --teal:#56dccb; --good:#77deb0; --warn:#f3b576; --bad:#ff858c;
+  --deny:#e0553b; --pick:#2f4a6b; --pickedge:#5b9bff; --bar:#5fcf78; --barzero:#2a2d36;
+  color-scheme: dark; }
+@font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--background); color:var(--text);
+  font: 15px/1.55 system-ui, "Segoe UI", sans-serif; }
+main { width:100%; max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
+main img, main svg, main canvas { max-width:100%; }
+.settings-nav { display:flex; flex-direction:row; flex-wrap:wrap; overflow:visible; padding:0; gap:8px; margin-bottom:14px; }
+.settings-nav button { flex:1 1 140px; min-height:42px; }
+.settings-intro { margin:0 0 16px; color:var(--secondary); }
+.settings-notices { display:grid; gap:10px; margin:12px 0 20px; }
+.setting-notice { padding:12px 16px; border-left:4px solid var(--teal); background:var(--surface); border-radius:6px; }
+.setting-notice.warning { border-color:var(--warn); }
+.setting-notice p { margin:5px 0 8px; color:var(--secondary); }
+.setting-notice strong { color:var(--text); }
+.setting-notice summary { cursor:pointer; color:var(--teal); }
+.setting-notice button { margin:3px 6px 3px 0; font-size:13px; }
+.set-summary { margin:0; padding:0 14px 12px; color:var(--muted); font:14px/1.5 system-ui,sans-serif; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.nav-group { min-width:140px; border-bottom:1px solid var(--edge); padding-bottom:8px; }
+.nav-group summary { cursor:pointer; padding:8px 4px; color:var(--muted); font-weight:600; }
+.nav-group button,.nav-group a { display:block; width:100%; margin:4px 0; text-align:left; }
+.settings-group summary { cursor:pointer; padding:14px; color:var(--gold); }
+.settings-group[hidden] { display:none; }
+.settings-draft { margin:12px 0; }
+.work > *, .body, .split > *, .detail > *, .card { min-width:0; }
+input, select, button, pre { max-width:100%; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.panel { background:var(--surface); border:1px solid var(--edge); border-radius:7px;
+  box-shadow: 2px 3px 0 rgba(0,0,0,.31); }
+.label { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+.title { color:var(--gold); font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  padding:8px 10px 6px; border-bottom:1px solid var(--edge); margin:0; font-weight:400; }
+header { display:flex; align-items:center; gap:12px; padding:8px 12px; flex-wrap:wrap; }
+header img { height:44px; width:auto; image-rendering:pixelated; }
+#state { background:var(--inset); border:1px solid var(--edge); border-radius:4px; padding:3px 10px;
+  color:var(--gold); letter-spacing:.08em; text-transform:uppercase; font-size:13px; }
+#state.good { color:var(--good); } #state.bad { color:var(--bad); }
+header .gap { flex:1 1 auto; }
+#clock { color:var(--secondary); font-variant-numeric: tabular-nums; }
+.hud { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-top:10px; }
+.tile { background:var(--inset); border:1px solid var(--edge); border-radius:4px; padding:7px 10px; min-width:0; }
+.tile b { display:block; font-weight:400; font-size:17px; color:var(--text); font-variant-numeric: tabular-nums;
+  overflow-wrap:anywhere; }
+.now { margin-top:10px; padding:8px 10px 10px; }
+.now .label { color:var(--warn); }
+#now { color:var(--text); overflow-wrap:anywhere; }
+.work { display:grid; grid-template-columns: minmax(0, 1fr); gap:10px; margin-top:10px; }
+nav { display:flex; gap:6px; overflow-x:auto; padding:8px; -webkit-overflow-scrolling:touch; }
+@media (min-width: 860px) {
+  .work { grid-template-columns: 190px minmax(0, 1fr); align-items:start; }
+  nav { flex-direction:column; overflow:visible; }
+}
+button, select, input, textarea { font: inherit; color:var(--text); background:var(--surface);
+  border:1px solid var(--edge); border-radius:4px; padding:9px 12px; min-height:42px; }
+[hidden] { display:none !important; }
+button { cursor:pointer; text-align:center; }
+button:hover:not(:disabled) { background:var(--hover); }
+button:disabled { background:var(--inset); color:var(--muted); cursor:default; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible,
+.wide:focus-visible {
+  outline:none; border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
+nav button, nav a { text-align:left; white-space:nowrap; flex:0 0 auto; border-left-width:3px; }
+nav a { display:block; padding:9px 12px; min-height:42px; border:1px solid var(--edge); border-left-width:3px; border-radius:4px; color:inherit; background:var(--surface); text-decoration:none; }
+nav a:hover { background:var(--hover); }
+nav a:focus-visible { outline:none; border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
+nav button[aria-current="page"] { background:var(--selected); color:var(--gold); border-left-color:var(--gold); }
+button.go { color:var(--good); border-color:var(--good); }
+button.stop { color:var(--bad); border-color:var(--bad); }
+button.pick { color:var(--gold); }
+button.go:disabled, button.stop:disabled { border-color:var(--edge); color:var(--muted); }
+.body { padding:10px; }
+.wide { overflow-x:auto; -webkit-overflow-scrolling:touch; background:var(--inset);
+  border:1px solid var(--edge); border-radius:4px; padding:6px; }
+#shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
+#evasion-shot { display:block; width:100%; max-width:100%; min-width:0; height:auto; }
+#notice { min-height:22px; margin:8px 2px 2px; color:var(--secondary); overflow-wrap:anywhere; }
+.row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.bot-card { padding:12px; margin-top:12px; }
+.bot-card h3 { margin:0 0 12px; }
+.bot-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+.bot-fields label { display:grid; gap:6px; }
+.bot-roster { display:flex; flex-wrap:wrap; gap:8px; }
+.bot-roster p { background:var(--inset); padding:7px 10px; border-radius:4px; }
+.row button { flex:1 1 auto; }
+.row select { flex:1 1 100%; max-width:100%; }
+form.out button { min-height:34px; padding:5px 12px; }
+#own { min-width:0; }
+#evasion-history td:last-child { white-space:normal; min-width:18em; max-width:40em; overflow-wrap:anywhere; }
+.muted { color:var(--muted); }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+.bar input[type=search] { flex:1 1 200px; min-width:0; background:var(--inset); }
+.line { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.line input { width:120px; background:var(--inset); text-align:right; }
+.line .unit { color:var(--muted); }
+textarea { display:block; width:100%; min-height:88px; resize:vertical; background:var(--inset); }
+.cards { columns: 2 330px; column-gap:10px; }
+.card { break-inside:avoid; background:var(--inset); border:1px solid var(--edge); border-radius:4px;
+  margin:0 0 10px; }
+.setline { display:flex; align-items:center; gap:8px; padding:0 10px; }
+.setline:hover { background:var(--hover); }
+.setname, .val { background:none; border:0; border-radius:0; padding:7px 0; min-height:36px; }
+.setname:hover:not(:disabled), .val:hover:not(:disabled) { background:none; }
+.setname { flex:1 1 auto; min-width:0; text-align:left; overflow-wrap:anywhere; }
+.val { flex:0 0 auto; color:var(--secondary); text-align:right; white-space:nowrap;
+  font-variant-numeric:tabular-nums; }
+.val.long { flex:0 1 auto; max-width:55%; overflow:hidden; text-overflow:ellipsis; }
+.val.changed { color:var(--gold); }
+.switch { min-height:30px; min-width:60px; padding:2px 12px; flex:0 0 auto; }
+.switch.on { color:var(--good); border-color:var(--good); }
+.switch.off { color:var(--muted); }
+.tag { color:var(--teal); font-size:11px; border:1px solid var(--edge); border-radius:3px; padding:0 5px;
+  white-space:nowrap; flex:0 0 auto; }
+.edit { padding:2px 10px 10px; background:var(--surface); border-top:1px solid var(--edge);
+  border-bottom:1px solid var(--edge); }
+.desc { color:var(--secondary); font-size:13px; margin:8px 0; max-width:65ch; }
+.range { color:var(--muted); font-size:12px; margin:8px 0 0; }
+.seg { display:flex; flex-wrap:wrap; }
+.seg button { flex:1 1 auto; border-radius:0; margin-right:-1px; min-height:42px; padding:6px 7px;
+  font-size:14px; }
+.seg button[aria-pressed="true"] { background:var(--selected); color:var(--gold); }
+.legend { color:var(--muted); font-size:12px; margin:0 0 8px; }
+.legend .d { color:var(--deny); } .legend .a { color:var(--good); } .legend .g { color:var(--gold); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:4px; }
+.it { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:7px 3px 5px; min-height:80px; background:var(--inset); border-radius:3px; }
+.it img, .it .noicon { width:32px; height:32px; image-rendering:pixelated; flex:0 0 auto; }
+.it .noicon { display:grid; place-items:center; color:var(--muted); border:1px dashed var(--edge); }
+.it .nm { font-size:11px; line-height:1.25; color:var(--secondary); overflow-wrap:anywhere; }
+.it.deny { border-color:var(--deny); } .it.allow { border-color:var(--good); }
+.it.track { border-color:var(--gold); }
+.it .corner { position:absolute; top:2px; right:2px; width:9px; height:4px; background:var(--gold); }
+.it.picked, .it.picked:hover:not(:disabled) { background:var(--pick); border-color:var(--pickedge);
+  box-shadow:0 0 0 1px var(--pickedge); }
+.acts { position:sticky; bottom:0; display:flex; flex-wrap:wrap; gap:4px; align-items:center;
+  padding:8px 0 2px; margin-top:8px; background:var(--surface); border-top:1px solid var(--edge); }
+.acts button { flex:1 1 78px; padding:6px 4px; }
+.acts .count { flex:1 1 100%; color:var(--secondary); font-size:13px; }
+.more { display:block; width:100%; margin-top:8px; }
+.headline { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; }
+.headline .what { color:var(--gold); flex:1 1 240px; overflow-wrap:anywhere; }
+.headline .stamp { color:var(--muted); font-size:13px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:6px;
+  margin-bottom:10px; }
+.stat .label { display:block; font-size:11px; letter-spacing:.04em; }
+.stat { background:var(--inset); border:1px solid var(--edge); border-radius:4px; padding:7px 10px; }
+.stat b { display:block; font-weight:400; font-size:18px; font-variant-numeric:tabular-nums; }
+.stat small { display:block; color:var(--muted); font-size:11px; }
+.split { display:grid; grid-template-columns:minmax(0, 1fr); gap:10px; }
+@media (min-width: 1000px) { .split { grid-template-columns:minmax(0, 5fr) minmax(0, 2fr);
+  align-items:start; } }
+.detail { display:grid; grid-template-columns:minmax(0, 1fr); gap:14px; padding:10px; }
+@media (min-width: 760px) { .detail { grid-template-columns:minmax(0, 400px) minmax(0, 1fr); } }
+table { border-collapse:collapse; width:100%; font-size:13px; font-variant-numeric:tabular-nums; }
+th { color:var(--muted); font-weight:400; text-align:left; text-transform:uppercase; font-size:11px;
+  letter-spacing:.08em; padding:5px 8px; white-space:nowrap; }
+td { padding:3px 6px; white-space:nowrap; border-top:1px solid var(--edge); }
+th { padding:5px 6px; }
+tr.go { cursor:pointer; }
+tr.go:hover td { background:var(--hover); }
+td img { width:16px; height:16px; image-rendering:pixelated; vertical-align:middle; margin-right:6px; }
+button.link { background:none; border:0; border-radius:0; padding:3px 0; min-height:28px; text-align:left;
+  text-decoration:underline; text-decoration-color:var(--muted); text-underline-offset:3px; }
+button.link:hover:not(:disabled) { background:none; color:var(--gold); }
+.spark { display:inline-flex; align-items:flex-end; gap:1px; height:18px; width:60px;
+  vertical-align:middle; }
+.strip { display:flex; align-items:flex-end; gap:2px; height:84px; margin-top:6px; }
+.spark i, .strip i { flex:1 1 0; background:var(--bar); min-height:1px; }
+.spark i.z, .strip i.z { background:var(--barzero); }
+.spark i.n, .strip i.n { background:var(--gold); }
+.ticks { display:flex; color:var(--muted); font-size:11px; }
+.ticks span { flex:1 1 0; }
+.kv { margin:0; }
+.kv div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 14px; padding:2px 0; }
+.kv dt { color:var(--secondary); }
+.kv dd { margin:0 0 0 auto; text-align:right; overflow-wrap:break-word; min-width:0; }
+.entry { padding:5px 10px; border-top:1px solid var(--edge); }
+.entry .top { display:flex; flex-wrap:wrap; gap:2px 10px; justify-content:space-between; }
+.entry small { display:block; color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+.lessons { padding:0 10px 10px; }
+.lessons p { margin:2px 0; font-size:13px; }
+.t-text { color:var(--text); } .t-secondary { color:var(--secondary); } .t-muted { color:var(--muted); }
+.t-good { color:var(--good); } .t-warn { color:var(--warn); } .t-bad { color:var(--bad); }
+.t-gold { color:var(--gold); }
+#toast { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:5;
+  width:max-content; max-width:min(92vw, 560px); background:var(--inset); border:1px solid var(--gold);
+  border-radius:4px; padding:8px 14px; box-shadow:2px 3px 0 rgba(0,0,0,.4); overflow-wrap:anywhere; }
+#toast.bad { border-color:var(--bad); color:var(--bad); }
+.door { max-width:360px; margin:10vh auto 0; }
+.door .body { padding:14px; }
+.door img { display:block; width:210px; max-width:70%; height:auto; margin:4px auto 14px; image-rendering:pixelated; }
+.door input { width:100%; font-size:24px; letter-spacing:.25em; text-align:center; background:var(--inset); }
+.door button { width:100%; margin-top:10px; }
+.door p { color:var(--secondary); font-size:13px; }
+.door .bad { color:var(--bad); }
+@media (max-width:859px) {
+  nav { flex-wrap:wrap; overflow:visible; }
+  nav button, nav a { flex:1 1 130px; white-space:normal; overflow-wrap:anywhere; }
+  button { white-space:normal; overflow-wrap:anywhere; }
+  .wide { max-width:100%; }
+  .bug-row .card { padding:8px; overflow-wrap:anywhere; }
+}
+@media (max-width:480px) {
+  main { padding:8px 10px 24px; }
+  header { gap:8px; padding:8px; }
+  #clock { flex:1 1 100%; }
+  .body { padding:8px; }
+  .cards { columns:1; }
+  .setline { flex-wrap:wrap; }
+  .val.long { max-width:100%; white-space:normal; }
+  .line input { width:100%; }
+}
+</style></head><body><main><header class="panel"><img src="/logo.png" alt="GoNuts"><span id="state">...</span><span class="gap"></span><span id="clock"></span><form class="out" method="post" action="/logout"><button type="submit">Lock</button></form></header><section class="hud" aria-label="The trader now"><div class="tile"><span class="label">Auction slots</span><b id="slots">-</b></div><div class="tile"><span class="label">Bank</span><b id="bank">-</b></div><div class="tile"><span class="label">Trades</span><b id="trades">-</b></div><div class="tile"><span class="label">Account</span><b id="who">-</b></div></section><section class="panel now"><span class="label">Now</span><div id="now" role="status"></div></section><section class="panel" id="reportalert" role="status" hidden></section><div class="work"><nav class="panel" id="pages" aria-label="Pages"></nav><section class="panel"><h1 class="title" id="page">&nbsp;</h1><div class="body"><div id="pic"><div class="wide" tabindex="0" aria-label="The page on view; scroll sideways to see all of it"><img id="shot" alt="The page of the panel on view" src="/panel.png"></div><div id="notice" role="status"></div><div id="controls"></div></div><div id="own" hidden></div></div></section></div><div id="toast" role="status" aria-live="polite" hidden></div></main><script>const $ = id => document.getElementById(id);
+const shot = $('shot');
+const controls = $('controls');
+const pages = $('pages');
+const own = $('own');
+const hostedPanel = location.pathname.startsWith('/dashboard/panel/');
+let last = '';
+let lastPages = '';
+let setting = null;
+let view = '';
+let ticks = 0;
+function put(id, text) { $(id).textContent = text; }
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function button(cls, text, press) {
+  const b = el('button', cls, text);
+  b.type = 'button';
+  if (press) b.addEventListener('click', press);
+  return b;
+}
+function picture() { shot.src = '/panel.png?t=' + Date.now(); }
+let toastTimer = 0;
+function toast(text, bad) {
+  const t = $('toast');
+  t.textContent = text || '';
+  t.className = bad ? 'bad' : '';
+  t.hidden = !text;
+  clearTimeout(toastTimer);
+  if (text) toastTimer = setTimeout(() => { t.hidden = true; }, 5000);
+}
+const SILENT = 'The game is not answering. Is it still running?';
+async function api(name, query) {
+  const r = await fetch('/api/' + name + (query ? '?' + new URLSearchParams(query) : ''), { cache: 'no-store' });
+  if (r.status === 401) { location.reload(); throw new Error('locked'); }
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function change(name, fields) {
+  try {
+    const r = await fetch('/api/' + name, { method: 'POST', headers: { 'X-GoNuts': '1',
+      'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields) });
+    if (r.status === 401) { location.reload(); return null; }
+    if (!r.ok) { toast('The game did not take that (' + r.status + ').', true); return null; }
+    const j = await r.json();
+    toast(j.note, !j.ok);
+    return j;
+  } catch (e) {
+    toast(SILENT, true);
+    return null;
+  }
+}
+function failed() { own.replaceChildren(el('p', 'muted', SILENT)); }
+async function openBots() {
+  try {
+    const initial=await api('bots');if(view!=='bots')return;
+    own.replaceChildren(el('h2','','Your bots and Hive'));
+    own.append(el('p','muted','Bots on this computer appear automatically after loading the current update. Detection does not link accounts or start trading. Swarm is separate.'));
+    const membership=el('p');membership.setAttribute('role','status');membership.setAttribute('aria-label','Hive membership');
+    const status=el('p'), roster=el('div','bot-roster');own.append(membership,status,roster);
+    const joining=el('section','card bot-card');joining.append(el('h3','','Add a bot to a Hive'));
+    const botLabel=el('label','','New bot '), bot=el('select');bot.setAttribute('aria-label','Bot to add');botLabel.append(bot);
+    const hiveLabel=el('label','','Existing Hive '), hive=el('select');hive.setAttribute('aria-label','Existing Hive');hiveLabel.append(hive);
+    const joinFields=el('div','bot-fields');joinFields.append(botLabel,hiveLabel);
+    joining.append(joinFields,el('p','muted','Only a fresh bot without trading history can join. This leaves that new bot’s world safely and keeps its settings and Swarm link. Restart only the new instance after linking. Existing members keep running.'));
+    let currentBots=[];
+    const joinButton=button('go','Add selected bot to Hive',async()=>{
+      if(joinButton.disabled)return;
+      if(!bot.value||!hive.value){toast('Choose the new bot and existing Hive',true);return;}
+      await change('bots',{action:'join',bot:bot.value,hive:hive.value});await poll();
+    });
+    const joinHint=el('p','muted');
+    function checkJoin(){
+      const b=currentBots.find(b=>b.id===bot.value),h=currentBots.find(b=>b.id===hive.value);
+      const same=b&&h&&(b.id===h.id||(b.sameHive&&h.sameHive)||(b.group&&b.group===h.group));
+      joinButton.disabled=!b||!h||!!same;
+      joinHint.textContent=same?'These accounts already share a Hive. No linking or deletion is needed.':!b||!h?'Launch the other updated instance to select it here.':'Selected bots are separate. Adding a fresh bot keeps its settings; existing trading histories need the supported combination flow and must not be deleted.';
+    }
+    bot.onchange=checkJoin;hive.onchange=checkJoin;
+    joining.append(joinButton,joinHint);own.append(joining);
+    const commands=el('section','card bot-card');commands.append(el('h3','','Queue a command for one bot'));
+    const targetLabel=el('label','','Send as '),target=el('select');target.setAttribute('aria-label','Command target bot');targetLabel.append(target);
+    const input=el('input');input.type='text';input.maxLength=256;input.placeholder='/rtp or /pay player amount';input.setAttribute('aria-label','Manual command');
+    const review=el('div'), history=el('div');let reviewId='';
+    const clearReview=()=>{reviewId='';review.replaceChildren();};input.oninput=clearReview;target.onchange=clearReview;
+    commands.append(targetLabel,input,el('p','muted','Commands wait in the selected bot’s normal paced queue for a safe checkpoint. Payments never retry automatically. Sent means handed to the game connection, not confirmed paid or teleported. Queued work expires after two minutes and is not replayed after a client restart.'));
+    commands.append(button('','Review command',async()=>{
+      clearReview();const r=await change('bots',{action:'review',bot:target.value,command:input.value});if(!r?.ok)return;
+      reviewId=r.review;review.append(el('p','','Send as '+r.bot),el('pre','',r.command),button('go','Confirm and queue once',async()=>{
+        const id=reviewId;if(!id)return;clearReview();await change('bots',{action:'send',review:id});await poll();
+      }));
+    }),review,history);own.append(commands);
+    let shape='';
+    function update(d) {
+      status.textContent=d.setup||'Select a bot below. No game window is required.';
+      const rows=d.bots||[],newShape=JSON.stringify(rows.map(b=>[b.id,b.label,b.sameHive,b.self,b.hiveSize,b.group]));
+      currentBots=rows;
+      const together=rows.filter(b=>b.sameHive).length,separate=rows.length-together;
+      membership.textContent=!rows.length?'No running bots detected yet. Keep this client open while detection refreshes; no link has changed.':together>1?'Same Hive confirmed: '+together+' running bots share this panel’s ledger.'+(separate?' '+separate+' other running bot(s) are separate.':' Choose All accounts on Money or Hive to see their combined figures.'):
+        separate?'Separate instances detected. Only this bot is in this panel’s Hive; linking each bot to Swarm does not combine their local Hives.':'Only one running bot detected. Start the other updated instance under the same Windows user; it will appear here automatically. A missing second bot does not mean you should delete a Hive.';
+      if(newShape!==shape){
+        const refill=(select,list,preferred)=>{const chosen=select.value;select.replaceChildren();for(const b of list){const o=el('option','',b.label+(b.self?' (this panel)':''));o.value=b.id;select.append(o);}if(list.some(b=>b.id===chosen))select.value=chosen;else if(list.some(b=>b.id===preferred))select.value=preferred;};
+        const self=rows.find(b=>b.self),shared=self&&(self.hiveSize>1||self.linked);
+        const newBot=shared?rows.find(b=>!b.sameHive&&b.hiveSize===1):self;
+        const existing=shared?self:rows.find(b=>!b.sameHive&&b.hiveSize>1)||rows.find(b=>!b.sameHive);
+        const groups=new Map();for(const b of rows){const key=b.group||b.id;if(!groups.has(key)||b.self)groups.set(key,b);}
+        refill(bot,rows,newBot?.id);refill(hive,[...groups.values()],existing?.id);refill(target,rows.filter(b=>b.sameHive),d.self);
+        clearReview();shape=newShape;
+      }
+      checkJoin();
+      roster.replaceChildren();for(const b of rows)roster.append(el('p','',b.label+(b.self?' (this panel)':'')+' · '+(b.sameHive?'In this Hive':'Separate instance')+(b.setup?' · '+b.setup:'')));
+      history.replaceChildren();for(const b of rows.filter(b=>b.sameHive))for(const j of b.commands||[]){
+        const row=el('p','',b.label+' · '+j.command+' · '+j.status+' · '+j.note);
+        if(j.status==='QUEUED'||j.status==='WAITING')row.append(button('','Cancel before sending',async()=>{await change('bots',{action:'cancel',bot:b.id,id:j.id});await poll();}));history.append(row);
+      }
+    }
+    async function poll(){if(view!=='bots'||!status.isConnected)return;try{const d=await api('bots',{bot:target.value});if(view==='bots')update(d);}catch(e){status.textContent='Could not refresh bot status; commands are not resubmitted.';}}
+    update(initial);const again=()=>{if(view!=='bots'||!status.isConnected)return;poll().finally(()=>setTimeout(again,2000));};setTimeout(again,2000);
+  }catch(e){failed();}
+}
+async function act(id, value, text) {
+  const body = new URLSearchParams();
+  body.set('id', id);
+  if (value !== undefined && value !== null) body.set('value', value);
+  if (text !== undefined && text !== null) body.set('text', text);
+  const response = await fetch('/act', { method: 'POST', headers: { 'X-GoNuts': '1',
+    'Content-Type': 'application/x-www-form-urlencoded' }, body });
+  setTimeout(refresh, 350);
+  setTimeout(refresh, 1500);
+  return response.ok;
+}
+function press(id) {
+  if (id === 'ctl:search') {
+    const item = prompt('Item to search for, for example golden apple');
+    if (item) act(id, null, item);
+    return;
+  }
+  if (id === 'tune:set') {
+    const text = prompt(setting ? setting.label + '\n' + setting.description : 'New value',
+      setting ? setting.value : '');
+    if (text !== null && text !== '') act(id, null, text);
+    return;
+  }
+  act(id, '');
+}
+function hud(h) {
+  if (!h) return;
+  const state = $('state');
+  state.textContent = h.state || '...';
+  const s = (h.state || '').toUpperCase();
+  state.className = s === 'STOPPED' ? 'bad' : s === 'PAUSED' ? '' : 'good';
+  put('slots', (h.listed>=0?h.listed:'unknown') + ' / ' + (h.slots>=0?h.slots:'unknown'));
+  put('bank', h.bank || '-');
+  put('trades', h.trades>=0?String(h.trades):'unknown');
+  put('who', h.who || '-');
+  put('now', h.now || '');
+  put('clock', h.clock || '');
+}
+
+// ---- the pages down the side: the pictures the mod draws, and the panel's own
+const OWN = {
+  settings: { label: 'Settings', open: openSettings },
+  auction: { label: 'Auction settings', open: async()=>{S.section='AUCTION';await openSettings();} },
+  orders: { label: 'Order settings', open: async()=>{S.section='ORDERS';await openSettings();} },
+  dashboard: { label: 'Dashboard', open: openDashboard },
+  savings: { label: 'Swarm savings', open: openSwarmSavings },
+  bots: { label: 'Hive & commands', open: openBots },
+  analyzer: { label: 'Analyzer', open: openAnalyzer },
+  evasion: { label: 'Evasion', open: openEvasion },
+  items: { label: 'Items', open: openItems },
+  prices: { label: 'Flips', open: openPrices },
+  rivals: { label: 'Rivals', open: openRivals },
+  staff: { label: 'Staff Watch', open: openStaff },
+  reports: { label: 'Report bug', open: openReports },
+  proxies: { label: 'Proxies', open: openProxies }
+};
+function show(name) {
+  if (name === 'dashboard' && hostedPanel) {
+    location.assign('https://gonuts.at/dashboard/');
+    return;
+  }
+  view = OWN[name] ? name : '';
+  try { history.replaceState(null, '', view ? '#' + view : location.pathname); } catch (e) { }
+  $('pic').hidden = !!view;
+  own.hidden = !view;
+  lastPages = '';
+  last = '';
+  if (view) {
+    put('page', OWN[view].label);
+    own.replaceChildren(el('p', 'muted', 'Reading...'));
+    OWN[view].open();
+  }
+  refresh();
+}
+function tabs(pick) {
+  const options = (pick ? pick.options : []) || [];
+  const shape = JSON.stringify(options) + view;
+  if (shape === lastPages) return;
+  lastPages = shape;
+  pages.replaceChildren();
+  const groups={};
+  for(const label of ['Trading','Markets','Accounts','Safety','Settings']){
+    const group=el('details','nav-group');group.append(el('summary','',label));pages.append(group);groups[label]=group;
+  }
+  const destinations={settings:'Settings',auction:'Settings',orders:'Settings',analyzer:'Settings',reports:'Settings',items:'Trading',prices:'Trading',rivals:'Markets',staff:'Safety',evasion:'Safety',bots:'Accounts',savings:'Accounts',proxies:'Accounts',dashboard:'Trading'};
+  const add = (label, current, go, group='Trading') => {
+    const b = button('', label, go);
+    if (current) { b.setAttribute('aria-current', 'page');groups[group].open=true; }
+    groups[group].appendChild(b);
+  };
+  const mine = name => add(OWN[name].label, view === name, () => show(name),destinations[name]);
+  mine('bots'); mine('savings'); mine('reports'); mine('proxies');
+  if (hostedPanel) {
+    const back = el('a', '', 'Dashboard');
+    back.href = 'https://gonuts.at/dashboard/';
+    groups.Trading.appendChild(back);
+  } else mine('dashboard');
+  mine('analyzer');
+  if(!options.some(o=>o.value==='TUNE')){mine('settings');mine('auction');mine('orders');mine('items');}
+  for (const o of options) {
+    // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
+    if (o.value === 'RIVALS') { mine('rivals'); continue; }
+    if (o.value === 'STAFF') { mine('staff'); continue; }
+    if (o.value === 'EVASION') { mine('evasion'); continue; }
+    // The Flips picture is the Your prices page here, which edits the whole list.
+    if (o.value === 'FLIPS') continue;
+    if (o.value === 'TUNE') { mine('auction'); mine('orders'); mine('items'); mine('prices'); mine('settings'); continue; }
+    add(o.value === 'ITEMS' ? 'Item profit' : o.value === 'ORDERS' ? 'Order book' : o.value === 'LISTINGS' ? 'Auction listings' : o.label, !view && o.default, () => {
+      if (view) show('');
+      act('page:pick', o.value);
+    }, ['OPPS','SEARCH','RIVALS'].includes(o.value)?'Markets':['HIVE','PAYROLL'].includes(o.value)?'Accounts':['STAFF','REGIONS','EVASION'].includes(o.value)?'Safety':'Trading');
+  }
+}
+function draw(state) {
+  hud(state.hud);
+  setting = state.setting || null;
+  let pick = null;
+  const rows = [];
+  for (const row of state.components || []) {
+    const rest = [];
+    for (const c of row.components || []) {
+      if (c.type === 3 && c.custom_id === 'page:pick') pick = c; else rest.push(c);
+    }
+    if (rest.length) rows.push(rest);
+  }
+  tabs(pick);
+  if (view) return;
+  put('page', state.page || '');
+  put('notice', state.notice || '');
+  const shape = JSON.stringify(rows);
+  if (shape === last || controls.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;
+  last = shape;
+  controls.replaceChildren();
+  for (const row of rows) {
+    const div = el('div', 'row');
+    for (const c of row) {
+      if (c.type === 2) {
+        const b = button(c.style === 3 ? 'go' : c.style === 4 ? 'stop' : c.style === 1 ? 'pick' : '', c.label,
+          () => press(c.custom_id));
+        b.disabled = !!c.disabled;
+        div.appendChild(b);
+      } else if (c.type === 3) {
+        const s = el('select');
+        s.setAttribute('aria-label', c.placeholder || 'Choose');
+        const first = el('option', '', c.placeholder || 'Choose');
+        first.value = '';
+        first.disabled = true;
+        first.selected = true;
+        s.appendChild(first);
+        for (const o of c.options || []) {
+          const opt = el('option', '', o.label);
+          opt.value = o.value;
+          s.appendChild(opt);
+        }
+        s.addEventListener('change', () => { const v = s.value; s.blur(); act(c.custom_id, v); });
+        div.appendChild(s);
+      }
+    }
+    controls.appendChild(div);
+  }
+}
+
+// ---- Settings: every setting the screen in game has, changed where it stands
+const S = { data: null, q: '', open: '', section: 'AUCTION', simple: true };
+let reportData = {}, reportTimer;
+async function reportNotice() {
+  try {
+    reportData = await api('reports');
+    const box = $('reportalert');
+    box.hidden = !reportData.alert;
+    box.replaceChildren();
+    if (reportData.alert) box.append(el('p', '', reportData.notice),
+      button('', 'Review report', () => show('reports')),
+      button('', 'Dismiss', async () => { await change('reports', {action:'dismiss', incident:reportData.incident}); await reportNotice(); }));
+  } catch (e) { /* Panel status must continue when report status is unavailable. */ }
+}
+async function renderBugTracker(box, onAffected) {
+  const title = el('h3', '', 'Known bugs — check before reporting');
+  const state = el('p','muted','Loading the shared bug tracker…');
+  const rows = el('div');
+  const all = el('a','','View all bugs and affected-user votes');
+  all.href='https://gonuts.at/dashboard/bugs';all.target='_blank';all.rel='noopener noreferrer';
+  box.replaceChildren(title,state,rows,all);
+  try {
+    const response=await fetch('https://gonuts.at/dashboard/api/public/bugs',{credentials:'omit',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)throw new Error('unavailable');
+    const text=await response.text();if(text.length>262144)throw new Error('too large');
+    const data=JSON.parse(text);if(!data.available||!data.snapshot)throw new Error('unavailable');
+    const stats=data.snapshot.stats||{},day=stats.last24h||{},totals=stats.totals||{};
+    const count=v=>Number.isSafeInteger(v)&&v>=0?String(v):'unknown';
+    state.textContent='Last 24h: '+count(day.newReports)+' reported · '+count(day.patchAvailable)+' with patches · '+count(day.confirmedResolved)+' confirmed resolved · '+count(day.unresolved)+' unresolved. Current unresolved: '+count(totals.unresolved)+'.'+(data.stale?' Snapshot is stale.':'');
+    const items=Array.isArray(data.snapshot.items)?data.snapshot.items:[];
+    const active=items.filter(i=>Number.isSafeInteger(i.issue)&&i.issue>0&&!['resolved','feature','closed_unfixed'].includes(i.status));
+    for(const item of active.slice(0,8)) {
+      const row=el('div','bug-row');row.style.position='relative';row.style.padding='8px';row.style.borderBottom='1px solid var(--edge)';
+      const brief=button('', '#'+item.issue+' '+String(item.summary||'Bug report').slice(0,100),()=>{tip.hidden=!tip.hidden;});
+      brief.style.textAlign='left';brief.setAttribute('aria-expanded','false');
+      const label=el('span','muted',' '+String(item.status||'unknown').replaceAll('_',' '));
+      const tip=el('div','card');tip.hidden=true;tip.setAttribute('role','note');
+      tip.textContent='Symptom: '+String(item.summary||'Awaiting triage').slice(0,240)+' · Cause: '+String(item.cause||'Not established').slice(0,180)+' · Patch: '+String(item.patch||'Not confirmed').slice(0,100)+' · Status: '+String(item.status||'unknown').replaceAll('_',' ');
+      const toggle=show=>{tip.hidden=!show;brief.setAttribute('aria-expanded',String(show));};
+      row.onmouseenter=()=>toggle(true);row.onmouseleave=()=>{if(!row.contains(document.activeElement))toggle(false);};
+      brief.onfocus=()=>toggle(true);row.onfocusout=()=>setTimeout(()=>{if(!row.contains(document.activeElement))toggle(false);},0);
+      brief.onclick=()=>toggle(tip.hidden);
+      const affected=button('','I’m affected too',()=>onAffected(item.issue));
+      const tally=item.affected||{};
+      const votes=el('span','muted',' '+count(tally.people)+' users · '+count(tally.installations)+' installation reports');
+      row.append(brief,label,affected,votes,tip);rows.appendChild(row);
+    }
+    if(!active.length)rows.appendChild(el('p','muted','No active bugs in this snapshot.'));
+    const time=new Date(data.generatedAt||data.snapshot.generatedAt);if(!isNaN(time))box.appendChild(el('p','muted','Updated '+time.toLocaleString()));
+  } catch(e) {state.textContent='Bug tracker unavailable. You can still report a new problem; counts are unknown.';}
+}
+async function openReports() {
+  clearTimeout(reportTimer);
+  if (view !== 'reports') return;
+  await reportNotice();
+  if (view !== 'reports') return;
+  const feature = el('a', '', 'Feature request');
+  feature.href = 'https://github.com/cody-raves/Gonuts/issues/new?template=feature-request.yml';
+  feature.target = '_blank'; feature.rel = 'noopener noreferrer';
+  const featureHelp = el('p', 'muted', 'Have an idea instead of a bug? Feature request opens the same public GitHub form as the in-game button. Nothing from this report is attached.');
+  const description = el('textarea'), expected = el('textarea');
+  description.maxLength = expected.maxLength = 1500;
+  description.rows = 5; expected.rows = 3;
+  description.style.width = expected.style.width = '100%';
+  description.style.boxSizing = expected.style.boxSizing = 'border-box';
+  description.value = reportData.description || '';
+  expected.value = reportData.expected || '';
+  const logLabel = el('p','muted','Sanitized diagnostic logs are included automatically.');
+  const privacy = el('p', 'muted', 'Reports are public on GitHub. Diagnostics remove player names, chat and personal details. Review the preview for anything sensitive you typed. Nothing is uploaded until you send. This reports the client hosting this panel.');
+  const status = el('p', '', ''), preview = el('pre', '', '');
+  preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
+  let preparedId = '', blockedId = '', changedSinceSend = true;
+  let relatedIssue=Number.isSafeInteger(reportData.relatedIssue)&&reportData.relatedIssue>0?reportData.relatedIssue:0;
+  const related=el('p','muted',relatedIssue?'Attach diagnostics to existing bug #'+relatedIssue+' — no new issue.':'New bug report');
+  const resetRelated=button('', 'Report a different bug',()=>{relatedIssue=0;related.textContent='New bug report';send.textContent='Send report';changed();});
+  const tracker=el('section','card');
+  const fields = action => ({action, description:description.value, expected:expected.value, consent:'true',relatedIssue:String(relatedIssue)});
+  const send = button('', relatedIssue?'Attach reviewed diagnostics':'Send report', async () => {
+    clearTimeout(reportTimer);
+    send.disabled = true; changedSinceSend = false;
+    const form=relatedIssue?{action:'send',id:preparedId,reviewed:'true'}:fields('submit');
+    if(relatedIssue&&!preparedId){status.textContent='Preview and review these diagnostics before attaching.';send.disabled=false;return;}
+    const result = await change('reports', form);
+    if (!result || !result.ok) {
+      status.textContent = result?.note || 'Report request failed. Please try again.';
+      send.disabled = false; changedSinceSend = true; return;
+    }
+    status.textContent = result.note || 'Preparing report...';
+    poll();
+  });
+  const prepare = button('', 'Preview (optional)', async () => {
+    clearTimeout(reportTimer);
+    preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
+    const result = await change('reports', fields('prepare'));
+    if (!result || !result.ok) {
+      status.textContent = result?.note || 'Preview request failed. Please try again.';
+      prepare.disabled = false; send.disabled = false; return;
+    }
+    status.textContent = result.note || 'Preparing preview...';
+    poll();
+  });
+  const link = el('a', '', 'Open submitted issue'); link.hidden = true; link.rel = 'noopener noreferrer'; link.target = '_blank';
+  function changed() { blockedId = reportData.id || ''; preparedId = ''; changedSinceSend = true; send.disabled = false; preview.textContent = ''; }
+  description.oninput = expected.oninput = changed;
+  async function poll() {
+    clearTimeout(reportTimer);
+    if (view !== 'reports' || !status.isConnected) return;
+    try {
+      const d = await api('reports'); reportData = d;
+      status.textContent = d.note || '';
+      prepare.disabled = !!d.busy;
+      if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy && (d.relatedIssue||0)===relatedIssue) {
+        preparedId = d.id; preview.textContent = d.preview;
+      }
+      send.disabled = !!d.busy || !changedSinceSend && !!d.issueUrl || Date.now() < (d.retryAt || 0);
+      link.hidden = !/^https:\/\/github\.com\/cody-raves\/Gonuts\/issues\/[1-9][0-9]*$/.test(d.issueUrl || '');
+      if (!link.hidden) link.href = d.issueUrl;
+    } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
+    reportTimer = setTimeout(poll, 1500);
+  }
+  own.replaceChildren(el('h2', '', 'Report bug'), tracker, related, resetRelated, feature, featureHelp, privacy, el('label', '', 'What happened?'), description,
+    el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches diagnostics automatically, then publishes them to GitHub.'), send, prepare, status, preview, link);
+  renderBugTracker(tracker,issue=>{relatedIssue=issue;related.textContent='Attach diagnostics to existing bug #'+issue+' — no new issue.';send.textContent='Attach reviewed diagnostics';if(!description.value)description.value='I am also affected by bug #'+issue+'. ';if(!expected.value)expected.value='This issue should be fixed for my client too.';changed();prepare.click();});
+  poll();
+}
+
+async function openProxies() {
+  try {
+    const data=await api('proxies'); if(view!=='proxies')return;
+    const active=data.profiles.find(p=>p.id===data.selected);
+    const state=el('p','',data.blocked?'Connections blocked: settings unavailable':data.enabled?'Active proxy: '+active.name:'Direct connection: proxy disabled');
+    const pick=el('select'), fresh=el('option','','New profile');fresh.value='';pick.appendChild(fresh);
+    for(const p of data.profiles){const o=el('option','',p.name+(p.id===data.selected&&data.enabled?' (active)':''));o.value=p.id;pick.appendChild(o);}
+    pick.value=active?active.id:'';
+    const fields={},form=el('div');
+    for(const [key,label,type] of [['name','Profile name','text'],['host','Proxy host','text'],['port','Port','number'],['username','Username (blank keeps saved)','text'],['password','Password (blank keeps saved)','password']]){
+      const input=el('input');input.type=type;input.autocomplete=key==='password'?'new-password':'off';input.style.width='100%';input.style.boxSizing='border-box';
+      input.maxLength=key==='name'?48:key==='host'?253:255;
+      const wrap=el('label','',label);wrap.appendChild(input);form.append(wrap,el('br'));fields[key]=input;
+    }
+    fields.port.min=1;fields.port.max=65535;
+    const kind=el('select');for(const type of ['SOCKS5','SOCKS4']){const o=el('option','',type);o.value=type;kind.appendChild(o);}
+    const clear=el('input');clear.type='checkbox';const clearLabel=el('label','',' Clear saved credentials');clearLabel.prepend(clear);
+    function fill(){const p=data.profiles.find(p=>p.id===pick.value);fields.name.value=p?p.name:'';fields.host.value=p?p.host:'';fields.port.value=p?p.port:1080;fields.username.value=fields.password.value='';kind.value=p?p.type:'SOCKS5';clear.checked=false;}
+    pick.onchange=fill;fill();const actions=el('div');let saving=false;
+    async function action(what){
+      if(saving)return;saving=true;for(const b of actions.querySelectorAll('button'))b.disabled=true;
+      const values={action:what,id:pick.value,type:kind.value,clearCredentials:String(clear.checked)};
+      for(const [key,input] of Object.entries(fields))values[key]=input.value;
+      const result=await change('proxies',values);fields.username.value=fields.password.value='';
+      if(result&&result.ok)await openProxies();else{saving=false;for(const b of actions.querySelectorAll('button'))b.disabled=false;}
+    }
+    actions.append(button('','Save profile',()=>action('save')),button('','Use proxy',()=>action('enable')),button('','Disable proxy',()=>action('disable')),button('','Delete profile',()=>action('delete')));
+    own.replaceChildren(el('h2','','Proxies'),state,el('p','muted',data.note),pick,form,el('label','','Protocol'),kind,clearLabel,actions,
+      el('p','muted','SOCKS5 supports username/password. SOCKS4 supports username only. Saved credentials are never returned to the browser. Save edits before choosing Use proxy.'));
+  }catch(e){failed();}
+}
+
+async function openEvasion() {
+  try {
+    const data=await api('evasion');
+    if(view!=='evasion')return;
+    const actions=el('div','line');
+    const guardToggle=button('',data.enabled?'Guard: ON':'Guard: OFF',async()=>{
+      if((await change('evasion',{action:'guard'}))?.ok)openEvasion();
+    });
+    guardToggle.id='evasion-guard-toggle';actions.append(guardToggle);
+    const route=el('select');
+    for(const [value,label] of [['rtp','Random teleport (/rtp)'],['home','Cycle named homes (/home)']]){
+      const option=el('option','',label);option.value=value;route.appendChild(option);
+    }
+    route.value=data.useHomes?'home':'rtp';route.setAttribute('aria-label','Teleport destination');
+    route.onchange=async()=>{if((await change('evasion',{action:'route',route:route.value}))?.ok)openEvasion();};
+    actions.appendChild(route);
+    const homes=el('input');homes.value=(data.homes||[]).join(', ');homes.maxLength=2048;
+    homes.placeholder='base, vault, farm';homes.setAttribute('aria-label','Home names in rotation order');
+    const save=button('pick','Save home names',async()=>{
+      if((await change('evasion',{action:'homes',names:homes.value}))?.ok)openEvasion();
+    });
+    const cards=el('div','cards');
+    for(const group of data.groups||[]){
+      const card=el('section','card');card.appendChild(el('h2','title',group.name));
+      for(const row of group.settings||[]){
+        if(row.key==='evasion.enabled'||row.key==='evasion.use_homes')continue;
+        card.appendChild(settingRow(row));
+      }cards.appendChild(card);
+    }
+    const activity=el('section','card');activity.id='evasion-history';
+    own.replaceChildren(el('h2','','Evasion'),activity,actions,el('label','','Named homes'),homes,save,
+      el('p','muted','Set these homes on the server first. Enter names only, separated by commas. /home cycles in entered order. With no configured homes, emergency escape disconnects; optional movement is skipped. Hive clients sharing this list need the same home names.'),cards);
+    drawEvasionHistory(data);
+    // Select only the web renderer's page; this never changes trading or the Discord view.
+    if(await act('page:pick','EVASION')) {
+      if(view!=='evasion')return;
+      const image=el('img');image.id='evasion-shot';image.alt='Evasion status and recent events, matching the Discord panel';
+      const panel=el('div','wide');panel.appendChild(image);
+      // Show one activity view. Keep text history only as a fallback when the image is unavailable.
+      image.onload=()=>{if(view==='evasion'){panel.hidden=false;activity.hidden=true;}};
+      image.onerror=()=>{if(view==='evasion'){panel.hidden=true;activity.hidden=false;}};
+      image.src='/panel.png?t='+Date.now();
+      own.prepend(panel);
+    }
+  }catch(e){failed();}
+}
+function drawEvasionHistory(data) {
+  if(view!=='evasion')return;
+  const card=$('evasion-history');if(!card)return;
+  const toggle=$('evasion-guard-toggle');if(toggle)toggle.textContent=data.enabled?'Guard: ON':'Guard: OFF';
+  const summary=el('div','line');
+  for(const text of ['Guard: '+data.guardStatus,'Pause ring: '+data.pauseRing+' blocks',
+    'Escape ring: '+data.escapeRing+' blocks','On contact: '+data.onContact])summary.appendChild(el('span','',text));
+  const history=data.history||{};
+  const counts=el('p','muted',history.available?'Triggered 24h: '+history.triggered24h+
+    (history.mostSeen7d?' · Most seen 7d: '+history.mostSeen7d.who+' ×'+history.mostSeen7d.count:''):
+    'History is temporarily unavailable. Settings remain available.');
+  const table=el('table'),head=el('thead'),header=el('tr'),body=el('tbody');
+  for(const text of ['Time','Client','Who','Blocks','What happened'])header.appendChild(el('th','',text));
+  head.appendChild(header);table.append(head,body);
+  for(const event of history.events||[]) {
+    const row=el('tr');
+    for(const text of [new Date(event.at).toLocaleString(),event.client||'',event.who||'',
+      event.distance>0?String(Math.round(event.distance)):'',event.action||''])row.appendChild(el('td','',text));
+    body.appendChild(row);
+  }
+  const wide=el('div','wide');wide.appendChild(table);
+  const note=el('p','muted',history.available&&!history.events?.length?'No evasion events recorded.':
+    'Latest 100 hive events. Times use your local clock. Guard controls apply to this client.');
+  card.replaceChildren(el('h2','','Evasion activity'),summary,counts,wide,note,
+    button('','Refresh history',refreshEvasionHistory));
+}
+let evasionHistoryLoading=false;
+async function refreshEvasionHistory() {
+  if(view!=='evasion'||evasionHistoryLoading)return;
+  evasionHistoryLoading=true;
+  try{const data=await api('evasion');if(view==='evasion')drawEvasionHistory(data);}
+  catch(e){if(view==='evasion')toast('Could not refresh evasion history. Your settings have been kept.',true);}
+  finally{evasionHistoryLoading=false;}
+}
+async function openSavedPresets() {
+  try {
+    const d=await api('savedpresets'); if(!d.ok){toast(d.note,true);return;}
+    const box=el('section','card');box.appendChild(el('h2','title','Saved presets'));
+    box.appendChild(el('p','desc','Save a baseline, experiment, then apply a saved copy. Account slot counts and follow settings stay as they are.'));
+    const name=el('input');name.maxLength=48;name.placeholder='New preset name';name.setAttribute('aria-label','New preset name');box.appendChild(name);
+    box.appendChild(button('pick','Save current as new',async()=>{const r=await change('savedpresets',{action:'save',name:name.value});if(r&&r.ok)openSavedPresets();}));
+    const search=el('input');search.placeholder='Search saved presets';search.setAttribute('aria-label','Search saved presets');box.appendChild(search);
+    const rows=el('div');box.appendChild(rows);
+    for(const p of d.presets||[]){
+      const row=el('section','card');row.dataset.name=p.name.toLowerCase();row.appendChild(el('h3','title',p.name));
+      row.appendChild(el('p','muted','Saved '+new Date(p.savedAt).toLocaleString()));
+      row.appendChild(button('pick','Apply',async()=>{if(confirm('Apply '+p.name+'? Save your current settings first if you want to switch back. Shared settings affect the hive.')){const r=await change('savedpresets',{action:'apply',id:p.id});if(r&&r.ok)openSettings();}}));
+      row.appendChild(button('','Copy code',()=>codeToClipboard(p.code)));
+      row.appendChild(button('','Rename',async()=>{const n=prompt('Preset name',p.name);if(n!==null){const r=await change('savedpresets',{action:'rename',id:p.id,name:n});if(r&&r.ok)openSavedPresets();}}));
+      row.appendChild(button('','Replace with current',async()=>{if(confirm('Overwrite '+p.name+' with your current settings?')){const r=await change('savedpresets',{action:'replace',id:p.id,name:p.name});if(r&&r.ok)openSavedPresets();}}));
+      row.appendChild(button('','Delete',async()=>{if(confirm('Delete '+p.name+'? Current settings stay unchanged.')){const r=await change('savedpresets',{action:'delete',id:p.id});if(r&&r.ok)openSavedPresets();}}));
+      rows.appendChild(row);
+    }
+    search.addEventListener('input',()=>{for(const row of rows.children)row.hidden=!row.dataset.name.includes(search.value.toLowerCase());});
+    box.appendChild(button('','Back to settings',openSettings));own.replaceChildren(box);
+  }catch(e){failed();}
+}
+async function codeToClipboard(code){
+  try{await navigator.clipboard.writeText(code);toast('Code copied');}
+  catch(e){const area=el('textarea');area.value=code;area.readOnly=true;own.appendChild(area);area.select();toast('Select and copy the code.');}
+}
+const CAPITAL={category:0,span:86400000};
+const CAPITAL_LABELS=['Available bank','Unfilled order funds','Order stock awaiting collection','Collected / unlisted stock','Auction stock at cost','Unreconciled stock at cost'];
+const CAPITAL_KEYS=['bank','orders','awaitingCollection','unlisted','listed','unresolved'];
+const CAPITAL_COLORS=['#3987e5','#d95926','#199e70','#ffd966','#c08cff','#9eb6c9'];
+function capitalMoney(v){return v===null||v===undefined?'unknown':new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(v);}
+function capitalSvg(tag,attrs={},title=''){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,String(v));if(title){const t=document.createElementNS('http://www.w3.org/2000/svg','title');t.textContent=title;n.appendChild(t);}return n;}
+function drawCapital(box,report){
+  const c=report.capital;box.replaceChildren(el('h3','title','Where your capital sits — this account'));
+  box.appendChild(el('p','desc','Observed amounts at purchase cost, not net worth. Unknown categories are excluded. Auction asking prices are potential gross revenue, not profit.'));
+  const values=CAPITAL_KEYS.map(k=>c[k]),total=values.reduce((sum,v)=>sum+(Number.isFinite(v)&&v>0?v:0),0);
+  const pie=capitalSvg('svg',{viewBox:'-100 -100 200 200',width:250,height:250,role:'img','aria-label':'Observed capital allocation at cost'});let angle=-Math.PI/2;
+  values.forEach((v,i)=>{if(!Number.isFinite(v)||v<=0||total<=0)return;const slice=v/total,next=angle+slice*2*Math.PI;
+    const title=CAPITAL_LABELS[i]+': '+capitalMoney(v)+' ('+(slice*100).toFixed(1)+'% of known observed amounts)';
+    if(slice>.999999)pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:85,fill:CAPITAL_COLORS[i]},title));
+    else pie.appendChild(capitalSvg('path',{d:'M 0 0 L '+Math.cos(angle)*85+' '+Math.sin(angle)*85+' A 85 85 0 '+(slice>.5?1:0)+' 1 '+Math.cos(next)*85+' '+Math.sin(next)*85+' Z',fill:CAPITAL_COLORS[i]},title));
+    if(slice>.035){const mid=(angle+next)/2,n=capitalSvg('text',{x:Math.cos(mid)*67,y:Math.sin(mid)*67+4,fill:'#111820','text-anchor':'middle','font-size':12});n.textContent=String(i+1);pie.appendChild(n);}angle=next;
+  });
+  pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:42,fill:'#101820'}));const middle=capitalSvg('text',{x:0,y:4,fill:'#c3c2b7','text-anchor':'middle','font-size':12});middle.textContent=total>0?'At cost':'No known amount';pie.appendChild(middle);box.appendChild(pie);
+  values.forEach((v,i)=>box.appendChild(el('p','desc',(i+1)+'. '+CAPITAL_LABELS[i]+': '+capitalMoney(v))));
+  box.appendChild(el('p','desc','Auction asking total: '+capitalMoney(c.asking)+' — potential gross revenue only'));
+  const pick=el('select');pick.setAttribute('aria-label','Capital history category');CAPITAL_LABELS.forEach((label,i)=>{const o=el('option','',label);o.value=i;pick.appendChild(o);});pick.value=CAPITAL.category;pick.addEventListener('change',()=>{CAPITAL.category=Number(pick.value);drawCapital(box,report);});box.appendChild(pick);
+  const range=el('select');range.setAttribute('aria-label','Capital history time range');[[3600000,'1 hour'],[86400000,'24 hours'],[604800000,'7 days']].forEach(([v,label])=>{const o=el('option','',label);o.value=v;range.appendChild(o);});range.value=CAPITAL.span;range.addEventListener('change',()=>{CAPITAL.span=Number(range.value);drawCapital(box,report);});box.appendChild(range);
+  const points=(report.capitalHistory||[]).filter(p=>p.at>=c.at-CAPITAL.span&&p.at<=c.at),key=CAPITAL_KEYS[CAPITAL.category];
+  if(points.length<2)box.appendChild(el('p','muted','History is collecting. At least two snapshots are needed.'));
+  else{const max=Math.max(1,...points.map(p=>Number.isFinite(p[key])?p[key]:0));const plot=capitalSvg('svg',{viewBox:'0 0 560 190',width:560,height:190,role:'img','aria-label':CAPITAL_LABELS[CAPITAL.category]+' sampled capital history'});plot.style.maxWidth='100%';
+    plot.appendChild(capitalSvg('rect',{x:0,y:0,width:560,height:190,fill:'#101820'}));
+    points.forEach(p=>{if(!Number.isFinite(p[key]))return;const px=35+(p.at-(c.at-CAPITAL.span))/CAPITAL.span*510,h=Math.max(1,p[key]/max*145),source=CAPITAL.category===0?p.bankAt:CAPITAL.category<3?p.ordersAt:p.stockAt;
+      plot.appendChild(capitalSvg('rect',{x:px-1,y:160-h,width:3,height:h,fill:CAPITAL_COLORS[CAPITAL.category]},'Snapshot '+new Date(p.at).toLocaleString()+': '+CAPITAL_LABELS[CAPITAL.category]+' '+capitalMoney(p[key])+'; source read '+(source?new Date(source).toLocaleString():'unknown')));});
+    const top=capitalSvg('text',{x:6,y:13,fill:'#c3c2b7','font-size':11});top.textContent=capitalMoney(max);plot.appendChild(top);box.appendChild(plot);
+  }
+  box.appendChild(el('p','muted',report.capitalHistoryStatus||'History starts when recording begins.'));
+  for(const note of c.notes||[])box.appendChild(el('p','muted',note));
+}
+async function openAnalyzer(){
+  try{
+    const d=await api('analyzer'),box=el('section','card');box.appendChild(el('h2','title','Understand your trading'));
+    box.appendChild(el('p','desc','1. Analyze local data. 2. Review the evidence and next steps. 3. Choose a small experiment. Nothing applies automatically.'));
+    box.appendChild(el('p','desc',d.note||''));
+    box.appendChild(button('pick','Analyze local data',async()=>{const r=await change('analyzer',{});if(r&&r.ok){openAnalyzer();setTimeout(()=>{if(view==='analyzer')openAnalyzer();},1500);}}));
+    box.appendChild(button('','Refresh report',openAnalyzer));
+    const report=d.report;
+    if(report){
+      if(report.capital){const capital=el('section','card');box.appendChild(capital);drawCapital(capital,report);}
+      const baseline=el('details','card');baseline.appendChild(el('summary','title','Baseline: what was measured'));for(const line of report.baseline||[])baseline.appendChild(el('p','desc',line));box.appendChild(baseline);
+      box.appendChild(el('h3','title',(report.findings||[]).length+' findings to review'));
+      if(!(report.findings||[]).length)box.appendChild(el('p','desc','Keep collecting completed sales and analyze again. No findings is not a guarantee of profitable or healthy trading.'));
+      for(const f of report.findings||[]){const card=el('section','card');card.appendChild(el('h3','title',f.title));card.appendChild(el('h4','','What we observed'));card.appendChild(el('p','desc',f.evidence));card.appendChild(el('h4','','What you can try'));card.appendChild(el('p','desc',f.suggestion));card.appendChild(el('h4','','What the estimate means'));card.appendChild(el('p','muted',f.estimate));box.appendChild(card);}
+      if(Object.keys(report.numbers||{}).length||Object.keys(report.lists||{}).length)box.appendChild(button('pick','Save suggestion for review',async()=>{const n=prompt('Name for this suggested preset (saved only; apply separately from Saved presets)');if(n!==null)await change('savedpresets',{action:'save',source:'proposal',name:n});}));
+      box.appendChild(button('','Copy report',()=>codeToClipboard(JSON.stringify(report,null,2))));
+    }
+    if(view==='analyzer')own.replaceChildren(box);
+  }catch(e){failed();}
+}
+async function openSettings() {
+  try {
+    S.data = await api('settings');
+    if (['settings','auction','orders'].includes(view)){drawSettings();if(S.open){const opened=own.querySelector('.edit');if(opened)opened.scrollIntoView({block:'center'});}}
+  } catch (e) { failed(); }
+}
+function sift() {
+  const q = S.q.trim().toLowerCase();
+  let any = false;
+  for (const card of own.querySelectorAll('.card')) {
+    let shown = 0;
+    for (const row of card.querySelectorAll('.set')) {
+      const hit = (S.section==='ALL'||row.dataset.section===S.section) && (!q || row.dataset.hay.includes(q));
+      row.hidden = !hit;
+      if (hit) shown++;
+    }
+    card.hidden = shown === 0;
+    if(q && shown && card.tagName==='DETAILS')card.open=true;
+    any = any || shown > 0;
+  }
+  const none = $('nomatch');
+  if (none) { none.hidden = any; none.textContent = 'No settings match "' + S.q.trim() + '"'; }
+}
+function unfold(row, wrap) {
+  const was = S.open;
+  for (const e of own.querySelectorAll('.edit')) e.remove();
+  for (const e of own.querySelectorAll('[aria-expanded="true"]')) e.setAttribute('aria-expanded', 'false');
+  if (was === row.key) { S.open = ''; return; }
+  S.open = row.key;
+  wrap.appendChild(editor(row));
+  wrap.querySelector('.setname').setAttribute('aria-expanded', 'true');
+  const field = wrap.querySelector('.edit input, .edit textarea');
+  if (field) field.focus();
+}
+function noticeCards(notices, target) {
+  target.replaceChildren();
+  for(const n of notices||[]){
+    const card=el(n.level==='warning'?'div':'details','setting-notice '+n.level);
+    card.append(el(n.level==='warning'?'strong':'summary','',n.title),el('p','',n.effect));
+    if(target.classList.contains('settings-draft'))card.open=true;
+    for(const key of n.keys||[]){
+      const row=(S.data?.groups||[]).flatMap(g=>g.settings||[]).concat(S.data?.lists||[]).find(r=>r.key===key);
+      if(!row)continue;
+      card.append(button('',row.label,()=>{S.simple=false;S.section=row.section;S.open=key;S.q='';if(view!=='settings'){show('settings');return;}drawSettings();
+        const opened=own.querySelector('.edit');if(opened)opened.scrollIntoView({block:'center',behavior:'smooth'});}));
+    }
+    target.append(card);
+  }
+}
+function draftFeedback(row,box){
+  const preview=el('div','settings-draft');preview.setAttribute('aria-live','polite');box.append(preview);
+  let serial=0;
+  return async value=>{
+    const request=++serial;
+    preview.textContent='Checking this change…';
+    try{
+      const result=await api('settingcheck',{key:row.key,value:String(value)});
+      if(request!==serial||!preview.isConnected)return;
+      if(!result.ok){preview.textContent='Enter a valid value to see its effect. Nothing has been saved.';return;}
+      const notices=(result.notices||[]).filter(n=>(n.keys||[]).includes(row.key));
+      noticeCards(notices,preview);
+      if(!notices.length)preview.textContent='No known interaction warnings for this value. Normal trade and safety checks still apply.';
+    }catch(e){if(request===serial)preview.textContent='Could not check this draft. Nothing has been saved.';}
+  };
+}
+function editor(row) {
+  const box = el('div', 'edit');
+  box.appendChild(el('p', 'desc', row.description));
+  const checkDraft=draftFeedback(row,box);
+  const saved = j => { if (j) { if(view==='evasion')openEvasion();else openSettings(); } };
+  if (row.locked) {
+    box.appendChild(el('p', 'range', 'This one is set on the GoNuts screen in game, not from a browser.'));
+    return box;
+  }
+  if (row.list) {
+    const area = el('textarea');
+    area.value = row.value || '';
+    area.setAttribute('aria-label', row.label);
+    box.appendChild(area);
+    area.addEventListener('input',()=>checkDraft(area.value));
+    queueMicrotask(()=>checkDraft(area.value));
+    const line = el('div', 'line');
+    line.style.marginTop = '6px';
+    line.appendChild(button('pick', 'Save', async () => saved(await change('list', { key: row.key, text: area.value }))));
+    box.appendChild(line);
+    if (row.local) box.appendChild(el('p', 'range', 'Kept for this PC only, not shared with a second account.'));
+    return box;
+  }
+  if(row.toggle){
+    const value=row.value>=.5?0:1;
+    box.append(el('p','desc','Preview: turn '+(value?'ON':'OFF')+'. Current value stays in effect until you apply.'));
+    box.append(button('pick','Apply: turn '+(value?'ON':'OFF'),async()=>saved(await change('setting',{key:row.key,value:String(value)}))));
+    queueMicrotask(()=>checkDraft(value));
+  }
+  if (!row.toggle) {
+    const line = el('div', 'line');
+    const input = el('input');
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.value = String(row.value);
+    input.setAttribute('aria-label', row.label + (row.unit ? ', in ' + row.unit : ''));
+    const bump = by => {
+      const n = parseFloat(input.value);
+      const v = Math.min(row.max, Math.max(row.min, (isNaN(n) ? row.value : n) + by));
+      input.value = String(Math.round(v * 100) / 100);
+      checkDraft(input.value);
+    };
+    const go = async () => saved(await change('setting', { key: row.key, value: input.value }));
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    input.addEventListener('input',()=>checkDraft(input.value));
+    queueMicrotask(()=>checkDraft(input.value));
+    const minus = button('', '-', () => bump(-row.step));
+    minus.setAttribute('aria-label', 'Less');
+    const plus = button('', '+', () => bump(row.step));
+    plus.setAttribute('aria-label', 'More');
+    line.append(minus, input);
+    if (row.unit) line.appendChild(el('span', 'unit', row.unit));
+    line.append(plus, button('pick', 'Apply', go));
+    box.appendChild(line);
+  }
+  const foot = el('div', 'line');
+  foot.style.marginTop = '6px';
+  const reset = button('', 'Reset to ' + row.standard,
+    async () => saved(await change('setting', { key: row.key, reset: '1' })));
+  reset.disabled = !row.changed;
+  foot.appendChild(reset);
+  box.appendChild(foot);
+  const notes = [];
+  if (!row.toggle) notes.push('From ' + row.least + ' to ' + row.most + '.');
+  if (row.local) notes.push('Kept for this PC only, not shared with a second account.');
+  if (notes.length) box.appendChild(el('p', 'range', notes.join(' ')));
+  return box;
+}
+function settingRow(row) {
+  const wrap = el('div', 'set');
+  wrap.dataset.section = row.section || 'GENERAL';
+  wrap.dataset.hay = (row.label + ' ' + row.key + ' ' + row.description).toLowerCase();
+  const line = el('div', 'setline');
+  const name = button('setname', row.label, () => unfold(row, wrap));
+  name.setAttribute('aria-expanded', S.open === row.key ? 'true' : 'false');
+  line.appendChild(name);
+  if (row.local) line.appendChild(el('span', 'tag', 'this PC'));
+  if (row.toggle) {
+    const on = row.value >= 0.5;
+    const sw = button('switch ' + (on ? 'on' : 'off'), row.shown, async () => {
+      unfold(row,wrap);
+    });
+    sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-checked', on ? 'true' : 'false');
+    sw.setAttribute('aria-label', row.label);
+    line.appendChild(sw);
+  } else {
+    const v = button('val' + (row.changed ? ' changed' : '') + (row.list ? ' long' : ''), row.shown,
+      () => unfold(row, wrap));
+    v.setAttribute('aria-label', row.label + ': ' + row.shown + '. Change it');
+    line.appendChild(v);
+  }
+  wrap.appendChild(line);
+  wrap.appendChild(el('p','set-summary',row.description));
+  const related=(S.data?.notices||[]).filter(n=>(n.keys||[]).includes(row.key)&&n.level==='warning');
+  if(related.length)wrap.appendChild(el('p','set-summary','⚠ '+related.map(n=>n.title).join(' · ')));
+  if (S.open === row.key) wrap.appendChild(editor(row));
+  return wrap;
+}
+function settingsModeBar(){
+  const bar=el('div','bar');
+  bar.append(button(S.simple?'go':'','Simple',()=>{S.simple=true;S.open='';drawSettings();}),button(!S.simple?'go':'','Advanced',()=>{S.simple=false;S.open='';drawSettings();}),el('span','muted','Same saved settings. Switching views changes nothing.'));
+  return bar;
+}
+function drawSimpleSettings(){
+  const d=S.data,cards=el('div','cards'),notices=el('aside','settings-notices');
+  noticeCards((d.notices||[]).filter(n=>n.level==='warning'),notices);
+  for(const group of d.simple||[]){
+    const card=el('section','card'),pick=el('select'),preview=el('div','edit');preview.hidden=true;
+    card.append(el('h2','title',group.label),el('p','desc',group.description),el('p','muted','Current: '+group.current));
+    pick.setAttribute('aria-label',group.label);
+    const placeholder=el('option','','Choose a change...');placeholder.value='';pick.appendChild(placeholder);
+    for(const option of group.options){const o=el('option','',option.label);o.value=option.id;pick.appendChild(o);}
+    pick.addEventListener('change',()=>{
+      preview.replaceChildren();const proposal=group.previews.find(p=>p.option===pick.value);preview.hidden=!proposal;if(!proposal)return;
+      preview.appendChild(el('p','desc',proposal.effect));
+      for(const c of proposal.changes)preview.appendChild(el('p','',c.label+': '+c.beforeShown+' → '+c.afterShown));
+      const feedback=el('div','settings-draft');noticeCards(proposal.notices.filter(n=>n.level==='warning'||n.keys.some(k=>proposal.changes.some(c=>c.key===k))),feedback);preview.appendChild(feedback);
+      const apply=button('pick','Apply '+proposal.changes.length+' change(s)',async()=>{const result=await change('simple',{group:group.id,option:proposal.option,expected:proposal.expected});if(result?.ok)openSettings();});apply.disabled=!proposal.changes.length;preview.appendChild(apply);
+      preview.appendChild(button('','Cancel',()=>{pick.value='';preview.hidden=true;preview.replaceChildren();}));
+    });
+    card.append(pick,preview);cards.appendChild(card);
+  }
+  const links=el('div','bar');for(const [id,label] of [['ITEMS','Items & focus'],['CAPITAL','Spending limits'],['SAFETY','Safety & recovery']])links.appendChild(button('',label,()=>{S.simple=false;S.section=id;S.q='';S.open='';drawSettings();}));
+  own.replaceChildren(settingsModeBar(),el('p','settings-intro','Core controls only. Custom settings are preserved until you choose and apply a change. No view changes your inventory, safety gates or spending limits.'),notices,cards,links);
+}
+function drawSettings() {
+  const d = S.data;
+  if (!d) return;
+  if(view==='settings'&&S.simple){drawSimpleSettings();return;}
+  const bar = el('div', 'bar');
+  const sections=el('nav','settings-nav');
+  sections.setAttribute('aria-label','Settings categories');
+  sections.hidden=view!=='settings';
+  const category=el('select');category.setAttribute('aria-label','Settings category');
+  for(const section of d.sections||[]){const o=el('option','',section.label);o.value=section.id;category.appendChild(o);}
+  category.value=S.section;category.addEventListener('change',()=>{S.section=category.value;S.open='';S.q='';drawSettings();});sections.appendChild(category);
+  const q = el('input');
+  q.type = 'search';
+  q.placeholder = S.section==='ALL'?'Search all settings…':'Search this category…';
+  q.value = S.q;
+  q.setAttribute('aria-label', 'Search settings');
+  q.addEventListener('input', () => { S.q = q.value; sift(); });
+  bar.appendChild(q);
+  if(view!=='settings')bar.appendChild(button('','All settings',()=>show('settings')));
+  const preset = el('select');
+  preset.setAttribute('aria-label', 'Apply a preset');
+  const first = el('option', '', 'Apply a preset');
+  first.value = '';
+  first.disabled = true;
+  first.selected = true;
+  preset.appendChild(first);
+  for (const p of d.presets || []) preset.appendChild(el('option', '', p));
+  preset.addEventListener('change', async () => {
+    const name = preset.value;
+    preset.selectedIndex = 0;
+    if (!confirm('Apply the ' + name + ' preset? It changes several settings at once.')) return;
+    if (await change('preset', { name })) openSettings();
+  });
+  bar.appendChild(preset);
+  const codeBox = el('div', 'card');
+  codeBox.hidden = true;
+  const codeShow = (text, pasting) => {
+    codeBox.hidden = false;
+    codeBox.replaceChildren(el('h2', 'title', pasting ? 'Paste a settings code' : 'Your settings code'));
+    const body = el('div', 'edit');
+    const area = el('textarea');
+    area.value = text;
+    area.readOnly = !pasting;
+    area.setAttribute('aria-label', 'Settings code');
+    body.appendChild(el('p', 'desc', pasting
+      ? 'Paste a code somebody shared. It sets the trading settings it carries; your slot counts and follow settings stay as they are.'
+      : 'Everything set here in one line of text, to send to a friend. Slot counts, follow settings and the webhook are left out.'));
+    body.appendChild(area);
+    const line = el('div', 'line');
+    line.style.marginTop = '6px';
+    if (pasting) {
+      line.appendChild(button('pick', 'Apply the code', async () => {
+        const j = await change('code', { code: area.value });
+        if (j && j.ok) { codeBox.hidden = true; openSettings(); }
+      }));
+    } else {
+      line.appendChild(button('pick', 'Copy', async () => {
+        area.select();
+        let done = false;
+        try { await navigator.clipboard.writeText(area.value); done = true; } catch (e) { }
+        if (!done) { try { done = document.execCommand('copy'); } catch (e) { } }
+        toast(done ? 'Copied' : 'Select the text and copy it by hand.', !done);
+      }));
+    }
+    line.appendChild(button('', 'Close', () => { codeBox.hidden = true; }));
+    body.appendChild(line);
+    codeBox.appendChild(body);
+    area.focus();
+    if (!pasting) area.select();
+  };
+  bar.appendChild(button('', 'Copy settings code', async () => {
+    try { codeShow((await api('code')).code || '', false); } catch (e) { toast(SILENT, true); }
+  }));
+  bar.appendChild(button('', 'Paste a code', () => codeShow('', true)));
+  bar.appendChild(button('', 'Saved presets', openSavedPresets));
+  const cards = el('div', 'cards');
+  for (const g of d.groups || []) {
+    const card = el('details', 'card settings-group');
+    card.open=true;
+    card.appendChild(el('summary', '', g.name));
+    for (const row of g.settings || []) card.appendChild(settingRow(row));
+    cards.appendChild(card);
+  }
+  const lists = el('section', 'card');
+  lists.appendChild(el('h2', 'title', 'Lists & text values'));
+  for (const l of d.lists || []) lists.appendChild(settingRow(Object.assign({ list: true, changed: !!l.value }, l)));
+  cards.appendChild(lists);
+  const none = el('p', 'muted');
+  none.id = 'nomatch';
+  none.hidden = true;
+  const sectionHint = view === 'auction'
+    ? 'Auction settings. To inspect tracked auction listings, choose Auction listings in the sidebar.'
+    : view === 'orders'
+    ? 'Order settings. To inspect observed order-book data and tracked bid stock, choose Order book in the sidebar.'
+    : (d.sections||[]).find(s=>s.id===S.section)?.description || 'Choose a category or search All settings.';
+  const notices=el('aside','settings-notices');notices.setAttribute('aria-label','Settings effects and warnings');
+  const relevant=(d.notices||[]).filter(n=>n.level==='warning'||S.section==='ALL'||(n.keys||[]).some(k=>
+    (d.groups||[]).flatMap(g=>g.settings||[]).concat(d.lists||[]).some(r=>r.key===k&&r.section===S.section)));
+  noticeCards(relevant,notices);
+  own.replaceChildren(...(view==='settings'?[settingsModeBar()]:[]),sections,el('p','settings-intro',sectionHint),bar,notices,codeBox,none,cards);
+  sift();
+}
+
+// ---- Items: the grid the screen in game has, ticked and sorted onto its lists
+const I = { all: null, allow: new Set(), deny: new Set(), tracked: new Set(), q: '', show: 'all', cat: 'All',
+  picked: new Set(), limit: 150 };
+function bare(id) { const c = id.indexOf(':'); return c >= 0 ? id.slice(c + 1) : id; }
+// The trader's own rule: the name itself, or the end of it (boots covers netherite_boots).
+function covers(set, b) {
+  if (set.has(b) || set.has('=' + b)) return true;
+  for (const t of set) if (!t.startsWith('=') && b.endsWith('_' + t)) return true;
+  return false;
+}
+function takeLists(j) {
+  I.allow = new Set(j.allow || []);
+  I.deny = new Set(j.deny || []);
+  I.tracked = new Set(j.tracked || []);
+}
+async function openItems() {
+  try {
+    const j = await api('items');
+    I.all = (j.items || []).map(r => ({ id: r[0], bare: bare(r[0]), name: r[1], cat: r[2] }));
+    takeLists(j);
+    if (view === 'items') drawItems();
+  } catch (e) { failed(); }
+}
+function matching() {
+  const needle = I.q.trim().toLowerCase().split(' ').filter(Boolean).join('_');
+  return (I.all || []).filter(e => (!needle || e.bare.includes(needle))
+    && (I.cat === 'All' || e.cat === I.cat)
+    && (I.show !== 'deny' || covers(I.deny, e.bare))
+    && (I.show !== 'allow' || covers(I.allow, e.bare))
+    && (I.show !== 'tracked' || I.tracked.has(e.bare)));
+}
+function tile(e) {
+  const d = covers(I.deny, e.bare);
+  const a = !d && covers(I.allow, e.bare);
+  const t = I.tracked.has(e.bare);
+  const b = button('it' + (d ? ' deny' : a ? ' allow' : t ? ' track' : '') + (I.picked.has(e.bare) ? ' picked' : ''));
+  b.setAttribute('aria-pressed', I.picked.has(e.bare) ? 'true' : 'false');
+  const img = el('img');
+  img.loading = 'lazy';
+  img.alt = '';
+  img.width = 32;
+  img.height = 32;
+  img.addEventListener('error', () => img.replaceWith(el('span', 'noicon', e.name.charAt(0))));
+  img.src = '/item/' + e.id + '.png';
+  b.append(img, el('span', 'nm', e.name));
+  const state = (d ? 'excluded' : a ? 'included' : '') + (t ? (d || a ? ', ' : '') + 'tracked' : '');
+  if (state) b.appendChild(el('span', 'sr', state));
+  if (t) b.appendChild(el('i', 'corner'));
+  b.title = e.name + (state ? ' · ' + state : '');
+  b.addEventListener('click', () => {
+    const on = !I.picked.has(e.bare);
+    if (on) I.picked.add(e.bare); else I.picked.delete(e.bare);
+    b.classList.toggle('picked', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    counted();
+  });
+  return b;
+}
+function counted() {
+  const c = $('picked');
+  if (c) c.textContent = I.picked.size + ' ticked';
+}
+function drawGrid() {
+  const grid = $('grid');
+  if (!grid) return;
+  const found = matching();
+  grid.replaceChildren();
+  for (const e of found.slice(0, I.limit)) grid.appendChild(tile(e));
+  const more = $('more');
+  more.hidden = found.length <= I.limit;
+  more.textContent = 'Show ' + Math.min(150, found.length - I.limit) + ' more of ' + found.length;
+  const none = $('noitems');
+  none.hidden = found.length > 0;
+  none.textContent = I.all && I.all.length ? 'No items match.'
+    : 'The game has not listed its items yet. Open this page again in a moment.';
+  put('itemsums', 'Only these may be traded: ' + (I.allow.size || 'everything') + '  ·  never traded: '
+    + I.deny.size + '  ·  tracked: ' + I.tracked.size);
+  counted();
+}
+async function itemsDo(what) {
+  if (!I.picked.size) { toast('Tick some items first.', true); return; }
+  const j = await change('items', { ids: [...I.picked].join(','), do: what });
+  if (j && j.ok) { takeLists(j); drawGrid(); }
+}
+function drawItems() {
+  const bar = el('div', 'bar');
+  const q = el('input');
+  q.type = 'search';
+  q.placeholder = 'Search items...';
+  q.value = I.q;
+  q.setAttribute('aria-label', 'Search items');
+  q.addEventListener('input', () => { I.q = q.value; I.limit = 150; drawGrid(); });
+  bar.appendChild(q);
+  const seg = el('div', 'seg');
+  seg.setAttribute('role', 'group');
+  seg.setAttribute('aria-label', 'Which items to show');
+  for (const [key, label] of [['all', 'All items'], ['allow', 'Included'], ['deny', 'Excluded'], ['tracked', 'Tracked']]) {
+    const b = button('', label, () => { I.show = key; I.limit = 150; drawItems(); });
+    b.setAttribute('aria-pressed', I.show === key ? 'true' : 'false');
+    seg.appendChild(b);
+  }
+  bar.appendChild(seg);
+  const cat = el('select');
+  cat.setAttribute('aria-label', 'Group');
+  const cats = ['All'];
+  for (const e of I.all || []) if (!cats.includes(e.cat)) cats.push(e.cat);
+  for (const c of cats) {
+    const o = el('option', '', c === 'All' ? 'Every group' : c);
+    o.value = c;
+    o.selected = c === I.cat;
+    cat.appendChild(o);
+  }
+  cat.addEventListener('change', () => { I.cat = cat.value; I.limit = 150; drawGrid(); });
+  bar.appendChild(cat);
+  const legend = el('p', 'legend');
+  legend.append(el('span', 'd', 'Red edge'), ' never traded  ·  ', el('span', 'a', 'green edge'),
+    ' may be traded  ·  ', el('span', 'g', 'gold corner'), ' tracked. Tap items to tick them, then use the buttons below.');
+  const sums = el('p', 'legend');
+  sums.id = 'itemsums';
+  const grid = el('div', 'grid');
+  grid.id = 'grid';
+  const none = el('p', 'muted');
+  none.id = 'noitems';
+  const more = button('more', '', () => { I.limit += 150; drawGrid(); });
+  more.id = 'more';
+  const acts = el('div', 'acts');
+  const count = el('span', 'count');
+  count.id = 'picked';
+  acts.appendChild(count);
+  for (const [what, label] of [['exclude', 'Exclude'], ['include', 'Include'], ['clear', 'Clear'], ['track', 'Track'],
+      ['untrack', 'Untrack']]) {
+    acts.appendChild(button(what === 'exclude' ? 'stop' : what === 'include' ? 'go' : what === 'track' ? 'pick' : '',
+      label, () => itemsDo(what)));
+  }
+  acts.appendChild(button('', 'All', () => { for (const e of matching()) I.picked.add(e.bare); drawGrid(); }));
+  acts.appendChild(button('', 'None', () => { I.picked.clear(); drawGrid(); }));
+  own.replaceChildren(bar, legend, sums, grid, none, more, acts);
+  drawGrid();
+}
+
+// ---- Your prices: the items bought and sold at prices the player set, and how each stands
+const P = { data: null };
+async function openPrices() {
+  try {
+    P.data = await api('prices');
+    if (view === 'prices' && !(own.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA')) drawPrices();
+  } catch (e) { failed(); }
+}
+function drawPrices() {
+  const d = P.data;
+  if (!d) return;
+  const intro = el('p', 'desc', 'Items the bot orders at a price you set and sells at a price you set. One entry each, '
+    + 'apart by commas: item, buy price, sell price, all per item. Example: observer top+100 600 900 x15 singles total 1000');
+  const area = el('textarea');
+  area.value = d.text || '';
+  area.setAttribute('aria-label', 'Your own prices');
+  area.placeholder = 'diamond 80 120, golden apple 4k 5.2k x3';
+  const line = el('div', 'line');
+  line.style.margin = '6px 0 10px';
+  line.appendChild(button('pick', 'Save', async () => {
+    await change('list', { key: 'prices.own', text: area.value });
+    area.blur();
+    openPrices();
+  }));
+  const mode=button(d.only?'go':'',d.only?'Flips only: ON':'Flips only: OFF',async()=>{
+    if((await change('setting',{key:'prices.only',toggle:'1'}))?.ok)openPrices();
+  });
+  const parts = [el('h2','title','Flips'),mode,el('p',d.only?'t-good':'t-gold',d.modeDescription||''),intro,area,line];
+  for (const p of d.problems || []) parts.push(el('p', 't-bad', 'Not understood: ' + p));
+  if (!d.rows || !d.rows.length) {
+    parts.push(el('p', 'muted', d.only?'Your Flips list is empty. Add an item; general market scanning stays off.':'Nothing on the list yet. Normal trading is active.'));
+  } else {
+    const wide = el('div', 'wide');
+    wide.tabIndex = 0;
+    wide.setAttribute('aria-label', 'Your prices; scroll sideways to see every column');
+    const table = el('table');
+    const hr = el('tr');
+    for (const h of ['Item', 'Buy', 'Sell', 'Order up', 'Bought', 'Spent', 'Paid each', 'Held', 'Worth at your price',
+        'Profit if it sells', 'Market now']) hr.appendChild(el('th', '', h));
+    table.appendChild(el('thead')).appendChild(hr);
+    const body = table.appendChild(el('tbody'));
+    for (const r of d.rows) {
+      const tr = el('tr');
+      const name = el('td');
+      const img = el('img');
+      img.alt = '';
+      img.addEventListener('error', () => img.remove());
+      img.src = '/item/' + r.icon + '.png';
+      name.append(img, document.createTextNode(r.name));
+      tr.append(name, el('td', 't-secondary', r.buy), el('td', 't-gold', r.sell), el('td', 't-secondary', r.order),
+        el('td', '', r.bought), el('td', 't-secondary', r.spent), el('td', 't-secondary', r.each), el('td', '', r.held),
+        el('td', '', r.yours), el('td', 't-' + r.profitTone, r.profit), el('td', 't-' + r.marketTone, r.market));
+      body.appendChild(tr);
+    }
+    wide.appendChild(table);
+    parts.push(wide);
+    parts.push(el('p', 'range', 'Bought and spent are counted since the entry was last changed. '
+      + 'Market now is what one sells for by the figures the bot keeps; green means it is at or over your sell price.'));
+  }
+  own.replaceChildren(...parts);
+}
+
+async function openSwarmSavings() {
+  try {
+    const d=await api('dashboard');if(view!=='savings')return;
+    let select=document.getElementById('savings-account');
+    if(!select){
+      select=el('select');select.id='savings-account';select.setAttribute('aria-label','Read savings account');
+      select.onchange=openSwarmSavings;
+      const result=el('div');result.id='savings-result';
+      const master=el('div');master.id='savings-hive-total';
+      const detail=el('details');detail.replaceChildren(el('summary','','Per-account details'),el('label','','Account'),select,result);
+      own.replaceChildren(el('h2','title','Your Hive - master read savings'),master,detail,
+        el('p','muted','Whole-Swarm counters are in the website dashboard’s Swarm stats section.'));
+    }
+    const rows=d.accounts||[],selected=select.value;
+    document.getElementById('savings-hive-total').replaceChildren(...[...hiveDataUseLines(d.hiveDataUse),...hiveSavingsLines(d.hiveReadSavings)].map(t=>el('p','desc',t)));
+    select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
+    if(rows.some(r=>r.id===selected))select.value=selected;
+    const current=rows.find(r=>r.id===select.value)||{};
+    const lines=!current.available?['Selected bot is offline or its status is stale; no current measurements.']:readSavingsLines(current.community?.readSavings);
+    document.getElementById('savings-result').replaceChildren(...lines.map(t=>el('p','muted',t)));
+  }catch(e){failed();}
+}
+function hiveDataUseLines(total){
+  const s=total||{},c=s.cloudAccepted||{},h=s.hintsConsumed||{},i=s.historyImported||{};
+  if(!s.reportingAccounts)return ['Shared data use: measurements unavailable from these clients; older clients are unmeasured.'];
+  return ['SHARED DATA ACTUALLY USED - '+s.reportingAccounts+' / '+s.knownAccounts+' accounts reporting',
+    'Validated cloud responses: '+Object.values(c).reduce((a,b)=>a+b,0)+' | market batches: '+(c.marketBatch||0),
+    'Cloud hints used in decisions: '+(h.cloudAggregate||0),
+    'Included sources: follow activity '+(h.followTrade||0)+' | price levels '+(h.priceLevel||0)+' (can overlap)',
+    'Shared history imported: '+(i.sales||0)+' sale rows',
+    'Local stored-book reads: '+(s.hiveLocalReuse?.reads||0)+' | local-book planning uses: '+(h.hiveLocal||0),
+    'Rejected scan-replacement lookups: '+(Object.entries(s.fallbacks||{}).filter(([k,n])=>n>0).map(([k,n])=>k.replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase()+': '+n).join('; ')||'none recorded'),
+    'Data use does not prove a scan or time was saved. Local reads may reuse this account’s own saved book.',
+    'BROAD SCANS AVOIDED (SEPARATE)'];
+}
+function hiveSavingsLines(total){
+  const s=total||{},seconds=n=>((n||0)/1000).toFixed(1)+'s';
+  const lines=['Your Hive: '+(s.reportingAccounts||0)+' / '+(s.knownAccounts||0)+' accounts reporting'];
+  if(!s.hasMeasurements){lines.push('Measurements unavailable; offline, stale and older clients are unmeasured, not zero.');return lines;}
+  lines.push('Scans skipped: '+s.actualSkippedReads+' | shared lookups: '+s.attempts+' | fallbacks: '+s.fallbackReads,
+    'Measured shared lookup wait: '+seconds(s.lookupWaitMs),
+    s.estimateAvailable?'Estimated net bot-time saved: '+seconds(s.estimatedNetSavedMs)+(s.estimateComplete?'':' (partial baseline)'):'Estimated time saved: not calibrated yet.',
+    'Calibrated skips: '+s.calibratedSkippedReads+' | without baseline: '+s.uncalibratedSkippedReads,
+    'Sum of fresh client sessions. Missing accounts are excluded. Bot-time is not elapsed wall-clock or a proven trading-speed/profit gain.');
+  return lines;
+}
+function readSavingsLines(s) {
+  s=s||{};const seconds=n=>((n||0)/1000).toFixed(1)+'s';
+  const rows=Object.keys(s).length?[
+    'Scans skipped: '+(s.actualSkippedReads||0)+' / '+(s.attempts||0)+' shared lookups | fallbacks: '+(s.fallbackReads||0),
+    'Measured shared lookup wait: '+seconds(s.lookupWaitMs),
+    s.estimateAvailable?'Estimated net time saved'+(s.estimateComplete?'':' (partial baseline)')+': '+seconds(s.estimatedNetSavedMs)+' (all lookup waits included; negative means overhead)':'Time saved: not calibrated yet; needs 3 recent successful scans of matching region and page count.',
+    'Calibrated skips: '+(s.calibratedSkippedReads||0)+' | without baseline: '+(s.uncalibratedSkippedReads||0)
+  ]:['Measurements unavailable from this client; update the client to record read savings.'];
+  if(s.estimatedMatchedReadSpeedRatio!=null)rows.push('Estimated matched discovery speed: '+s.estimatedMatchedReadSpeedRatio.toFixed(2)+'x (1x = equal; below 1x = slower)');
+  rows.push('Ratio covers calibrated successful lookups only; net estimate subtracts fallback waits too. Selected bot, current session; discovery only, not a controlled speed or profit comparison. Live trade checks still run.');
+  return rows;
+}
+async function openDashboard() {
+  try {
+    const d=await api('dashboard');if(view!=='dashboard')return;
+    if(!document.getElementById('dashboard-status')) {
+      const account=el('select');account.id='dashboard-account';account.setAttribute('aria-label','Dashboard account');
+      account.onchange=()=>{document.getElementById('dashboard-code').value='';openDashboard();};
+      const code=el('input');code.id='dashboard-code';code.maxLength=16;code.placeholder='K7PQ-M3ZD';code.setAttribute('aria-label','Pairing code');
+      const name=el('input');name.id='dashboard-name';name.maxLength=48;name.value='GoNuts client';name.setAttribute('aria-label','Client label');
+      const website=el('a','','Open gonuts.at dashboard');website.href='https://gonuts.at/dashboard/';website.target='_blank';website.rel='noopener noreferrer';
+      const link=button('go','Link selected account',async()=>{
+        const value=code.value;code.value='';await change('dashboard',{action:'link',account:account.value,code:value,name:name.value});openDashboard();
+      });link.id='dashboard-link';
+      const reconnect=button('','Reconnect selected account',async()=>{await change('dashboard',{action:'reconnect',account:account.value});openDashboard();});reconnect.id='dashboard-reconnect';
+      const unlink=button('stop','Unlink selected account',async()=>{await change('dashboard',{action:'unlink',account:account.value});openDashboard();});unlink.id='dashboard-unlink';
+      const status=el('p','','');status.id='dashboard-status';status.setAttribute('aria-live','polite');
+      const all=el('div');all.id='dashboard-accounts';
+      const community=el('p');community.id='dashboard-community-status';
+      const savings=el('div');savings.id='dashboard-read-savings';
+      const enable=button('go','Retry Swarm connection',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
+      own.replaceChildren(el('h2','title','Hosted Dashboard'),website,
+        el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linking joins the Swarm: public market observations are contributed and discovery hints received. Linked bots share one hive group.'),
+        el('label','','Account'),account,el('label','','Pairing code'),code,el('label','','Client label'),name,link,reconnect,unlink,status,all,
+        el('h2','title','Swarm API'),el('p','muted','Linking a bot opts it into contributing public market and follow observations, including observed account identities and payments, and receiving shared discovery guidance. Live price, inventory and trading checks remain required. Swarm contribution is required for the hosted dashboard. Unlink to leave the Swarm.'),community,enable,
+        el('h2','title','Swarm read savings'),savings,
+        el('p','muted','Each bot keeps its own credential in its own installation. Dashboard outages do not stop trading. After unlinking, remove its offline entry on the website too.'));
+    }
+    const select=document.getElementById('dashboard-account');const selected=select.value;
+    const rows=d.accounts||[];
+    if(JSON.stringify(rows.map(r=>[r.id,r.label]))!==select.dataset.rows){
+      select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
+      if(rows.some(r=>r.id===selected))select.value=selected;
+      select.dataset.rows=JSON.stringify(rows.map(r=>[r.id,r.label]));
+    }
+    const current=rows.find(r=>r.id===select.value)||{available:false,status:'No hive accounts available'};
+    document.getElementById('dashboard-status').textContent=(current.linked?'Linked as '+current.name+'  |  ':'')+current.status;
+    document.getElementById('dashboard-link').disabled=!current.available||current.busy||current.linked||Date.now()<current.retryAt;
+    document.getElementById('dashboard-code').disabled=!current.available||current.busy||current.linked;
+    document.getElementById('dashboard-name').disabled=!current.available||current.busy||current.linked;
+    for(const id of ['dashboard-reconnect','dashboard-unlink'])document.getElementById(id).disabled=!current.available||current.busy||!current.linked;
+    const contribution=current.community||{};
+    const healthy=contribution.enabled&&contribution.guidanceEnabled&&contribution.enrolled&&contribution.eligible&&!contribution.needsRenewal;
+    document.getElementById('dashboard-community-enable').disabled=!current.available||current.busy||!current.linked||healthy;
+    document.getElementById('dashboard-community-enable').textContent=contribution.needsRenewal?'Renew Swarm membership':'Retry Swarm connection';
+    document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
+    const savingRows=readSavingsLines(contribution.readSavings);
+    document.getElementById('dashboard-read-savings').replaceChildren(...savingRows.map(t=>el('p','muted',t)));
+    document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
+  } catch(e){failed();}
+}
+
+async function openStaff() {
+  try {
+    const d = await api('staff');
+    if (view !== 'staff') return;
+    const response=button('',d.regionSwitch?'Response: Switch region first':'Response: Disconnect immediately',async()=>{
+      if((await change('staff',{action:'response',mode:d.regionSwitch?'disconnect':'switch'}))?.ok)openStaff();
+    });
+    const parts = [el('h2', 'title', 'Shared hive Staff Watch'),
+      response,el('p','desc','Same staff freshly detected within 2 minutes of confirmed arrival: disconnect. Duplicate in-flight alerts do not count. Escape / reconnect must be enabled.'),
+      el('p', 'desc', d.status + ' · Timezone shown: ' + d.timeZone), el('p', 'desc', d.note),
+      el('p', 'desc', 'Observation coverage: ' + Math.floor(d.watchedMillis / 60000) + ' minutes (overlap merged)')];
+    if (!d.fresh) parts.push(el('p', 'bad', 'Current detection is unavailable; history is not live presence.'));
+    function table(title, headers, rows, empty) {
+      parts.push(el('h2', 'title', title));
+      if (!rows.length) { parts.push(el('p', 'muted', empty)); return; }
+      const wide = el('div', 'wide');
+      const t = el('table'); const tr = el('tr');
+      for (const label of headers) tr.appendChild(el('th', '', label));
+      const top = el('thead'); top.appendChild(tr); t.appendChild(top);
+      const body = el('tbody');
+      for (const row of rows) { const line = el('tr'); for (const cell of row) line.appendChild(el('td', '', cell)); body.appendChild(line); }
+      t.appendChild(body); wide.appendChild(t); parts.push(wide);
+    }
+    table('Currently observed staff', ['Staff', 'Presence', 'Observers', 'Mapped area', 'Local evidence'],
+      d.rows.map(r => [r.name, r.presence, r.observer, r.scope, r.region]), 'No current sightings; this does not establish staff are offline.');
+    table('Observed activity history (30 days)', ['Staff', 'Intervals', 'Detected time', 'First in history', 'Last seen', 'Usual observed hours'],
+      d.summaries.map(r => [r.name, String(r.intervals), Math.floor(r.observedMillis / 60000) + ' min', new Date(r.firstSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), new Date(r.lastSeen).toLocaleString(undefined, {timeZone: d.timeZone, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}), r.usualHours]), 'History starts when the updated clients begin observing.');
+    table('Recent sightings', ['Time', 'Staff', 'Activity', 'Observers', 'Local evidence'],
+      d.history.map(r => [new Date(r.at).toLocaleString(undefined, {timeZone: d.timeZone}), r.name, r.event, r.observer, r.region]), 'No sightings recorded yet.');
+    own.replaceChildren(...parts);
+  } catch (e) { failed(); }
+}
+
+// ---- Rivals: who else is trading, and one of them opened up
+const R = { data: null, open: '', detail: null, limit: 60 };
+async function openRivals() {
+  try {
+    if (R.open) {
+      const j = await api('rival', { id: R.open });
+      if (j.ok) {
+        R.detail = j;
+        if (view === 'rivals') drawRival();
+        return;
+      }
+      R.open = '';
+    }
+    R.data = await api('rivals');
+    if (view === 'rivals') drawRivals();
+  } catch (e) { failed(); }
+}
+function bars(hourly, nowHour, cls) {
+  const box = el('span', cls);
+  box.setAttribute('aria-hidden', 'true');
+  let max = 1;
+  for (const v of hourly || []) max = Math.max(max, v);
+  (hourly || []).forEach((v, h) => {
+    const bar = el('i', v === 0 ? 'z' : h === nowHour ? 'n' : '');
+    bar.style.height = (v === 0 ? 6 : Math.max(14, Math.round(v * 100 / max))) + '%';
+    box.appendChild(bar);
+  });
+  return box;
+}
+function entries(title, block) {
+  const card = el('section', 'card');
+  card.appendChild(el('h2', 'title', title));
+  if (!block.rows || !block.rows.length) {
+    const p = el('p', 'desc', block.empty);
+    p.style.padding = '0 10px';
+    card.appendChild(p);
+    return card;
+  }
+  for (const r of block.rows) {
+    const e = el('div', 'entry');
+    const top = el('div', 'top');
+    top.append(el('span', '', r.name), el('span', 't-' + r.tone, r.value));
+    e.append(top, el('small', '', r.note));
+    card.appendChild(e);
+  }
+  return card;
+}
+function drawRivals() {
+  const d = R.data;
+  if (!d) return;
+  const head = el('div', 'headline');
+  head.append(el('span', 'what', d.title.charAt(0).toUpperCase() + d.title.slice(1)), el('span', 'stamp', d.stamp));
+  const bots = button('', 'Follow known bots (' + d.knownBots + ')', async () => {
+    bots.disabled = true;
+    const j = await change('knownbots', {});
+    if (j && j.ok) bots.textContent = 'Known bots queued; click to retry';
+    bots.disabled = !d.knownBots;
+  });
+  bots.disabled = !d.knownBots;
+  head.appendChild(bots);
+  const stats = el('div', 'stats');
+  for (const c of d.cards || []) {
+    const s = el('div', 'stat');
+    s.append(el('span', 'label', c.label), el('b', 't-' + c.tone, c.value), el('small', '', c.note));
+    stats.appendChild(s);
+  }
+  const split = el('div', 'split');
+  const wide = el('div', 'wide');
+  wide.tabIndex = 0;
+  wide.setAttribute('aria-label', 'The rivals; scroll sideways to see every column');
+  const table = el('table');
+  const hr = el('tr');
+  for (const h of d.heads || []) hr.appendChild(el('th', '', h));
+  table.appendChild(el('thead')).appendChild(hr);
+  const body = table.appendChild(el('tbody'));
+  for (const r of (d.rivals || []).slice(0, R.limit)) {
+    const tr = el('tr', 'go');
+    const name = el('td');
+    const open = () => { R.open = r.id; own.replaceChildren(el('p', 'muted', 'Reading...')); openRivals(); };
+    // The name is the button, for a keyboard; the whole row answers a tap, as it does a click in game.
+    name.appendChild(button('link', r.name, e => { e.stopPropagation(); open(); }));
+    tr.addEventListener('click', open);
+    tr.append(name, el('td', '', r.sales), el('td', 't-secondary', r.items),
+      el('td', r.shared > 0 ? 't-good' : 't-muted', String(r.shared)), el('td', 't-secondary', r.revenue),
+      el('td', 't-muted', r.seen),
+      el('td', r.status === 'active' ? 't-warn' : r.status === 'quiet' ? 't-secondary' : 't-muted', r.status),
+      el('td', r.bot >= 60 ? 't-warn' : 't-secondary', r.bot + '%'));
+    tr.appendChild(el('td')).appendChild(bars(r.hourly, d.nowHour, 'spark'));
+    body.appendChild(tr);
+  }
+  wide.appendChild(table);
+  const left = el('div');
+  left.appendChild(wide);
+  const total = (d.rivals || []).length;
+  if (!total) left.appendChild(el('p', 'desc', d.followStatus || ('Nobody on the list yet. ' + d.stamp)));
+  if (total > R.limit) left.appendChild(button('more', 'Show ' + Math.min(60, total - R.limit) + ' more of ' + total,
+    () => { R.limit += 60; drawRivals(); }));
+  else if (d.more > 0) left.appendChild(el('p', 'range', d.more + ' more are not shown.'));
+  const side = el('div');
+  side.append(entries(d.underdog.title, d.underdog), entries('Repeat buyers  ·  who buys from you', d.buyers));
+  split.append(left, side);
+  own.replaceChildren(head, stats, split);
+}
+function drawRival() {
+  const d = R.detail;
+  if (!d) return;
+  const head = el('div', 'headline');
+  head.appendChild(button('', 'Back', () => { R.open = ''; R.detail = null; if (R.data) drawRivals(); openRivals(); }));
+  head.appendChild(el('span', 'what', d.title));
+  head.appendChild(button('go', 'Include their markets', () => change('rival', { id: d.id, do: 'include' })));
+  head.appendChild(button('pick', 'Track their markets', () => change('rival', { id: d.id, do: 'track' })));
+  const card = el('section', 'card');
+  const detail = el('div', 'detail');
+  const kv = el('dl', 'kv');
+  for (const p of d.pairs || []) {
+    const pair = el('div');
+    pair.append(el('dt', '', p.k), el('dd', 't-' + p.tone, p.v));
+    kv.appendChild(pair);
+  }
+  const right = el('div');
+  right.appendChild(el('span', 'label', d.strip));
+  right.appendChild(bars(d.hourly, d.nowHour, 'strip'));
+  const ticks = el('div', 'ticks');
+  for (const h of [0, 6, 12, 18]) ticks.appendChild(el('span', '', String(h)));
+  right.appendChild(ticks);
+  detail.append(kv, right);
+  card.appendChild(detail);
+  const lessons = el('div', 'lessons');
+  lessons.appendChild(el('span', 'label t-gold', 'Lessons  ·  their listing price vs your target on shared markets'));
+  for (const l of d.lessons || []) lessons.appendChild(el('p', 't-' + l.tone, l.t));
+  card.appendChild(lessons);
+  const wide = el('div', 'wide');
+  wide.tabIndex = 0;
+  wide.setAttribute('aria-label', 'Their trades; scroll sideways to see every column');
+  if (!d.flips || !d.flips.length) {
+    wide.appendChild(el('p', 'desc', d.empty));
+  } else {
+    const table = el('table');
+    const hr = el('tr');
+    for (const h of d.heads || []) hr.appendChild(el('th', '', h));
+    table.appendChild(el('thead')).appendChild(hr);
+    const body = table.appendChild(el('tbody'));
+    for (const f of d.flips) {
+      const tr = el('tr');
+      f.cells.forEach((c, i) => {
+        const td = el('td', 't-' + c.tone);
+        if (i === 0) {
+          const img = el('img');
+          img.alt = '';
+          img.loading = 'lazy';
+          img.addEventListener('error', () => img.remove());
+          img.src = '/item/' + f.icon.split('#')[0] + '.png';
+          td.appendChild(img);
+        }
+        td.appendChild(document.createTextNode(c.t));
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    }
+    wide.appendChild(table);
+  }
+  own.replaceChildren(head, card, wide);
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/state', { cache: 'no-store' });
+    if (r.status === 401) { location.reload(); return; }
+    if (!r.ok) {
+      const messages = {
+        429: 'Panel is busy refreshing. It will retry automatically.',
+        503: 'Panel link is not ready. Keep Minecraft open; retrying automatically.',
+        504: 'Panel request timed out. It will retry automatically.',
+        413: 'Panel data was too large to load. In game, open About → Report bug and mention panel response too large.'
+      };
+      if (!view) put('notice', messages[r.status] || 'Panel could not refresh. Retrying automatically; if this continues, use About → Report bug in game.');
+      return;
+    }
+    draw(await r.json());
+    await reportNotice();
+    if (!view) picture();
+    else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
+  } catch (e) {
+    if (!view) put('notice', 'Panel connection was interrupted. Retrying automatically; if this continues, use About → Report bug in game.');
+  }
+}
+if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();
+setInterval(() => {
+  refresh();
+  if (view === 'staff') openStaff();
+  if (view === 'dashboard') openDashboard();
+  if (view === 'savings') openSwarmSavings();
+  if (view === 'evasion') refreshEvasionHistory();
+  // The rivals move by themselves; a setting or a list only when somebody changes it.
+  if (++ticks % 4 !== 0) return;
+  if (view === 'rivals') openRivals();
+  if (view === 'prices') openPrices();
+}, 5000);
+</script></body></html>

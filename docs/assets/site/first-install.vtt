@@ -1,8 +1,8 @@
 WEBVTT
 
 00:00:00.000 --> 00:00:07.000
-This walkthrough uses the new START HERE screen. Pause whenever
-you need. No code is required.
+Follow the current GoNuts interface. Simple and Advanced use the
+same saved settings. Pause at any step.
 
 00:00:07.000 --> 00:00:17.137
 Use Minecraft Java Edition 26.2, Fabric Loader, the matching
@@ -38,16 +38,12 @@ sidebar scoreboard in the server settings so
 GoNuts can read your balance. Press B. Check Minecraft Controls
 if you changed that key binding.
 
-00:01:17.000 --> 00:01:26.000
-A new install opens START HERE. If you see another tab, click
-the gold START HERE button at the beginning of
+00:01:17.000 --> 00:01:28.889
+New installs open Start here. To return later, press B, choose
+Settings, then Help and setup. Choose Set up
 
-00:01:26.000 --> 00:01:35.000
-navigation. Then click the large gold Set up trading button.
-Missing that button means your client needs the
-
-00:01:35.000 --> 00:01:36.000
-newer build.
+00:01:28.889 --> 00:01:36.000
+trading. Do not search for a separate START HERE navigation tab.
 
 00:01:36.000 --> 00:01:44.855
 Enter maximum per trade and maximum session spend. Choose your
@@ -82,21 +78,36 @@ Choose Start trading only when ready. Existing
 00:02:33.381 --> 00:02:37.000
 recovery and trade checks still apply.
 
-00:02:37.000 --> 00:02:46.085
-For trading status and controls, press B, choose START HERE,
-then Open Trade. Trade is the current name for
+00:02:37.000 --> 00:02:47.800
+Open Trading, then Trade for status and controls. A connected
+client is not necessarily trading. Read the
 
-00:02:46.085 --> 00:02:55.000
-AutoPilot. Use the displayed reason if a session is paused or
-blocked. End is the default emergency stop.
+00:02:47.800 --> 00:02:55.000
+actual reason before taking action. End is the default emergency
+stop.
 
-00:02:55.000 --> 00:03:02.769
-If you hid the game menus or hotbar, open START HERE and click
-Show menus plus hotbar. Only those two
+00:02:55.000 --> 00:03:08.338
+Open Settings, Help and setup, then Show menus plus hotbar. Only
+those two display options change. This is
 
-00:03:02.769 --> 00:03:10.923
-display options change for this account. Your name privacy and
-trading settings stay intact. Use the video
+00:03:08.338 --> 00:03:14.000
+not a full settings or trading-history reset.
 
-00:03:10.923 --> 00:03:14.000
-or More tutorials whenever you get lost.
+00:03:14.000 --> 00:03:24.948
+Simple groups order management, trading style, action pace and
+order batch ceiling. Custom means existing
+
+00:03:24.948 --> 00:03:36.000
+values stay as they are. Choosing an option opens an exact
+change preview. Only Apply saves those changes.
+
+00:03:36.000 --> 00:03:45.808
+Advanced keeps every individual setting. Choose a category or
+search. Warnings explain interactions such as
+
+00:03:45.808 --> 00:03:55.067
+disabled bidding or sizing limits. A batch ceiling is a maximum,
+not a promised order size or profit.
+
+00:03:55.067 --> 00:03:58.000
+Switching views changes nothing.

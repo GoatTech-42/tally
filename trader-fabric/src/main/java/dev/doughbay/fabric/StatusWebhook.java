@@ -214,7 +214,7 @@ public final class StatusWebhook {
             rows.add(new String[] {"payroll share",
                     lastHour[3] > 0 ? String.format(Locale.ROOT, "%.0f%%", paidHour * 100.0 / lastHour[3]) : "-",
                     day[3] > 0 ? String.format(Locale.ROOT, "%.0f%%", paidDay * 100.0 / day[3]) : "-"});
-            for (var profit : accountProfits(db.connection(), DoughBayClient.hiveAccounts(), now))
+            for (var profit : accountProfits(db.connection(), reportAccounts(), now))
                 rows.add(new String[] {"profit · " + profit.account(), money(profit.hour()), money(profit.day())});
             try (PreparedStatement ps = db.connection().prepareStatement(
                     "SELECT COUNT(*), COALESCE(SUM(target_price),0) FROM positions "
@@ -231,11 +231,14 @@ public final class StatusWebhook {
         rows.add(new String[] {"players", population(), ""});
         rows.add(new String[] {"rivals", rivals(), ""});
 
-        int slots = (int) Tuning.get("slots.max");
+        var orders = dev.doughbay.fabric.OrderMetrics.select(databasePath.toAbsolutePath().getParent(), "", reportAccounts());
+        rows.addAll(dev.doughbay.fabric.discord.OrderMetricsPresentation.hourlyRows(orders, now));
+        int slots = reportSlots(orders, now);
+        if (slots == 0) headline.add(new String[]{"Auction capacity", "unknown or partial", "gold"});
         return new dev.doughbay.fabric.discord.StatsImage.Page(
                 reportTitle(),
                 java.time.LocalTime.now().withNano(0) + "  -  hourly report",
-                "#74E48B", headline, listed, Math.max(slots, listed),
+                "#74E48B", headline, listed, slots,
                 new String[] {"", "last hour", "last 24 h"},
                 new boolean[] {false, true, true}, rows,
                 "Posted by " + who() + " · shared ledger totals");
@@ -290,13 +293,16 @@ public final class StatusWebhook {
             out.append(line("profit", money(day[3])));
             out.append(line("payments", money(payroll(db, now - 24 * hour, now))));
 
-            var accounts = accountProfits(db.connection(), DoughBayClient.hiveAccounts(), now);
+            var accounts = accountProfits(db.connection(), reportAccounts(), now);
             if (!accounts.isEmpty()) {
                 out.append("\n**Profit by account · 1h / 24h**\n");
                 for (var profit : accounts) out.append(line(profit.account(), money(profit.hour()) + " / " + money(profit.day())));
             }
             out.append("\n**right now**\n");
             out.append(line("open", openListings(db)));
+            var orders = OrderMetrics.select(databasePath.toAbsolutePath().getParent(), "", reportAccounts());
+            for (String[] row : dev.doughbay.fabric.discord.OrderMetricsPresentation.summary(orders, now))
+                out.append(line(row[0], row[1]));
             out.append(line("players", population()));
             out.append(line("rivals", rivals()));
         } catch (Exception e) {
@@ -317,6 +323,16 @@ public final class StatusWebhook {
     private static String reportTitle() {
         return HiveSetup.active() || DoughBayClient.hiveAccounts().size() > 1
                 ? "GoNuts Hive — all accounts" : "GoNuts — ledger totals";
+    }
+
+    private java.util.List<String> reportAccounts() {
+        return OrderMetrics.members(databasePath, DoughBayClient.hiveAccounts(), DoughBayClient.account(),
+                HiveSetup.active() || Tuning.get("multi.enabled") >= .5);
+    }
+
+    static int reportSlots(java.util.List<OrderMetrics.Account> reports, long now) {
+        var capacity = OrderMetrics.capacity(reports, now);
+        return capacity.known() == capacity.accounts() ? capacity.total() : 0;
     }
 
     record AccountProfit(String account, long hour, long day) {}

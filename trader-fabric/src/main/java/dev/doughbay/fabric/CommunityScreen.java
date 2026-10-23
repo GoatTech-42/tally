@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 /** Legacy entry points share the same linking and Swarm information panel. */
-public final class CommunityScreen extends Screen {
+public final class CommunityScreen extends GoNutsScreen {
     private final Screen parent;
     private final SwarmPanel panel = new SwarmPanel();
     public CommunityScreen(Screen parent){super(Component.literal("Swarm"));this.parent=parent;}

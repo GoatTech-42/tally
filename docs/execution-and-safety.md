@@ -6,7 +6,7 @@ explains the modes and the gates between them.
 
 ## The modes
 
-Press **B** to open GoNuts. Open **Trade** (formerly **AutoPilot** or
+Press **B** to open GoNuts. Open **Trading → Trade** (formerly **AutoPilot** or
 **Automation**) for current readiness and session controls. **Set up trading**
 provides the guided **Choose limits → Review & Start** flow. The execution
 capabilities below describe the safety boundaries; they are not a list of current
@@ -102,7 +102,7 @@ deliberately resumed or ended.
 
 ## Restart queue bypass
 
-In **Settings → Session**, **Restart queue bypass** is enabled by default.
+In **Settings → Advanced view → Session & data**, **Restart queue bypass** is enabled by default.
 An explicitly saved off setting stays off. When the server confirms that this
 client is in its restart waiting room, GoNuts waits for a safe trading checkpoint,
 disconnects, and connects directly through a different regional address. The

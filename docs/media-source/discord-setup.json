@@ -1,0 +1,86 @@
+[
+  {
+    "title": "Connect an optional Discord panel",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Use a bot you control",
+      "Operator-only controls",
+      "Keep tokens private"
+    ],
+    "image": "discord-setup.png",
+    "captionText": "The Discord panel is optional and separate from the browser panel. Use your own bot and operator account. The written Discord guide covers the external application and permissions steps.",
+    "duration": 18,
+    "start": 0,
+    "captureSha256": "db5296f63d6ebaa0899df6748fc2b473aa6b5b7115cafb91b7620cb41f65ca2b"
+  },
+  {
+    "title": "Prepare your Discord application",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Create your own application",
+      "Copy the bot token privately",
+      "Invite it with the documented permissions"
+    ],
+    "image": "discord-setup.png",
+    "captionText": "In the Discord developer portal, create your application and bot, then invite it using the permissions in the written guide. External portal screens are not shown here. Never post a token in chat, a report or a screenshot.",
+    "duration": 18,
+    "start": 18,
+    "captureSha256": "db5296f63d6ebaa0899df6748fc2b473aa6b5b7115cafb91b7620cb41f65ca2b"
+  },
+  {
+    "title": "Copy channel and operator IDs",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Enable Discord Developer Mode",
+      "Copy the channel ID",
+      "Copy your operator user ID"
+    ],
+    "image": "discord-setup.png",
+    "captionText": "Enable Developer Mode in Discord. Copy the target channel ID and your own user ID. Names and channel links do not replace numeric IDs.",
+    "duration": 18,
+    "start": 36,
+    "captureSha256": "db5296f63d6ebaa0899df6748fc2b473aa6b5b7115cafb91b7620cb41f65ca2b"
+  },
+  {
+    "title": "Open the current GoNuts controls",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "B → Trading → Trade",
+      "Cycle Tools to Discord command centre",
+      "Open that card"
+    ],
+    "image": "discord-setup.png",
+    "captionText": "Press B, choose Trading, then Trade. Cycle the top Tools button to Discord command centre and open it. These are the current client controls.",
+    "duration": 18,
+    "start": 54,
+    "captureSha256": "db5296f63d6ebaa0899df6748fc2b473aa6b5b7115cafb91b7620cb41f65ca2b"
+  },
+  {
+    "title": "Save the connection details",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Paste token in the masked field",
+      "Set channel ID and operator user ID",
+      "Save, then wait for connection"
+    ],
+    "image": "discord-setup.png",
+    "captionText": "Enter your token in the masked Bot token field, Channel id and Your Discord user id. Save and read the connection status. Keep credentials out of screenshots. Optional activity feed settings are separate.",
+    "duration": 18,
+    "start": 72,
+    "captureSha256": "db5296f63d6ebaa0899df6748fc2b473aa6b5b7115cafb91b7620cb41f65ca2b"
+  },
+  {
+    "title": "Choose the account you mean",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Money: Hive or one account",
+      "Orders: selected account only",
+      "Missing data stays unknown"
+    ],
+    "image": "web-panel.png",
+    "captionText": "The Discord, local and hosted panels share the same image renderer. Select one account or All accounts. Money includes order funds, unfilled orders and observed completion counts alongside auction results. Filled orders are delivered stock, not sales or profit.",
+    "duration": 18,
+    "start": 90,
+    "captureSha256": "1339e3c0be9a66e226e87a5af66a7908e9b0cb76b9390c7067a4666e4a48619e"
+  }
+]

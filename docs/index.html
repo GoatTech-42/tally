@@ -248,7 +248,7 @@
       <article class="card"><h3>Find markets to check</h3><p>Use fresh shared order levels and observed activity to guide discovery beyond your own scans. Your bot still verifies live prices, inventory, capacity and profit checks.</p></article>
       <article class="card"><h3>Your Hive, inside the Swarm</h3><p>See your own bot cards and their individual activity, plus one anonymous count of active Swarm bots. Other members’ identities and controls stay private.</p></article>
     </div>
-    <p><strong>Join by linking your bot.</strong> Sign in with Discord, choose Link client, then enter the code in GoNuts → Swarm. Linking includes contributing public market/follow data and receiving discovery hints; there is no second enrollment step. One bot is enough. Unlink to leave.</p>
+    <p><strong>Join by linking your bot.</strong> Sign in with Discord, choose Link client, then enter the code in GoNuts → Accounts → Swarm. Linking includes contributing public market/follow data and receiving discovery hints; there is no second enrollment step. One bot is enough. Unlink to leave.</p>
     <div class="actions"><a class="button primary" href="https://gonuts.at/dashboard/">Sign in and link your bot</a><a class="button" href="guide/swarm.html">How Swarm works · Joining guide</a></div>
     <p class="build">No coding, separate Discord bot or manual API key setup required. Public observations may contain in-game actor names and payment parties; see the guide for sharing details. Shared data aids discovery and does not guarantee faster trading or higher profit.</p>
   </div>
@@ -261,7 +261,7 @@
       <article class="card"><h3>Join the Swarm</h3><p>Link your bot, understand shared discovery and see what contribution includes.</p><a href="guide/swarm.html">Swarm setup and benefits</a></article>
       <article class="card"><h3>Written handbook</h3><p>First install, hive setup, panels and troubleshooting.</p><a href="guide/">Read the guides</a></article>
       <article class="card"><h3>Trading and Flips</h3><p>Only trade selected items, set your own prices, understand singles and use Analyzer.</p><a href="guide/trading.html">Read the trading handbook</a><a href="guide/trading.html#selected-items">Only specific items</a></article>
-      <article class="card"><h3>First-install video</h3><p>Current START HERE screens, on-video captions and ten clear steps.</p><a href="#install">Watch the install tutorial</a></article>
+      <article class="card"><h3>Simple / Advanced settings</h3><p>Understand the four core controls, preserved custom values and setting consequences.</p><a href="guide/settings.html">Read the settings guide</a></article><article class="card"><h3>First-install video</h3><p>Current workspace and setup screens, on-video captions and twelve clear steps.</p><a href="#install">Watch the install tutorial</a></article>
       <article class="card"><h3>Discord-bot setup</h3><p>Configure your own Discord bot and its control panel.</p><a href="#discord">Watch the Discord tutorial</a><a href="guide/#discord">Read the Discord steps</a></article>
       <article class="card"><h3>MultiMC + HeadlessMC</h3><p>Run a working instance without a game window and verify dashboard access.</p><a href="guide/headless-multimc.html">Set up headless</a></article>
     </div>
@@ -270,35 +270,37 @@
   <div class="wrap">
     <div class="section-head">
       <div class="label">Install</div>
-      <h2>Install and review in ten steps</h2>
-      <p class="lede">Follow the gold START HERE button from first install through setup, trading controls and display help. The video shows the current screens with captions directly on the picture. Pick a step to jump to it. <a href="guide/#start">Open the written instructions.</a></p>
+      <h2>Install and review in twelve steps</h2>
+      <p class="lede">Follow Settings → Help &amp; setup from first install through setup, trading controls and display help. The video shows the current screens with captions directly on the picture. Pick a step to jump to it. <a href="guide/#start">Open the written instructions.</a></p>
     </div>
     <div class="install-grid">
       <div class="player">
-        <video id="film" controls preload="metadata" poster="assets/site/first-install-poster.jpg?v=20261021-start-here-tutorial">
-          <source src="assets/site/first-install.mp4?v=20261021-start-here-tutorial" type="video/mp4">
-          <track kind="captions" src="assets/site/first-install.vtt?v=20261021-start-here-tutorial" srclang="en" label="English (optional; captions are on video)"><track kind="chapters" src="assets/site/first-install-chapters.vtt?v=20261021-start-here-tutorial" srclang="en" label="Setup steps">
-          Your browser cannot play this video. <a href="assets/site/first-install.mp4?v=20261021-start-here-tutorial">Download it</a> instead.
+        <video id="film" controls preload="metadata" poster="assets/site/first-install-poster.jpg?v=20261023-ui-rollout">
+          <source src="assets/site/first-install.mp4?v=20261023-ui-rollout" type="video/mp4">
+          <track kind="captions" src="assets/site/first-install.vtt?v=20261023-ui-rollout" srclang="en" label="English (optional; captions are on video)"><track kind="chapters" src="assets/site/first-install-chapters.vtt?v=20261023-ui-rollout" srclang="en" label="Setup steps">
+          Your browser cannot play this video. <a href="assets/site/first-install.mp4?v=20261023-ui-rollout">Download it</a> instead.
         </video>
         <div class="under">
-          <span>Current first install · 3 min 14 sec · silent, with on-video captions. Includes START HERE, setup, Trade and hidden-menu help. Game screens were captured offline; real blockers stay visible.</span>
+          <span>Current first install · 3 min 58 sec · silent, with on-video captions. Includes setup, Trade, display help and Simple / Advanced settings. Game screens were captured offline; real blockers stay visible.</span>
           <a href="guide/#start">Prefer to read? The written guide</a>
         </div>
       </div>
       <div>
         <ol class="steps" id="steps">
-          <li><button type="button" data-at="7.000"><span class="n">1</span><span><span class="what">Prepare Fabric</span><div class="how">Match Minecraft 26.2, Fabric Loader, Fabric API and Java 25.</div></span><span class="at">0:07</span></button></li>
-          <li><button type="button" data-at="25.000"><span class="n">2</span><span><span class="what">Download GoNuts</span><div class="how">Use gonuts.at’s Minecraft 26.2 download; keep the .jar intact.</div></span><span class="at">0:25</span></button></li>
-          <li><button type="button" data-at="39.000"><span class="n">3</span><span><span class="what">Put both mods in the right folder</span><div class="how">Put GoNuts and Fabric API in this installation’s mods folder.</div></span><span class="at">0:39</span></button></li>
-          <li><button type="button" data-at="60.000"><span class="n">4</span><span><span class="what">Join DonutSMP, then press B</span><div class="how">Join DonutSMP, enable the balance sidebar, then press B.</div></span><span class="at">1:00</span></button></li>
-          <li><button type="button" data-at="77.000"><span class="n">5</span><span><span class="what">Click START HERE → Set up trading</span><div class="how">Click gold START HERE, then the large Set up trading button.</div></span><span class="at">1:17</span></button></li>
-          <li><button type="button" data-at="96.000"><span class="n">6</span><span><span class="what">Choose your spending limits</span><div class="how">Set both spending caps, then Review &amp; continue.</div></span><span class="at">1:36</span></button></li>
-          <li><button type="button" data-at="115.000"><span class="n">7</span><span><span class="what">Review protections if you use them</span><div class="how">Review protections and return; optional connections are separate.</div></span><span class="at">1:55</span></button></li>
-          <li><button type="button" data-at="133.000"><span class="n">8</span><span><span class="what">Review, then Start trading</span><div class="how">Read readiness and blockers; Start only when ready.</div></span><span class="at">2:13</span></button></li>
-          <li><button type="button" data-at="157.000"><span class="n">9</span><span><span class="what">Find Trade and get back to help</span><div class="how">B → START HERE → Open Trade; End stops by default.</div></span><span class="at">2:37</span></button></li>
-          <li><button type="button" data-at="175.000"><span class="n">10</span><span><span class="what">Hidden menus or hotbar?</span><div class="how">START HERE → Show menus + hotbar; other settings stay intact.</div></span><span class="at">2:55</span></button></li>
-        </ol>
-        <p class="after">After that, leave the game window open and visible with no menu left open. The End key stops it at once.</p>
+<li><button type="button" data-at="7.000"><span class="n">1</span><span><span class="what">Prepare Fabric</span><div class="how">Minecraft Java Edition 26.2</div></span><span class="at">0:07</span></button></li>
+<li><button type="button" data-at="25.000"><span class="n">2</span><span><span class="what">Download GoNuts</span><div class="how">Open gonuts.at</div></span><span class="at">0:25</span></button></li>
+<li><button type="button" data-at="39.000"><span class="n">3</span><span><span class="what">Put both mods in the right folder</span><div class="how">Open THIS installation’s folder</div></span><span class="at">0:39</span></button></li>
+<li><button type="button" data-at="60.000"><span class="n">4</span><span><span class="what">Join DonutSMP, then press B</span><div class="how">Launch your Fabric profile</div></span><span class="at">1:00</span></button></li>
+<li><button type="button" data-at="77.000"><span class="n">5</span><span><span class="what">Open Help &amp; setup</span><div class="how">New installs open Start here</div></span><span class="at">1:17</span></button></li>
+<li><button type="button" data-at="96.000"><span class="n">6</span><span><span class="what">Choose your spending limits</span><div class="how">Maximum per trade = one purchase</div></span><span class="at">1:36</span></button></li>
+<li><button type="button" data-at="115.000"><span class="n">7</span><span><span class="what">Review protections if you use them</span><div class="how">Review protections opens Evasion</div></span><span class="at">1:55</span></button></li>
+<li><button type="button" data-at="133.000"><span class="n">8</span><span><span class="what">Review, then Start trading</span><div class="how">Check your limits</div></span><span class="at">2:13</span></button></li>
+<li><button type="button" data-at="157.000"><span class="n">9</span><span><span class="what">Find trading status</span><div class="how">Trading → Trade</div></span><span class="at">2:37</span></button></li>
+<li><button type="button" data-at="175.000"><span class="n">10</span><span><span class="what">Hidden menus or hotbar?</span><div class="how">Settings → Help &amp; setup</div></span><span class="at">2:55</span></button></li>
+<li><button type="button" data-at="194.000"><span class="n">11</span><span><span class="what">Simple settings preserve your choices</span><div class="how">Four grouped controls</div></span><span class="at">3:14</span></button></li>
+<li><button type="button" data-at="216.000"><span class="n">12</span><span><span class="what">Advanced settings and warnings</span><div class="how">Choose Advanced view</div></span><span class="at">3:36</span></button></li>
+</ol>
+        <p class="after">Keep the client running with no game menu left open, or follow the headless setup guide. End is the default emergency stop.</p>
       </div>
     </div>
   </div>
@@ -309,14 +311,14 @@
     <div class="section-head">
       <div class="label">Discord</div>
       <h2>Run it from Discord in six steps</h2>
-      <p class="lede">A bot inside the mod posts one message in a channel of yours and keeps it up to date. You start, stop and tune the trader from the buttons under it. New to Discord bots? Watch it through: every click is spelled out.</p>
+      <p class="lede">A bot inside the mod posts one message in a channel of yours and keeps it up to date. You start, stop and tune the trader from the buttons under it. The refreshed video shows the current GoNuts controls; the written guide covers external Discord application and permission steps.</p>
     </div>
     <div class="install-grid">
       <div class="player">
-        <video id="film-discord" controls preload="metadata" poster="assets/site/discord-setup-poster.jpg">
-          <source src="assets/site/discord-setup.mp4" type="video/mp4">
-          <track kind="captions" src="assets/site/discord-setup.vtt" srclang="en" label="English" default>
-          Your browser cannot play this video. <a href="assets/site/discord-setup.mp4">Download it</a> instead.
+        <video id="film-discord" controls preload="metadata" poster="assets/site/discord-setup-poster.jpg?v=20261023-ui-rollout">
+          <source src="assets/site/discord-setup.mp4?v=20261023-ui-rollout" type="video/mp4">
+          <track kind="captions" src="assets/site/discord-setup.vtt?v=20261023-ui-rollout" srclang="en" label="English" default>
+          Your browser cannot play this video. <a href="assets/site/discord-setup.mp4?v=20261023-ui-rollout">Download it</a> instead.
         </video>
         <div class="under">
           <span>Setting up the Discord panel, with captions</span>
@@ -325,13 +327,13 @@
       </div>
       <div>
         <ol class="steps" id="steps-discord">
-          <li><button type="button" data-at="6"><span class="n">1</span><span><span class="what">Get what you need</span><div class="how">A Discord account, a server you own, and GoNuts already trading.</div></span><span class="at">0:06</span></button></li>
-          <li><button type="button" data-at="16"><span class="n">2</span><span><span class="what">Create the bot and copy its token</span><div class="how">On <span class="mono">discord.com/developers/applications</span>: New Application, then Bot, then Reset Token.</div></span><span class="at">0:16</span></button></li>
-          <li><button type="button" data-at="37"><span class="n">3</span><span><span class="what">Invite it to your server</span><div class="how">OAuth2, URL Generator: tick <span class="mono">bot</span>, then View Channels, Send Messages and Attach Files.</div></span><span class="at">0:37</span></button></li>
-          <li><button type="button" data-at="50"><span class="n">4</span><span><span class="what">Copy two ids</span><div class="how">Turn on Developer Mode, right-click the channel, then right-click your own name.</div></span><span class="at">0:50</span></button></li>
-          <li><button type="button" data-at="69"><span class="n">5</span><span><span class="what">Paste them into GoNuts</span><div class="how">Press B → Trade → Tools: API key / test → Discord command centre. Paste the fields and Save.</div></span><span class="at">1:09</span></button></li>
-          <li><button type="button" data-at="90"><span class="n">6</span><span><span class="what">Use the panel</span><div class="how">Pick a page from the dropdown. Start and Stop work like the buttons in game.</div></span><span class="at">1:30</span></button></li>
-        </ol>
+<li><button type="button" data-at="0"><span class="n">1</span><span><span class="what">Connect an optional Discord panel</span><div class="how">Use a bot you control</div></span><span class="at">0:00</span></button></li>
+<li><button type="button" data-at="18"><span class="n">2</span><span><span class="what">Prepare your Discord application</span><div class="how">Create your own application</div></span><span class="at">0:18</span></button></li>
+<li><button type="button" data-at="36"><span class="n">3</span><span><span class="what">Copy channel and operator IDs</span><div class="how">Enable Discord Developer Mode</div></span><span class="at">0:36</span></button></li>
+<li><button type="button" data-at="54"><span class="n">4</span><span><span class="what">Open the current GoNuts controls</span><div class="how">B → Trading → Trade</div></span><span class="at">0:54</span></button></li>
+<li><button type="button" data-at="72"><span class="n">5</span><span><span class="what">Save the connection details</span><div class="how">Paste token in the masked field</div></span><span class="at">1:12</span></button></li>
+<li><button type="button" data-at="90"><span class="n">6</span><span><span class="what">Choose the account you mean</span><div class="how">Money: Hive or one account</div></span><span class="at">1:30</span></button></li>
+</ol>
         <p class="after">The bot token is a password. Never post it or share it. If it gets out, press Reset Token on the developer page and paste the new one into GoNuts.</p>
       </div>
     </div>
@@ -388,7 +390,7 @@
       </figure>
       <figure class="shot">
         <img src="assets/site/install-choose-limits.jpg" alt="Current Choose your limits setup screen with maximum per trade and session spend" width="1600" height="900" loading="lazy">
-        <figcaption>First choose START HERE → Set up trading. Then choose limits and Review &amp; Start.</figcaption>
+        <figcaption>First choose Settings → Help &amp; setup → Set up trading. Then choose limits and Review &amp; Start.</figcaption>
       </figure>
     </div>
   </div>

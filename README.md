@@ -135,3 +135,8 @@ affiliated with or endorsed by DonutSMP.
 The web panel is set in [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees Hassan, which is
 bundled under the SIL Open Font License 1.1. The font and its licence are in
 `trader-fabric/src/main/resources/doughbay/web/`.
+
+
+### Updated interface and account views
+
+Open **B → Settings** for four Simple control groups with a before/after preview. **Advanced view** keeps individual settings grouped by task; switching views never changes saved values. Open **Help & setup** to revisit setup and tutorials. See the [current settings guide](https://gonuts.at/guide/settings.html). The Money and Orders panel account selector scopes figures and rows to one account; All accounts combines the Hive. Order funds and delivered stock are separate from auction cost and asking revenue. Missing or stale order reports remain unknown.

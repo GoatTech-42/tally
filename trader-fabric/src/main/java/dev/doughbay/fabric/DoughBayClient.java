@@ -172,6 +172,7 @@ public class DoughBayClient implements ClientModInitializer {
         java.nio.file.Path own = AccountRecords.directory(config.directory(), multiClient(), me, LOGGER);
         AUTOMATION_SESSION.setAuditStore(own.resolve("audit-balance.txt"));
         AUTOMATION_SESSION.setCollectedStore(own.resolve("orders-collected.txt"));
+        OrderMetrics.start(config.databasePath().toAbsolutePath().getParent(), account());
         // And in the ledger, where every position carries its owner: only this
         // account's buying and selling moves this account's balance.
         String mine = me.isEmpty() ? "" : " AND (client = ? OR client = '')";

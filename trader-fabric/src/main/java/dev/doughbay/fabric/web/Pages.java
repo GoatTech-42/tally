@@ -27,9 +27,26 @@ final class Pages {
             @font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
             * { box-sizing: border-box; }
             body { margin:0; background:var(--background); color:var(--text);
-              font: 16px/1.45 "GoNuts Pixel", "Monocraft", ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
+              font: 15px/1.55 system-ui, "Segoe UI", sans-serif; }
             main { width:100%; max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
             main img, main svg, main canvas { max-width:100%; }
+            .settings-nav { display:flex; flex-direction:row; flex-wrap:wrap; overflow:visible; padding:0; gap:8px; margin-bottom:14px; }
+            .settings-nav button { flex:1 1 140px; min-height:42px; }
+            .settings-intro { margin:0 0 16px; color:var(--secondary); }
+            .settings-notices { display:grid; gap:10px; margin:12px 0 20px; }
+            .setting-notice { padding:12px 16px; border-left:4px solid var(--teal); background:var(--surface); border-radius:6px; }
+            .setting-notice.warning { border-color:var(--warn); }
+            .setting-notice p { margin:5px 0 8px; color:var(--secondary); }
+            .setting-notice strong { color:var(--text); }
+            .setting-notice summary { cursor:pointer; color:var(--teal); }
+            .setting-notice button { margin:3px 6px 3px 0; font-size:13px; }
+            .set-summary { margin:0; padding:0 14px 12px; color:var(--muted); font:14px/1.5 system-ui,sans-serif; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+            .nav-group { min-width:140px; border-bottom:1px solid var(--edge); padding-bottom:8px; }
+            .nav-group summary { cursor:pointer; padding:8px 4px; color:var(--muted); font-weight:600; }
+            .nav-group button,.nav-group a { display:block; width:100%; margin:4px 0; text-align:left; }
+            .settings-group summary { cursor:pointer; padding:14px; color:var(--gold); }
+            .settings-group[hidden] { display:none; }
+            .settings-draft { margin:12px 0; }
             .work > *, .body, .split > *, .detail > *, .card { min-width:0; }
             input, select, button, pre { max-width:100%; }
             pre { white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -221,6 +238,7 @@ final class Pages {
             """;
 
     private static final String HEAD = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+            + "<meta name=\"gonuts-panel\" content=\"v2\">"
             + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             + "<title>GoNuts panel</title><style>" + STYLE + "</style></head><body><main>";
 
@@ -234,7 +252,7 @@ final class Pages {
                 + "<input id=\"code\" name=\"code\" type=\"password\" inputmode=\"numeric\" autocomplete=\"off\" "
                 + "maxlength=\"12\" autofocus required>"
                 + "<button class=\"pick\" type=\"submit\">Open the panel</button></form>"
-                + "<p>The PIN is the one set on the GoNuts screen in game, under Autopilot, Web panel.</p>"
+                + "<p>Set the PIN in GoNuts: Trading → Trade → Tools → Web panel.</p>"
                 + "</div></div></main></body></html>";
     }
 
@@ -428,9 +446,9 @@ final class Pages {
               state.textContent = h.state || '...';
               const s = (h.state || '').toUpperCase();
               state.className = s === 'STOPPED' ? 'bad' : s === 'PAUSED' ? '' : 'good';
-              put('slots', h.listed + ' / ' + h.slots);
+              put('slots', (h.listed>=0?h.listed:'unknown') + ' / ' + (h.slots>=0?h.slots:'unknown'));
               put('bank', h.bank || '-');
-              put('trades', String(h.trades));
+              put('trades', h.trades>=0?String(h.trades):'unknown');
               put('who', h.who || '-');
               put('now', h.now || '');
               put('clock', h.clock || '');
@@ -477,19 +495,25 @@ final class Pages {
               if (shape === lastPages) return;
               lastPages = shape;
               pages.replaceChildren();
-              const add = (label, current, go) => {
+              const groups={};
+              for(const label of ['Trading','Markets','Accounts','Safety','Settings']){
+                const group=el('details','nav-group');group.append(el('summary','',label));pages.append(group);groups[label]=group;
+              }
+              const destinations={settings:'Settings',auction:'Settings',orders:'Settings',analyzer:'Settings',reports:'Settings',items:'Trading',prices:'Trading',rivals:'Markets',staff:'Safety',evasion:'Safety',bots:'Accounts',savings:'Accounts',proxies:'Accounts',dashboard:'Trading'};
+              const add = (label, current, go, group='Trading') => {
                 const b = button('', label, go);
-                if (current) b.setAttribute('aria-current', 'page');
-                pages.appendChild(b);
+                if (current) { b.setAttribute('aria-current', 'page');groups[group].open=true; }
+                groups[group].appendChild(b);
               };
-              const mine = name => add(OWN[name].label, view === name, () => show(name));
+              const mine = name => add(OWN[name].label, view === name, () => show(name),destinations[name]);
               mine('bots'); mine('savings'); mine('reports'); mine('proxies');
               if (hostedPanel) {
                 const back = el('a', '', 'Dashboard');
                 back.href = 'https://gonuts.at/dashboard/';
-                pages.appendChild(back);
+                groups.Trading.appendChild(back);
               } else mine('dashboard');
               mine('analyzer');
+              if(!options.some(o=>o.value==='TUNE')){mine('settings');mine('auction');mine('orders');mine('items');}
               for (const o of options) {
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -501,7 +525,7 @@ final class Pages {
                 add(o.value === 'ITEMS' ? 'Item profit' : o.value === 'ORDERS' ? 'Order book' : o.value === 'LISTINGS' ? 'Auction listings' : o.label, !view && o.default, () => {
                   if (view) show('');
                   act('page:pick', o.value);
-                });
+                }, ['OPPS','SEARCH','RIVALS'].includes(o.value)?'Markets':['HIVE','PAYROLL'].includes(o.value)?'Accounts':['STAFF','REGIONS','EVASION'].includes(o.value)?'Safety':'Trading');
               }
             }
             function draw(state) {
@@ -554,7 +578,7 @@ final class Pages {
             }
 
             // ---- Settings: every setting the screen in game has, changed where it stands
-            const S = { data: null, q: '', open: '', section: 'AUCTION' };
+            const S = { data: null, q: '', open: '', section: 'AUCTION', simple: true };
             let reportData = {}, reportTimer;
             async function reportNotice() {
               try {
@@ -875,7 +899,7 @@ final class Pages {
             async function openSettings() {
               try {
                 S.data = await api('settings');
-                if (['settings','auction','orders'].includes(view)) drawSettings();
+                if (['settings','auction','orders'].includes(view)){drawSettings();if(S.open){const opened=own.querySelector('.edit');if(opened)opened.scrollIntoView({block:'center'});}}
               } catch (e) { failed(); }
             }
             function sift() {
@@ -889,6 +913,7 @@ final class Pages {
                   if (hit) shown++;
                 }
                 card.hidden = shown === 0;
+                if(q && shown && card.tagName==='DETAILS')card.open=true;
                 any = any || shown > 0;
               }
               const none = $('nomatch');
@@ -905,9 +930,41 @@ final class Pages {
               const field = wrap.querySelector('.edit input, .edit textarea');
               if (field) field.focus();
             }
+            function noticeCards(notices, target) {
+              target.replaceChildren();
+              for(const n of notices||[]){
+                const card=el(n.level==='warning'?'div':'details','setting-notice '+n.level);
+                card.append(el(n.level==='warning'?'strong':'summary','',n.title),el('p','',n.effect));
+                if(target.classList.contains('settings-draft'))card.open=true;
+                for(const key of n.keys||[]){
+                  const row=(S.data?.groups||[]).flatMap(g=>g.settings||[]).concat(S.data?.lists||[]).find(r=>r.key===key);
+                  if(!row)continue;
+                  card.append(button('',row.label,()=>{S.simple=false;S.section=row.section;S.open=key;S.q='';if(view!=='settings'){show('settings');return;}drawSettings();
+                    const opened=own.querySelector('.edit');if(opened)opened.scrollIntoView({block:'center',behavior:'smooth'});}));
+                }
+                target.append(card);
+              }
+            }
+            function draftFeedback(row,box){
+              const preview=el('div','settings-draft');preview.setAttribute('aria-live','polite');box.append(preview);
+              let serial=0;
+              return async value=>{
+                const request=++serial;
+                preview.textContent='Checking this change…';
+                try{
+                  const result=await api('settingcheck',{key:row.key,value:String(value)});
+                  if(request!==serial||!preview.isConnected)return;
+                  if(!result.ok){preview.textContent='Enter a valid value to see its effect. Nothing has been saved.';return;}
+                  const notices=(result.notices||[]).filter(n=>(n.keys||[]).includes(row.key));
+                  noticeCards(notices,preview);
+                  if(!notices.length)preview.textContent='No known interaction warnings for this value. Normal trade and safety checks still apply.';
+                }catch(e){if(request===serial)preview.textContent='Could not check this draft. Nothing has been saved.';}
+              };
+            }
             function editor(row) {
               const box = el('div', 'edit');
               box.appendChild(el('p', 'desc', row.description));
+              const checkDraft=draftFeedback(row,box);
               const saved = j => { if (j) { if(view==='evasion')openEvasion();else openSettings(); } };
               if (row.locked) {
                 box.appendChild(el('p', 'range', 'This one is set on the GoNuts screen in game, not from a browser.'));
@@ -918,12 +975,20 @@ final class Pages {
                 area.value = row.value || '';
                 area.setAttribute('aria-label', row.label);
                 box.appendChild(area);
+                area.addEventListener('input',()=>checkDraft(area.value));
+                queueMicrotask(()=>checkDraft(area.value));
                 const line = el('div', 'line');
                 line.style.marginTop = '6px';
                 line.appendChild(button('pick', 'Save', async () => saved(await change('list', { key: row.key, text: area.value }))));
                 box.appendChild(line);
                 if (row.local) box.appendChild(el('p', 'range', 'Kept for this PC only, not shared with a second account.'));
                 return box;
+              }
+              if(row.toggle){
+                const value=row.value>=.5?0:1;
+                box.append(el('p','desc','Preview: turn '+(value?'ON':'OFF')+'. Current value stays in effect until you apply.'));
+                box.append(button('pick','Apply: turn '+(value?'ON':'OFF'),async()=>saved(await change('setting',{key:row.key,value:String(value)}))));
+                queueMicrotask(()=>checkDraft(value));
               }
               if (!row.toggle) {
                 const line = el('div', 'line');
@@ -936,9 +1001,12 @@ final class Pages {
                   const n = parseFloat(input.value);
                   const v = Math.min(row.max, Math.max(row.min, (isNaN(n) ? row.value : n) + by));
                   input.value = String(Math.round(v * 100) / 100);
+                  checkDraft(input.value);
                 };
                 const go = async () => saved(await change('setting', { key: row.key, value: input.value }));
                 input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+                input.addEventListener('input',()=>checkDraft(input.value));
+                queueMicrotask(()=>checkDraft(input.value));
                 const minus = button('', '-', () => bump(-row.step));
                 minus.setAttribute('aria-label', 'Less');
                 const plus = button('', '+', () => bump(row.step));
@@ -973,7 +1041,7 @@ final class Pages {
               if (row.toggle) {
                 const on = row.value >= 0.5;
                 const sw = button('switch ' + (on ? 'on' : 'off'), row.shown, async () => {
-                  if (await change('setting', { key: row.key, toggle: '1' })) { if(view==='evasion')openEvasion();else openSettings(); }
+                  unfold(row,wrap);
                 });
                 sw.setAttribute('role', 'switch');
                 sw.setAttribute('aria-checked', on ? 'true' : 'false');
@@ -986,22 +1054,53 @@ final class Pages {
                 line.appendChild(v);
               }
               wrap.appendChild(line);
+              wrap.appendChild(el('p','set-summary',row.description));
+              const related=(S.data?.notices||[]).filter(n=>(n.keys||[]).includes(row.key)&&n.level==='warning');
+              if(related.length)wrap.appendChild(el('p','set-summary','⚠ '+related.map(n=>n.title).join(' · ')));
               if (S.open === row.key) wrap.appendChild(editor(row));
               return wrap;
+            }
+            function settingsModeBar(){
+              const bar=el('div','bar');
+              bar.append(button(S.simple?'go':'','Simple',()=>{S.simple=true;S.open='';drawSettings();}),button(!S.simple?'go':'','Advanced',()=>{S.simple=false;S.open='';drawSettings();}),el('span','muted','Same saved settings. Switching views changes nothing.'));
+              return bar;
+            }
+            function drawSimpleSettings(){
+              const d=S.data,cards=el('div','cards'),notices=el('aside','settings-notices');
+              noticeCards((d.notices||[]).filter(n=>n.level==='warning'),notices);
+              for(const group of d.simple||[]){
+                const card=el('section','card'),pick=el('select'),preview=el('div','edit');preview.hidden=true;
+                card.append(el('h2','title',group.label),el('p','desc',group.description),el('p','muted','Current: '+group.current));
+                pick.setAttribute('aria-label',group.label);
+                const placeholder=el('option','','Choose a change...');placeholder.value='';pick.appendChild(placeholder);
+                for(const option of group.options){const o=el('option','',option.label);o.value=option.id;pick.appendChild(o);}
+                pick.addEventListener('change',()=>{
+                  preview.replaceChildren();const proposal=group.previews.find(p=>p.option===pick.value);preview.hidden=!proposal;if(!proposal)return;
+                  preview.appendChild(el('p','desc',proposal.effect));
+                  for(const c of proposal.changes)preview.appendChild(el('p','',c.label+': '+c.beforeShown+' → '+c.afterShown));
+                  const feedback=el('div','settings-draft');noticeCards(proposal.notices.filter(n=>n.level==='warning'||n.keys.some(k=>proposal.changes.some(c=>c.key===k))),feedback);preview.appendChild(feedback);
+                  const apply=button('pick','Apply '+proposal.changes.length+' change(s)',async()=>{const result=await change('simple',{group:group.id,option:proposal.option,expected:proposal.expected});if(result?.ok)openSettings();});apply.disabled=!proposal.changes.length;preview.appendChild(apply);
+                  preview.appendChild(button('','Cancel',()=>{pick.value='';preview.hidden=true;preview.replaceChildren();}));
+                });
+                card.append(pick,preview);cards.appendChild(card);
+              }
+              const links=el('div','bar');for(const [id,label] of [['ITEMS','Items & focus'],['CAPITAL','Spending limits'],['SAFETY','Safety & recovery']])links.appendChild(button('',label,()=>{S.simple=false;S.section=id;S.q='';S.open='';drawSettings();}));
+              own.replaceChildren(settingsModeBar(),el('p','settings-intro','Core controls only. Custom settings are preserved until you choose and apply a change. No view changes your inventory, safety gates or spending limits.'),notices,cards,links);
             }
             function drawSettings() {
               const d = S.data;
               if (!d) return;
+              if(view==='settings'&&S.simple){drawSimpleSettings();return;}
               const bar = el('div', 'bar');
-              const sections=el('div','bar');
+              const sections=el('nav','settings-nav');
+              sections.setAttribute('aria-label','Settings categories');
               sections.hidden=view!=='settings';
-              for(const [value,label] of [['AUCTION','Auction'],['ORDERS','Orders'],['GENERAL','General'],['ALL','All']]){
-                const pick=button(value===S.section?'go':'',label,()=>{S.section=value;S.open='';S.q='';drawSettings();});
-                pick.setAttribute('aria-pressed',String(value===S.section));sections.appendChild(pick);
-              }
+              const category=el('select');category.setAttribute('aria-label','Settings category');
+              for(const section of d.sections||[]){const o=el('option','',section.label);o.value=section.id;category.appendChild(o);}
+              category.value=S.section;category.addEventListener('change',()=>{S.section=category.value;S.open='';S.q='';drawSettings();});sections.appendChild(category);
               const q = el('input');
               q.type = 'search';
-              q.placeholder = 'Search this section...';
+              q.placeholder = S.section==='ALL'?'Search all settings…':'Search this category…';
               q.value = S.q;
               q.setAttribute('aria-label', 'Search settings');
               q.addEventListener('input', () => { S.q = q.value; sift(); });
@@ -1065,14 +1164,14 @@ final class Pages {
               bar.appendChild(button('', 'Saved presets', openSavedPresets));
               const cards = el('div', 'cards');
               for (const g of d.groups || []) {
-                const card = el('section', 'card');
-                card.appendChild(el('h2', 'title', g.name));
-                if(g.name==='Evasion')continue;
+                const card = el('details', 'card settings-group');
+                card.open=true;
+                card.appendChild(el('summary', '', g.name));
                 for (const row of g.settings || []) card.appendChild(settingRow(row));
                 cards.appendChild(card);
               }
               const lists = el('section', 'card');
-              lists.appendChild(el('h2', 'title', 'Items'));
+              lists.appendChild(el('h2', 'title', 'Lists & text values'));
               for (const l of d.lists || []) lists.appendChild(settingRow(Object.assign({ list: true, changed: !!l.value }, l)));
               cards.appendChild(lists);
               const none = el('p', 'muted');
@@ -1082,8 +1181,12 @@ final class Pages {
                 ? 'Auction settings. To inspect tracked auction listings, choose Auction listings in the sidebar.'
                 : view === 'orders'
                 ? 'Order settings. To inspect observed order-book data and tracked bid stock, choose Order book in the sidebar.'
-                : 'Auction: buying and listings. Orders: bids, fills and delivery. General: shared limits, pacing, updates and display. All: search everything.';
-              own.replaceChildren(sections,el('p','muted',sectionHint),bar, codeBox, none, cards);
+                : (d.sections||[]).find(s=>s.id===S.section)?.description || 'Choose a category or search All settings.';
+              const notices=el('aside','settings-notices');notices.setAttribute('aria-label','Settings effects and warnings');
+              const relevant=(d.notices||[]).filter(n=>n.level==='warning'||S.section==='ALL'||(n.keys||[]).some(k=>
+                (d.groups||[]).flatMap(g=>g.settings||[]).concat(d.lists||[]).some(r=>r.key===k&&r.section===S.section)));
+              noticeCards(relevant,notices);
+              own.replaceChildren(...(view==='settings'?[settingsModeBar()]:[]),sections,el('p','settings-intro',sectionHint),bar,notices,codeBox,none,cards);
               sift();
             }
 

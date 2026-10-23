@@ -226,3 +226,34 @@ if (project.hasProperty('presetsAnalyzerScreenshots')) {
     }
 }
 tasks.named('jar') { exclude '**/PresetsAnalyzerSmoke*.class' }
+
+// Local single-player settings review; never part of the published mod.
+if (project.hasProperty('settingsScreenshots')) {
+    sourceSets.main.java.srcDir 'src/settingsSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.SettingsGuiSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/settings-navigation-preview'
+        programArgs '--width', '1440', '--height', '1000', '--username', 'SettingsPreview'
+    }
+}
+tasks.named('jar') { exclude '**/SettingsGuiSmoke*.class' }
+
+if (project.hasProperty('documentationScreenshots')) {
+ sourceSets.main.java.srcDir 'src/documentationSmoke/java'
+ tasks.processResources.doLast {
+  def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+  def metadata = new groovy.json.JsonSlurper().parse(file)
+  metadata.entrypoints.client.add('dev.doughbay.fabric.DocumentationGuiSmoke')
+  file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+ }
+ loom.runs.client {
+  runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/ui-rollout-preview'
+  programArgs '--width', '1600', '--height', '1000', '--username', 'DocumentationPreview'
+ }
+}
+tasks.named('jar') { exclude '**/DocumentationGuiSmoke*.class' }

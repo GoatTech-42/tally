@@ -1,29 +1,50 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:10.000
-GoNuts hive setup: two accounts, one shared panel.
-Use two launcher instances on the same PC. Headless is optional.
+00:00:00.000 --> 00:00:10.655
+A Hive shares market information and a ledger between local
+Minecraft instances. Each account keeps its
 
-00:00:10.000 --> 00:00:22.000
-1. Start in the instance whose trading history you want to keep.
-Disconnect, then open Multiplayer > GoNuts hive.
+00:00:10.655 --> 00:00:18.000
+settings, orders, limits and recovery state. Headless mode is
+optional.
 
-00:00:22.000 --> 00:00:34.000
-2. Click Create hive & copy code. Your data stays in its original folder.
-Close and reopen this first instance once.
+00:00:18.000 --> 00:00:29.368
+Open Accounts, Hive setup. Review locally detected accounts. In
+the browser panel, Hive and commands can add
 
-00:00:34.000 --> 00:00:46.000
-3. Open GoNuts hive in a fresh second instance.
-Click Paste code, then Join hive. Use a different Minecraft account.
+00:00:29.368 --> 00:00:36.000
+a fresh detected bot to an existing Hive without a game window.
 
-00:00:46.000 --> 00:00:58.000
-4. Hive linked: close and reopen the second instance.
-Existing local history is never silently merged or overwritten.
+00:00:36.000 --> 00:00:45.801
+For the disconnected wizard, open Multiplayer, GoNuts hive.
+Share this hive on the existing account; use
 
-00:00:58.000 --> 00:01:10.000
-5. Enable the web panel in Autopilot > WEB on the first instance.
-Start both accounts; the shared panel can view and control either account.
+00:00:45.801 --> 00:00:54.000
+Link accounts and Review connection on the new instance. Keep
+the original data folder.
 
-00:01:10.000 --> 00:01:20.000
-Keep the original shared folder. Logins and proxies stay local.
-Full instructions and troubleshooting: cody-raves.github.io/Gonuts/guide/#hive
+00:00:54.000 --> 00:01:04.517
+Choose Join existing hive for a fresh account. Existing
+histories use the separate supported combination
+
+00:01:04.517 --> 00:01:12.000
+flow. Never delete order records or a shared database to bypass
+a refusal.
+
+00:01:12.000 --> 00:01:23.435
+After a new-account join confirms, restart only that new
+instance normally. Joining does not enable trading.
+
+00:01:23.435 --> 00:01:30.000
+The original settings and recovery gates remain authoritative.
+
+00:01:30.000 --> 00:01:39.000
+Use the account selector on Money and Orders. One account shows
+only that account. All accounts combines the
+
+00:01:39.000 --> 00:01:47.333
+Hive. Unfilled order funds and delivered goods awaiting
+collection stay separate from auction asking
+
+00:01:47.333 --> 00:01:48.000
+revenue.

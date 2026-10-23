@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component;
 import java.util.*;
 
 /** Saved settings manager. Applying a copy never modifies that saved copy. */
-public final class PresetsScreen extends Screen {
+public final class PresetsScreen extends GoNutsScreen {
     private final Screen parent;
     private final String proposal;
     private String selected="", nameDraft="", message="", confirm="";

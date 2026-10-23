@@ -1,0 +1,86 @@
+[
+  {
+    "title": "One Hive, separate account ownership",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Separate Minecraft logins",
+      "One computer, shared ledger",
+      "Settings remain per account"
+    ],
+    "image": "hive-setup.png",
+    "captionText": "A Hive shares market information and a ledger between local Minecraft instances. Each account keeps its settings, orders, limits and recovery state. Headless mode is optional.",
+    "duration": 18,
+    "start": 0,
+    "captureSha256": "68dc8a6c162b2ed3fb29715ed918083fe765dc82efc45f52417f2dbcff4154ec"
+  },
+  {
+    "title": "Find Hive setup",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "B → Accounts → Hive setup",
+      "Review detected accounts",
+      "Or use Hive & commands in the panel"
+    ],
+    "image": "hive-setup.png",
+    "captionText": "Open Accounts, Hive setup. Review locally detected accounts. In the browser panel, Hive and commands can add a fresh detected bot to an existing Hive without a game window.",
+    "duration": 18,
+    "start": 18,
+    "captureSha256": "68dc8a6c162b2ed3fb29715ed918083fe765dc82efc45f52417f2dbcff4154ec"
+  },
+  {
+    "title": "Share and join safely",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Disconnect the new instance",
+      "Multiplayer → GoNuts hive",
+      "Select an existing Hive or paste its code"
+    ],
+    "image": "hive-setup.png",
+    "captionText": "For the disconnected wizard, open Multiplayer, GoNuts hive. Share this hive on the existing account; use Link accounts and Review connection on the new instance. Keep the original data folder.",
+    "duration": 18,
+    "start": 36,
+    "captureSha256": "68dc8a6c162b2ed3fb29715ed918083fe765dc82efc45f52417f2dbcff4154ec"
+  },
+  {
+    "title": "Choose the right operation",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Fresh member: Join existing hive",
+      "Existing histories: separate merge flow",
+      "Read the actual readiness checks"
+    ],
+    "image": "hive-setup.png",
+    "captionText": "Choose Join existing hive for a fresh account. Existing histories use the separate supported combination flow. Never delete order records or a shared database to bypass a refusal.",
+    "duration": 18,
+    "start": 54,
+    "captureSha256": "68dc8a6c162b2ed3fb29715ed918083fe765dc82efc45f52417f2dbcff4154ec"
+  },
+  {
+    "title": "Restart only the new member",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Keep existing members running",
+      "Verify the selected account",
+      "No automatic Start or reset"
+    ],
+    "image": "hive-setup.png",
+    "captionText": "After a new-account join confirms, restart only that new instance normally. Joining does not enable trading. The original settings and recovery gates remain authoritative.",
+    "duration": 18,
+    "start": 72,
+    "captureSha256": "68dc8a6c162b2ed3fb29715ed918083fe765dc82efc45f52417f2dbcff4154ec"
+  },
+  {
+    "title": "Check one account or the whole Hive",
+    "subtitle": "Current GoNuts interface · optional connection",
+    "bullets": [
+      "Choose an account in the panel",
+      "All accounts combines the Hive",
+      "Missing order reports remain unknown"
+    ],
+    "image": "web-panel.png",
+    "captionText": "Use the account selector on Money and Orders. One account shows only that account. All accounts combines the Hive. Unfilled order funds and delivered goods awaiting collection stay separate from auction asking revenue.",
+    "duration": 18,
+    "start": 90,
+    "captureSha256": "1339e3c0be9a66e226e87a5af66a7908e9b0cb76b9390c7067a4666e4a48619e"
+  }
+]

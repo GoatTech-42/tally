@@ -42,7 +42,7 @@ Advertises `panel` in redeem and hello. Relays page, state, data, change, act, p
 
 ## In-game Swarm tab
 
-The top-level Swarm tab contains website sign-in, pairing-code entry, a bot label and Link dashboard & join Swarm. It also explains contribution, shared-discovery benefits and native execution checks. Linked clients show the remote dashboard link, membership recovery, contribution status, their own Hive rank and fresh anonymous totals. Small windows use the same scrollable panel in a dedicated view.
+Accounts → Swarm contains website sign-in, pairing-code entry, a bot label and Link dashboard & join Swarm. It also explains contribution, shared-discovery benefits and native execution checks. Linked clients show the remote dashboard link, membership recovery, contribution status, their own Hive rank and fresh anonymous totals. Small windows use the same scrollable panel in a dedicated view.
 
 Installation swarm_rank frames version 2 include optional stats, an owner linked-installation count and the anonymous active-bot count. Their outer at/expiresAt interval is at most 120 seconds; each stats snapshot also expires after 180 seconds. Missing or withheld fields are unknown, never zero. Other members' identities and individual financial results are not displayed.
 

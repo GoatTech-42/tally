@@ -13,9 +13,12 @@ if hasattr(sys.stdout, 'reconfigure'):
 parser = argparse.ArgumentParser()
 parser.add_argument('--captures', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--timeline', type=Path, default=Path(__file__).with_name('first-install.json'))
+parser.add_argument('--name', default='first-install')
+parser.add_argument('--heading', default='FIRST INSTALL / START HERE')
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
-scenes = json.loads(Path(__file__).with_name('first-install.json').read_text(encoding='utf-8'))
+scenes = json.loads(args.timeline.read_text(encoding='utf-8'))
 font = lambda n, bold=False: ImageFont.truetype('C:/Windows/Fonts/segoeuib.ttf' if bold else 'C:/Windows/Fonts/segoeui.ttf', n)
 BG, PANEL, EDGE, TEXT, MUTED, TEAL, GOLD = '#0b111b', '#162231', '#30465b', '#f0f2f5', '#b5c5d7', '#57dfca', '#f0ca7c'
 
@@ -41,7 +44,7 @@ def stamp(seconds):
 concat, vtt, chapter_vtt = [], ['WEBVTT', ''], ['WEBVTT', '']
 for i, scene in enumerate(scenes):
     frame = Image.new('RGB', (1920, 1080), BG); draw = ImageDraw.Draw(frame)
-    draw.text((65, 28), 'GoNuts / FIRST INSTALL / START HERE', font=font(24, True), fill=TEAL)
+    draw.text((65, 28), 'GoNuts / ' + args.heading, font=font(24, True), fill=TEAL)
     draw.text((1690, 28), f'{i:02} / {len(scenes)-1:02}', font=font(24), fill=MUTED)
     draw.text((65, 75), scene['title'], font=font(50, True), fill=TEXT)
     draw.text((68, 143), scene['subtitle'], font=font(28), fill=MUTED)
@@ -81,14 +84,14 @@ for i, scene in enumerate(scenes):
         concat.extend([f"file '{name}'", f'duration {duration:.6f}'])
         vtt.extend([f'{stamp(at)} --> {stamp(end)}', '\n'.join(textwrap.wrap(chunk, 64, break_long_words=False)), ''])
         if i == 5 and j == 0: captioned.save(args.output/'start-here-chapter.png')
-        if i == 0 and j == 0: captioned.save(args.output/'first-install-poster.jpg', quality=92)
+        if i == 0 and j == 0: captioned.save(args.output/(args.name+'-poster.jpg'), quality=92)
         at = end
     chapter_vtt.extend([f'{stamp(scene["start"])} --> {stamp(scene["start"]+scene["duration"])}', scene['title'], ''])
     print(f'{i}: {scene["title"]} at {scene["start"]:.1f}s', flush=True)
 concat.append(f"file '{name}'")
 (args.output/'frames.txt').write_text('\n'.join(concat)+'\n', encoding='utf-8')
-(args.output/'first-install.vtt').write_text('\n'.join(vtt).rstrip()+'\n', encoding='utf-8')
-(args.output/'first-install-chapters.vtt').write_text('\n'.join(chapter_vtt).rstrip()+'\n', encoding='utf-8')
+(args.output/(args.name+'.vtt')).write_text('\n'.join(vtt).rstrip()+'\n', encoding='utf-8')
+(args.output/(args.name+'-chapters.vtt')).write_text('\n'.join(chapter_vtt).rstrip()+'\n', encoding='utf-8')
 duration = scenes[-1]['start']+scenes[-1]['duration']
-subprocess.run(['ffmpeg','-hide_banner','-loglevel','warning','-y','-f','concat','-safe','0','-i',str(args.output/'frames.txt'),'-t',str(duration),'-r','24','-an','-c:v','libx264','-threads','2','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-g','48','-movflags','+faststart',str(args.output/'first-install.mp4')], check=True)
+subprocess.run(['ffmpeg','-hide_banner','-loglevel','warning','-y','-f','concat','-safe','0','-i',str(args.output/'frames.txt'),'-t',str(duration),'-r','24','-an','-c:v','libx264','-threads','2','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-g','48','-movflags','+faststart',str(args.output/(args.name+'.mp4'))], check=True)
 print(f'COMPLETE: {duration:.1f}s, silent 1920x1080 / 24fps', flush=True)

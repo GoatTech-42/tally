@@ -36,7 +36,7 @@ public final class Tuning {
                 case MINUTES -> trim(value) + " min";
                 case SECONDS -> trim(value) + " s";
                 case BLOCKS -> trim(value) + " blocks";
-                case RATE -> trim(value) + "/h";
+                case RATE -> trim(value) + (key.equals("orders.bid_min_confidence")?"":"/h");
                 case FACTOR -> "x" + trim(value);
                 case TOGGLE -> value >= 0.5 ? "on" : "off";
                 case COUNT -> trim(value);
@@ -82,7 +82,7 @@ public final class Tuning {
                     + "spent on a small trade is a turn not spent on a large one (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("buy.max_open_per_market", "Buying", "Listings per market",
-                    "How many of one item and stack size may be up at once", 8, 1, 10, Kind.COUNT),
+                    "Maximum listings of one item and stack size. A higher cap permits more stock, but does not force buying or bypass total slots, pricing, budget, tier or ownership checks", 8, 1, 16, Kind.COUNT),
             new Setting("buy.reliability_rank", "Buying", "Concentrate on the reliable markets",
                     "Rank markets by how reliably a whole stack clears at a profit - margin times how sure the sale "
                     + "is times sustained volume, steadier markets first - and work the top few to their per-market cap "
