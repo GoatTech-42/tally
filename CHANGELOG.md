@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-23 02:19 UTC
+
+- **Release PR #251:** Include the Focused toggle in private numeric diagnostic snapshots.
+
+- Client artifact published October 22 at 19:19:39 Los Angeles time (02:19:39 UTC). Build 1792721834265; SHA256 `497fdd1878e38bebb397a9d2194d6e40ee608759ee541f7a34a909bc4dd55178`. Full production build: 1,530 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. Separate client publication after PR249.
+
+- PR249 introduced Focused trading, but its numeric on/off toggle was missing from the explicit report export allowlist. This follow-up lets diagnostic history, bug reports and hourly analysis observe that toggle. The regression failed before the fix and now passes; text item lists remain excluded. Trading behavior, saved item selections, spending limits and safety checks are unchanged.
+
 ## 2026-10-23 02:12 UTC
 
 - **Release PR #249:** Optional Focused trading and whole-stack quote refresh repair.
