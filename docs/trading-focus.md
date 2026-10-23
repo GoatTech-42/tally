@@ -1,6 +1,14 @@
 # Choosing trading items
 
-Use **Items → Include/Exclude** to choose eligible trading items, and **Track** to collect their market information. Tracking alone is not a purchase instruction. New buys, orders and targeted price lookups use the same Include/Exclude rules; there is no separate purchase-focus list in Settings. Price evidence, margins, demand, account ownership, stock, spending and safety limits still determine whether a trade is possible.
+Use **Items → Include/Exclude** to choose eligible trading items, and **Track** to collect their market information. Tracking alone is not a purchase instruction. Price evidence, margins, demand, account ownership, stock, spending and safety limits still determine whether a trade is possible.
+
+## Focus new buying while keeping broader observations
+
+In **Settings → Buying**, enable **Use trading focus** and set **Trading focus items** to the markets you want to prioritize for new purchases and bids. Use `=experience_bottle` for an exact item, with commas between items. Focus is off by default. An enabled empty focus buys nothing. Items exclusions and liquidation choices still take precedence.
+
+Focus narrows new buying only. Broader market observation, price checks and management of existing stock and orders continue under the existing rules. It does not automatically cancel orders, sell stock, expand spending limits or make a market tradeable without valid quotes and demand.
+
+Save your original configuration in **Presets** before changing it. You can save a narrower Focused preset and a broader Overnight preset, then switch manually. Turning focus off restores normal item selection. There is no automatic overnight schedule, learned profit ranking or shared universal best-items list; choose items using your own observed outcomes and acquisition/listing exposure. Zero sales without listing exposure does not establish poor demand. A short local trial does not establish a reliable profit improvement.
 
 ## Upgrading an existing setup
 

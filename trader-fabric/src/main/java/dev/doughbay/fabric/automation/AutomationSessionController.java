@@ -6146,7 +6146,7 @@ public final class AutomationSessionController {
         refreshStackTrack(now);
         for (MarketStats m : candidates) {
             if (free <= 0) break;
-            if (!chosen.add(m.itemKey())) continue;
+            if (chosen.contains(m.itemKey())) continue;
             RetailPricing.Plan retail = retailPlan(m.itemKey(), now, minimumProfit, minimumRoi);
             int per = m.bucket() == StackBucket.X64 ? 64 : m.bucket() == StackBucket.X16 ? 16 : 1;
             int full = fullStack(m.itemKey());
@@ -6348,6 +6348,9 @@ public final class AutomationSessionController {
             room -= cost;
             free--;
             placed++;
+            // Only a queued bid claims a market. A rejected single-price
+            // candidate must not block another lot or its needed stack quote.
+            chosen.add(m.itemKey());
             deskQueue.addLast(new DeskStep(DeskAction.PLACE, m.itemKey(), count, unit,
                     "bidding " + unit + " each for " + count + " " + m.itemKey()
                             + (shaped == OrderShape.Mode.SINGLES
