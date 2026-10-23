@@ -81,4 +81,10 @@ class DiagnosticHistoryTest {
         }
     }
 
+    @Test void reportTokenLifetimeUsesServerDurationWhenClocksDiffer(){
+        var h=history();var token=welcome().put("token","drt_"+"c".repeat(43)).put("issuedAt",9_000_000_000L).put("expiresAt",9_000_000_000L+86_400_000);
+        h.token(token,NOW);capture(h,NOW,"SCANNING");assertFalse(h.reportToken("fixture",true,NOW+1000).isEmpty());
+        assertEquals("",h.reportToken("fixture",true,NOW+86_400_000));
+    }
+
 }

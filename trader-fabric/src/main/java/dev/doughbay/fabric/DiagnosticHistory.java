@@ -27,7 +27,9 @@ public final class DiagnosticHistory {
     public synchronized void token(JsonNode frame,long now){
         if(!supported||!clientId.equals(frame.path("swarmClientId").asText()))return;
         String candidate=frame.path("token").asText();long expiry=frame.path("expiresAt").asLong();
-        if(candidate.matches("drt_[A-Za-z0-9_-]{32,128}")&&expiry>now&&expiry-now<=RETENTION_MS+600_000){ticket=candidate;expiresAt=expiry;}
+        long issued=frame.path("issuedAt").asLong();
+        long remaining=issued>0?expiry-issued:expiry-now;
+        if(candidate.matches("drt_[A-Za-z0-9_-]{32,128}")&&remaining>0&&remaining<=RETENTION_MS+600_000){ticket=candidate;expiresAt=now+Math.min(RETENTION_MS,remaining);}
     }
     /** Disconnect drops the report capability; retained unsent events can retry after a compatible welcome. */
     public synchronized void disconnected(){supported=false;ticket="";expiresAt=0;}
