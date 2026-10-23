@@ -32,7 +32,10 @@ public final class BugReportTransport {
         var request=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type","application/json").header("Idempotency-Key",key)
             .POST(HttpRequest.BodyPublishers.ofByteArray(frozenBody)).build();
-        var response=http.sendAsync(request,HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
+        HttpRequest outgoing=request;
+        try {var body=JSON.readTree(frozenBody);outgoing=SwarmReportLinks.attach(request,body.path("diagnosticLog").asText(),automaticCapabilities(),System.currentTimeMillis());}
+        catch(Exception ignored){} // Public reporting remains available if optional linkage is unavailable.
+        var response=http.sendAsync(outgoing,HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
         try(var stream=response.body()) {
             CompletableFuture.delayedExecutor(10,TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
             byte[] bytes=stream.readNBytes(16385);
@@ -147,7 +150,7 @@ public final class BugReportTransport {
                 return CompletableFuture.completedFuture(new Result(false,"Report service capabilities unavailable. Retry this prepared report later.","",0));
             if (payload.settingsCode() != null && !payload.settingsCode().isEmpty() && !advertisesSettingsSupport(capabilities))
                 return CompletableFuture.completedFuture(new Result(false,"Settings attachment support unavailable. Keep this prepared report and retry later.","",0));
-            return sendSupported(payload,key,"",diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"",relatedIssue);
+            return sendSupported(payload,key,"",diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"",relatedIssue,capabilities);
         });
     }
 
@@ -155,9 +158,10 @@ public final class BugReportTransport {
         return capabilities.path("relatedIssue").path("supported").asBoolean(false)
                 &&capabilities.path("relatedIssue").path("route").asText().equals("/v1/bugs/{issue}/evidence");
     }
-    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter,int relatedIssue) {
+    private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter,int relatedIssue,com.fasterxml.jackson.databind.JsonNode capabilities) {
         try {
-            return http.sendAsync(request(payload, key, token, diagnosticLog,reporter,relatedIssue), HttpResponse.BodyHandlers.ofInputStream())
+            var outgoing=SwarmReportLinks.attach(request(payload,key,token,diagnosticLog,reporter,relatedIssue),diagnosticLog,capabilities,System.currentTimeMillis());
+            return http.sendAsync(outgoing, HttpResponse.BodyHandlers.ofInputStream())
                 .thenApplyAsync(response -> {
                     try (var body = response.body()) {
                         CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {

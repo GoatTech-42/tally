@@ -53,7 +53,7 @@ public final class WebReports {
         if (draft != null) {
             root.put("id", draft.id); root.put("busy", draft.busy); root.put("note", draft.note);
             root.put("relatedIssue",draft.relatedIssue);
-            root.put("preview", draft.payload == null ? "" : (draft.relatedIssue>0?"Attach to existing bug #"+draft.relatedIssue+"; no new issue will be created.\n\n":"")+draft.payload.preview() + "\n\n" + BugReporterKey.NOTICE + "\n\nSanitized diagnostic excerpt:\n" + draft.log);
+            root.put("preview", draft.payload == null ? "" : (draft.relatedIssue>0?"Attach to existing bug #"+draft.relatedIssue+"; no new issue will be created.\n\n":"")+draft.payload.preview() + "\n\n" + BugReporterKey.NOTICE + "\n" + SwarmReportLinks.NOTICE + "\n\nSanitized diagnostic excerpt:\n" + draft.log);
             root.put("issueUrl", draft.url); root.put("retryAt", draft.retryAt);
         }
         return root.toString();

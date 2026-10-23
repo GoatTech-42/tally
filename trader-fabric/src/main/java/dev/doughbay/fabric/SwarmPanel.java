@@ -113,6 +113,7 @@ final class SwarmPanel {
         row=paragraph(g,font,"Startup history: "+swarm.path("warmup").path("status").asText("Local collection"),row,UiTheme.SECONDARY);
         row=paragraph(g,font,"More eyes on the market. Your bot contributes observations to a shared database and uses other bots' recent prices, order levels and follow activity to find markets worth checking sooner.",row,UiTheme.TEXT);
         row=paragraph(g,font,"Less startup reading. A thin keyless database can use fresh shared completed-sale history when enough distinct observations cover a market. Missing coverage falls back to local collection. Your bot still checks live prices, its own orders and inventory before trading. Profit is not guaranteed.",row,UiTheme.SECONDARY);
+        row=paragraph(g,font,"Swarm sharing also sends sanitized mod diagnostics and numeric settings for a rolling 24-hour private support history, linked automatically to reports. This history excludes usernames, chat and secrets. Disconnecting Swarm stops new uploads.",row,UiTheme.MUTED);
         row=paragraph(g,font,"Linking enables remote control and Swarm contribution. Shared observations can include public market-player names and payment parties. Keep the five-minute pairing code private. One bot is enough; local Hive setup is optional.",row,UiTheme.MUTED);
         contentHeight=row-y+8;g.disableScissor();
         if(maxScroll()>0)g.text(font,scroll<maxScroll()?"Scroll for benefits, connection details & Swarm stats":"Scroll up for linking controls",x+8,bottom+3,UiTheme.MUTED);
