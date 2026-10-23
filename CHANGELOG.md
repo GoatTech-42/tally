@@ -1,5 +1,15 @@
 # GoNuts changelog
 
+## 2026-10-23 22:35 UTC
+
+- **Release PR #270: Simple / Advanced settings, clearer navigation and account-specific order reporting.**
+- Client artifact published October 23 at **15:35:51 Los Angeles time (22:35:51 UTC)**. Build `1792794472237`; SHA256 `3f6a43699b6141e2d4d54666e3c735e44fe4ae7c66c58c3fcaa9152233166570`. Full production build: **1,585 tests, zero failures/errors, two skipped**. Production entrypoint only; no preview/smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate client binary after PR268.
+- PR270 merge `002e42ab3fa76fa3b79a9952ea62316537736669`. Source ZIP is the exact tested PR head `57bd4b32d3bf9d748ba05f2f4e0ce694fdc114ff`, whose tree matches that merge; SHA256 `419bfc5e45b8f6053ac532ac9155847da589539b3fae005677d437008b0805da`, published 22:35:54 UTC. This publication-record update is documentation only.
+- Five aligned workspaces replace the tab wall. Simple settings groups four core controls with exact before/after previews; unmatched custom values stay preserved. Switching views changes no settings. Advanced keeps individual controls in searchable categories. Shared explanations show consequences in native, local and hosted panels. Independent in-game scaling and compact-window controls were visually checked without joining a world or arming trading.
+- Money keeps its existing auction/profit layout and adds unfilled orders, committed order funds, delivered goods awaiting collection and observed filled orders per hour/day. Orders and summary figures follow the selected account; All accounts combines the Hive. Capacity sums each account's own limit, so three 90-slot accounts show 270. Missing/stale observations remain unknown or partial. Completion history starts with this update, deduplicates reads/restarts and does not reconstruct offline activity or count filled orders as sales/profit.
+- The supported Listings per market maximum expands from 10 to 16; its default remains 8. Existing configurations, spending/exposure limits, tiers, native ownership checks, order batch sizing and Reserve Stock behavior are preserved. Live bots were not upgraded/restarted or assigned a new limit by publishing this update; old clients still clamp this setting at 10.
+- Refreshed in-game tutorials, setup entry point (**Settings → Help & setup**), handbook, GitHub guides, screenshots, install video, Hive video and Discord video match the current UI. The hosted relay compatibility update preserves authentication/CSRF and passed desktop/phone fixture checks. Required private diagnostics from PR268 remain included.
+
 ## 2026-10-23 21:40 UTC
 
 - **Release PR #268: Required private diagnostic history across clients and restarts.**
