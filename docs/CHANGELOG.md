@@ -1,9 +1,13 @@
 # GoNuts changelog
 
-## Unreleased - Focused trading
+## 2026-10-23 02:12 UTC
 
-- Added an optional, default-off trading focus for new purchases and bids. A narrower item list can retain broader market observations and management of existing stock and orders. Save presets for manual Original, Focused and Overnight selection; no automatic profit ranking or schedule. Existing caps, exclusions, ownership and safety gates remain authoritative.
-- A rejected single-item bid candidate no longer prevents a whole-stack quote refresh for that market. This restores quote acquisition without allowing a bid on insufficient price evidence.
+- **Release PR #249:** Optional Focused trading and whole-stack quote refresh repair.
+
+- Client artifact published October 22 at 19:12:38 Los Angeles time (02:12:38 UTC). Build 1792721417585; SHA256 `52311e25e3aff819075d4266e0cc556b7acda69578f3413e81c33e62a05dd904`. Full production build: 1,529 tests, zero failures/errors, one skipped. Public client, source and checksum manifest independently downloaded and verified. This is a separate client publication after PR247.
+
+- In Settings → Buying, Use trading focus narrows new purchases and bids to Trading focus items. It is off by default; an enabled empty list buys nothing. Broader observations, existing-stock and order management, Items exclusions, ownership, caps and safety gates remain in force. Saved presets allow manual Original, Focused and Overnight selections. This is not automatic profit ranking or an overnight scheduler, and no profit uplift is promised.
+- A rejected single-item bid candidate no longer prevents its market’s whole-stack quote refresh; insufficient price evidence still refuses the bid. Latest private Swarm diagnostics are retained, with backend validation updated for the numeric Focused toggle. Text item lists remain excluded from shared settings snapshots.
 
 ## 2026-10-23 01:50 UTC
 
