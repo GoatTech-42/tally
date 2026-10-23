@@ -29,6 +29,15 @@ class DiagnosticHistoryTest {
         h.acknowledge(ack.deepCopy().put("sessionId","other"));assertNotNull(h.batch("fixture",true,NOW));
         h.acknowledge(ack);assertNull(h.batch("fixture",true,NOW));
     }
+    @Test void newerGameThreadCaptureSurvivesAnOlderWorkerTimestamp(){
+        var h=history();capture(h,NOW+10,"SCANNING");
+        // The worker captured its clock before the game thread queued this event.
+        assertNull(h.batch("fixture",true,NOW));
+        assertEquals(0,h.droppedEvents());
+        var batch=h.batch("fixture",true,NOW+20);assertNotNull(batch);
+        assertEquals(1,batch.path("events").get(0).path("sequence").asLong());
+        assertEquals(NOW+10,batch.path("events").get(0).path("observedAt").asLong());
+    }
     @Test void excludesFreeTextUnknownFieldsDuplicatesAndCredentials(){
         String safe=DiagnosticHistory.sanitizeContext("[CHAT] private-user: secret\nctx password=secret\nctx state=BUYING\nctx state=SCANNING\nctx fault_type=secret\nctx armed=true\nctx armed=anything\n/home/private Bearer SECRET");
         assertEquals("ctx state=BUYING\nctx armed=true\n",safe);
