@@ -36,6 +36,15 @@ last problem for each subsystem before filling remaining space with recent
 decisions. It holds 2,048 process-local records and selects at most 64 per report.
 Identical recurring decisions within a minute do not flood this journal.
 
+Order sizing also keeps a separate bounded latest-per-market projection (96
+records, 15-minute lifetime). Up to 24 of these records are reserved after the
+cross-subsystem baseline, with final order plans prioritized before sizing inputs.
+This prevents a burst of rejected candidates or driver phases from crowding an
+accepted order's explanation out of the ring and attachment. Original timestamps
+remain visible; a retained plan is evidence of that decision, not proof that a
+later decision or the reported behavior was correct. Total attachment limits and
+omission/eviction counters still apply.
+
 The `cov` line states capture time, first/last selected timestamps, selected and
 omitted records, ring evictions, and attachment-history lines removed for limits.
 This distinguishes a useful sample from a complete incident history. The existing

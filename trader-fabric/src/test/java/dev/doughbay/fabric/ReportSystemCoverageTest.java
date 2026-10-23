@@ -5,6 +5,30 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReportSystemCoverageTest {
+    @Test void sizingInputsSurviveReport260StyleRejectionAndDriverFlood() {
+        var trace=new DecisionTrace();long at=1_790_000_000_000L;
+        trace.record(ActionTrace.Scope.DESK,ActionTrace.Event.OBSERVATION,DecisionTrace.Code.ORDER_DEPTH,
+                DecisionTrace.Reason.DEPTH_CAP,"minecraft:cooked_beef",16,3,3317,200000000,at++);
+        trace.record(ActionTrace.Scope.DESK,ActionTrace.Event.OBSERVATION,DecisionTrace.Code.ORDER_SALES,
+                DecisionTrace.Reason.ADAPTIVE_BATCH,"minecraft:cooked_beef",16,1,0,1,at++);
+        trace.record(ActionTrace.Scope.DESK,ActionTrace.Event.REQUEST,DecisionTrace.Code.ORDER_PLAN,
+                DecisionTrace.Reason.SINGLE_ALLOTMENT,"minecraft:cooked_beef",1024,1,3317,200000000,at++);
+        for(int i=0;i<3000;i++) {
+            trace.record(ActionTrace.Scope.DESK,ActionTrace.Event.REFUSED,DecisionGate.GATE_ABOVE_WHAT_IT_REALLY_TRADES_AT,
+                    DecisionTrace.Reason.UNCLASSIFIED,i%2==0?"minecraft:beacon":"minecraft:diamond_block",1024,0,-1,-1,at++);
+            trace.record(ActionTrace.Scope.DRIVER,ActionTrace.Event.PHASE,ActionTrace.Code.API,
+                    DecisionTrace.Reason.NONE,"minecraft:obsidian",-1,i%2,2800,5482,at++);
+        }
+        String report=BugReportEvidence.assemble(CONTEXT,BugReportLog.UNAVAILABLE,trace,
+                ReportTopic.infer("Bot stuck on buying beacons","Dosent make orders"),at);
+        assertTrue(report.contains("code=ORDER_PLAN reason=SINGLE_ALLOTMENT market=minecraft:cooked_beef requested=1024 selected=1"));
+        assertTrue(report.contains("code=ORDER_DEPTH"));assertTrue(report.contains("code=ORDER_SALES"));
+        assertTrue(report.getBytes(StandardCharsets.UTF_8).length<=BugReportLog.MAX_BYTES);
+        assertTrue(AutomaticReportOutbox.validExcerpt(report));
+        // Pinned decisions retain their real timestamps and expire; an old plan
+        // must not be presented as current evidence indefinitely.
+        assertFalse(trace.report(at+16*60_000L,ReportTopic.FLIPS,11000).contains("code=ORDER_PLAN"));
+    }
     private static final String CONTEXT="Controller context (fixed keys, no identities)\nctx state=BUYING\nctx driver_action=BUY\n";
     private void event(DecisionTrace trace,ActionTrace.Scope scope,long at){
         trace.record(scope,ActionTrace.Event.REFUSED,ActionTrace.Code.API,DecisionTrace.Reason.IO_FAILURE,"NONE",-1,-1,-1,-1,at);
@@ -65,3 +89,4 @@ class ReportSystemCoverageTest {
         }finally{Tuning.set("orders.bid_stacks",before);}
     }
 }
+
