@@ -345,12 +345,12 @@ public final class StatsImage {
         if (page.gridTotal() > 0) {
             g.setFont(small);
             g.setColor(DIM);
-            g.drawString("Auction slots " + page.gridUsed() + " / " + page.gridTotal(), 28, y + 12);
+            g.drawString("Auction slots " + (page.gridUsed()<0?"unknown":page.gridUsed()) + " / " + page.gridTotal(), 28, y + 12);
             y += 20;
             for (int i = 0; i < page.gridTotal(); i++) {
                 int cx = 28 + (i % 30) * 14;
                 int cy = y + (i / 30) * 14;
-                g.setColor(i < page.gridUsed() ? SLOT_ON : SLOT_OFF);
+                g.setColor(page.gridUsed()<0?new Color(77,69,42):i < page.gridUsed() ? SLOT_ON : SLOT_OFF);
                 g.fillRoundRect(cx, cy, 11, 11, 3, 3);
             }
             y += 14 * ((page.gridTotal() + 29) / 30) + 8;

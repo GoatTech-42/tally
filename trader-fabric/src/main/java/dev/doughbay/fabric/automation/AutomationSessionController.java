@@ -4023,6 +4023,11 @@ public final class AutomationSessionController {
      * the ledger can assemble, because the ledger is what the audit exists to
      * correct.
      */
+    public synchronized dev.doughbay.fabric.AuctionOccupancy.Report auctionOccupancyReport(String account) {
+        return new dev.doughbay.fabric.AuctionOccupancy.Report(account,System.currentTimeMillis(),
+                (int)dev.doughbay.fabric.Tuning.get("slots.max"),serverListedSlots(),serverListedAt);
+    }
+
     public synchronized int serverListedSlots() {
         if (serverListedAt <= 0 || System.currentTimeMillis() - serverListedAt > 10 * 60_000L) return -1;
         // The audit is a photograph, and between two of them stock sells and
@@ -4385,6 +4390,8 @@ public final class AutomationSessionController {
     /** Collected counts per order key (item|price|requested), kept on disk: completed orders linger for months. */
     private final java.util.Map<String, Integer> collectedByKey = new java.util.HashMap<>();
     private final java.util.Map<String, Integer> collectAttempts = new java.util.HashMap<>();
+    private final java.util.Map<String,Integer> collectionDeliveryEvidence = new java.util.HashMap<>();
+    private long collectionDeliveryEvidenceAt;
     private final java.util.Set<String> fillNoticed = new java.util.HashSet<>();
     private java.nio.file.Path collectedStore;
     private final RetailOrderPlans retailOrders = new RetailOrderPlans();
@@ -5822,6 +5829,22 @@ public final class AutomationSessionController {
             String k = orderKey(r.itemId(), r.unitPrice(), r.requested());
             deliveredByKey.merge(k, r.delivered(), Integer::sum);
             if (r.remaining() == 0) completeByKey.put(k, true);
+        }
+        // A failed old collection is not evidence about goods delivered later.
+        // Only a newer complete native book may release the attempt/rest budget;
+        // rereading unchanged history or replaying a quote must not create a loop.
+        if (ownOrdersComplete && ownOrdersReadAt > collectionDeliveryEvidenceAt) {
+            collectAttempts.keySet().removeIf(key -> !deliveredByKey.containsKey(key));
+            for (var e : deliveredByKey.entrySet()) {
+                Integer before=collectionDeliveryEvidence.get(e.getKey());
+                if (before!=null && e.getValue()>before) {
+                    collectAttempts.remove(e.getKey());
+                    partStackAt.remove(e.getKey());
+                }
+            }
+            collectionDeliveryEvidence.clear();
+            collectionDeliveryEvidence.putAll(deliveredByKey);
+            collectionDeliveryEvidenceAt=ownOrdersReadAt;
         }
         java.util.Set<String> collectQueued = new java.util.HashSet<>();
         java.util.Map<String, Integer> fillSum = new java.util.HashMap<>();

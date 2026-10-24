@@ -77,6 +77,7 @@ public final class OrderMetrics {
     public static void publish(dev.doughbay.fabric.automation.AutomationSessionController controller) throws Exception {
         var metrics = active; if (metrics == null || !metrics.writable) return;
         Report report = controller.orderMetricsReport(metrics);
+        AuctionOccupancy.publish(metrics.file.getParent().getParent(),controller.auctionOccupancyReport(metrics.account));
         Files.createDirectories(metrics.file.getParent());
         Path temp = Files.createTempFile(metrics.file.getParent(), "orders-", ".tmp");
         try { Files.write(temp, JSON.writeValueAsBytes(report));
