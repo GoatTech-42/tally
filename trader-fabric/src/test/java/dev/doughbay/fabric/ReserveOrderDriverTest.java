@@ -3,6 +3,18 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class ReserveOrderDriverTest {
+    @Test void finishedOrderCanDrainItsLastPartialStackWithinTheCollectionBudget() {
+        assertTrue(AutomatedExecutionDriver.collectionStackFits(0, 61, 64, 128, true));
+        assertTrue(AutomatedExecutionDriver.collectionStackFits(64, 2, 64, 128, true));
+        assertTrue(AutomatedExecutionDriver.collectionStackFits(0, 7, 16, 16, true));
+    }
+    @Test void finishedTailDoesNotBypassBudgetOrPermitPartialCollectFromAnUnfinishedOrder() {
+        assertFalse(AutomatedExecutionDriver.collectionStackFits(0, 61, 64, 128, false));
+        assertFalse(AutomatedExecutionDriver.collectionStackFits(100, 61, 64, 128, true));
+        assertFalse(AutomatedExecutionDriver.collectionStackFits(-1, 2, 64, 128, true));
+        assertFalse(AutomatedExecutionDriver.collectionStackFits(0, 0, 64, 128, true));
+        assertFalse(AutomatedExecutionDriver.collectionStackFits(0, 65, 64, 128, true));
+    }
     @Test void shelfCollectionStopsAtRequestedWholeStackCountAndLegacyCollectionStaysUnbounded() {
         assertTrue(AutomatedExecutionDriver.collectionStackFits(0,64,64,128));
         assertTrue(AutomatedExecutionDriver.collectionStackFits(64,64,64,128));
