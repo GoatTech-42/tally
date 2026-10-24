@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-24 00:27 UTC
+
+- **Release PR #276: Fast cached reporting tabs and background image rendering.**
+- Client artifact published October 23 at **17:27:47 Los Angeles time (October 24 00:27:47 UTC)**. Build `1792801410334`; SHA256 `aef6aca52989c3160110f00d5473a7b1ab7052cbdb8eb2d4fc3feaf76cda4061`. Clean production build: **1,594 tests, zero failures/errors, two skipped**. Production entrypoint only; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR274.
+- PR276 merge `1d263cdc719b7418c242742ebec48a64bbc0ae2c`. Source ZIP is tested PR head `ccba08ed99a51c80b85cc5f870c49ba28c403b06`; SHA256 `f8c3e9d0be297f2c5f8f9a5688594e4af08dfe4058b61c578a94033f6930cb89`, published 00:27:50 UTC. This publication-record update is documentation only.
+- Reporting tabs keep separate images and readable summaries per selected account in memory. Returning to a cached tab shows its last successful frame immediately, with an update age; current controls load from fresh state. Common reporting views warm one at a time in the background. Cold/evicted views still need their initial render; inactive tabs are staggered rather than promising every image is two seconds old.
+- Native status reads no longer compute the full financial report inline. A bounded background renderer snapshots reporting views without selecting another page/account or holding the live panel navigation monitor during image encoding. Existing authenticated data routes carry bounded data-URI PNG previews. Status polling is single-flight, obsolete navigation is skipped and late replies cannot replace a newer account or tab. Failed rendering retains its last frame and original age; memory use is bounded.
+- The complete Money summary image remains first with readable text below. Settings forms and command controls are never restored from cached reporting frames. No trading settings, sizing, guards, positions or diagnostic policy changed. New regressions verify slow-render behavior, isolation, failure retention, eviction, preserved selection and concurrent polling; the 390px served phone preview showed cached Orders/Money before their controls refreshed. This improves request isolation but does not claim the exact earlier intermittent timeout cause was proven.
+
 ## 2026-10-23 23:51 UTC
 
 - **Release PR #274: Complete Money summary image first, readable details below.**
