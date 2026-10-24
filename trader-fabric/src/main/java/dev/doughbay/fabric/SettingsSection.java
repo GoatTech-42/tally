@@ -17,7 +17,7 @@ public enum SettingsSection {
     public boolean includes(String key,String group){return this==ALL||of(key,group)==this;}
     /** Common controls come first; storage order and existing values are untouched. */
     public static int priority(String key){
-        var first=java.util.List.of("orders.enabled","orders.bid","orders.bid_slots","orders.bid_stacks","orders.size_by_sale","orders.depth_share_pct","orders.bid_min_samples","orders.bid_on_real_trades","orders.collect","orders.collect_whole_stacks","orders.chase","orders.reserve_stock","buy.focus","buy.focus_items","watch.tracked","items.allow","items.deny","buy.scale_with_bank","buy.purchase_cap_pct","buy.outstanding_cap_pct");
+        var first=java.util.List.of("orders.enabled","orders.bid","orders.bid_slots","orders.bid_stacks","orders.size_by_sale","orders.depth_share_pct","orders.bid_min_samples","orders.bid_on_real_trades","orders.collect","orders.collect_whole_stacks","orders.chase","orders.reserve_stock","orders.reserve_batches","orders.reserve_stacks","buy.focus","buy.focus_items","watch.tracked","items.allow","items.deny","buy.scale_with_bank","buy.purchase_cap_pct","buy.outstanding_cap_pct");
         int index=first.indexOf(key);return index<0?100:index;
     }
     public static String group(String key,String original){

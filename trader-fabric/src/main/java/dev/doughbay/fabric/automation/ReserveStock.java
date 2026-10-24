@@ -53,8 +53,16 @@ final class ReserveStock {
     static String key(OwnOrderRow r) { return r.itemId()+"|"+r.unitPrice()+"|"+r.requested(); }
 
     static boolean mayPlace(Book book, long heldUnits, int batchUnits) {
-        if (!book.valid() || heldUnits < 0 || batchUnits <= 0) return false;
-        return book.batches() < 2 && heldUnits+book.units()+batchUnits <= 2L*batchUnits;
+        return mayPlace(book,heldUnits,batchUnits,2);
+    }
+
+    static boolean mayPlace(Book book, long heldUnits, int batchUnits, int maxBatches) {
+        if (!book.valid() || heldUnits < 0 || batchUnits <= 0 || maxBatches < 1 || maxBatches > 90
+                || book.batches() < 0 || book.units() < 0) return false;
+        long capacity = (long)maxBatches*batchUnits;
+        // Subtraction avoids overflow from corrupt quantities; never erase existing exposure when a limit falls.
+        return book.batches() < maxBatches && heldUnits <= capacity
+                && book.units() <= capacity-heldUnits && batchUnits <= capacity-heldUnits-book.units();
     }
 
     /** Only whole stacks that fit the shelf and available auction/inventory slots are collected. */

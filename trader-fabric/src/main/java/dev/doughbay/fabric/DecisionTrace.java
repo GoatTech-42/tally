@@ -121,7 +121,7 @@ public final class DecisionTrace {
             case "over the buy cap","no whole stack fits the caps","one whole stack exceeds the buy cap" -> Reason.BUY_CAP;
             case "no room left" -> Reason.SPEND_CAP;
             case "market already at its listing cap","single slots still full" -> Reason.LISTING_CAP;
-            case "thinner than one stack","full reserve batch waits for caps/depth" -> Reason.DEPTH_CAP;
+            case "thinner than one stack","full reserve batch waits for caps/depth","combined orders exceed market depth" -> Reason.DEPTH_CAP;
             case "retail needs a standing bid" -> Reason.NO_STANDING_BID;
             default -> Reason.UNCLASSIFIED;
         };

@@ -5,6 +5,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReportSystemCoverageTest {
+    @Test void bundledReasonContractMatchesTheActualClosedReasonEnum() throws Exception {
+        try(var in=DecisionTrace.class.getResourceAsStream("/report-decision-contract.json")) {
+            var json=new com.fasterxml.jackson.databind.ObjectMapper().readTree(in);
+            var declared=new java.util.TreeSet<String>();json.path("decisionReasons").forEach(v->declared.add(v.asText()));
+            var actual=new java.util.TreeSet<String>();for(var reason:DecisionTrace.Reason.values())actual.add(reason.name());
+            assertEquals(actual,declared);
+        }
+    }
     @Test void sizingInputsSurviveReport260StyleRejectionAndDriverFlood() {
         var trace=new DecisionTrace();long at=1_790_000_000_000L;
         trace.record(ActionTrace.Scope.DESK,ActionTrace.Event.OBSERVATION,DecisionTrace.Code.ORDER_DEPTH,
@@ -87,6 +95,16 @@ class ReportSystemCoverageTest {
             assertTrue(report.contains("code=SET_ORDERS_BID_STACKS"));assertTrue(report.contains("price=1000"));
             assertFalse(report.contains("webhook"));
         }finally{Tuning.set("orders.bid_stacks",before);}
+    }
+    @Test void separateOrderLimitHasAnExplicitClosedChangeToken() {
+        var trace=new DecisionTrace();double before=Tuning.get("orders.max_per_market");
+        try {
+            Tuning.set("orders.max_per_market",0);trace.observeSettings(1000);
+            Tuning.set("orders.max_per_market",2);trace.observeSettings(2100);
+            String report=trace.report(2200,ReportTopic.GENERAL,11000);
+            assertTrue(report.contains("code=SET_ORDERS_MAX_PER_MARKET"));
+            assertTrue(report.contains("selected=2000"));
+        } finally {Tuning.set("orders.max_per_market",before);}
     }
 }
 

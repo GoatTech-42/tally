@@ -1154,12 +1154,21 @@ public class DoughBayClient implements ClientModInitializer {
                 client.stop();
                 return;
             }
+            if(lines.stream().anyMatch(line->line.strip().equalsIgnoreCase(NativeOrderEvidence.COMMAND))) {
+                NativeOrderEvidence.request();
+                AUTOMATION_SESSION.requestOwnOrderInspectionRead();
+                if(lines.stream().allMatch(line->line.isBlank()||line.startsWith("#")||line.strip().equalsIgnoreCase(NativeOrderEvidence.COMMAND))) {
+                    java.nio.file.Files.delete(file);
+                    return;
+                }
+            }
             // Commands for the server wait in the file until there is a server to send them to.
             if (client.getConnection() == null) return;
             java.nio.file.Files.delete(file);
             for (String raw : lines) {
                 String command = raw.strip();
                 if (command.isEmpty() || command.startsWith("#")) continue;
+                if(command.equalsIgnoreCase(NativeOrderEvidence.COMMAND)) continue;
                 if (command.startsWith("/")) command = command.substring(1);
                 LOGGER.warn("DoughBay: sending a command posted from outside the game: /{}", command);
                 EXECUTION_DRIVER.sendWhenClear(client, command);

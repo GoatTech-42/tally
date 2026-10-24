@@ -846,13 +846,21 @@ public final class Tuning {
                     + "what the market actually clears. 100 disables it and uses the stack count alone",
                     5, 1, 100, Kind.PERCENT),
             new Setting("orders.reserve_stock", "Orders", "Reserve Stock",
-                    "Keep one stack batch selling and a second buy order filling or waiting uncollected. "
+                    "Keep one stack batch selling and the remaining configured buy-order batches filling or waiting uncollected. "
                     + "As whole stacks sell, collect only enough to refill the selling shelf; leave the rest on the order. "
                     + "Uses whole stacks and order-house buying for automatic markets; manual Flips keep their own rules. Uncollected stock "
                     + "counts against spending caps. Off by default (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("orders.max_per_market", "Orders", "Buy orders per item",
+                    "How many separate automatic buy orders one item may have per account. "
+                    + "2 permits a second separate order; it does not double the quantity of one order. "
+                    + "0 preserves automatic defaults: one normal order, or two Reserve Stock purchases per cycle. "
+                    + "Filled orders still awaiting collection count. Existing orders are retained when this is lowered. "
+                    + "Stacks per bid, account capacity, shared depth, spending and live-price checks still apply. "
+                    + "Manual Flips keep their own rules",
+                    0, 0, 90, Kind.COUNT),
             new Setting("orders.reserve_stacks", "Orders", "Reserve batch stacks",
-                    "Whole stacks in each Reserve Stock batch, limited by Stacks per bid. Two batches maximum per market, "
-                    + "including selling stock. Buy the next pair only after the shelf and both orders are empty. A full batch must fit existing spending and market-depth limits or it waits. "
+                    "Whole stacks in each Reserve Stock batch, limited by Stacks per bid. Buy orders per item controls the batch count, "
+                    + "including selling stock. Buy the next cycle only after the shelf and its orders are empty. A full batch must fit existing spending and market-depth limits or it waits. "
                     + "Turning Reserve Stock off returns to normal collection without deleting any orders", 12, 1, 15, Kind.COUNT),
             new Setting("orders.bid_stacks", "Orders", "Stacks per bid",
                     "The most stacks one bid may ask for. Each order is sized under this from the market's "

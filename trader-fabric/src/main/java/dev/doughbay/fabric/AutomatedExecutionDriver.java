@@ -751,6 +751,27 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private List<OwnOrderRow> lastOwnOrders = List.of();
+    private boolean lastOwnOrdersComplete;
+    private final OwnOrderPages ownPages=new OwnOrderPages();
+    private boolean ownPageAccepted;
+    private int ownMatchOffset;
+    private int collectExpectedMatchingRows;
+    private List<OwnOrderRow> lastCompleteOwnOrders=List.of();
+    private static boolean multipleOwnOrders(){return Tuning.get("orders.max_per_market")>1;}
+    private int cancelMatchingBefore;
+    private OwnOrderRow lastCancelledOrder;
+
+    public synchronized OwnOrderRow lastCancelledOrder() { return lastCancelledOrder; }
+    public synchronized boolean lastOwnOrdersComplete() { return lastOwnOrdersComplete; }
+
+    static boolean completeOwnOrderPage(int rows, boolean unparsed, boolean navigation, String title) {
+        return rows < 45 && !unparsed && !navigation
+                && !Pattern.compile("(?i)page\\s*(?:[2-9][0-9]*|1[0-9]+)").matcher(title).find();
+    }
+
+    static boolean cancellationObserved(int before, int after, boolean receipt) {
+        return before > 0 && (after == before - 1 || receipt);
+    }
     /** A native page with the active placed order; null for receipt/completed-only success. */
     private List<OwnOrderRow> lastPlacementOrders;
     private int ownStage;
@@ -815,6 +836,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (unavailable != null) {
             return ExecutionResult.refused(unavailable);
         }
+        if(multipleOwnOrders() && !client.player.containerMenu.getCarried().isEmpty())
+            return ExecutionResult.refused("Own-order page navigation waits for an empty cursor");
         opportunity = null;
         operation = op;
         targetListingKey = op.name().toLowerCase(Locale.ROOT) + ":" + (itemId == null ? "" : itemId) + ":" + unitPrice;
@@ -854,6 +877,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownTargetUnitPrice = unitPrice;
         ownMatchOrdinal = 0;
         ownMatchRequested = 0;
+        ownPages.reset();ownPageAccepted=false;ownMatchOffset=0;
+        collectExpectedMatchingRows=0;
+        cancelMatchingBefore=-1;
+        lastCancelledOrder=null;
         collectTriedOrdinals.clear();
         collectMatchingRows = 0;
         collectRowsExhausted = false;
@@ -870,7 +897,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // The page left under an order's dialogs is only tried for another
         // order, where a dialog opening proves it is live; reading, collecting
         // and cancelling want a page known to be current.
-        boolean kept = oneTrip() && holdsOrdersPage(client);
+        // A complete read leaves the final page open; searches must start at the native first page.
+        boolean kept = !multipleOwnOrders() && oneTrip() && holdsOrdersPage(client);
         boolean underDialogs = keptUnderDialogs;
         keptOrdersContainerId = -1;
         keptUnderDialogs = false;
@@ -886,6 +914,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.awaitingPlayer(lastMessage);
         }
         try {
+            if(multipleOwnOrders())client.player.closeContainer();
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
@@ -960,6 +989,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             collectFinishedOnly = finishedOnly;
             collectMaximumUnits = maximumUnits;
             ownTargetFinished = false;
+            if(multipleOwnOrders())collectExpectedMatchingRows=(int)lastCompleteOwnOrders.stream()
+                    .filter(r->matchesOwnOrder(r,itemId,unitPrice,requested)&&collectionReady(r,finishedOnly)).count();
         }
         return result;
     }
@@ -986,7 +1017,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** Identical rows may reorder; pooled credits suggest a start, never prove which row still has physical goods. */
     static int nextCollectOrdinal(int current, int matching, java.util.Set<Integer> tried, int clicks, int inventoryDelta) {
         if (clicks != 0 || inventoryDelta != 0) return -1;
-        if (matching < 1 || matching > 45 || current < 0 || current >= matching) return -1;
+        if (matching < 1 || matching > 90 || current < 0 || current >= matching) return -1;
         for (int i=1;i<matching;i++) {
             int candidate=(current+i)%matching;
             if (!tried.contains(candidate)) return candidate;
@@ -1005,6 +1036,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return false;
         }
         ownMatchOrdinal=next;
+        ownPages.reset();ownPageAccepted=false;ownMatchOffset=0;
         ownStage=0;
         ownDone=false;
         ownSettleUntilTick=0;
@@ -1048,8 +1080,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice) {
-        return beginOwnOrdersOperation(Operation.CANCEL_ORDER, itemId, 0, unitPrice,
+        return cancelOrder(itemId,unitPrice,0);
+    }
+
+    public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice, int requested) {
+        ExecutionResult result=beginOwnOrdersOperation(Operation.CANCEL_ORDER,itemId,0,unitPrice,
                 "Cancelling your bid on " + shortName(itemId));
+        if(result.ok()) ownMatchRequested=Math.max(0,requested);
+        return result;
     }
 
     /** The Edit Order page offered Collect where the cancel would be: the order has a fill waiting. */
@@ -1290,7 +1328,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
             int matchSlot = -1;
-            int matchesSeen = 0;
+            OwnOrderRow selectedRow = null;
+            int matchesSeen = ownMatchOffset;
             int emptySlot = -1;
             for (int menuSlot = 0; menuSlot < Math.min(45, container.getMenu().slots.size()); menuSlot++) {
                 Slot slot = container.getMenu().slots.get(menuSlot);
@@ -1302,15 +1341,21 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 OwnOrderRow row = parseOwnOrder(client, stack);
                 if (row == null) {
-                    if (menuSlot < 45) unparsed.add(stack.getHoverName().getString() + " [" + String.join(" | ", tooltipLines(client, stack)) + "]");
+                    String controlName=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT);
+                    if (!java.util.Set.of("new order","create order","place order","no orders","no orders found",
+                            "no orders available","no orders to show","nothing here","empty page").contains(controlName))
+                        unparsed.add(stack.getHoverName().getString() + " [" + String.join(" | ", tooltipLines(client, stack)) + "]");
                     continue;
                 }
                 rows.add(row);
+                if(multipleOwnOrders() && row.requested()>=1000)
+                    unparsed.add("Native order quantity exceeds exact-count support");
                 if (matchesOwnOrder(row, targetItemId, ownTargetUnitPrice, ownMatchRequested,
                         operation == Operation.CANCEL_ORDER)
                         && (operation != Operation.COLLECT_ORDER || collectionReady(row,collectFinishedOnly))) {
                     if (matchSlot < 0 && matchesSeen == ownMatchOrdinal) {
                         matchSlot = menuSlot;
+                        selectedRow = row;
                         ownTargetTooltip = List.copyOf(tooltipLines(client, stack));
                         ownTargetFinished = row.remaining() == 0 || row.alreadyCancelled();
                     }
@@ -1318,7 +1363,43 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             lastOwnOrders = List.copyOf(rows);
-            if (operation == Operation.COLLECT_ORDER) collectMatchingRows=matchesSeen;
+            NativeOrderEvidence.captureIfRequested(client,container);
+            boolean navigation=false;
+            for(String control:new String[]{"next page","previous page","prev page"}) {
+                if(findControl(container,inventory,control,45,54)>=0) navigation=true;
+            }
+            lastOwnOrdersComplete=completeOwnOrderPage(rows.size(),!unparsed.isEmpty(),navigation,title);
+            int nextOwnPage=findControl(container,inventory,"next page",45,54);
+            if(multipleOwnOrders() && ownStage==1 && !ownDone) {
+                boolean controlsReady=false;
+                for(int i=45;i<Math.min(54,container.getMenu().slots.size());i++)
+                    if(container.getMenu().slots.get(i).container!=inventory&&!container.getMenu().slots.get(i).getItem().isEmpty())controlsReady=true;
+                var turn=ownPages.observe(container.getMenu().containerId,OwnOrderPages.fingerprint(rows),controlsReady,System.currentTimeMillis());
+                if(turn==OwnOrderPages.Turn.WAITING)return;
+                if(turn==OwnOrderPages.Turn.FAILED){lastOwnOrdersComplete=false;abort(client,"Own-order page turn was not confirmed; no complete book assumed");return;}
+                if(!ownPageAccepted) {
+                    if(!controlsReady)return;
+                    if(!ownPages.append(rows)){lastOwnOrdersComplete=false;abort(client,"Own-order page repeated or exceeded the bounded page limit");return;}
+                    ownPageAccepted=true;
+                }
+                if(operation==Operation.OWN_ORDERS && unparsed.isEmpty()) {
+                    // The native content grid has45 cells. Its Next button may remain drawn on a
+                    // final partial page. A compact list followed by empty native content cells
+                    // is the end; a full grid must follow Next rather than assume no other page.
+                    if(!OwnOrderPages.atEnd(rows.size(),emptySlot,nextOwnPage>=0)) {
+                        turnOwnOrderPage(client,container,nextOwnPage,rows,matchesSeen);return;
+                    }
+                    lastOwnOrders=ownPages.rows();lastCompleteOwnOrders=lastOwnOrders;
+                    lastOwnOrdersComplete=true;
+                    complete(client,"Your orders read: "+lastOwnOrders.size()+" rows; native book complete");return;
+                }
+                if(operation==Operation.OWN_ORDERS)lastOwnOrders=ownPages.rows();
+                if((operation==Operation.COLLECT_ORDER||operation==Operation.CANCEL_ORDER)
+                        && matchSlot<0&&!rows.isEmpty()&&nextOwnPage>=0) {
+                    turnOwnOrderPage(client,container,nextOwnPage,rows,matchesSeen);return;
+                }
+            }
+            if (operation == Operation.COLLECT_ORDER) collectMatchingRows=Math.max(matchesSeen,collectExpectedMatchingRows);
             if (operation == Operation.OWN_ORDERS && !unparsed.isEmpty()) {
                 DoughBayClient.LOGGER.info("DoughBay: {} item(s) on Your Orders did not parse as orders: {}", unparsed.size(), unparsed);
             }
@@ -1368,6 +1449,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         if (newOrder >= 0) break;
                     }
                     if (newOrder < 0) newOrder = emptySlot;
+                    if(newOrder<0 && multipleOwnOrders() && nextOwnPage>=0 && !rows.isEmpty()) {
+                        turnOwnOrderPage(client,container,nextOwnPage,rows,matchesSeen);return;
+                    }
                     if (newOrder < 0) {
                         java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
                         for (int menuSlot = 0; menuSlot < Math.min(45, slots); menuSlot++) {
@@ -1416,7 +1500,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 case COLLECT_ORDER, CANCEL_ORDER -> {
                     if (ownStage == 1 && ownDone) {
                         if (operation == Operation.CANCEL_ORDER) {
-                            if (matchSlot < 0 || !cancelOrderReceipt.isEmpty()) {
+                            if (multipleOwnOrders() ? !cancelOrderReceipt.isEmpty()
+                                    : cancellationObserved(cancelMatchingBefore,matchesSeen,!cancelOrderReceipt.isEmpty())) {
                                 complete(client, "Bid on " + shortName(targetItemId) + " cancelled"
                                         + (cancelOrderReceipt.isEmpty() ? "" : " (" + cancelOrderReceipt + ")"));
                             } else if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
@@ -1439,6 +1524,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         return;
                     }
                     if (operation == Operation.COLLECT_ORDER) collectTriedOrdinals.add(ownMatchOrdinal);
+                    if(operation==Operation.CANCEL_ORDER) {
+                        cancelMatchingBefore=matchesSeen;
+                        lastCancelledOrder=selectedRow;
+                    }
                     resetPhaseObservation();
                     ownSettleUntilTick = humanStep(6);
                 }
@@ -1594,6 +1683,18 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private List<String> ownTargetTooltip = List.of();
+
+    private void turnOwnOrderPage(Minecraft client,AbstractContainerScreen<?> screen,int next,
+                                 List<OwnOrderRow> rows,int matchesSeen) {
+        if(!clickSlot(client,screen,next)) {
+            if(!clickDeferred)abort(client,"The native own-order Next Page control could not be clicked");
+            return;
+        }
+        ownPages.requested(screen.getMenu().containerId,OwnOrderPages.fingerprint(rows),System.currentTimeMillis());
+        ownPageAccepted=false;ownMatchOffset=matchesSeen;
+        lastOwnOrdersComplete=false;
+        resetPhaseObservation();ownSettleUntilTick=humanStep(6);
+    }
 
     /** Slots of the pack a collect leaves empty, for everything else the bot does with its hands. */
     static final int COLLECT_KEEP_FREE = 4;

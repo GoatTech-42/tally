@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
-/** Two purchases per shelf cycle. Persist the purchase reservation before sending a bid. */
+/** Bounded purchases per shelf cycle. Persist the purchase reservation before sending a bid. */
 final class ReserveCycles {
     private final Map<String,Integer> purchases = new TreeMap<>();
     private Path path;
@@ -21,7 +21,7 @@ final class ReserveCycles {
                 int count;
                 try { count = Integer.parseInt(line.substring(split+1)); }
                 catch (NumberFormatException e) { throw new IOException("Invalid reserve cycle count",e); }
-                if (count < 1 || count > 2) throw new IOException("Invalid reserve cycle count");
+                if (count < 1 || count > 90) throw new IOException("Invalid reserve cycle count");
                 if (purchases.putIfAbsent(line.substring(0,split),count) != null)
                     throw new IOException("Duplicate reserve cycle record");
             }
@@ -30,19 +30,28 @@ final class ReserveCycles {
     }
 
     boolean mayPlace(String item, ReserveStock.Book book, long held, int batch) throws IOException {
-        if (!readable || !book.valid() || held < 0) return false;
+        return mayPlace(item,book,held,batch,2);
+    }
+
+    boolean mayPlace(String item, ReserveStock.Book book, long held, int batch, int maxBatches) throws IOException {
+        if (!readable || !book.valid() || held < 0 || maxBatches < 1 || maxBatches > 90) return false;
         if (book.units() == 0 && held == 0) {
             if (purchases.remove(item) != null) save();
         } else if (!purchases.containsKey(item)) {
             // An upgrade adopts existing exposure as a cycle already funded. Never buy over it.
-            purchases.put(item,2);
+            purchases.put(item,maxBatches);
             save();
         }
-        return purchases.getOrDefault(item,0) < 2 && ReserveStock.mayPlace(book,held,batch);
+        return purchases.getOrDefault(item,0) < maxBatches && ReserveStock.mayPlace(book,held,batch,maxBatches);
     }
 
     void reservePurchase(String item) throws IOException {
-        if (!readable || purchases.getOrDefault(item,0) >= 2) throw new IOException("Reserve cycle is not ready");
+        reservePurchase(item,2);
+    }
+
+    void reservePurchase(String item, int maxBatches) throws IOException {
+        if (!readable || maxBatches < 1 || maxBatches > 90 || purchases.getOrDefault(item,0) >= maxBatches)
+            throw new IOException("Reserve cycle is not ready");
         purchases.merge(item,1,Integer::sum);
         save();
     }
