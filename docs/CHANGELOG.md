@@ -1,10 +1,11 @@
 # GoNuts changelog
 
-## Unreleased — native auction counts and collection replenishment
+## 2026-10-24 22:42 UTC
 
-- Report auction occupancy from each account’s native auction audit and subsequent confirmed listing/sale movements, independently of ledger LISTED records and order-book freshness. Preserve 270-slot capacity when current account reports support it; missing or stale counts stay unknown rather than appearing free. Show tracked listing records separately and expose count coverage/audit age.
-- An exhausted collection retry budget no longer suppresses later native deliveries under the same item/price/quantity key. Only a newer complete own-order book showing additional deliveries reopens collection; unchanged or incomplete pages retain the retry budget. A complete book in which a key is absent retires its old transient attempt state. No inventory credit, ownership or exposure is fabricated.
-- The fresh-delivery regression failed before repair. Publication and runtime verification pending; sustained utilization and the full historical backlog incident remain unproven. Existing sizing, exact-count, capacity, spending, price and safety gates remain active.
+- **PR #302: Reopen collection for new deliveries and report native auction occupancy.** An exhausted collection retry budget no longer blocks newly delivered goods under the same item/price/quantity key. A newer complete native order book must show increased deliveries; unchanged or incomplete pages do not reset attempts. A key absent from a complete book retires only its old transient attempt state. Inventory movement must still prove every collection.
+- Client artifact published October 24 at **15:42:25 Los Angeles time (22:42:25 UTC)**. Build `1792881485823`; SHA256 `dbc23e2114a70ccd6b214f4162d1a74189c9f0dc4d7fdb94deec51cc0d8b7d81`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `89e999b981ebf45dd647dc8addf11ce504238b3473f500af486a8e52485f99c9`, published 22:42:24 UTC. PR302 merge `f2544f9280eb8bc41f40aadfa4a35331d24e981e`; tested source head `abc3a00e3e6ea8261f58bc187014c285dc4c044d`. This publication record is documentation only.
+- The controller regression failed before repair and passes afterward. Clean production suite: **1,634 tests, zero failures/errors, two skipped**. Native auction-count, missing/stale/future source, account-scope and image fixtures also pass. The Money grid uses each account's native auction audit plus confirmed movements, with coverage and audit age; ledger tracked listings are separate. Missing occupancy remains unknown rather than appearing free. Auction capacity no longer depends on an unrelated own-order read being fresh.
+- These fixes do not change order-sizing defaults, spending, depth, price, capacity, ownership, exposure or safety gates. A stack ceiling is not a guaranteed batch size. Sustained utilization and the full historical backlog reports remain unproven and open; publication alone is not evidence that any particular installation recovered.
 
 ## 2026-10-24 19:39 UTC
 
