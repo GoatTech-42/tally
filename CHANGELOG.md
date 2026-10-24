@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-24 08:23 UTC
+
+- **Release PR #292: Keep schema upgrades and their version markers atomic.**
+- Client artifact published October 24 at **01:23:23 Los Angeles time (08:23:23 UTC)**. Build `1792829965952`; SHA256 `c2fa08b0d5c08899ca77178ac0861462f32ee0f998416b3a8245d244849421e2`. Clean production build: **1,626 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR290.
+- PR292 merge `ca4c65de31f24bcf60ff54b9de13ef954dc6b9db`; tested source head `4d8b60ac62dcf767fffe3c252ab2b8c147ab7e65`. Source ZIP SHA256 `af8beada11d741fe63470b7e56b27f84bf09812ed60348259f61e46cb3073df7`, published 08:23:25 UTC. This publication record is documentation only.
+- If a schema-version write failed after V14 rebuilt its checkpoint table, the old client left that rebuild committed while still reporting V13. A retry could attempt the migration again against the changed schema. Schema steps and version markers now commit together under a shared-ledger writer lock acquired before reading the version; failed upgrades roll back. Failed database opens close their connection and release Windows WAL handles. The existing busy timeout also applies before journal-mode setup.
+- The synthetic version-write failure reproduced the old partial-upgrade defect. The repair preserves the original checkpoint and uncertain intent on failure, supports a normal retry, and passes four concurrent clients opening one legacy ledger. No manual schema repair, position reset, persistence-hold bypass, or trading/settings change is included. Healthy live bots were not upgraded or restarted.
+- Private diagnostic migration failures prompted the investigation but retained no exact SQLite code/message. This independently reproduced defect does not establish that installation's exact cause, repair an already damaged schema, or explain its later PERSISTENCE_WAIT. Existing reports and that investigation remain unresolved.
+
 ## 2026-10-24 05:21 UTC
 
 - **Release PR #290: Recognize a full order page with repeated item labels.**
