@@ -5382,6 +5382,11 @@ public final class AutomationSessionController {
             return true;
         }
         int collectionLimit = 0; // Zero retains ordinary/cleanup collection; reserve top-ups must be positive.
+        if(multipleOrdersEnabled() && step.count()>=1000
+                &&(step.action()==DeskAction.COLLECT||step.action()==DeskAction.CANCEL)) {
+            detail="Multiple orders: abbreviated native quantity needs reconciliation; existing order retained";
+            return true;
+        }
         if (multipleOrderMarket(step.itemId()) && !reserveMarket(step.itemId())) {
             if (step.action()==DeskAction.PLACE) {
                 var outstanding=ReserveStock.book(step.itemId(),ownOrders,collectedByKey);
@@ -5460,7 +5465,10 @@ public final class AutomationSessionController {
                 return true;
             }
         }
-        if (step.action() == DeskAction.READ) ownOrdersAttemptAt = now;
+        if (step.action() == DeskAction.READ) {
+            ownOrdersAttemptAt = now;
+            if(multipleOrdersEnabled())ownOrdersComplete=false;
+        }
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
         ExecutionResult result = switch (step.action()) {
             case READ -> driver.readOwnOrders();
@@ -8363,7 +8371,8 @@ public final class AutomationSessionController {
     /** One explicit read request; native scheduling, ownership and safety gates stay in control. */
     public synchronized boolean requestOwnOrderInspectionRead() {
         if(!isRunning()) return false;
-        deskReadDue=true;
+        if(deskQueue.stream().noneMatch(step->step.action()==DeskAction.READ))
+            deskQueue.addFirst(new DeskStep(DeskAction.READ,"",0,0,"explicit native own-order inspection"));
         return true;
     }
 

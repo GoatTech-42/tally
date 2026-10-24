@@ -103,6 +103,7 @@ final class NativeOrderEvidence {
                 }
             }
             Map<String,Object> root=new LinkedHashMap<>();root.put("at",System.currentTimeMillis());
+            root.put("configuredOrdersPerItem",(int)Tuning.get("orders.max_per_market"));
             root.put("rows",rows);root.put("controls",controls);
             var page=PAGE.matcher(screen.getTitle().getString());if(page.find())root.put("titlePage",Integer.parseInt(page.group(1)));
             Path target=client.gameDirectory.toPath().resolve("config/doughbay/native-order-evidence.json");

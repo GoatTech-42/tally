@@ -39,6 +39,7 @@ class ReserveOrderDriverTest {
         assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),0,1));
         assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),0,-1));
         assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,1,Set.of(0),0,0));
-        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,46,Set.of(0),0,0));
+        assertEquals(1,AutomatedExecutionDriver.nextCollectOrdinal(0,90,Set.of(0),0,0));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,91,Set.of(0),0,0));
     }
 }

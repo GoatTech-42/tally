@@ -5,6 +5,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 class ReportSettingsTest {
+    @Test void multipleOrderCountIsIncludedInPrivateDiagnosticSettings() throws Exception {
+        double before=Tuning.get("orders.max_per_market");
+        try {
+            Tuning.set("orders.max_per_market",0);String automatic=SettingsCode.exportForReport();
+            Tuning.set("orders.max_per_market",2);String two=SettingsCode.exportForReport();
+            assertNotEquals(automatic,two);SettingsCode.validateReportCode(two);
+            assertTrue(SettingsCode.REPORT_KEYS.contains("orders.max_per_market"));
+        } finally {Tuning.set("orders.max_per_market",before);}
+    }
     @Test void focusToggleChangesNumericSnapshotWithoutExportingItsItemList() throws Exception {
         double before=Tuning.get("buy.focus");String items=Tuning.text("buy.focus_items");
         try {

@@ -331,6 +331,7 @@ public final class SettingsCode {
             "prices.only",
             "orders.bid",
             "orders.bid_slots",
+            "orders.max_per_market",
             "orders.depth_share_pct",
             "orders.bid_stacks",
             "upload.enabled",
