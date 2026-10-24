@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-24 00:55 UTC
+
+- **Release PR #280: Distinguish normal auction-watch completion in diagnostics.**
+- Client artifact published October 23 at **17:55:47 Los Angeles time (October 24 00:55:47 UTC)**. Build `1792803135397`; SHA256 `16d7b42ae96a77988ae96e7561edfd4da923e9810d9f1b8c99fdcc19db25e53e`. Clean production build: **1,596 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR278.
+- PR280 merge `08c53dc3448d5a7e6396c7bade402824603ec4f5`. Source ZIP is tested head `9f39e56b3ffc94e6ae2dea6bec3ba16ae62c8895`; SHA256 `447589f38ceba27c84a4a5176f82becfa46d0f886acc24597dd5a25008cfc7b1`, published 00:55:48 UTC. This publication record is documentation only.
+- A guarded auction watch ending without selecting a purchase now emits the fixed `WATCH_NO_PURCHASE` diagnostic reason instead of `UNCLASSIFIED`. Its existing terminal outcome and controller behavior remain unchanged. The compatible diagnostics receiver stores the event but excludes only `DRIVER / ABORTED / BUY / WATCH_NO_PURCHASE` from failure signatures. Real faults, unknown aborts and other operations remain visible; historical records are not relabeled.
+- The real watch-budget regression failed before the repair and passes afterward; tests preserve selected-purchase verification, real confirmation-timeout reasons and strict privacy sanitization. Receiver owner independently reproduced rejection/misclassification, then passed 99 receiver and 104 worker tests, including an isolated Postgres storage/grouping check. No unresolved trading report is declared fixed from this diagnostic improvement. Existing healthy live clients remain on PR278; no restart, live upgrade, settings or trading-policy change was performed for this release.
+
 ## 2026-10-24 00:40 UTC
 
 - **Release PR #278: Keep cached summary images at their original resolution.**
