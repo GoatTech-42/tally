@@ -49,9 +49,26 @@ class AuctionWatchBudgetTest {
             assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED, event.outcome());
             assertFalse(event.confirmationSubmitted());
             assertTrue(event.detail().contains("nothing was charged"));
+            assertTrue(ActionTrace.INSTANCE.report(System.currentTimeMillis()).contains("event=ABORTED code=BUY reason=WATCH_NO_PURCHASE"), "Normal watch completion needs an explicit non-failure category");
+            assertTrue(DecisionTrace.INSTANCE.report(System.currentTimeMillis(),ReportTopic.GENERAL,12000).contains("reason=WATCH_NO_PURCHASE"));
             assertEquals(0, field("watchStartedAtMillis").getLong(driver));
             assertFalse(driver.yieldUnclickedWatchIfDue(null, 200_000));
         } finally { Tuning.set("watch.session_max_sec", prior); }
+    }
+
+    @Test void explicitWatchReasonSurvivesSanitizersButRealTimeoutKeepsItsCause() throws Exception {
+        var reading=watching(100_000);
+        assertTrue(reading.cancelUnclickedWatch(null,"A caller's arbitrary private description"));
+        String report=ActionTrace.INSTANCE.report(System.currentTimeMillis());
+        String line=report.lines().filter(v->v.contains("event=ABORTED code=BUY reason=WATCH_NO_PURCHASE")).findFirst().orElseThrow();
+        assertNotNull(ActionTrace.sanitizedLogLine("GoNuts action "+line));
+        assertEquals("WATCH_NO_PURCHASE",DecisionTrace.actionReason("WATCH_NO_PURCHASE").name());
+        assertFalse(report.contains("arbitrary private description"));
+        var actual=watching(100_000);
+        field("targetItemId").set(actual,"minecraft:emerald_block");
+        var terminal=AutomatedExecutionDriver.class.getDeclaredMethod("publishTerminal",AutomatedExecutionDriver.TerminalOutcome.class,String.class);terminal.setAccessible(true);
+        terminal.invoke(actual,AutomatedExecutionDriver.TerminalOutcome.ABORTED,"No confirmation GUI appeared within 7 seconds");
+        assertTrue(ActionTrace.INSTANCE.report(System.currentTimeMillis()).contains("event=ABORTED code=BUY reason=CONFIRMATION_GUI_TIMEOUT"));
     }
 
     @Test void selectedPurchaseIsNeverInterruptedEvenBeyondBudget() throws Exception {
