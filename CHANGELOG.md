@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-24 04:37 UTC
+
+- **Release PR #286: Configure separate automatic buy orders per item.**
+- Client artifact published October 23 at **21:37:33 Los Angeles time (October 24 04:37:33 UTC)**. Build 1792815998964; SHA256 7b40e6398f2e79ac98f706301bd9ab9b74ac644588b112bf6703ef598fd77ac0. Production build: **1,622 tests, zero failures/errors, one skipped**, including a passing live diagnostics upload, deduplication and erase check with the new setting. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR287.
+- PR286 merge 7f257be7dfe0d65ef82ede1db0a053170825ff5d; packaged source head 31177b3fc617f3df7b3295f49d43d88ce779333. Source ZIP SHA256 921a52616a59627bf5ecae34ee70c9482a9f5bc81068a626952b08dd9ce2bb6, published 04:37:36 UTC. This publication record is documentation only.
+- Under **Settings → Advanced view → Orders**, **Buy orders per item** allows more than one separate automatic buy order with Reserve Stock off. Set 2 to allow two per item; 0 preserves the existing mode behavior. Public upgrades preserve existing settings. Lowering the limit retains orders and stock. A fresh complete native order-book read separates placements; bounded page traversal fails closed when coverage is uncertain. Additional orders reuse a competitive owned bid rather than outbidding it.
+- Outstanding orders, delivered stock and held inventory share depth and spending checks. Collection waits for room on the selling shelf. Native quantity sizing, price, ROI, exposure, ownership and recovery checks remain authoritative. This changes the number of orders, not exact stack quantities: existing 999-unit protection remains, so exact 1,024-item orders are not supported. More permitted orders do not guarantee fills, occupancy or profit. Report #285 remains open; its exact incident cause is not established.
+- The trading guide documents normal-mode multiple orders and the separate Reserve Stock cycle behavior. The private diagnostics and dashboard services accept the new numeric setting and closed setting token while retaining strict validation and old-client compatibility.
+
 ## 2026-10-24 02:37 UTC
 
 - **Release PR #287: Collect the live row among identical historical orders.**
