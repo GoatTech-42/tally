@@ -5812,24 +5812,26 @@ public final class AutomationSessionController {
             if (reserve && !winding) listablePart = pending >= fullStack(r.itemId()) && reserveCollectUnits(r.itemId()) > 0;
             boolean lotStillSelling = (ownSingles(r.itemId()) && hasRetailStock(r.itemId())
                     || reserve && reserveCollectUnits(r.itemId()) <= 0) && !windingDown();
-            int reserveOrdinal = reserve ? ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey,
-                    winding ? 1 : fullStack(r.itemId())) : 0;
-            if (reserve && reserveOrdinal < 0) listablePart = false;
+            // Collection credits are pooled for identical native rows in every mode, not only Reserve Stock.
+            // Skip rows already covered by those credits; the driver rechecks physical goods before booking any.
+            int collectionOrdinal = ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey,
+                    reserve && !winding ? fullStack(r.itemId()) : 1);
+            if (collectionOrdinal < 0) listablePart = false;
             if (pending > 0 && listablePart && !lotStillSelling
                     && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
-                        "collecting " + pending + " " + r.itemId(), reserveOrdinal));
+                        "collecting " + pending + " " + r.itemId(), collectionOrdinal));
             }
             // Closed rows remain on Your Orders after their refund and collection.
             // Only goods still owed reserve this market, not the unfilled quantity
             // of an order the server has already cancelled. Do not chase, quote or
             // collect the old delivered total again after it has been accounted for.
             if (r.alreadyCancelled()) {
-                if (pending > 0 && !lotStillSelling && (!reserve || reserveOrdinal >= 0) && collectQueued.add(k)
+                if (pending > 0 && !lotStillSelling && collectionOrdinal >= 0 && collectQueued.add(k)
                         && collectAttempts.getOrDefault(k, 0) < 4) {
                     deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(),
                             r.requested(), r.unitPrice(), "the order was cancelled with goods still on it",
-                            reserveOrdinal));
+                            collectionOrdinal));
                 }
                 continue;
             }
@@ -5921,10 +5923,10 @@ public final class AutomationSessionController {
             // An order that is to be pulled gives up what is on it first,
             // part stack or not: nothing more is coming to it.
             if (wholeOnly && (bidding || denied || winding) && why != null && pending > 0 && !listablePart && (!reserve || !lotStillSelling)
-                    && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
+                    && collectionOrdinal >= 0 && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                 deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                         TAKE_ALL + pending + " " + r.itemId() + " before pulling the order (" + why + ")",
-                        0));
+                        collectionOrdinal));
             }
             // A blacklisted item is pulled even in collect-only mode; everything
             // else is only cancelled while the desk is actively bidding.
@@ -5953,10 +5955,10 @@ public final class AutomationSessionController {
                     // order: if it has been outbid it is pulled, and what is
                     // on it is taken then.
                     if (pending > 0 && !wholeOnly && !reserve) {
-                        if (collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
+                        if (collectionOrdinal >= 0 && collectQueued.add(k) && collectAttempts.getOrDefault(k, 0) < 4) {
                             deskQueue.addLast(new DeskStep(DeskAction.COLLECT, r.itemId(), r.requested(), r.unitPrice(),
                                     "taking " + pending + " " + r.itemId() + "; nothing more delivered for " + minutes + " min",
-                                    0));
+                                    collectionOrdinal));
                         }
                     } else if (quotesQueued < 2 && now - orderQuotedAt.getOrDefault(r.itemId(), 0L) >= nofill) {
                         quotesQueued++;
@@ -7513,7 +7515,8 @@ public final class AutomationSessionController {
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
             if (r.itemId().equals(step.itemId()) && r.unitPrice() == step.unitPrice() && r.requested() == step.count()) rows++;
         }
-        if (step.ordinal() + 1 < rows) {
+        if (!driver.collectionRowsExhausted() && step.ordinal() + 1 < rows) {
+            // The native driver may already have checked every matching row, including a wrap after reordering.
             // The same order twice on the page: the first was collected long ago; the next row is the live one.
             deskQueue.addFirst(new DeskStep(DeskAction.COLLECT, step.itemId(), step.count(), step.unitPrice(),
                     step.why() + " (row " + (step.ordinal() + 2) + ")", step.ordinal() + 1));

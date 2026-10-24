@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-24 02:37 UTC
+
+- **Release PR #287: Collect the live row among identical historical orders.**
+- Client artifact published October 23 at **19:37:17 Los Angeles time (October 24 02:37:17 UTC)**. Build `1792809198792`; SHA256 `97c855df1b10a0b4f9f341b4ebb23dc755310c409f9c698de22fce46cd554e92`. Clean production build: **1,600 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR282.
+- PR287 merge `d781abf6bb9df97a1fece5956490f4fa9e355f66`; tested source head `1ae23770f8f1eb451b2496c800b24343aaed62c8`. Source ZIP SHA256 `a0aae916ab0494714791a6d89b8ebb2dab877aa0983cde02dc9f7bb05a43eb8b`, published 02:37:19 UTC. This publication record is documentation only.
+- Ordinary collection now uses durable collected quantities to start at the matching row still owing goods instead of always opening the first identical historical row. If those rows reordered, the native driver checks other exact item/price/quantity matches in a bounded pass before any item click or inventory change. An exhausted native search is counted once; controller fallback remains available when it has not already been performed. Credits are still booked only from verified physical collection. Whole-stack, free-inventory and collection-quantity limits remain authoritative.
+- The old planner failed the duplicate-row regression; the repaired planner and bounded-search regressions pass. This repairs a supported collection defect related to the path investigated for report #285, not proof of that report's original cause or that every backlog is solved. The report remains open. Configurable order-batch counts remain separate in draft PR286; no order sizing, settings, budgets, safety gates or healthy live-client builds changed in this release.
+
 ## 2026-10-24 01:11 UTC
 
 - **Release PR #282: Support sixteen large-ticket listings per market.**
