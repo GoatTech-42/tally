@@ -27,4 +27,19 @@ class PanelFrameCacheTest {
         for(int i=0;i<20;i++){cache.request("scope"+i+"|MONEY",()->frame(1));work.remove().run();}
         assertNull(cache.peek("A|MONEY"),"Older views must be evicted from the bounded memory cache");
     }
+    @Test void fullResolutionTransferSurvivesRefreshAndExpiresWithoutCrossingAccounts() throws Exception {
+        var now=new AtomicLong(10_000);var work=new ArrayDeque<Runnable>();var cache=new PanelFrameCache(work::add,now::get);
+        var image=new java.awt.image.BufferedImage(1920,400,java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var random=new Random(7);for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++)image.setRGB(x,y,random.nextInt());
+        var bytes=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(image,"png",bytes);
+        byte[] original=bytes.toByteArray();var full=new PanelFrameCache.Frame(original,Base64.getEncoder().encodeToString(original),null,"Money",now.get());
+        String token=cache.pin("A|MONEY",full);
+        cache.request("A|MONEY",()->frame(20_000));work.remove().run();
+        assertSame(full,cache.transfer("A|MONEY",token));assertNull(cache.transfer("B|MONEY",token));
+        String encoded=cache.transfer("A|MONEY",token).preview();var assembled=new StringBuilder();
+        for(int start=0;start<encoded.length();start+=PanelFrameCache.CHUNK_CHARS)assembled.append(encoded,start,Math.min(encoded.length(),start+PanelFrameCache.CHUNK_CHARS));
+        byte[] restored=Base64.getDecoder().decode(assembled.toString());assertArrayEquals(original,restored);
+        assertEquals(1920,javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(restored)).getWidth());
+        now.addAndGet(60_001);assertNull(cache.transfer("A|MONEY",token));
+    }
 }

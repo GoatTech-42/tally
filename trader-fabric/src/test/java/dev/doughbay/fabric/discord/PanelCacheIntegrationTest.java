@@ -22,7 +22,15 @@ class PanelCacheIntegrationTest {
   long deadline=System.currentTimeMillis()+10000;com.fasterxml.jackson.databind.JsonNode frame;
   do{frame=mapper.readTree(panel.panelPreview(Map.of("scope",scope,"page","ORDERS")));if(frame.path("pending").asBoolean())Thread.sleep(25);else break;}while(System.currentTimeMillis()<deadline);
   assertFalse(frame.path("pending").asBoolean(),"The queued report should finish without a foreground page action");
-  assertTrue(frame.path("image").asText().startsWith("data:image/png;base64,"));assertEquals(scope,frame.path("scope").asText());
+  String encoded=frame.path("image").asText().replace("data:image/png;base64,","");
+  if(frame.has("chunks")){
+   var parts=new StringBuilder();for(int n=0;n<frame.path("chunks").asInt();n++){
+    String response=panel.panelPreview(Map.of("scope",scope,"page","ORDERS","frame",frame.path("frame").asText(),"chunk",Integer.toString(n)));
+    assertTrue(response.length()<256*1024);var part=mapper.readTree(response);assertEquals(n,part.path("chunk").asInt());parts.append(part.path("data").asText());
+   }encoded=parts.toString();assertEquals(frame.path("imageChars").asInt(),encoded.length());
+  }
+  var original=java.util.Base64.getDecoder().decode(encoded);assertEquals(1920,javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(original)).getWidth());
+  assertEquals(scope,frame.path("scope").asText());
   assertEquals("MONEY",mapper.readTree(panel.panelState()).path("pageId").asText());assertTrue(frame.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length<256*1024);
  }
 }
