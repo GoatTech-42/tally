@@ -164,6 +164,42 @@ class AutomatedExecutionDriverCommandTest {
     }
 
     @Test
+    void changedHandAfterFirstSellWithdrawsRetryAndAllowsLateReceipt() throws Exception {
+        activateListing();
+        driver.sendCommand(transport, "ah sell 20000", 100_000, 600);
+        driver.sendCommand(transport, "ah sell 20000", 100_100, 600);
+        transport.listingBlocker = "Listing stack changed before dispatch; no sell command sent";
+        long terminal = driver.lastTerminalEvent().sequence();
+
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, 100_600));
+        assertFalse(driver.commandPending());
+        assertEquals(List.of("ah sell 20000"), transport.sent);
+        assertEquals(terminal, driver.lastTerminalEvent().sequence(),
+                "inventory movement alone must neither finish nor abort the first send");
+        driver.observeGameMessage("You listed 64 Redstone for $ 20K");
+        assertEquals("You listed 64 Redstone for $ 20K", get("listingReceipt"));
+        assertEquals("WAITING_FOR_CONFIRMATION", get("phase").toString(),
+                "the normal receipt and inventory verifier still owns completion");
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, 120_000));
+        assertEquals(1, transport.sent.size());
+    }
+
+    @Test
+    void changedHandWithoutReceiptCannotInventListingSuccess() throws Exception {
+        activateListing();
+        driver.sendCommand(transport, "ah sell 20000", 100_000, 600);
+        driver.sendCommand(transport, "ah sell 20000", 100_100, 600);
+        transport.listingBlocker = "Listing stack changed before dispatch; no sell command sent";
+        long terminal = driver.lastTerminalEvent().sequence();
+
+        assertEquals(NONE, driver.dispatchPendingCommand(transport, 100_600));
+        assertEquals("", get("listingReceipt"));
+        assertEquals(terminal, driver.lastTerminalEvent().sequence());
+        assertEquals("WAITING_FOR_CONFIRMATION", get("phase").toString());
+        assertEquals(List.of("ah sell 20000"), transport.sent);
+    }
+
+    @Test
     void lateSellConfirmationIsNotClosedByQueuedRetry() throws Exception {
         activateListing();
         long now = 100_000;

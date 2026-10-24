@@ -4664,12 +4664,17 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // menuOpen closes the late confirmation, or a late receipt reaches
         // listingBlocker after its stack has already left the hand. Withdrawing
         // a retry is not success; the normal confirmation/receipt AND inventory
-        // verification below still decide the terminal outcome.
+        // verification below still decide the terminal outcome. Inventory can
+        // update before either response arrives. Once a sell has been sent, a
+        // changed hand withdraws its retry as well: do not abort the original
+        // response verifier just because its stack may already be in escrow.
+        // An initial, unsent sell still goes through the exact-hand refusal.
         if (operation == Operation.LIST && resendCommand.startsWith("ah sell ")
                 && resendCommand.equals(lastDispatchedCommand)
                 && (phase == Phase.WAITING_FOR_CONFIRMATION || phase == Phase.WAITING_FOR_COMPLETION)
                 && (!listingReceipt.isEmpty() || !serverRejection.isEmpty()
-                    || phase == Phase.WAITING_FOR_COMPLETION || transport.menuOpen())) {
+                    || phase == Phase.WAITING_FOR_COMPLETION || transport.menuOpen()
+                    || transport.listingBlocker() != null)) {
             resendCommand = null;
             commandQueuedAt = 0;
             resendCommandAt = 0;
