@@ -190,9 +190,30 @@ class FlipRepeatCycleTest {
         set(c,"ownOrders",Collections.nCopies(2,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
         ((Map<String,Integer>)get(c,"collectedByKey")).put(ITEM+"|200|64",64);
         plan(c,now);
+        forceFirstCollectionOrdinal(c,0); // Exercise the legacy controller fallback independently of the optimized planner.
         failNextEmpty(c,1,now+1);
         assertEquals(0,((Map<String,Integer>)get(c,"collectAttempts")).getOrDefault(ITEM+"|200|64",0));
         assertTrue(((Collection<?>)get(c,"deskQueue")).stream().anyMatch(s->s.toString().contains("ordinal=1")));
+    }
+    void forceFirstCollectionOrdinal(AutomationSessionController c,int ordinal)throws Exception {
+        Deque<Object> queue=(Deque<Object>)get(c,"deskQueue");Object step=queue.removeFirst();
+        var components=step.getClass().getRecordComponents();Class<?>[] types=new Class<?>[components.length];Object[] values=new Object[components.length];
+        for(int i=0;i<components.length;i++){
+            types[i]=components[i].getType();Method accessor=components[i].getAccessor();accessor.setAccessible(true);
+            values[i]=components[i].getName().equals("ordinal")?ordinal:accessor.invoke(step);
+        }
+        Constructor<?> ctor=step.getClass().getDeclaredConstructor(types);ctor.setAccessible(true);queue.addFirst(ctor.newInstance(values));
+    }
+    @Test void exhaustedNativeRowSearchDoesNotQueueTheSameRowsAgain()throws Exception {
+        long now=1000000;var c=controller(now);
+        set(c,"ownOrders",Collections.nCopies(2,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+        ((Map<String,Integer>)get(c,"collectedByKey")).put(ITEM+"|200|64",64);
+        plan(c,now);forceFirstCollectionOrdinal(c,0);
+        set(get(c,"driver"),"collectRowsExhausted",true);
+        failNextEmpty(c,1,now+1);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty());
+        assertEquals(1,((Map<String,Integer>)get(c,"collectAttempts")).get(ITEM+"|200|64"));
+        assertEquals(64,((Map<String,Integer>)get(c,"collectedByKey")).get(ITEM+"|200|64"));
     }
     void failNextEmpty(AutomationSessionController c,long sequence,long now)throws Exception {
         Object next=((Deque<?>)get(c,"deskQueue")).removeFirst();set(c,"deskStep",next);
@@ -208,6 +229,8 @@ class FlipRepeatCycleTest {
         for(int lot=0;lot<6;lot++) {
             set(c,"ownOrders",Collections.nCopies(lot+1,new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
             assertTrue(plan(c,now).stream().anyMatch(s->s.contains("action=COLLECT")),"lot "+lot);
+            // An external/older caller may still request row0; fallback must retain its failure-budget behavior.
+            if(lot>0)forceFirstCollectionOrdinal(c,0);
             for(int old=0;old<lot;old++)failNextEmpty(c,++sequence,++now);
             completeNext(c,AutomatedExecutionDriver.OperationIntent.COLLECT_ORDER,ITEM,200,++sequence,++now);
             assertEquals((lot+1)*64,((Map<String,Integer>)get(c,"collectedByKey")).get(ITEM+"|200|64"));
