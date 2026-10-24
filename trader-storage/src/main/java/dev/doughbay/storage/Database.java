@@ -40,15 +40,19 @@ public final class Database implements AutoCloseable {
             throw new SQLException("Cannot create database directory: " + e.getMessage(), e);
         }
         this.connection = open("jdbc:sqlite:" + file);
-        try (Statement st = connection.createStatement()) {
-            st.execute("PRAGMA journal_mode=WAL");
-            st.execute("PRAGMA foreign_keys=ON");
-            // Two clients share one large ledger, and a restart has both
-            // migrating and batch-writing at once; five seconds was not
-            // enough and the loser's watcher died on SQLITE_BUSY.
-            st.execute("PRAGMA busy_timeout=30000");
+        try {
+            try (Statement st = connection.createStatement()) {
+                // Set the wait before journal-mode setup, which can also
+                // contend with another client opening the shared ledger.
+                st.execute("PRAGMA busy_timeout=30000");
+                st.execute("PRAGMA journal_mode=WAL");
+                st.execute("PRAGMA foreign_keys=ON");
+            }
+            migrate();
+        } catch (SQLException | RuntimeException | Error failure) {
+            closeAfterFailedInitialization(failure);
+            throw failure;
         }
-        migrate();
     }
 
     /** In-memory database for tests. */
@@ -63,7 +67,20 @@ public final class Database implements AutoCloseable {
 
     private Database(Connection connection) throws SQLException {
         this.connection = connection;
-        migrate();
+        try {
+            migrate();
+        } catch (SQLException | RuntimeException | Error failure) {
+            closeAfterFailedInitialization(failure);
+            throw failure;
+        }
+    }
+
+    private void closeAfterFailedInitialization(Throwable failure) {
+        try {
+            connection.close();
+        } catch (SQLException closeFailure) {
+            failure.addSuppressed(closeFailure);
+        }
     }
 
     public Connection connection() {
@@ -71,6 +88,29 @@ public final class Database implements AutoCloseable {
     }
 
     private void migrate() throws SQLException {
+        // Acquire the shared-ledger writer lock before reading its version.
+        // Every schema step and its version marker must commit together: a
+        // failed V14 rename/copy/version write otherwise leaves a different
+        // checkpoint schema behind for the next startup to migrate again.
+        try (Statement st = connection.createStatement()) {
+            st.execute("BEGIN IMMEDIATE");
+        }
+        try {
+            migrateLocked();
+            try (Statement st = connection.createStatement()) {
+                st.execute("COMMIT");
+            }
+        } catch (SQLException | RuntimeException | Error failure) {
+            try (Statement st = connection.createStatement()) {
+                st.execute("ROLLBACK");
+            } catch (SQLException rollbackFailure) {
+                failure.addSuppressed(rollbackFailure);
+            }
+            throw failure;
+        }
+    }
+
+    private void migrateLocked() throws SQLException {
         try (Statement st = connection.createStatement()) {
             st.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)");
         }
