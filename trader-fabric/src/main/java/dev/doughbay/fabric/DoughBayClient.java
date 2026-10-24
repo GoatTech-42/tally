@@ -1156,6 +1156,7 @@ public class DoughBayClient implements ClientModInitializer {
             }
             if(lines.stream().anyMatch(line->line.strip().equalsIgnoreCase(NativeOrderEvidence.COMMAND))) {
                 NativeOrderEvidence.request();
+                AUTOMATION_SESSION.requestOwnOrderInspectionRead();
                 if(lines.stream().allMatch(line->line.isBlank()||line.startsWith("#")||line.strip().equalsIgnoreCase(NativeOrderEvidence.COMMAND))) {
                     java.nio.file.Files.delete(file);
                     return;

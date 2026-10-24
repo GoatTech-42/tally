@@ -5,6 +5,16 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NativeOrderEvidenceTest {
+    @Test void opaqueRowComparisonNeverWritesTheNativeValueOrArbitraryControlText() {
+        CompoundTag root=new CompoundTag(),values=new CompoundTag();root.put("PublicBukkitValues",values);
+        values.putLong("minecraft:wi",123456789012345L);
+        String first=NativeOrderEvidence.opaqueRowFingerprint(root);
+        assertEquals(64,first.length());assertFalse(first.contains("123456789012345"));
+        assertEquals(first,NativeOrderEvidence.opaqueRowFingerprint(root));
+        values.putLong("minecraft:wi",123456789012346L);
+        assertNotEquals(first,NativeOrderEvidence.opaqueRowFingerprint(root));
+        assertEquals(java.util.List.of("next","page","click","right"),NativeOrderEvidence.controlWords("Next Page - click right private-user secret123"));
+    }
     @Test void localInspectionRetainsOnlyQuantityNumbersAndStaticSchemaTypes() {
         CompoundTag nested=new CompoundTag();
         nested.putInt("requested",1024);nested.putInt("delivered",64);

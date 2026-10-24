@@ -8360,6 +8360,13 @@ public final class AutomationSessionController {
         return "OK: one full source read due at the next safe checkpoint";
     }
 
+    /** One explicit read request; native scheduling, ownership and safety gates stay in control. */
+    public synchronized boolean requestOwnOrderInspectionRead() {
+        if(!isRunning()) return false;
+        deskReadDue=true;
+        return true;
+    }
+
     public synchronized String requestIsolatedOrderTest() {return requestIsolatedOrderJob(false);}
     public synchronized String requestIsolatedGuidanceTest() {return requestIsolatedOrderJob(true);}
     private String requestIsolatedOrderJob(boolean guidanceOnly) {

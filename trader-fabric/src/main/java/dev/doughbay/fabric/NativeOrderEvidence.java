@@ -24,6 +24,24 @@ final class NativeOrderEvidence {
     private NativeOrderEvidence() {}
     static void request() { requested.set(true); }
 
+    static String opaqueRowFingerprint(CompoundTag tag) {
+        // Inspect equality only. The native value is never written or uploaded.
+        Tag values=tag.get("PublicBukkitValues");
+        if(!(values instanceof CompoundTag nested) || !(nested.get("minecraft:wi") instanceof NumericTag value)) return "";
+        try {
+            return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(("gonuts-local-native-row:"+value.longValue()).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch(java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+    }
+
+    static List<String> controlWords(String text) {
+        Set<String> allowed=Set.of("previous","prev","next","page","go","back","click","left","right","sort",
+                "order","orders","new","create","filter","show","active","completed","all","ascending",
+                "descending","refresh","cancelled","canceled","claimed","oldest","newest","total","filled","unfilled");
+        return Arrays.stream(text.toLowerCase(Locale.ROOT).split("[^a-z]+"))
+                .filter(allowed::contains).distinct().toList();
+    }
+
     static Map<String,Object> numericSchema(CompoundTag tag) {
         Map<String,Object> out=new TreeMap<>();
         inspect(tag,"",out,0);
@@ -71,12 +89,14 @@ final class NativeOrderEvidence {
                     row.put("requestedDisplay",quantity);if(delivered!=null)row.put("deliveredDisplay",delivered);
                     var custom=stack.get(DataComponents.CUSTOM_DATA);
                     row.put("customNumericSchema",custom==null?Map.of():numericSchema(custom.copyTag()));
+                    if(custom!=null)row.put("opaqueRowFingerprint",opaqueRowFingerprint(custom.copyTag()));
                     rows.add(row);
                 } else if(i>=45) {
-                    String lower=name.toLowerCase(Locale.ROOT);
+                    String lower=(name+" "+String.join(" ",lore)).toLowerCase(Locale.ROOT);
                     String label=lower.contains("next")?"next":lower.contains("previous")?"previous":
                             lower.contains("page")?"page":lower.contains("new order")||lower.contains("create order")?"create order":"other control";
                     Map<String,Object> control=new LinkedHashMap<>();control.put("slot",i);control.put("kind",label);
+                    control.put("words",controlWords(lower));
                     var p=PAGE.matcher(name+" "+String.join(" ",lore));
                     if(p.find()){control.put("page",Integer.parseInt(p.group(1)));if(p.group(2)!=null)control.put("pages",Integer.parseInt(p.group(2)));}
                     controls.add(control);
