@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-24 05:21 UTC
+
+- **Release PR #290: Recognize a full order page with repeated item labels.**
+- Client artifact published October 23 at **22:21:40 Los Angeles time (October 24 05:21:40 UTC)**. Build `1792819067356`; SHA256 `ae0c9a85cffe798d6937dc25b217dc32b72feeb213c49d2a7ac75e9b693b6c07`. Production build: **1,624 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and verified. Separate binary publication after PR286.
+- PR290 merge `21d878aad097c7d2cef8f2a7259a35de488a72a2`; tested source head `7e15e82ac81b61f155815cff0371b15ccd7973fc`. Source ZIP SHA256 `6badc68870a3f91424ca08ca08258bae5357dc4a8b9021d9c5be8961de3b45a6`, published 05:21:45 UTC. This publication record is documentation only.
+- When all 45 cells on the visible Your Orders page are occupied, repeated item names were deduplicated before counting. A full page could therefore wait for a nonexistent New Order control and abort, adding avoidable server-strain backoff. Each occupied cell now counts once, including repeated or blank hover names, and takes the existing no-charge full-page completion. Native next-page traversal still runs first where enabled; this does not change rank capacity or create an order on a full page.
+- Both repeated/blank-label regressions fail with the old distinct-label count and pass with this repair; incomplete and empty pages remain incomplete. No quantity, order-count setting, budget, exposure, ownership or safety-gate change. Healthy live clients were not updated or restarted for this release.
+- Retained diagnostics show a consistent full-page/fixed-wait pattern, including before report #285's anchor, but cannot prove the exact native label/control state or that this defect explains the entire reported auction backlog. The independently reproduced code defect is repaired; report #285 remains open for verification and unresolved symptoms.
+
 ## 2026-10-24 04:37 UTC
 
 - **Release PR #286: Configure separate automatic buy orders per item.**
