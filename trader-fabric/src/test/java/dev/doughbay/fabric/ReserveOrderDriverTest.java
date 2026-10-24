@@ -29,4 +29,16 @@ class ReserveOrderDriverTest {
         assertTrue(AutomatedExecutionDriver.collectionReady(full,true));
         assertTrue(AutomatedExecutionDriver.collectionReady(cancelled,true));
     }
+    @Test void duplicateRowFallbackIsBoundedAndCannotRunAfterAnyClickOrInventoryChange() {
+        assertEquals(1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),0,0));
+        assertEquals(2,AutomatedExecutionDriver.nextCollectOrdinal(1,3,Set.of(0,1),0,0));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(2,3,Set.of(0,1,2),0,0));
+        // Credits suggest row2; if server ordering changed, a native empty page may safely try row0.
+        assertEquals(0,AutomatedExecutionDriver.nextCollectOrdinal(2,3,Set.of(2),0,0));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),1,0));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),0,1));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,3,Set.of(0),0,-1));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,1,Set.of(0),0,0));
+        assertEquals(-1,AutomatedExecutionDriver.nextCollectOrdinal(0,46,Set.of(0),0,0));
+    }
 }

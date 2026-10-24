@@ -854,6 +854,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownTargetUnitPrice = unitPrice;
         ownMatchOrdinal = 0;
         ownMatchRequested = 0;
+        collectTriedOrdinals.clear();
+        collectMatchingRows = 0;
+        collectRowsExhausted = false;
+        collectClicks = 0;
         placeConfirmed = false;
         placeMatchingBefore = -1;
         lastPlacementOrders = null;
@@ -974,6 +978,43 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private int ownMatchOrdinal;
     private int ownMatchRequested;
+    private final java.util.Set<Integer> collectTriedOrdinals = new java.util.HashSet<>();
+    private int collectMatchingRows;
+    private boolean collectRowsExhausted;
+    public synchronized boolean collectionRowsExhausted() { return collectRowsExhausted; }
+
+    /** Identical rows may reorder; pooled credits suggest a start, never prove which row still has physical goods. */
+    static int nextCollectOrdinal(int current, int matching, java.util.Set<Integer> tried, int clicks, int inventoryDelta) {
+        if (clicks != 0 || inventoryDelta != 0) return -1;
+        if (matching < 1 || matching > 45 || current < 0 || current >= matching) return -1;
+        for (int i=1;i<matching;i++) {
+            int candidate=(current+i)%matching;
+            if (!tried.contains(candidate)) return candidate;
+        }
+        return -1;
+    }
+
+    private boolean tryAnotherCollectRow(Minecraft client) {
+        // After any click, delayed inventory updates must resolve on the existing path before another row opens.
+        if (operation != Operation.COLLECT_ORDER) return false;
+        int next=nextCollectOrdinal(ownMatchOrdinal,collectMatchingRows,collectTriedOrdinals,
+                collectClicks,countInventory(client,targetItemId)-inventoryCountBefore);
+        if (next < 0) {
+            collectRowsExhausted=collectMatchingRows>0
+                    && java.util.stream.IntStream.range(0,collectMatchingRows).allMatch(collectTriedOrdinals::contains);
+            return false;
+        }
+        ownMatchOrdinal=next;
+        ownStage=0;
+        ownDone=false;
+        ownSettleUntilTick=0;
+        ownNavRetries=0;
+        client.player.closeContainer();
+        sendCommand(client,"orders");
+        resetPhaseObservation();
+        lastMessage="Checking another matching order for delivered goods";
+        return true;
+    }
     private int wrongPageReopens;
     private int listingScanRestarts;
     private int ownNavClickedAt;
@@ -1277,6 +1318,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             lastOwnOrders = List.copyOf(rows);
+            if (operation == Operation.COLLECT_ORDER) collectMatchingRows=matchesSeen;
             if (operation == Operation.OWN_ORDERS && !unparsed.isEmpty()) {
                 DoughBayClient.LOGGER.info("DoughBay: {} item(s) on Your Orders did not parse as orders: {}", unparsed.size(), unparsed);
             }
@@ -1396,6 +1438,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         abort(client, "The order could not be opened");
                         return;
                     }
+                    if (operation == Operation.COLLECT_ORDER) collectTriedOrdinals.add(ownMatchOrdinal);
                     resetPhaseObservation();
                     ownSettleUntilTick = humanStep(6);
                 }
@@ -1428,6 +1471,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             if (slot < 0) {
                 if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
+                    if (operation == Operation.COLLECT_ORDER && tryAnotherCollectRow(client)) return;
                     // "shows no cancel control" says nothing about what it did
                     // show, which is the one thing needed to tell a renamed
                     // button from a page that genuinely has no such control.
@@ -1494,6 +1538,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     break;
                 }
                 if (pending < 0 && partsLeft > 0 && collectClicks == 0 && ticksInPhase >= 10) {
+                    if (tryAnotherCollectRow(client)) return;
                     abort(client, PART_STACK_WAITING + " for " + shortName(targetItemId) + "; left until it is whole");
                     return;
                 }
@@ -1535,6 +1580,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
             if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
+                if (tryAnotherCollectRow(client)) return;
                 List<String> onPage = new ArrayList<>();
                 for (int menuSlot = 0; menuSlot < container.getMenu().slots.size(); menuSlot++) {
                     Slot slot = container.getMenu().slots.get(menuSlot);
