@@ -1007,7 +1007,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int collectMaximumUnits;
 
     static boolean collectionStackFits(int taken, int count, int full, int maximum) {
-        return maximum == 0 || taken >= 0 && count == full && full > 1 && (long)taken+count <= maximum;
+        return collectionStackFits(taken, count, full, maximum, false);
+    }
+    static boolean collectionStackFits(int taken, int count, int full, int maximum, boolean finished) {
+        // A finished or cancelled order cannot grow its last partial stack.
+        // Drain that tail within the same shelf/inventory budget; an active
+        // order still waits for whole stacks when collection is bounded.
+        return maximum == 0 || taken >= 0 && full > 1 && count > 0 && count <= full
+                && (count == full || finished) && (long)taken + count <= maximum;
     }
     /** The order being collected shows on Your Orders as fully delivered or cancelled. */
     private boolean ownTargetFinished;
@@ -1620,7 +1627,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (slot.container == inventory) continue;
                     ItemStack stack = slot.getItem();
                     if (stack.isEmpty() || !itemId(stack).equals(targetItemId)) continue;
-                    if (!collectionStackFits(now-inventoryCountBefore,stack.getCount(),stack.getMaxStackSize(),collectMaximumUnits)) {
+                    if (!collectionStackFits(now-inventoryCountBefore,stack.getCount(),stack.getMaxStackSize(),collectMaximumUnits,ownTargetFinished)) {
                         partsLeft++;
                         continue;
                     }
