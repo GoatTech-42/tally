@@ -4254,6 +4254,7 @@ public final class AutomationSessionController {
     }
 
     private List<AutomatedExecutionDriver.OwnOrderRow> ownOrders = List.of();
+    private boolean ownOrdersComplete;
     private long ownOrdersReadAt;
     private long ownOrdersAttemptAt;
     private boolean deskReadDue;
@@ -4913,7 +4914,37 @@ public final class AutomationSessionController {
     private final ReserveCycles reserveCycles = new ReserveCycles();
 
     private static int reserveMaxBatches() {
-        return (int)dev.doughbay.fabric.Tuning.get("orders.reserve_batches");
+        return OrderBatchLimit.effective((int)dev.doughbay.fabric.Tuning.get("orders.max_per_market"),true);
+    }
+
+    private static int ordinaryOrderLimit() {
+        return OrderBatchLimit.effective((int)dev.doughbay.fabric.Tuning.get("orders.max_per_market"),false);
+    }
+
+    private static boolean multipleOrdersEnabled() { return ordinaryOrderLimit() > 1; }
+
+    private final java.util.Map<String,Long> plannedOrderDepth = new java.util.HashMap<>();
+
+    private boolean ordinaryOrderRoom(String item, boolean legacyAlreadyOut) {
+        if (dev.doughbay.fabric.Tuning.get("orders.max_per_market") == 0) return !legacyAlreadyOut;
+        if(multipleOrdersEnabled() && !ownOrdersComplete) return false;
+        var book = ReserveStock.book(item,ownOrders,collectedByKey);
+        if (!OrderBatchLimit.hasRoom(book,ordinaryOrderLimit())) return false;
+        return book.units() != 0 || pendingFills.stream().noneMatch(f -> {
+            var bid=bidForFill(f); return bid!=null && bid.itemId().equals(item);
+        });
+    }
+
+    private boolean multipleOrderMarket(String item) {
+        return multipleOrdersEnabled() && !ownOnly() && ownPrice(item)==null && !ownSingles(item);
+    }
+
+    private int multipleOrderCollectionUnits(String item) {
+        int server=serverListedSlots();
+        if(server<0) { slotAuditPending=true; return 0; }
+        int free=Math.max(0,maxOpenListings()-Math.max(openListings.size(),server)
+                -slotsSpokenFor()-recoveredQueue.size());
+        return OrderBatchLimit.collectionUnits(reserveHeldUnits(item),MAX_OPEN_PER_MARKET()*fullStack(item),fullStack(item),free);
     }
 
     private int reserveCollectUnits(String item) {
@@ -4964,10 +4995,12 @@ public final class AutomationSessionController {
 
     /** Money sitting in the player's open bids: out of the bank, so counted against the cap like listings. */
     private long bidsOut() {
-        if (reserveEnabled()) {
+        if(multipleOrdersEnabled() && !ownOrdersComplete) return Long.MAX_VALUE/4;
+        if (reserveEnabled() || multipleOrdersEnabled()) {
             var capital = dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt,ownOrders,collectedByKey);
             if (capital.reserved() == null || capital.awaitingCollection() == null) return Long.MAX_VALUE / 4;
-            return capital.reserved() + capital.awaitingCollection();
+            try { return Math.addExact(capital.reserved(),capital.awaitingCollection()); }
+            catch(ArithmeticException overflow) { return Long.MAX_VALUE/4; }
         }
         long out = 0;
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders)
@@ -5349,6 +5382,31 @@ public final class AutomationSessionController {
             return true;
         }
         int collectionLimit = 0; // Zero retains ordinary/cleanup collection; reserve top-ups must be positive.
+        if (multipleOrderMarket(step.itemId()) && !reserveMarket(step.itemId())) {
+            if (step.action()==DeskAction.PLACE) {
+                var outstanding=ReserveStock.book(step.itemId(),ownOrders,collectedByKey);
+                Long depth=plannedOrderDepth.get(step.itemId());
+                boolean fits=depth!=null ? OrderBatchLimit.fitsDepth(outstanding,reserveHeldUnits(step.itemId()),step.count(),depth)
+                        : outstanding.batches()==0;
+                if(ownOrdersReadAt<=0 || now<ownOrdersReadAt || now-ownOrdersReadAt>60_000
+                        || !ordinaryOrderRoom(step.itemId(),false) || !fits || step.unitPrice()<=0
+                        || step.count()>effectivePurchaseCap()/step.unitPrice()
+                        || step.count()>(effectiveSpendCap()-committedSpend-bidsOut())/step.unitPrice()) {
+                    deskQueue.removeIf(q -> q.action()==DeskAction.PLACE);
+                    deskReadDue=true;
+                    detail="Multiple orders: refreshing capacity, shared depth and spending before bidding";
+                    return true;
+                }
+            }
+            if(step.action()==DeskAction.COLLECT && !windingDown() && fullStack(step.itemId())>1) {
+                collectionLimit=Math.min(multipleOrderCollectionUnits(step.itemId()),
+                        Math.max(0,freeInventorySlots(client)-4)*fullStack(step.itemId()));
+                if(collectionLimit<=0) {
+                    detail="Multiple orders: delivered stock waits for room on the selling shelf";
+                    return true;
+                }
+            }
+        }
         if (reserveMarket(step.itemId()) && (step.action() == DeskAction.PLACE || step.action() == DeskAction.COLLECT)) {
             if (ownOrdersReadAt <= 0 || now-ownOrdersReadAt > 60_000) {
                 deskQueue.clear(); deskReadDue = true;
@@ -5409,7 +5467,7 @@ public final class AutomationSessionController {
             case COLLECT -> driver.collectOrder(step.itemId(), step.unitPrice(), step.count(), step.ordinal(),
                     dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5 && !takesAll(step.why())
                             && !ownSingles(step.itemId()), false, collectionLimit);
-            case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice());
+            case CANCEL -> driver.cancelOrder(step.itemId(), step.unitPrice(),step.count());
             case PLACE -> driver.placeOrder(step.itemId(), step.count(), step.unitPrice());
             case SWEEP -> driver.probeCheapest(step.itemId(), step.count(), dev.doughbay.fabric.DoughBayClient.account());
             case QUOTE -> driver.quoteOrders(step.itemId());
@@ -5495,8 +5553,8 @@ public final class AutomationSessionController {
                 // cancel attempts - the cancel was simply the wrong question.
                 LOGGER.info("DoughBay bid desk: {} at {} each has a delivery waiting; collecting instead of cancelling",
                         step.itemId(), step.unitPrice());
-                // CANCEL steps have count zero, not the order's requested
-                // quantity. Reread before collecting so the stock is credited
+                // Legacy CANCEL steps may lack the requested quantity.
+                // Reread before collecting so the stock is credited
                 // to the real order key and cannot be collected/booked twice.
                 deskQueue.addFirst(new DeskStep(DeskAction.READ, "", 0, 0,
                         "reading your orders after a delivery interrupted cancellation"));
@@ -5546,6 +5604,7 @@ public final class AutomationSessionController {
                 deskRecovery.recovered();
                 noticedSinceRead.clear();
                 ownOrders = List.copyOf(driver.lastOwnOrders());
+                ownOrdersComplete=driver.lastOwnOrdersComplete();
                 ownOrdersReadAt = now;
                 dev.doughbay.fabric.OrderMetrics.observe(now, ownOrders);
                 planDesk(lastSnapshot, now);
@@ -5554,6 +5613,12 @@ public final class AutomationSessionController {
                 if (bookOwedFromInventory(client, now) || bookHandCollectedFill(client, now)) return;   // listing it now; the queue waits
             }
             case PLACE -> {
+                if(event.detail()!=null && event.detail().startsWith("The order book is full")) {
+                    ownOrdersReadAt=0;
+                    deskReadDue=true;
+                    deskQueue.removeIf(q->q.action()==DeskAction.PLACE);
+                    break; // No order was created and no money was charged.
+                }
                 deskSettleUntilMillis = now + 900;
                 deskPlaceFailures = 0;   // a placement that worked ends the run of failures
                 // A later item's quote can replan the whole batch. It must see
@@ -5573,7 +5638,7 @@ public final class AutomationSessionController {
                 bidPlacedAt.put(new BidKey(step.itemId(), step.unitPrice()), now);
                 placedBids.put(step.itemId(), new PlacedBid(step.itemId(), step.unitPrice(), step.count(), now));
                 saveBidsAndFills();
-                if (reserveMarket(step.itemId())) {
+                if (reserveMarket(step.itemId()) || multipleOrderMarket(step.itemId())) {
                     ownOrdersReadAt = 0;
                     deskQueue.removeIf(q -> q.action() == DeskAction.PLACE);
                     deskReadDue = true;
@@ -5588,15 +5653,13 @@ public final class AutomationSessionController {
                 // And it gives back what was not delivered. Taken from the
                 // order as Your Orders last showed it; a delivery since then
                 // makes this a little too much, which the tolerance is for.
-                for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
-                    if (r.itemId().equals(step.itemId()) && r.unitPrice() == step.unitPrice() && r.remaining() > 0) {
-                        spentSinceAudit -= refundOnCancel(r.unitPrice(), r.requested(), r.delivered());
-                        break;
-                    }
-                }
-                bidPlacedAt.remove(new BidKey(step.itemId(), step.unitPrice()));
+                var cancelled=driver.lastCancelledOrder();
+                if(cancelled!=null) spentSinceAudit-=refundOnCancel(cancelled.unitPrice(),cancelled.requested(),cancelled.delivered());
+                long matching=ownOrders.stream().filter(r->r.itemId().equals(step.itemId())
+                        &&r.unitPrice()==step.unitPrice()&&!r.alreadyCancelled()&&r.remaining()>0).count();
+                if(matching<=1) bidPlacedAt.remove(new BidKey(step.itemId(), step.unitPrice()));
                 PlacedBid placed = placedBids.get(step.itemId());
-                if (placed != null && placed.unitPrice() == step.unitPrice()) {
+                if (matching<=1 && placed != null && placed.unitPrice() == step.unitPrice()) {
                     placedBids.remove(step.itemId());
                     saveBidsAndFills();
                 }
@@ -5604,6 +5667,10 @@ public final class AutomationSessionController {
                 // Refresh the actual remaining book before planning the
                 // replacement, rather than waiting through an auction watch.
                 deskReadDue = true;
+                if(multipleOrdersEnabled()) {
+                    ownOrdersReadAt=0;
+                    deskQueue.removeIf(q->q.action()==DeskAction.CANCEL||q.action()==DeskAction.PLACE);
+                }
             }
             case SWEEP -> {
                 java.util.List<Long> asks = driver.lastProbeAsks();
@@ -5723,6 +5790,7 @@ public final class AutomationSessionController {
 
     private void planDesk(MarketWatcher.Snapshot snapshot, long now) {
         deskQueue.clear();
+        plannedOrderDepth.clear();
         boolean winding = windingDown();
         boolean listOnly = ownOnly();
         boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding;
@@ -5898,7 +5966,7 @@ public final class AutomationSessionController {
             // and not more than once in ten minutes per item.
             long best = bestOrder.getOrDefault(r.itemId(), 0L);
             final long observedBest = best;
-            if (reserve && ownOrders.stream().anyMatch(other -> other.itemId().equals(r.itemId())
+            if ((reserve || multipleOrderMarket(r.itemId())) && ownOrders.stream().anyMatch(other -> other.itemId().equals(r.itemId())
                     && !other.alreadyCancelled() && other.remaining()>0 && other.unitPrice() == observedBest)) best = r.unitPrice();
             boolean chaseThisOrder = false;
             if (why == null && priced == null && chasing && best > r.unitPrice()
@@ -5931,8 +5999,9 @@ public final class AutomationSessionController {
             // A blacklisted item is pulled even in collect-only mode; everything
             // else is only cancelled while the desk is actively bidding.
             if ((bidding || denied || winding) && why != null && pending <= 0
+                    && !deskUncancellable.contains(orderKey(r.itemId(), r.unitPrice(), r.requested()))
                     && !deskUncancellable.contains(orderKey(r.itemId(), r.unitPrice(), 0))) {
-                deskQueue.addLast(new DeskStep(DeskAction.CANCEL, r.itemId(), 0, r.unitPrice(), why));
+                deskQueue.addLast(new DeskStep(DeskAction.CANCEL, r.itemId(), r.requested(), r.unitPrice(), why));
                 // Pending fills are collected first. Merely considering a
                 // chase must not postpone the actual adjustment for ten minutes.
                 if (chaseThisOrder) chasedAt.put(r.itemId(), now);
@@ -5991,6 +6060,15 @@ public final class AutomationSessionController {
         int active = 0;
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders)
             if (!r.alreadyCancelled() && r.remaining() > 0) active++;
+        if(multipleOrdersEnabled()) {
+            if(!ownOrdersComplete) return;
+            active=0;
+            for(String item:ownOrders.stream().map(AutomatedExecutionDriver.OwnOrderRow::itemId).distinct().toList()) {
+                var outstanding=ReserveStock.book(item,ownOrders,collectedByKey);
+                if(!outstanding.valid()) return;
+                active+=outstanding.batches();
+            }
+        }
         int free = slots - active;
         if (snapshot == null || free <= 0) return;
         // Cache-only aggregate observations choose which native checks to spend this plan on.
@@ -6013,7 +6091,7 @@ public final class AutomationSessionController {
             if (onlyOwn) { bump(why, "only your price list is traded"); continue; }
             if (!m.hasPrices() || m.itemKey().indexOf('#') >= 0) { bump(why, "no prices"); continue; }
             if (hasRetailStock(m.itemKey())) { bump(why, "retail stock already held"); continue; }
-            if (reserveMarket(m.itemKey()) ? !reserveRoom(m.itemKey()) : bidItems.contains(m.itemKey())) {
+            if (reserveMarket(m.itemKey()) ? !reserveRoom(m.itemKey()) : !ordinaryOrderRoom(m.itemKey(),bidItems.contains(m.itemKey()))) {
                 bump(why, "bid or reserve already out"); continue;
             }
             if (deskBadItems.contains(m.itemKey())) { bump(why, "server refuses an order for it"); continue; }
@@ -6237,16 +6315,19 @@ public final class AutomationSessionController {
             // Finalize the offer before validating it. The resale ceiling is
             // a limit, not what this order will pay; checking the ceiling here
             // rejected safe discounted offers before they could be calculated.
-            long ourStanding = reserveMarket(m.itemKey()) ? ownOrders.stream()
+            long ourStanding = reserveMarket(m.itemKey()) || multipleOrderMarket(m.itemKey()) ? ownOrders.stream()
                     .filter(r -> r.itemId().equals(m.itemKey()) && !r.alreadyCancelled() && r.remaining()>0)
                     .mapToLong(AutomatedExecutionDriver.OwnOrderRow::unitPrice).max().orElse(0) : 0;
-            boolean sharingOurPrice = ourStanding > 0 && standing == ourStanding && unit >= ourStanding;
+            boolean sharingOurPrice = ourStanding > 0 && standing <= ourStanding && unit >= ourStanding;
+            if(multipleOrderMarket(m.itemKey()) && ourStanding>0 && standing>ourStanding) {
+                bump(why,"outbid already"); continue;
+            }
             if (sharingOurPrice) unit = ourStanding;
             if (standing > 0 && !sharingOurPrice && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
             // Far above every standing bid means the statistic is wrong, not
             // that the market is generous: a polluted single-item median.
             if (standing > 0 && unit > standing * 5) { bump(why, "price looks wrong"); continue; }
-            if (standing > 0 && retail == null && shaped == null) {
+            if (standing > 0 && retail == null && shaped == null && !sharingOurPrice) {
                 unit = Math.min(unit, Math.max((long) (standing * 1.05), unit * 3 / 4));
             }
             // Asks are only what sellers hope for. Junk markets carry rows of
@@ -6367,6 +6448,14 @@ public final class AutomationSessionController {
             dev.doughbay.fabric.DecisionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DESK,dev.doughbay.fabric.ActionTrace.Event.OBSERVATION,dev.doughbay.fabric.DecisionTrace.Code.ORDER_DEPTH,dev.doughbay.fabric.DecisionTrace.Reason.DEPTH_CAP,m.itemKey(),stacks,depthStacks,unit,room,now);
             dev.doughbay.fabric.DecisionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DESK,dev.doughbay.fabric.ActionTrace.Event.OBSERVATION,dev.doughbay.fabric.DecisionTrace.Code.ORDER_SALES,dev.doughbay.fabric.DecisionTrace.Reason.ADAPTIVE_BATCH,m.itemKey(),stacks,sized,track == null ? -1 : track.sold(),roomInMarket,now);
             long cost = unit * count;
+            if (multipleOrderMarket(m.itemKey()) && !reserveMarket(m.itemKey())) {
+                long depth=sharePct>=100 ? -1 : (long)depthStacks*per;
+                var outstanding=ReserveStock.book(m.itemKey(),ownOrders,collectedByKey);
+                if (!OrderBatchLimit.fitsDepth(outstanding,reserveHeldUnits(m.itemKey()),count,depth)) {
+                    bump(why,"combined orders exceed market depth"); continue;
+                }
+                plannedOrderDepth.put(m.itemKey(),depth);
+            }
             if (cost > effectivePurchaseCap()) { bump(why, "over the buy cap"); continue; }
             if (cost > room) { bump(why, "no room left"); continue; }
             dev.doughbay.fabric.DecisionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DESK,dev.doughbay.fabric.ActionTrace.Event.REQUEST,dev.doughbay.fabric.DecisionTrace.Code.ORDER_PLAN,

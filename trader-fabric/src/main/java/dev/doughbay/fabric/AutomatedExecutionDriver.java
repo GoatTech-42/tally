@@ -751,6 +751,21 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private List<OwnOrderRow> lastOwnOrders = List.of();
+    private boolean lastOwnOrdersComplete;
+    private int cancelMatchingBefore;
+    private OwnOrderRow lastCancelledOrder;
+
+    public synchronized OwnOrderRow lastCancelledOrder() { return lastCancelledOrder; }
+    public synchronized boolean lastOwnOrdersComplete() { return lastOwnOrdersComplete; }
+
+    static boolean completeOwnOrderPage(int rows, boolean unparsed, boolean navigation, String title) {
+        return rows < 45 && !unparsed && !navigation
+                && !Pattern.compile("(?i)page\\s*(?:[2-9][0-9]*|1[0-9]+)").matcher(title).find();
+    }
+
+    static boolean cancellationObserved(int before, int after, boolean receipt) {
+        return before > 0 && (after == before - 1 || receipt);
+    }
     /** A native page with the active placed order; null for receipt/completed-only success. */
     private List<OwnOrderRow> lastPlacementOrders;
     private int ownStage;
@@ -854,6 +869,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         ownTargetUnitPrice = unitPrice;
         ownMatchOrdinal = 0;
         ownMatchRequested = 0;
+        cancelMatchingBefore=-1;
+        lastCancelledOrder=null;
         collectTriedOrdinals.clear();
         collectMatchingRows = 0;
         collectRowsExhausted = false;
@@ -1048,8 +1065,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice) {
-        return beginOwnOrdersOperation(Operation.CANCEL_ORDER, itemId, 0, unitPrice,
+        return cancelOrder(itemId,unitPrice,0);
+    }
+
+    public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice, int requested) {
+        ExecutionResult result=beginOwnOrdersOperation(Operation.CANCEL_ORDER,itemId,0,unitPrice,
                 "Cancelling your bid on " + shortName(itemId));
+        if(result.ok()) ownMatchRequested=Math.max(0,requested);
+        return result;
     }
 
     /** The Edit Order page offered Collect where the cancel would be: the order has a fill waiting. */
@@ -1290,6 +1313,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
             int matchSlot = -1;
+            OwnOrderRow selectedRow = null;
             int matchesSeen = 0;
             int emptySlot = -1;
             for (int menuSlot = 0; menuSlot < Math.min(45, container.getMenu().slots.size()); menuSlot++) {
@@ -1302,7 +1326,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 OwnOrderRow row = parseOwnOrder(client, stack);
                 if (row == null) {
-                    if (menuSlot < 45) unparsed.add(stack.getHoverName().getString() + " [" + String.join(" | ", tooltipLines(client, stack)) + "]");
+                    String controlName=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT);
+                    if (!java.util.Set.of("new order","create order","place order").contains(controlName))
+                        unparsed.add(stack.getHoverName().getString() + " [" + String.join(" | ", tooltipLines(client, stack)) + "]");
                     continue;
                 }
                 rows.add(row);
@@ -1311,6 +1337,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         && (operation != Operation.COLLECT_ORDER || collectionReady(row,collectFinishedOnly))) {
                     if (matchSlot < 0 && matchesSeen == ownMatchOrdinal) {
                         matchSlot = menuSlot;
+                        selectedRow = row;
                         ownTargetTooltip = List.copyOf(tooltipLines(client, stack));
                         ownTargetFinished = row.remaining() == 0 || row.alreadyCancelled();
                     }
@@ -1318,6 +1345,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             lastOwnOrders = List.copyOf(rows);
+            NativeOrderEvidence.captureIfRequested(client,container);
+            boolean navigation=false;
+            for(String control:new String[]{"next page","previous page","prev page"}) {
+                if(findControl(container,inventory,control,45,54)>=0) navigation=true;
+            }
+            lastOwnOrdersComplete=completeOwnOrderPage(rows.size(),!unparsed.isEmpty(),navigation,title);
             if (operation == Operation.COLLECT_ORDER) collectMatchingRows=matchesSeen;
             if (operation == Operation.OWN_ORDERS && !unparsed.isEmpty()) {
                 DoughBayClient.LOGGER.info("DoughBay: {} item(s) on Your Orders did not parse as orders: {}", unparsed.size(), unparsed);
@@ -1416,7 +1449,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 case COLLECT_ORDER, CANCEL_ORDER -> {
                     if (ownStage == 1 && ownDone) {
                         if (operation == Operation.CANCEL_ORDER) {
-                            if (matchSlot < 0 || !cancelOrderReceipt.isEmpty()) {
+                            if (cancellationObserved(cancelMatchingBefore,matchesSeen,!cancelOrderReceipt.isEmpty())) {
                                 complete(client, "Bid on " + shortName(targetItemId) + " cancelled"
                                         + (cancelOrderReceipt.isEmpty() ? "" : " (" + cancelOrderReceipt + ")"));
                             } else if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
@@ -1439,6 +1472,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         return;
                     }
                     if (operation == Operation.COLLECT_ORDER) collectTriedOrdinals.add(ownMatchOrdinal);
+                    if(operation==Operation.CANCEL_ORDER) {
+                        cancelMatchingBefore=matchesSeen;
+                        lastCancelledOrder=selectedRow;
+                    }
                     resetPhaseObservation();
                     ownSettleUntilTick = humanStep(6);
                 }
