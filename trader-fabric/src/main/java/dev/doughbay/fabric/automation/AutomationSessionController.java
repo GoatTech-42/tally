@@ -3636,7 +3636,7 @@ public final class AutomationSessionController {
                 }
                 Opportunity ok = one.opportunity().orElseThrow();
                 if (reserveMarket(ok.listing().itemId())) {
-                    lastGateDetail = "Reserve Stock: automatic stack purchases use the two order-house batches";
+                    lastGateDetail = "Reserve Stock: automatic stack purchases use the configured order-house batches";
                     continue;
                 }
                 if (listingReconciler.ownershipOf(ok.listing(), localUuid(client), localName(client))
@@ -4912,6 +4912,10 @@ public final class AutomationSessionController {
 
     private final ReserveCycles reserveCycles = new ReserveCycles();
 
+    private static int reserveMaxBatches() {
+        return (int)dev.doughbay.fabric.Tuning.get("orders.reserve_batches");
+    }
+
     private int reserveCollectUnits(String item) {
         int server = serverListedSlots();
         if (server < 0) {
@@ -4951,7 +4955,7 @@ public final class AutomationSessionController {
             var bid = bidForFill(f); return bid != null && bid.itemId().equals(item);
         })) return false; // A delivery absent from the native book still needs reconciliation.
         try {
-            return reserveCycles.mayPlace(item,book,reserveHeldUnits(item),reserveBatchUnits(item));
+            return reserveCycles.mayPlace(item,book,reserveHeldUnits(item),reserveBatchUnits(item),reserveMaxBatches());
         } catch (java.io.IOException e) {
             LOGGER.error("Reserve Stock cycle could not be saved; no reserve bid sent",e);
             return false;
@@ -5366,7 +5370,7 @@ public final class AutomationSessionController {
                 return true;
             }
             if (step.action() == DeskAction.PLACE) {
-                try { reserveCycles.reservePurchase(step.itemId()); }
+                try { reserveCycles.reservePurchase(step.itemId(),reserveMaxBatches()); }
                 catch (java.io.IOException e) {
                     pauseInternal("Reserve Stock cycle could not be saved; no order sent");
                     return true;
@@ -6348,7 +6352,7 @@ public final class AutomationSessionController {
                         (long)Math.min(effectivePurchaseCap(),room),
                         sharePct >= 100 ? -1 : (long)depthStacks*per,
                         reserveHeldUnits(m.itemKey())+reserveBook.units());
-                if (count <= 0 || !ReserveStock.mayPlace(reserveBook,reserveHeldUnits(m.itemKey()),count)) {
+                if (count <= 0 || !ReserveStock.mayPlace(reserveBook,reserveHeldUnits(m.itemKey()),count,reserveMaxBatches())) {
                     bump(why,"full reserve batch waits for caps/depth"); continue;
                 }
             }

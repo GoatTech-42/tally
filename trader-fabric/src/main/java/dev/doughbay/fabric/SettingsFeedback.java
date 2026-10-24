@@ -58,6 +58,10 @@ public final class SettingsFeedback {
         }
         if(on(n,"orders.reserve_stock")&&n.getOrDefault("orders.reserve_stacks",12d)>n.getOrDefault("orders.bid_stacks",3d))add(out,"reserve-ceiling","info","Reserve batches use the lower stack limit",
             "Reserve batch stacks exceeds Stacks per bid. The smaller limit is used, and the complete batch must still fit spending and depth limits.","orders.reserve_stock","orders.reserve_stacks","orders.bid_stacks");
+        if(on(n,"orders.reserve_stock"))add(out,"reserve-batch-count","info","Separate orders share one stock and spending budget",
+            "Maximum orders per item sets purchases per stock cycle, not auction listings or guaranteed open orders. Existing selling stock and uncollected fills count toward that cycle. The next cycle waits until its stock and orders drain; each full batch must fit account order slots, spending and market depth.","orders.reserve_stock","orders.reserve_batches","orders.reserve_stacks");
+        else if(n.getOrDefault("orders.reserve_batches",2d)!=2d)add(out,"reserve-batches-inactive","info","Multiple-order batches require Reserve Stock",
+            "Changing Maximum orders per item alone does not change normal adaptive bidding. Turn on Reserve Stock to use this batch count. Existing orders, stock and limits are retained.","orders.reserve_stock","orders.reserve_batches");
         if(on(n,"underdog.enabled")&&on(n,"orders.bid"))add(out,"rival-lots","info","Rival trades may request small quantities",
             "Underdog orders follow the observed rival lot, up to one stack. Stacks per bid does not turn those lots into bulk orders.","underdog.enabled","orders.bid_stacks");
         if(on(n,"orders.bid_on_real_trades")&&!on(n,"feed.keyless"))add(out,"real-trades-feed","info","Early trade evidence needs the keyless feed",

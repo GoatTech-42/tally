@@ -55,5 +55,11 @@ class SettingsFeedbackTest {
   assertEquals("0.2",Tuning.setting("orders.bid_min_confidence").format(.2));
   assertEquals("0.25/h",Tuning.setting("orders.bid_min_sales_per_hour").format(.25));
  }
+ @Test void multipleOrderCountExplainsActivationAndStockCycleInsteadOfPromisingMoreListings(){
+  assertTrue(ids(Map.of("orders.reserve_stock",0d,"orders.reserve_batches",3d),Map.of()).contains("reserve-batches-inactive"));
+  var enabled=SettingsFeedback.evaluate(Map.of("orders.reserve_stock",1d,"orders.reserve_batches",3d),Map.of());
+  assertTrue(enabled.stream().anyMatch(n->n.id().equals("reserve-batch-count")&&n.effect().contains("stock cycle")&&n.effect().contains("account order slots")));
+  assertFalse(enabled.stream().anyMatch(n->n.id().equals("reserve-batches-inactive")));
+ }
  private Set<String> ids(Map<String,Double> n,Map<String,String> t){return new HashSet<>(SettingsFeedback.evaluate(n,t).stream().map(SettingsFeedback.Notice::id).toList());}
 }
