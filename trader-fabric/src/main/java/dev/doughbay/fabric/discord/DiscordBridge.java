@@ -72,6 +72,8 @@ public final class DiscordBridge {
     private volatile String applicationId = "";
     private volatile String status = "not configured";
     private volatile Page page = Page.MONEY;
+    private final PanelFrameCache panelFrames = new PanelFrameCache();
+    private static final java.util.Set<Page> CACHED_PAGES = java.util.Set.of(Page.MONEY,Page.STATUS,Page.ORDERS,Page.LISTINGS,Page.ITEMS,Page.OPPS,Page.HIVE,Page.PAYROLL);
     /** The Items page: which stretch of time, in what order, and best or worst first. */
     private volatile dev.doughbay.fabric.ItemBoard.Range itemsRange = dev.doughbay.fabric.ItemBoard.Range.DAY;
     private volatile dev.doughbay.fabric.ItemBoard.Sort itemsSort = dev.doughbay.fabric.ItemBoard.Sort.PROFIT;
@@ -100,11 +102,10 @@ public final class DiscordBridge {
     private volatile long saleFlashAt;
 
     private DiscordBridge(Logger log, Path configDir, Path ledgerPath, AutomationSessionController session) {
-        this.log = log;
-        this.configDir = configDir;
-        this.ledgerPath = ledgerPath;
-        this.session = session;
-        this.config = DiscordConfig.load(configDir);
+        this(log,configDir,ledgerPath,session,DiscordConfig.load(configDir));
+    }
+    private DiscordBridge(Logger log,Path configDir,Path ledgerPath,AutomationSessionController session,DiscordConfig config) {
+        this.log=log;this.configDir=configDir;this.ledgerPath=ledgerPath;this.session=session;this.config=config;
     }
 
     public static DiscordBridge start(Logger log, Path configDir, Path ledgerPath, AutomationSessionController session) {
@@ -153,9 +154,61 @@ public final class DiscordBridge {
     }
 
     /** The page on view, as the picture Discord would be sent. */
-    public synchronized byte[] panelPng() throws Exception {
-        if (page == Page.REGIONS) return dev.doughbay.fabric.RegionMapImage.render(dev.doughbay.fabric.RegionMapReport.snapshot());
-        return StatsImage.render(renderedPage());
+    public byte[] panelPng() throws Exception {
+        if(CACHED_PAGES.contains(page)) {
+            var frame=requestFrame(page,cacheScope());return frame==null?null:frame.png();
+        }
+        StatsImage.Page snapshot;
+        synchronized(this){
+            if(page==Page.REGIONS)return dev.doughbay.fabric.RegionMapImage.render(dev.doughbay.fabric.RegionMapReport.snapshot());
+            snapshot=renderedPage();
+        }
+        return StatsImage.render(snapshot);
+    }
+
+    private String cacheScope() {
+        try{return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+            .digest(account.toLowerCase(Locale.ROOT).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
+        catch(java.security.NoSuchAlgorithmException impossible){throw new IllegalStateException(impossible);}
+    }
+    private PanelFrameCache.Frame requestFrame(Page wanted,String scope) {
+        return panelFrames.request(scope+"|"+wanted,()->{
+            DiscordBridge reader;
+            synchronized(this){
+                if(!scope.equals(cacheScope()))throw new IllegalStateException("Account changed");
+                reader=new DiscordBridge(log,configDir,ledgerPath,session,config);
+                reader.page=wanted;reader.account=account;reader.itemsRange=itemsRange;reader.itemsSort=itemsSort;
+                reader.itemsBest=itemsBest;reader.searchTerm=searchTerm;reader.flipKey=flipKey;
+            }
+            // The independent read-only renderer never holds this panel's navigation/control monitor.
+            var snapshot=reader.renderedPage();long at=System.currentTimeMillis();
+            byte[] png;
+            try{png=StatsImage.render(snapshot);}catch(Exception e){throw new IllegalStateException(e);}
+            byte[] small=png;
+            try{
+                for(int i=0;small.length>160*1024&&i<8;i++){
+                    var image=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(small));
+                    var resized=new java.awt.image.BufferedImage(Math.max(1,image.getWidth()*3/4),Math.max(1,image.getHeight()*3/4),java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                    var g=resized.createGraphics();try{g.drawImage(image,0,0,resized.getWidth(),resized.getHeight(),null);}finally{g.dispose();}
+                    var out=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(resized,"png",out);small=out.toByteArray();
+                }
+            }catch(Exception e){throw new IllegalStateException(e);}
+            String preview=small.length<=160*1024?java.util.Base64.getEncoder().encodeToString(small):"";
+            return new PanelFrameCache.Frame(png,preview,wanted==Page.MONEY?PanelReadModel.report(DiscordPrivacy.page(snapshot)):null,snapshot.title(),at);
+        });
+    }
+    /** Reporting-only prefetch. Never executes page/account actions or changes the saved view. */
+    public String panelPreview(java.util.Map<String,String> query) {
+        String scope=cacheScope();var out=MAPPER.createObjectNode().put("scope",scope);
+        if(!scope.equals(query.get("scope")))return out.put("scopeChanged",true).toString();
+        Page wanted;try{wanted=Page.valueOf(query.getOrDefault("page",""));}catch(Exception e){return out.put("unsupported",true).toString();}
+        if(!CACHED_PAGES.contains(wanted))return out.put("unsupported",true).toString();
+        var frame=requestFrame(wanted,scope);out.put("pageId",wanted.name());
+        if(frame==null)return out.put("pending",true).toString();
+        out.put("capturedAt",frame.at()).put("ageMillis",Math.max(0,System.currentTimeMillis()-frame.at())).put("title",frame.title());
+        if(!frame.preview().isEmpty())out.put("image","data:image/png;base64,"+frame.preview());
+        if(frame.report()!=null)out.set("report",frame.report().deepCopy());
+        return out.toString();
     }
 
     /** What is under the picture: the page's name, the last reply, and the controls in the shape Discord takes them. */
@@ -164,7 +217,11 @@ public final class DiscordBridge {
         root.put("page", label(page));
         root.put("notice", notice.isBlank() || System.currentTimeMillis() - noticeAt > 120_000 ? "" : notice);
         root.set("components", components());
-        if (page == Page.MONEY) root.set("report", PanelReadModel.report(DiscordPrivacy.page(renderedPage())));
+        String scope=cacheScope();root.put("cacheScope",scope).put("pageId",page.name());
+        if(CACHED_PAGES.contains(page)){
+            var frame=requestFrame(page,scope);
+            if(frame!=null){root.put("reportAt",frame.at());if(frame.report()!=null)root.set("report",frame.report().deepCopy());}
+        }
         var current = PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account());
         root.set("activity", PanelReadModel.activity(ledgerPath, current, account, System.currentTimeMillis()));
         // What the HUD in game shows across its top, for the page to show across its own.
@@ -199,6 +256,7 @@ public final class DiscordBridge {
     /** A button pressed or a choice made, by the id the control carries. */
     public void panelPress(String customId, String value) {
         if (customId == null || customId.isBlank()) return;
+        if(!customId.equals("page:pick")&&!customId.equals("acct:pick"))panelFrames.invalidate(cacheScope()+"|");
         ObjectNode d = MAPPER.createObjectNode();
         d.putObject("data").putArray("values").add(value == null ? "" : value);
         String reply = handleComponent(d, customId);
