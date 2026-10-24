@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-24 00:40 UTC
+
+- **Release PR #278: Keep cached summary images at their original resolution.**
+- Client artifact published October 23 at **17:40:22 Los Angeles time (October 24 00:40:22 UTC)**. Build `1792802182599`; SHA256 `234ccf47cdc4acbc52a3480285cb65a57ba7b7deda7f89c0997933596325eb8e`. Clean production build: **1,595 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR276.
+- PR278 merge `fba2198eff32363e2d87a9575e414519d83afda6`. Source ZIP is tested head `b403d3995c6394fd3f8fb538b0f9828b2eca7468`; SHA256 `fbd5a96c0e0ddc6f476514c0b4672d366ca180b4ada4d8c2e54cbee21570f07a`, published 00:40:31 UTC. This publication record is documentation only.
+- Fixes PR276's preview quality regression: dense 1920px PNG summaries were repeatedly shrunk to fit one relay response. Cached previews now preserve the original PNG byte-for-byte. Large images transfer in sequential bounded chunks on the existing authenticated reporting endpoint; the browser assembles and decodes the complete image before replacing the last good frame. A pinned account/tab/frame prevents mixed versions; failed or expired transfers retain the prior image and its honest age. Caches and transfer retention are bounded.
+- Money's complete shareable image remains first with readable text underneath. Served 390px phone fixture confirmed 1920px source images, no horizontal overflow and immediate cached return. Installed hosted relay passed exact-fixture transform/CSP parity at 390/1280px without a backend change; shell parity alone is not a live phone screenshot. No trading settings, positions, guards or diagnostic policy changed. This repair does not claim the exact earlier intermittent timeout cause was proven.
+
 ## 2026-10-24 00:27 UTC
 
 - **Release PR #276: Fast cached reporting tabs and background image rendering.**
