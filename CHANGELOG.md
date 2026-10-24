@@ -1,9 +1,10 @@
 # GoNuts changelog
 
-## Unreleased — PR #300
+## 2026-10-24 19:39 UTC
 
-- Allow the native collector to drain partial-stack leftovers from a fully delivered or cancelled order within its existing shelf/inventory collection budget. Bounded collection from an active order still requires whole stacks. Actual inventory movement is still required before recording any collection.
-- The completed-tail regression failed before the repair. Spending, ROI, ownership, persistence and exposure caps remain enforced. This repairs a demonstrated replenishment path; the full profit slowdown and report #295 remain unresolved. Publication verification is pending; no live client changes.
+- **PR #300: Drain completed order tails so collection can release order capacity.** A fully delivered or cancelled order can collect its last partial stack within the existing shelf/inventory budget. Active bounded orders still wait for whole stacks, and inventory movement must prove collection before credit is recorded.
+- Client artifact published October 24 at **12:39:06 Los Angeles time (19:39:06 UTC)**. Build 1792870455788; SHA256 59a81d4e9ce210ba14b686a740f1f23f58c25bfe8d5f7211b08f6183063eea3d. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 1f0729f0e02559dbc748393072c6350a81a5d777f8d55b7764efad733e360cec, published 19:39:09 UTC. PR300 merge 50d6647d22ff7c4fc63d44272e414f4dfbd46086; tested source head 7254fcf852d3f36ddad969c40910f9a5fabda25b. This publication record is documentation only.
+- The completed-tail regression failed before the repair. Clean production suite: **1,630 tests, zero failures/errors, two skipped**. Spending, ROI, ownership, persistence and exposure caps remain enforced. This fixes a reproduced replenishment path; sustained profit improvement and the full cause of report #295 remain unproven. Reports stay open pending their own evidence.
 
 ## 2026-10-24 15:24 UTC
 
