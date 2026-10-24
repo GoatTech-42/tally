@@ -3,7 +3,7 @@ const html=fs.readFileSync(process.argv[2],'utf8');
 const source=html.slice(html.indexOf("let imageScope="),html.indexOf('let toastTimer'));
 const frames=[],shot={src:'',hidden:true},status={textContent:''};
 class Frame {constructor(){frames.push(this);}async decode(){}}
-const context=vm.createContext({Image:Frame,shot,$:()=>status,Date});vm.runInContext(source,context);
+const context=vm.createContext({Image:Frame,shot,$:()=>status,Date,desiredPage:'',cacheScope:'',currentPage:'MONEY',cachePages:new Set(),displayImage:(image,at)=>{shot.src=image.src;shot.hidden=false;status.textContent='';vm.runInContext('lastImageAt='+at,context);},saveFrame:()=>{}});vm.runInContext(source,context);
 (async()=>{
  context.imageScopeChanged('Money|A');context.picture();context.picture();assert.equal(frames.length,1,'Only one image refresh may be in flight');
  frames[0].src='valid-A';await frames[0].onload();assert.equal(shot.src,'valid-A');assert.equal(shot.hidden,false);

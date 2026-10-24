@@ -360,7 +360,7 @@ final class Pages {
             + "<div id=\"toast\" role=\"status\" aria-live=\"polite\" hidden></div>"
             + "</main><script>" + """
             const $ = id => document.getElementById(id);
-            const shot = $('shot');
+            let shot = $('shot');
             const controls = $('controls');
             const pages = $('pages');
             const own = $('own');
@@ -450,20 +450,88 @@ final class Pages {
               if (press) b.addEventListener('click', press);
               return b;
             }
+            // Memory-only per-tab/account frames. Never cache command controls or settings forms.
+            const tabFrames=new Map(),nativeLabels=new Map();
+            const warmPages=['MONEY','STATUS','ORDERS','LISTINGS','HIVE'];
+            const cachePages=new Set([...warmPages,'ITEMS','OPPS','PAYROLL']);
+            let cacheScope='',currentPage='',desiredPage='',navVersion=0,pageActions=Promise.resolve();
+            let warmPending=false,warmTimer=0,warmCursor=0,pollPending=false,refreshAbort=null;
+            function frameKey(scope,page){return scope+'|'+page;}
+            function saveFrame(scope,page,fields){
+              if(!scope||!page)return;
+              const key=frameKey(scope,page),previous=tabFrames.get(key)||{};
+              tabFrames.delete(key);tabFrames.set(key,{...previous,...fields,scope,page});
+              while(tabFrames.size>8)tabFrames.delete(tabFrames.keys().next().value);
+            }
+            function imageAge(at){
+              if(!at)return 'Loading this account’s summary…';
+              return 'Summary updated '+Math.max(0,Math.floor((Date.now()-at)/1000))+'s ago';
+            }
+            function displayImage(image,at){
+              image.id='shot';image.alt='The complete summary for the selected tab and account';image.hidden=false;
+              if(shot!==image){shot.replaceWith(image);shot=image;}
+              lastImageAt=at;$('image-status').textContent=imageAge(at);
+            }
+            function showSavedFrame(page){
+              const frame=tabFrames.get(frameKey(cacheScope,page));
+              controls.replaceChildren();last='';
+              put('page',frame?.title||nativeLabels.get(page)||page);
+              readableReport(frame?.report||null);
+              if(frame?.image)displayImage(frame.image,frame.imageAt);
+              else{shot.hidden=true;$('image-status').textContent='Loading this tab’s summary…';}
+              put('notice','Refreshing this tab. Controls appear after its current state arrives.');
+              return !!frame;
+            }
+            function queueWarm(){
+              if(warmTimer)return;
+              warmTimer=setTimeout(()=>{warmTimer=0;warmNext();},700);
+            }
+            async function warmNext(){
+              if(warmPending||pollPending||imagePending||!cacheScope||document.hidden||desiredPage)return;
+              const scope=cacheScope,active=tabFrames.get(frameKey(scope,currentPage));
+              const page=warmPages.includes(currentPage)&&!active?.image?currentPage:warmPages[warmCursor++%warmPages.length];
+              warmPending=true;
+              try{
+                const packet=await api('panelpreview',{page,scope});
+                await acceptPreview(packet,scope,page);
+              }catch(e){/* Background failure never replaces a usable view or retries commands. */}
+              finally{warmPending=false;}
+            }
+            async function acceptPreview(packet,scope,page){
+              if(packet.pending||packet.unsupported||packet.scopeChanged||packet.scope!==scope||packet.pageId!==page)return false;
+              const previous=tabFrames.get(frameKey(scope,page));
+              if(previous?.sourceAt===packet.capturedAt&&previous.image){
+                if(cacheScope===scope&&!view&&currentPage===page&&!desiredPage)displayImage(previous.image,previous.imageAt);
+                return true;
+              }
+              const image=packet.image?new Image():null;
+              if(image){image.src=packet.image;if(image.decode)await image.decode();}
+              const at=Date.now()-Math.max(0,packet.ageMillis||0);
+              saveFrame(scope,page,{title:packet.title,report:packet.report||null,...(image?{image,imageAt:at}:{}),sourceAt:packet.capturedAt,at});
+              if(cacheScope===scope&&!view&&currentPage===page&&!desiredPage){if(image)displayImage(image,at);readableReport(packet.report||null);}
+              return true;
+            }
             let imageScope='',imageVersion=0,imagePending=false,lastImageAt=0;
             function imageScopeChanged(scope){
               if(scope===imageScope)return;
               imageScope=scope;imageVersion++;imagePending=false;lastImageAt=0;shot.hidden=true;
               $('image-status').textContent='Loading this account’s summary…';
             }
-            function picture() {
-              if(imagePending)return;
+            async function picture() {
+              if(imagePending||desiredPage)return;
+              if(cacheScope&&cachePages.has(currentPage)){
+                imagePending=true;const scope=cacheScope,page=currentPage,version=imageVersion;
+                try{await acceptPreview(await api('panelpreview',{page,scope}),scope,page);}
+                catch(e){if(version===imageVersion)$('image-status').textContent=lastImageAt?imageAge(lastImageAt)+' · Refresh delayed':'Summary is still loading; retrying automatically.';}
+                finally{if(version===imageVersion)imagePending=false;}
+                return;
+              }
               imagePending=true;const version=++imageVersion,next=new Image();
               next.onload=async()=>{
                 try{if(next.decode)await next.decode();}catch(e){next.onerror();return;}
                 if(version!==imageVersion)return;
-                imagePending=false;shot.src=next.src;shot.hidden=false;lastImageAt=Date.now();
-                $('image-status').textContent='';
+                imagePending=false;const at=Date.now();displayImage(next,at);
+                saveFrame(cacheScope,currentPage,{image:next,imageAt:at});
               };
               next.onerror=()=>{
                 if(version!==imageVersion)return;imagePending=false;
@@ -569,7 +637,23 @@ final class Pages {
                 update(initial);const again=()=>{if(view!=='bots'||!status.isConnected)return;poll().finally(()=>setTimeout(again,2000));};setTimeout(again,2000);
               }catch(e){failed();}
             }
-            async function act(id, value, text) {
+            async function act(id,value,text){
+              if(id==='page:pick'){
+                desiredPage=value;const generation=++navVersion;refreshAbort?.abort();
+                imageScopeChanged(value+'|'+cacheScope);showSavedFrame(value);
+                document.querySelectorAll('[data-mobile]').forEach(b=>{if(b.dataset.mobile===value)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+                pageActions=pageActions.catch(()=>false).then(async()=>{
+                  if(generation!==navVersion)return false;
+                  try{return await sendAct(id,value,text);}catch(e){if(generation===navVersion)put('notice','Could not change tabs. Tap the tab to retry.');return false;}
+                });return pageActions;
+              }
+              if(id==='acct:pick'){
+                navVersion++;refreshAbort?.abort();desiredPage='';cacheScope='';imageScopeChanged('account-pending-'+navVersion);
+                readableReport(null);controls.replaceChildren();
+              }else{for(const key of tabFrames.keys())if(key.startsWith(cacheScope+'|'))tabFrames.delete(key);}
+              return sendAct(id,value,text);
+            }
+            async function sendAct(id, value, text) {
               const body = new URLSearchParams();
               body.set('id', id);
               if (value !== undefined && value !== null) body.set('value', value);
@@ -676,6 +760,7 @@ final class Pages {
               mine('analyzer');
               if(!options.some(o=>o.value==='TUNE')){mine('settings');mine('auction');mine('orders');mine('items');}
               for (const o of options) {
+                nativeLabels.set(o.value,o.label);
                 mobileRoutes.set(o.value,()=>{if(view)show('');act('page:pick',o.value);});
                 // Three of the mod's pictures have a page of their own here, which does what the picture only showed.
                 if (o.value === 'RIVALS') { mine('rivals'); continue; }
@@ -692,7 +777,12 @@ final class Pages {
             }
             function draw(state) {
               hud(state.hud);
-              imageScopeChanged((state.page||'')+'|'+(state.hud?.who||''));
+              const scope=state.cacheScope||state.hud?.who||'legacy',pageId=state.pageId||
+                (state.components||[]).flatMap(r=>r.components||[]).find(c=>c.custom_id==='page:pick')?.options?.find(o=>o.default)?.value||state.page;
+              if(scope!==cacheScope){cacheScope=scope;imageScopeChanged(pageId+'|'+scope);}
+              currentPage=pageId;imageScopeChanged(pageId+'|'+scope);
+              saveFrame(scope,pageId,{title:state.page,report:state.report||null});
+              const saved=tabFrames.get(frameKey(scope,pageId));if(saved?.image&&!view)displayImage(saved.image,saved.imageAt);
               activityCards(state.activity);
               accountPicker(state.components);
               setting = state.setting || null;
@@ -1868,8 +1958,12 @@ final class Pages {
             }
 
             async function refresh() {
+              if(pollPending)return;
+              pollPending=true;const generation=navVersion,abort=new AbortController();refreshAbort=abort;
+              const timeout=setTimeout(()=>abort.abort(),12000);
               try {
-                const r = await fetch('/state', { cache: 'no-store' });
+                const r = await fetch('/state', { cache: 'no-store',signal:abort.signal });
+                if(generation!==navVersion)return;
                 if (r.status === 401) { location.reload(); return; }
                 if (!r.ok) {
                   const messages = {
@@ -1881,13 +1975,17 @@ final class Pages {
                   if (!view) put('notice', messages[r.status] || 'Panel could not refresh. Retrying automatically; if this continues, use About → Report bug in game.');
                   return;
                 }
-                draw(await r.json());
+                const state=await r.json();
+                if(generation!==navVersion)return;
+                if(desiredPage&&state.pageId!==desiredPage)return;
+                desiredPage='';draw(state);
                 await reportNotice();
                 if (!view) picture();
                 else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
               } catch (e) {
+                if(generation!==navVersion)return;
                 if (!view) put('notice', 'Panel connection was interrupted. Retrying automatically; if this continues, use About → Report bug in game.');
-              }
+              }finally{clearTimeout(timeout);if(refreshAbort===abort)refreshAbort=null;pollPending=false;queueWarm();}
             }
             if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();
             setInterval(() => {

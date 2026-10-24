@@ -384,7 +384,7 @@ public class DoughBayClient implements ClientModInitializer {
 
                     @Override
                     public String data(String name, java.util.Map<String, String> query) {
-                        return WebPages.data(name, query);
+                        return "panelpreview".equals(name)?webView.panelPreview(query==null?java.util.Map.of():query):WebPages.data(name, query);
                     }
 
                     @Override
