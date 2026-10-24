@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-24 01:11 UTC
+
+- **Release PR #282: Support sixteen large-ticket listings per market.**
+- Client artifact published October 23 at **18:11:53 Los Angeles time (October 24 01:11:53 UTC)**. Build `1792804021824`; SHA256 `93f7661b70355e57e38f0db8f57d9082850ea009416d8e818a616968dc7bf9cf`. Clean production build: **1,597 tests, zero failures/errors, two skipped**. Sole production client entrypoint; no Smoke classes. Public client, source and checksum manifest independently downloaded and hash-verified. Separate binary publication after PR280.
+- PR282 merge `45d44cdebdca00667cc6d7496d4e51c13481e91f`. Source ZIP is tested head `44fbec530f9e252b2c3ee9588156a2693243c64a`; SHA256 `cf7039f955e49a126a162ab0d4a63937c1881b5f946612c40ebfdfb55c0a0c2d`, published 01:11:55 UTC. This publication record is documentation only.
+- The general listing limit already accepts sixteen, but the separate **Large listings per market** setting previously clamped requests to ten. Its supported maximum is now sixteen across the in-game GUI, local panel and hosted panel. Default remains two, minimum remains one; existing installations are not automatically reconfigured.
+- The range regression fails on the prior client and passes with this change. No purchase sizing, tier-pool allocation, spending/exposure/ROI guard, ownership or Reserve Stock behavior changes in the public client. Customer-requested local sizing/depth/tier settings are a separate explicit configuration change, not public defaults. Larger limits do not guarantee filled order books or occupied auction slots; live prices, fills, affordability and demand still apply.
+
 ## 2026-10-24 00:55 UTC
 
 - **Release PR #280: Distinguish normal auction-watch completion in diagnostics.**
