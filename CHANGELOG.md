@@ -1,8 +1,9 @@
 # GoNuts changelog
 
-## 2026-10-24
+## 2026-10-24 15:24 UTC
 
 - **PR #296: Let a sent listing finish verification when inventory changes before its response.** If the first sell command escrows/removes its stack before a receipt or confirmation arrives, withdraw its queued retry and keep verifying the original response. A changed hand before the first send still refuses the sale; movement alone never proves a listing or clears exposure.
+- Client artifact published October 24 at **08:24:05 Los Angeles time (15:24:05 UTC)**. Build `1792855316409`; SHA256 `c7093a9f98ed0f431fa8ff178d24c5e520bcb2a1d6a81e54ba3f0d55ef017b06`. Public client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `b04d6782edfd2543d7a147af0b4ad66a85b3674b6617b5a8c8f6c5fed093c69a`, published 15:24:08 UTC. PR296 merge `13479587848adbcb696947ba48ab08d5be543306`; tested source head `438f213c694000a93dd18c136e701a86bf2fa955`. This publication record is documentation only.
 - Two actual queued-dispatch regressions failed on the old path and pass after the repair. Full clean production suite: **1,628 tests, zero failures/errors, two skipped**. Initial-hand, late-confirmation, server-refusal, pacing, ownership and inventory verification remain enforced.
 - Related report #295 remains open: cloud history lacks the exact hand/dispatch sequence, so the independently reproduced timing repair does not establish the whole backlog's cause. No live bot upgrade, restart, setting change or protective-hold bypass.
 
