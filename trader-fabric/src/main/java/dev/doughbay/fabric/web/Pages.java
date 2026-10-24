@@ -497,6 +497,25 @@ final class Pages {
               }catch(e){/* Background failure never replaces a usable view or retries commands. */}
               finally{warmPending=false;}
             }
+            const imageTransfers=new Map();
+            async function originalImage(packet,scope,page){
+              if(packet.image)return packet.image;
+              if(!Number.isInteger(packet.chunks)||packet.chunks<1||packet.chunks>128||!packet.frame)return null;
+              const key=frameKey(scope,page)+'|'+packet.frame;
+              if(imageTransfers.has(key))return imageTransfers.get(key);
+              const work=(async()=>{
+                const parts=[];
+                for(let chunk=0;chunk<packet.chunks;chunk++){
+                  const part=await api('panelpreview',{page,scope,frame:packet.frame,chunk:String(chunk)});
+                  if(part.scope!==scope||part.pageId!==page||part.frame!==packet.frame||part.chunk!==chunk||typeof part.data!=='string')throw new Error('Image changed during transfer');
+                  parts.push(part.data);
+                }
+                const data=parts.join('');if(data.length!==packet.imageChars)throw new Error('Incomplete image');
+                return 'data:image/png;base64,'+data;
+              })();
+              imageTransfers.set(key,work);
+              try{return await work;}finally{imageTransfers.delete(key);}
+            }
             async function acceptPreview(packet,scope,page){
               if(packet.pending||packet.unsupported||packet.scopeChanged||packet.scope!==scope||packet.pageId!==page)return false;
               const previous=tabFrames.get(frameKey(scope,page));
@@ -504,9 +523,10 @@ final class Pages {
                 if(cacheScope===scope&&!view&&currentPage===page&&!desiredPage)displayImage(previous.image,previous.imageAt);
                 return true;
               }
-              const image=packet.image?new Image():null;
-              if(image){image.src=packet.image;if(image.decode)await image.decode();}
               const at=Date.now()-Math.max(0,packet.ageMillis||0);
+              const source=await originalImage(packet,scope,page),image=source?new Image():null;
+              if(!image)return false;
+              image.src=source;if(image.decode)await image.decode();
               saveFrame(scope,page,{title:packet.title,report:packet.report||null,...(image?{image,imageAt:at}:{}),sourceAt:packet.capturedAt,at});
               if(cacheScope===scope&&!view&&currentPage===page&&!desiredPage){if(image)displayImage(image,at);readableReport(packet.report||null);}
               return true;

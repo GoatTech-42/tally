@@ -184,16 +184,7 @@ public final class DiscordBridge {
             var snapshot=reader.renderedPage();long at=System.currentTimeMillis();
             byte[] png;
             try{png=StatsImage.render(snapshot);}catch(Exception e){throw new IllegalStateException(e);}
-            byte[] small=png;
-            try{
-                for(int i=0;small.length>160*1024&&i<8;i++){
-                    var image=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(small));
-                    var resized=new java.awt.image.BufferedImage(Math.max(1,image.getWidth()*3/4),Math.max(1,image.getHeight()*3/4),java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                    var g=resized.createGraphics();try{g.drawImage(image,0,0,resized.getWidth(),resized.getHeight(),null);}finally{g.dispose();}
-                    var out=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(resized,"png",out);small=out.toByteArray();
-                }
-            }catch(Exception e){throw new IllegalStateException(e);}
-            String preview=small.length<=160*1024?java.util.Base64.getEncoder().encodeToString(small):"";
+            String preview=java.util.Base64.getEncoder().encodeToString(png);
             return new PanelFrameCache.Frame(png,preview,wanted==Page.MONEY?PanelReadModel.report(DiscordPrivacy.page(snapshot)):null,snapshot.title(),at);
         });
     }
@@ -203,10 +194,22 @@ public final class DiscordBridge {
         if(!scope.equals(query.get("scope")))return out.put("scopeChanged",true).toString();
         Page wanted;try{wanted=Page.valueOf(query.getOrDefault("page",""));}catch(Exception e){return out.put("unsupported",true).toString();}
         if(!CACHED_PAGES.contains(wanted))return out.put("unsupported",true).toString();
-        var frame=requestFrame(wanted,scope);out.put("pageId",wanted.name());
+        String key=scope+"|"+wanted;out.put("pageId",wanted.name());
+        if(query.containsKey("chunk")) {
+            var pinned=panelFrames.transfer(key,query.getOrDefault("frame",""));
+            if(pinned==null)return out.put("frameExpired",true).toString();
+            int chunk;try{chunk=Integer.parseInt(query.get("chunk"));}catch(Exception e){return out.put("unsupported",true).toString();}
+            int count=(pinned.preview().length()+PanelFrameCache.CHUNK_CHARS-1)/PanelFrameCache.CHUNK_CHARS;
+            if(chunk<0||chunk>=count)return out.put("unsupported",true).toString();
+            int start=chunk*PanelFrameCache.CHUNK_CHARS;
+            return out.put("frame",query.get("frame")).put("chunk",chunk)
+                .put("data",pinned.preview().substring(start,Math.min(start+PanelFrameCache.CHUNK_CHARS,pinned.preview().length()))).toString();
+        }
+        var frame=requestFrame(wanted,scope);
         if(frame==null)return out.put("pending",true).toString();
         out.put("capturedAt",frame.at()).put("ageMillis",Math.max(0,System.currentTimeMillis()-frame.at())).put("title",frame.title());
-        if(!frame.preview().isEmpty())out.put("image","data:image/png;base64,"+frame.preview());
+        if(frame.preview().length()<=PanelFrameCache.CHUNK_CHARS)out.put("image","data:image/png;base64,"+frame.preview());
+        else out.put("frame",panelFrames.pin(key,frame)).put("chunks",(frame.preview().length()+PanelFrameCache.CHUNK_CHARS-1)/PanelFrameCache.CHUNK_CHARS).put("imageChars",frame.preview().length());
         if(frame.report()!=null)out.set("report",frame.report().deepCopy());
         return out.toString();
     }
