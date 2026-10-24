@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased — PR #300
+
+- Allow the native collector to drain partial-stack leftovers from a fully delivered or cancelled order within its existing shelf/inventory collection budget. Bounded collection from an active order still requires whole stacks. Actual inventory movement is still required before recording any collection.
+- The completed-tail regression failed before the repair. Spending, ROI, ownership, persistence and exposure caps remain enforced. This repairs a demonstrated replenishment path; the full profit slowdown and report #295 remain unresolved. Publication verification is pending; no live client changes.
+
 ## 2026-10-24 15:24 UTC
 
 - **PR #296: Let a sent listing finish verification when inventory changes before its response.** If the first sell command escrows/removes its stack before a receipt or confirmation arrives, withdraw its queued retry and keep verifying the original response. A changed hand before the first send still refuses the sale; movement alone never proves a listing or clears exposure.
