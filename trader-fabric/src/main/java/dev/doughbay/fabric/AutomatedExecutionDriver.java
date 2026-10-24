@@ -764,6 +764,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     public synchronized OwnOrderRow lastCancelledOrder() { return lastCancelledOrder; }
     public synchronized boolean lastOwnOrdersComplete() { return lastOwnOrdersComplete; }
 
+    static boolean fullOwnOrderGrid(List<String> occupiedLabels) {
+        // A repeated (or empty) hover name is still a separate occupied cell.
+        return occupiedLabels.size() >= 45;
+    }
+
     static boolean completeOwnOrderPage(int rows, boolean unparsed, boolean navigation, String title) {
         return rows < 45 && !unparsed && !navigation
                 && !Pattern.compile("(?i)page\\s*(?:[2-9][0-9]*|1[0-9]+)").matcher(title).find();
@@ -1453,7 +1458,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         turnOwnOrderPage(client,container,nextOwnPage,rows,matchesSeen);return;
                     }
                     if (newOrder < 0) {
-                        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+                        List<String> names = new ArrayList<>();
                         for (int menuSlot = 0; menuSlot < Math.min(45, slots); menuSlot++) {
                             Slot slot = container.getMenu().slots.get(menuSlot);
                             if (slot.container == inventory || slot.getItem().isEmpty()) continue;
@@ -1463,7 +1468,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         // book, which is a thing that happens and not a fault.
                         // Aborting called it one, and an abort counts towards
                         // the strain that holds the whole session off.
-                        if (names.size() >= 45) {
+                        if (fullOwnOrderGrid(names)) {
                             complete(client, "The order book is full (" + names.size() + " orders); no room for another");
                             return;
                         }
