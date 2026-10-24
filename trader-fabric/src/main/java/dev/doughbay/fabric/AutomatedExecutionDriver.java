@@ -5162,7 +5162,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // server action. Frequent short watches must not trigger ServerStrain.
         lastMessage = detail;
         DoughBayClient.LOGGER.info("DoughBay watch: {}", detail);
-        publishTerminal(TerminalOutcome.ABORTED, detail);
+        publishTerminal(TerminalOutcome.ABORTED, detail, "WATCH_NO_PURCHASE");
         clearTarget();
         phase = Phase.ABORTED;
         resetPhaseObservation();
@@ -6660,11 +6660,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 operation==Operation.ORDERS?ordersRead.size():0,System.nanoTime());
     }
     private void publishTerminal(TerminalOutcome outcome, String detail) {
+        publishTerminal(outcome, detail, null);
+    }
+
+    private void publishTerminal(TerminalOutcome outcome, String detail, String explicitReason) {
         if (operation == Operation.NONE || outcome == null || outcome == TerminalOutcome.NONE) {
             return;
         }
         ActionTrace.INSTANCE.recordMarket(ActionTrace.Scope.DRIVER, ActionTrace.Event.valueOf(outcome.name()), operationIntent(),
-                outcome == TerminalOutcome.SUCCEEDED ? "NONE" : BugReportReason.classify(detail),
+                outcome == TerminalOutcome.SUCCEEDED ? "NONE" : explicitReason != null ? explicitReason : BugReportReason.classify(detail),
                 targetCount, targetPrice, targetCeiling,targetItemId);
         finishCommunityReadTiming(outcome==TerminalOutcome.SUCCEEDED);
         terminalSequence++;
