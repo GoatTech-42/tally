@@ -275,7 +275,7 @@ public final class Tuning {
             new Setting("tier.large_min_sales_per_hour", "Tiers", "Large ticket demand gate",
                     "Completed sales per hour a market needs before a large buy", 0.4, 0, 50, Kind.RATE),
             new Setting("tier.large_max_open_per_market", "Tiers", "Large listings per market",
-                    "How many large tickets of one item may be up at once", 2, 1, 10, Kind.COUNT),
+                    "How many large tickets of one item may be up at once", 2, 1, 16, Kind.COUNT),
             new Setting("tier.large_stop_loss_min", "Tiers", "Large stop-loss after",
                     "A large ticket unsold this long is let go at break-even", 120, 10, 1440, Kind.MINUTES),
             // Pull-backs
