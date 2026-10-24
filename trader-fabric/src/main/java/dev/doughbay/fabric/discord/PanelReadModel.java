@@ -31,7 +31,7 @@ final class PanelReadModel {
         for(var row:observed) fields.put(row[0].equals("Swarm rank")?"Estimated Swarm rank":row[0],row);
         var labels=new ArrayList<>(List.of("Bank","Profit 1h","Profit 24h","Margin 1h","~spark","Sales 1h","Sales 6h",
                 "Sales 24h","Revenue 24h","Payments (Hive)","Payroll share","Listed","Tracked cost","Asking","Trades",
-                "Unfilled orders","Orders filled","Order funds","Awaiting collect","Order data","Auction capacity",
+                "Unfilled orders","Orders filled","Order funds","Awaiting collect","Order data","Auction capacity","Auction data","Tracked listings",
                 "Estimated Swarm rank","Swarm basis","Your Hive reported booked profit · 24h","Your Hive booked sale records · 24h"));
         // The individual-account label is deliberately different from aggregate payroll.
         if(fields.containsKey("Payments"))labels.set(labels.indexOf("Payments (Hive)"),"Payments");

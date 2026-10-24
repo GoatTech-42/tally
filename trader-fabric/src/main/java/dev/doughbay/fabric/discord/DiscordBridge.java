@@ -236,10 +236,10 @@ public final class DiscordBridge {
         hud.put("state", account.isBlank() && !v.live() ? "hive" : v.state());
         hud.put("now", v.live() ? (s.detail() == null ? "" : s.detail())
                 : account.isBlank() ? "Combined Hive view; choose one account for its records." : "Selected account: " + v.state());
-        hud.put("listed", PanelReadModel.listed(ledgerPath, current, account));
-        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(capacityAccounts(), System.currentTimeMillis());
-        hud.put("slots", capacity.known() == capacity.accounts() ? capacity.total() : -1);
-        hud.put("slotCoverage", capacity.known() + "/" + capacity.accounts() + " current accounts reporting capacity");
+        var occupancy=auctionOccupancy();
+        hud.put("listed", occupancy.used());
+        hud.put("slots", occupancy.capacity());
+        hud.put("slotCoverage", occupancy.coverage());
         hud.put("accountCoverage", current.size() + " current · " + Math.max(0, panelAccounts().size()-current.size()) + " historical");
         hud.put("bank", v.bank() < 0 ? "unknown" : money(v.bank()));
         hud.put("trades", v.trades());
@@ -1168,8 +1168,8 @@ public final class DiscordBridge {
             default -> "green";
         };
         Viewed v = viewed(s, balance);
-        int liveListed = PanelReadModel.listed(ledgerPath,
-                PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(), DoughBayClient.account()), account);
+        var occupancy=auctionOccupancy();
+        int liveListed = occupancy.used();
         v = new Viewed(v.name(), v.state(), v.bank(), v.trades(), liveListed, v.live());
         // "SCANNING · 10:45 · bank $8.7m" on its own, as it always read; with a
         // hive, whose figures these are comes first, because that is the thing
@@ -1182,8 +1182,7 @@ public final class DiscordBridge {
                 : "Selected account scope. Missing or stale observations stay unknown; host values are not substituted.";
         // The slot grid belongs to whoever is being looked at, so one account's
         // allowance for one account and everybody's for the hive.
-        var capacity = dev.doughbay.fabric.OrderMetrics.capacity(capacityAccounts(), System.currentTimeMillis());
-        int slots = liveListed >= 0 && capacity.known() == capacity.accounts() ? capacity.total() : 0;
+        int slots = Math.max(0,occupancy.capacity());
         return switch (page) {
             case MONEY -> moneyPage(s, v, stateColor, subtitle, footer, slots);
             case STATUS -> statusPage(s, v, stateColor, subtitle, footer);
@@ -1317,6 +1316,11 @@ public final class DiscordBridge {
         return new Window(sales, revenue, profit, bought, paid);
     }
 
+    private dev.doughbay.fabric.AuctionOccupancy.View auctionOccupancy() {
+        var names=account.isBlank()?PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(),DoughBayClient.account()):List.of(account);
+        return dev.doughbay.fabric.AuctionOccupancy.view(ledgerPath.toAbsolutePath().getParent(),names,System.currentTimeMillis());
+    }
+
     private StatsImage.Page moneyPage(AutomationSessionController.SessionSnapshot s, Viewed v,
             String color, String subtitle, String footer, int slots) {
         List<String[]> head = new ArrayList<>();
@@ -1334,6 +1338,11 @@ public final class DiscordBridge {
             head.add(new String[] {"Profit 1h", money(h1.profit()), "green"});
             head.add(new String[] {"Profit 24h", money(d1.profit()), "green"});
             head.add(new String[] {"Margin 1h", h1.margin(), "green"});
+            var occupancy=auctionOccupancy();
+            head.add(new String[]{"Auction data",occupancy.coverage(),occupancy.used()<0?"gold":"dim"});
+            head.add(new String[]{"Auction capacity",occupancy.capacity()>0?occupancy.capacity()+" slots":"unknown","dim"});
+            int tracked=PanelReadModel.listed(ledgerPath,PanelReadModel.currentMembers(DoughBayClient.hiveAccounts(),DoughBayClient.account()),account);
+            head.add(new String[]{"Tracked listings",tracked<0?"unknown":String.valueOf(tracked),"dim"});
             head.add(new String[] {"~spark", "Profit/h · 8h|" + hourlyProfitCsv(db, 8), "green"});
             head.add(new String[] {"Sales 1h", h1.sales() + " sold · " + h1.bought() + " bought"});
             head.add(new String[] {"Sales 6h", String.valueOf(h6.sales()) + " · " + money(h6.profit())});
@@ -1392,6 +1401,9 @@ public final class DiscordBridge {
         } catch (Exception e) {
             rows.add(new String[] {"", "ledger unavailable: " + e.getMessage(), "", "", ""});
         }
+        // Keep native auction capacity independent of temporarily stale own-order reports.
+        head.removeIf(row->row[0].equals("Auction capacity"));
+        head.add(new String[]{"Auction capacity",slots>0?slots+" slots":"unknown","dim"});
         StatsImage.Page money = new StatsImage.Page("Money", subtitle, color, PanelReadModel.moneyHeadline(head,slots,v.live()), v.listed(), slots,
                 new String[] {"Time", "Last sales", "Cost", "Sold", "Profit"}, new boolean[] {false, false, true, true, true},
                 rows, icons, 1, footer);

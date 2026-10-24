@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased — native auction counts and collection replenishment
+
+- Report auction occupancy from each account’s native auction audit and subsequent confirmed listing/sale movements, independently of ledger LISTED records and order-book freshness. Preserve 270-slot capacity when current account reports support it; missing or stale counts stay unknown rather than appearing free. Show tracked listing records separately and expose count coverage/audit age.
+- An exhausted collection retry budget no longer suppresses later native deliveries under the same item/price/quantity key. Only a newer complete own-order book showing additional deliveries reopens collection; unchanged or incomplete pages retain the retry budget. A complete book in which a key is absent retires its old transient attempt state. No inventory credit, ownership or exposure is fabricated.
+- The fresh-delivery regression failed before repair. Publication and runtime verification pending; sustained utilization and the full historical backlog incident remain unproven. Existing sizing, exact-count, capacity, spending, price and safety gates remain active.
+
 ## 2026-10-24 19:39 UTC
 
 - **PR #300: Drain completed order tails so collection can release order capacity.** A fully delivered or cancelled order can collect its last partial stack within the existing shelf/inventory budget. Active bounded orders still wait for whole stacks, and inventory movement must prove collection before credit is recorded.
