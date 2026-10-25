@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased — Native order-read recovery and partial cleanup
+
+- An unparsed own-order page no longer reports a successful empty book while returning rows accumulated from earlier pages. The read fails explicitly into existing paced recovery, retains observed owned rows, and does not renew book freshness. Reports include the existing book-completeness flag and an unparsed-item count; unknown native tooltip text is omitted. This repairs a reproduced path related to report335; the reporter's exact native content and whole incident remain unverified.
+- Bounded collection now respects an already-authorized partial-stack cleanup operation. Previously the whole-stack preference was disabled for cleanup before cancelling an order, but the capacity check still rejected its unfinished tail. The repair keeps the same quantity ceiling and native inventory transfer/credit checks. Whole-stack-only collection and insufficient capacity still refuse partial stock. A local client repeatedly revisited a native five-diamond tail without transferring it; exact repair progress is verified separately.
+
 ## 2026-10-25 16:05 UTC
 
 - **PR #333: Refresh expired native auction occupancy.** Re-arm the native auction audit when its count is missing or older than the existing10-minute validity limit, even when listings remain below capacity and market data is unavailable. Previously Stop/Start or a quiet long-running session could retain an unknown count indefinitely; collection sizing then refused new batches without an audit to recover.
