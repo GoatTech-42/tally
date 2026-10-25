@@ -1,14 +1,12 @@
 # GoNuts changelog
 
-## Unreleased — retain accepted session-close intent
+## 2026-10-25 20:16 UTC
 
-- A protection-owned all-clear resume can now pass one exact, durably LISTED live pause through ordinary Resume’s existing authorization, server, driver-idle and hold-time checks. A LISTED acknowledgement received while paused previously marked the position recovered, then the protection resume treated that known listing as unresolved exposure forever. Pending writes, actual uncertain exposure, manual stops, unbound positions, restart-loaded pauses and active transfer holds remain refused. No protection timing, detection or routes change.
-
-- A parked sale arriving while an accepted session-close checkpoint awaits acknowledgement now retains that closed-session intent when recording the legitimate sale. Previously its later PAUSED/open checkpoint could overwrite the close, leaving durable and native session state inconsistent. Sale records and the release of that sold position’s cost remain intact; unrelated positions, exposure, trades and caps are preserved. Normal active-session sales remain open.
-
-## Unreleased — setting-change evidence
-
-- Include `SET_ORDERS_OUTBID_PCT` in the client decision contract so a later change to the new control is retained in the bounded decision history. PR342 already reports the effective numeric setting and applies it to bids; this follow-up does not change trading. A regression verifies every report-safe numeric setting has its closed decision code. Source only pending the next functional client release; no new binary or routine live update for this logging change.
+- **PR #345: Recover a verified listing after a protective pause.** A durable LISTED acknowledgement arriving while paused could leave ordinary protection recovery treating that known listing as unresolved exposure forever. The exact live-pause case now uses ordinary Resume authorization, server, driver-idle and hold-time checks after the existing protection all-clear. Pending writes, uncertain exposure, manual stops, restart-loaded pauses and transfer holds remain refused. Protection recognition, timing and routes are unchanged.
+- A late parked sale now preserves an already accepted session-close checkpoint rather than reopening the session while its acknowledgement is pending. Legitimate sales and cost releases remain recorded; unrelated positions, spending and caps remain intact.
+- Includes PR344's bounded setting-change decision token for the existing competitive-bid increment. No numeric setting, confidence or sample-count change.
+- Clean full build: **1,689 tests, zero failures/errors, two skipped**. Both recovery races were reproduced with failing-before/passing-after regressions; negative cases retain persistence, manual-stop and exposure guards.
+- Client artifact published **2026-10-25T20:16:46Z**. Build `1792959164747`; client SHA256 `b3a1b9642465a8bb1eb3f3eed6f29e5c8e0cfe588863edf1d7c8ff3fc893173a`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `167fdeac6859ba12bc9eccf4b80598d55b8de1ffe2e7d767a88a6bfd38430cf8`, published 2026-10-25T20:16:48Z. PR345 merge `a4b0680c9a04bb53213c015a482b3a853ed45320`; tested source `9292c3b19c00c61268589efa8574d1c8d414cb37`. This publication entry is documentation only. Necessary affected-client recovery is verified separately; healthy peers are not automatically upgraded.
 
 ## 2026-10-25 19:41 UTC
 
