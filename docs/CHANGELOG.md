@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 07:23 UTC
+
+- **PR #319: Reach the later matching order when an earlier Collect menu never opens.** A live native book had two same-key384-unit rows, showing0 and374 delivered. After the first row failed to open its physical stock menu, navigation recovery repeatedly selected it and starved the later delivery. With no collection click and unchanged inventory, the driver now uses its existing bounded traversal to inspect the next matching owned row before returning navigation failure.
+- Ownership, item/price/requested matching, physical credits, whole-stack rules, pacing, spending, exposure and safety gates remain enforced. Rows cannot switch after a stock click or inventory change. This repairs a reproduced duplicate-row path; external reporter recovery and the whole filled-order incident remain unverified. No live installation is claimed by this publication.
+- Client artifact published **2026-10-25T07:23:15Z**. Build `1792912808172`; client SHA256 `7cf71faa58bea3ff384937cf0ae71d7f041a4b7569ebac1eb373b08b5e9ff010`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `1c8c6086774224ef28ff451ef0e746d0884995937d63e3a15c3459eadcdc4b14`, published 2026-10-25T07:23:17Z. PR319 merge `5199e05f468c544d8177b4e280be37699fdcceed`; tested source head `2c292f76569d7b095dd2b6865dc1ccc4a8606ae4`. This entry is publication documentation, not another binary.
+- Full production test/build: **1,654 tests, zero failures/errors, two skipped**. The actual native-menu regression fails on previous public source; after repair it reaches the second duplicate, physically collects320units and leaves the unfinished54-unit tail.
+
 ## 2026-10-25 05:24 UTC
 
 - **PR #317: Give pending diagnostic sessions fair upload turns.** An older session with a large backlog or an unacknowledged gap previously monopolized the shared spool, delaying newer client sessions and their evidence. A durable last-sent cursor now rotates pending sessions while retaining FIFO within each session. Creating a batch does not advance the cursor; an attempted frame send does.
