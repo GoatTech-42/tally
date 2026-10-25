@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 14:00 UTC
+
+- **PR #328: Explain connection loss separately from Staff Watch detection.** Timeout, explicit click-spam disconnect and other connection-loss alerts now state the reported reason, that this event was not initiated by local Staff Watch detection, the server, settings recovery and the next recovery action. Unknown underlying causes remain unknown. Immediate webhook and durable feed delivery share the clearer message.
+- Reconnect reporting checks existing region/restart ownership, enabled state and user cancellation instead of claiming a scheduled retry solely from enabled settings. Native recovery checks still determine whether trading can resume. Count-only Staff Watch diagnostics separate received suggestion packets, unmatched replies and local probe-send failures. No extra requests or changes to recognition rules, local-proof requirements, escape decisions, cooldowns, trading guards or settings. Historical spectator-alert silence remains under investigation; this is not a claimed detector repair.
+- Client artifact published **2026-10-25T14:00:59Z**. Build `1792936640029`; client SHA256 `d8f6cf6e361bf86cd61fd41d281f5840a4b34587dd86d15233fc3f1edb98bd1b`. Client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `417a000c3bb1dd4fad7d5f02e4e8702a58a4917ff88f56c59794b400253b0b3f`, published 2026-10-25T14:01:02Z. PR328 merge `7d0cb51825bb31c527e39fa1ed9b72ccc7993ebe`; tested source `12409a00126b3ea8da0ecc31aecad545980d3e64`. This dated publication entry is documentation only. No live installation or restart for this alert/reporting release; existing live clients retain PR326.
+- Full test/build: **1,669 tests, zero failures/errors, two skipped**. Offline regressions cover timeout/unknown-cause wording, explicit click-spam distinction, missing reasons, immediate/durable field parity and separate reply/send counters. No test notification was sent to Discord. Publication does not establish detector health or bot recovery.
+
 ## 2026-10-25 13:09 UTC
 
 - **PR #326: Join recovery through separate regional servers.** After a confirmed network join failure, the existing reconnect flow advances through explicit regional addresses from the restart-recovery route list. Retrying the generic address could route back to the same unavailable region. Default routes cover east, west, Asia, Oceania, EU Central and EU West; custom same-network ordering and ports are preserved. The saved preferred server is unchanged and the existing two-minute retry delay remains.
