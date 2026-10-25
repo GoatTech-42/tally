@@ -741,10 +741,6 @@ public final class DoughBayScreen extends GoNutsScreen {
             int aboutCardHeight=(ui.bottom()-10-aboutCardTop-8)/2;
             addRenderableWidget(CockpitButton.builder(Component.literal("Link bot / Swarm"),b->navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+9,aboutCardTop+aboutCardHeight-25,Math.max(40,Math.min(150,aboutCard-18)),18).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Report bug"), b ->
-                    Minecraft.getInstance().gui.setScreen(new BugReportScreen(this)))
-                    .bounds(aboutX - 86, ui.contentTop() + 10, 86, 16).build());
-            aboutX -= 90;
             if (aboutRight >= 330) {
                 aboutX -= 132;
                 addRenderableWidget(CockpitButton.builder(Component.literal("Preview update notice"), b -> {

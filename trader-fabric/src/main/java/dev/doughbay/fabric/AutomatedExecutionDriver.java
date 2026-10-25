@@ -753,6 +753,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private List<OwnOrderRow> lastOwnOrders = List.of();
     private boolean lastOwnOrdersComplete;
     private int lastOwnReadUnparsedCount;
+    private OwnOrderRejectionEvidence lastOwnReadRejections=new OwnOrderRejectionEvidence();
     private final OwnOrderPages ownPages=new OwnOrderPages();
     private boolean ownPageAccepted;
     private int ownMatchOffset;
@@ -770,6 +771,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     public synchronized OwnOrderRow lastCancelledOrder() { return lastCancelledOrder; }
     public synchronized boolean lastOwnOrdersComplete() { return lastOwnOrdersComplete; }
     public synchronized int lastOwnReadUnparsedCount() { return lastOwnReadUnparsedCount; }
+    public synchronized String ownReadRejectionContext() { return lastOwnReadRejections.contextLine(); }
 
     static boolean fullOwnOrderGrid(List<String> occupiedLabels) {
         // A repeated (or empty) hover name is still a separate occupied cell.
@@ -1370,6 +1372,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             learnRankCapacityFromControls(client, container);
             List<OwnOrderRow> rows = new ArrayList<>();
             List<String> unparsed = new ArrayList<>();
+            var rejectedEvidence=new OwnOrderRejectionEvidence();
             int matchSlot = -1;
             OwnOrderRow selectedRow = null;
             int matchesSeen = ownMatchOffset;
@@ -1391,13 +1394,17 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     }
                     String controlName=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT);
                     if (!java.util.Set.of("new order","create order","place order","no orders","no orders found",
-                            "no orders available","no orders to show","nothing here","empty page").contains(controlName))
-                        unparsed.add(stack.getHoverName().getString() + " [" + String.join(" | ", tooltipLines(client, stack)) + "]");
+                            "no orders available","no orders to show","nothing here","empty page").contains(controlName)) {
+                        unparsed.add("Unparsed native item");
+                        rejectedEvidence.add(itemId(stack),stack.getHoverName().getString(),tooltipLines(client,stack),false);
+                    }
                     continue;
                 }
                 rows.add(row);
-                if(multipleOwnOrders() && row.requested()>=1000)
+                if(multipleOwnOrders() && row.requested()>=1000) {
                     unparsed.add("Native order quantity exceeds exact-count support");
+                    rejectedEvidence.add(itemId(stack),stack.getHoverName().getString(),tooltipLines(client,stack),true);
+                }
                 if (matchesOwnOrder(row, targetItemId, ownTargetUnitPrice, ownMatchRequested,
                         operation == Operation.CANCEL_ORDER)
                         && (operation != Operation.COLLECT_ORDER || collectionReady(row,collectFinishedOnly))) {
@@ -1411,7 +1418,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             lastOwnOrders = List.copyOf(rows);
-            if(operation==Operation.OWN_ORDERS)lastOwnReadUnparsedCount=unparsed.size();
+            if(operation==Operation.OWN_ORDERS) {
+                lastOwnReadUnparsedCount=unparsed.size();
+                rejectedEvidence.capturedAt(System.currentTimeMillis());lastOwnReadRejections=rejectedEvidence;
+            }
             NativeOrderEvidence.captureIfRequested(client,container);
             boolean navigation=false;
             for(String control:new String[]{"next page","previous page","prev page"}) {

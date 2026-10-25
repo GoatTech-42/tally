@@ -17,7 +17,8 @@
     "GuiTextNameMixin",
     "ProxyConnectionMixin",
     "ProxyLegacyPingMixin",
-    "MultiplayerProxyButtonMixin"
+    "MultiplayerProxyButtonMixin",
+    "GoNutsReportFooterMixin"
   ],
   "injectors": {
     "defaultRequire": 1

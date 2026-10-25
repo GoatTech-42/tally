@@ -148,6 +148,7 @@ public class DoughBayClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        GoNutsScreen.registerReportButton();
         DoughBayConfig config = DoughBayConfig.load();
         dev.doughbay.fabric.staffwatch.StaffWatchClient.initialize(DoughBayClient::openStaffWatch, name -> {
             RESTART.yieldToStaffWatch();
