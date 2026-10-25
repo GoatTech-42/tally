@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 19:41 UTC
+
+- **PR #342: Configure the percentage above competing buy orders.** Add `Bid: above competing orders` (`orders.outbid_pct`), preserving the public default of 1%. A 3% selection targets 10,300 per item against a 10,000 best observed competing bid. Competitive new bids, retail/shaped bids and bid chasing use the selected increment; existing higher normal offers remain higher. Explicit player prices stay unchanged.
+- Resale ceilings, required margins, live-price evidence, ownership, quantities and spending/exposure limits still apply. A higher increment can reduce eligible markets; faster fills, utilization and profit are not guaranteed. Confidence and sample-count defaults remain unchanged.
+- Clean full build: **1,684 tests, zero failures/errors, two skipped**. Configured target, default, ceiling-refusal, overflow, lot eligibility and report-safe round-trip tests passed. Additive receiver/dashboard setting support was deployed before this publication.
+- Client artifact published **2026-10-25T19:41:42Z**. Build `1792956835800`; client SHA256 `7b65e2e7f177dbea46cf403529711a23927f0d640d8422e5673d687760254660`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `d920f760ab54cc8660ac54ce15aa4772bb026c84796bf9a04713305c81c39a6a`, published 2026-10-25T19:41:45Z. PR342 merge `21818feb6f99f9fe47c84ea44ca1a2d6e105c4a2`; tested source `6d794340ae1ea914c5b331d5d0ad78c361d92f1f`. This publication entry is documentation only. Explicit local owner configuration and rollout are verified separately; publication does not automatically upgrade existing clients.
+
 ## 2026-10-25 18:03 UTC
 
 - **PR #339: Read locked native order-slot controls.** Recognize the reported `Max Orders` rank-upgrade control, with its exact `Buy Donut++ for even more order slots` text, when reading Your Orders. A page filled with these locked tiles can end the bounded read while retaining real orders from earlier pages; mixed pages keep every parsed native order.
