@@ -18,11 +18,64 @@ import java.util.regex.Pattern;
 final class NativeOrderEvidence {
     static final String COMMAND="!inspect-orders";
     private static final AtomicBoolean requested=new AtomicBoolean();
+    private static long collectionUntil;
+    private static final List<Map<String,Object>> collectionFrames=new ArrayList<>();
+    private static String lastCollectionShape="";
     private static final Pattern QUANTITY=Pattern.compile("(?i)([0-9][0-9.,]*\\s*[kmb]?)\\s+requested");
     private static final Pattern DELIVERED=Pattern.compile("(?i)([0-9][0-9.,]*[kmb]?)\\s*/\\s*([0-9][0-9.,]*[kmb]?)\\s+delivered");
     private static final Pattern PAGE=Pattern.compile("(?i)page\\s*[:#(]?\\s*(\\d{1,4})(?:\\s*/\\s*(\\d{1,4}))?");
     private NativeOrderEvidence() {}
-    static void request() { requested.set(true); }
+    static synchronized void request() {
+        requested.set(true);
+        collectionUntil=System.currentTimeMillis()+300_000;
+        collectionFrames.clear();lastCollectionShape="";
+    }
+
+    static List<String> collectionWords(String text) {
+        Set<String> allowed=Set.of("collect","items","item","order","orders","edit","cancel","confirm",
+                "click","left","right","back","return","stock","available","empty","nothing","no",
+                "delivered","requested","filled","completed","remaining","inventory","space","full");
+        return Arrays.stream(text.toLowerCase(Locale.ROOT).split("[^a-z]+"))
+                .filter(allowed::contains).distinct().toList();
+    }
+
+    /** Explicitly armed, bounded local evidence; observes the driver's existing screen without an input. */
+    static synchronized void captureCollectionIfRequested(Minecraft client,AbstractContainerScreen<?> screen,
+            String item,int stage,int ordinal,int matching,int clicks,int inventoryBefore,int inventoryNow) {
+        long now=System.currentTimeMillis();
+        if(now>=collectionUntil || collectionFrames.size()>=16 || (stage!=3 && stage!=5))return;
+        String title=screen.getTitle().getString().toLowerCase(Locale.ROOT);
+        String page=title.contains("collect items")?"COLLECT_ITEMS":title.contains("edit order")?"EDIT_ORDER":"OTHER";
+        try {
+            List<Map<String,Object>> slots=new ArrayList<>();
+            for(int i=0;i<Math.min(54,screen.getMenu().slots.size());i++) {
+                Slot slot=screen.getMenu().slots.get(i);
+                if(slot.container==client.player.getInventory() || slot.getItem().isEmpty())continue;
+                ItemStack stack=slot.getItem();List<String> lore=new ArrayList<>();
+                var component=stack.get(DataComponents.LORE);
+                if(component!=null)component.lines().forEach(line->lore.add(line.getString()));
+                Map<String,Object> row=new LinkedHashMap<>();
+                row.put("slot",i);row.put("item",BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+                row.put("count",stack.getCount());row.put("nameWords",collectionWords(stack.getHoverName().getString()));
+                row.put("loreWords",collectionWords(String.join(" ",lore)));
+                slots.add(row);
+            }
+            Map<String,Object> frame=new LinkedHashMap<>();
+            frame.put("page",page);frame.put("stage",stage);frame.put("item",item);
+            frame.put("ordinal",ordinal);frame.put("matching",matching);frame.put("stockClicks",clicks);
+            frame.put("inventoryBefore",inventoryBefore);frame.put("inventoryNow",inventoryNow);frame.put("slots",slots);
+            String shape=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.writeValueAsString(frame);
+            if(shape.equals(lastCollectionShape))return;
+            lastCollectionShape=shape;frame.put("at",now);collectionFrames.add(frame);
+            Map<String,Object> root=new LinkedHashMap<>();root.put("at",now);root.put("expiresAt",collectionUntil);
+            root.put("frames",List.copyOf(collectionFrames));
+            Path target=client.gameDirectory.toPath().resolve("config/doughbay/native-collection-evidence.json");
+            Files.createDirectories(target.getParent());Path temp=target.resolveSibling(target.getFileName()+".tmp");
+            dev.doughbay.fabric.hosted.DashboardProtocol.JSON.writerWithDefaultPrettyPrinter().writeValue(temp.toFile(),root);
+            try{Files.move(temp,target,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);}
+            catch(AtomicMoveNotSupportedException e){Files.move(temp,target,StandardCopyOption.REPLACE_EXISTING);}
+        }catch(Exception e){collectionUntil=0;DoughBayClient.LOGGER.warn("GoNuts: local collection inspection unavailable ({})",e.getClass().getSimpleName());}
+    }
 
     static String opaqueRowFingerprint(CompoundTag tag) {
         // Inspect equality only. The native value is never written or uploaded.

@@ -5592,6 +5592,9 @@ public final class AutomationSessionController {
                     && event.detail().contains(AutomatedExecutionDriver.PART_STACK_WAITING)) {
                 // Not a failure and not a reason to give up on the order: the
                 // stack is still filling. It is left alone for a few minutes.
+                // A physically answered stock page also resolves the prior
+                // collection-navigation recovery; other queued bids may run.
+                deskRecovery.recovered();
                 partStackAt.put(orderKey(step.itemId(), step.unitPrice(), step.count()), now);
                 LOGGER.info("DoughBay bid desk: {} at {} each has only part of a stack waiting; leaving it to fill",
                         step.itemId(), step.unitPrice());

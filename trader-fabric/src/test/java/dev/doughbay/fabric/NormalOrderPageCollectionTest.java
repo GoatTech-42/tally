@@ -108,6 +108,29 @@ class NormalOrderPageCollectionTest {
     @Test void completed192ItemOrderPhysicallyTransfersAllThreeStacks() throws Exception {
         physicalCollection(192,192,0,true,192);
     }
+
+    @Test void explicitlyArmedCollectionInspectionCapturesNativeControlsWithoutClicking(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        var f=fixture(false);field(Minecraft.class,"gameDirectory").set(f.client,dir.toFile());
+        f=collectionMenu(f,"Orders -> Edit Order",0);
+        ItemStack button=new ItemStack(Items.CHEST);button.set(DataComponents.CUSTOM_NAME,Component.literal("Collect Items privatePlayer"));
+        button.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Click to collect. secret123"))));
+        f.screen.getMenu().slots.get(11).set(button);
+        NativeOrderEvidence.request();
+        try {
+            NativeOrderEvidence.captureCollectionIfRequested(f.client,f.screen,"minecraft:stone",3,1,2,0,0,0);
+            var target=dir.resolve("config/doughbay/native-collection-evidence.json");
+            String text=java.nio.file.Files.readString(target);var root=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.readTree(text);
+            assertEquals("EDIT_ORDER",root.path("frames").get(0).path("page").asText());
+            assertEquals(11,root.path("frames").get(0).path("slots").get(0).path("slot").asInt());
+            assertFalse(text.contains("privatePlayer"));assertFalse(text.contains("secret123"));
+            assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+            NativeOrderEvidence.captureCollectionIfRequested(f.client,f.screen,"minecraft:stone",3,1,2,0,0,0);
+            assertEquals(text,java.nio.file.Files.readString(target),"Unchanged screens must not rewrite or fill the bounded capture");
+            field(NativeOrderEvidence.class,"collectionUntil").setLong(null,0);
+            NativeOrderEvidence.captureCollectionIfRequested(f.client,f.screen,"minecraft:stone",5,1,2,0,0,0);
+            assertEquals(text,java.nio.file.Files.readString(target),"Expired inspection must have no filesystem effect");
+        }finally{field(NativeOrderEvidence.class,"collectionUntil").setLong(null,0);}
+    }
     @Test void completedOrderCollectsItsPhysicalTailDespiteWholeStackPreference() throws Exception {
         physicalCollection(192,17,175,true,17);
     }
@@ -291,6 +314,61 @@ class NormalOrderPageCollectionTest {
             assertEquals(320,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
             assertEquals(54,f.screen.getMenu().slots.get(5).getItem().getCount());
         } finally {Tuning.set("orders.max_per_market",mode);Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
+    }
+    @Test void physicalPartialStockMustSurviveALaterDuplicateWhoseCollectMenuDoesNotOpen() throws Exception {
+        double mode=Tuning.get("orders.max_per_market"),pace=Tuning.get("pace.human_steps");
+        try {
+            Tuning.set("orders.max_per_market",3);Tuning.set("pace.human_steps",0);
+            var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+            field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+            field(AutomatedExecutionDriver.class,"ownTargetUnitPrice").setLong(f.driver,100);
+            field(AutomatedExecutionDriver.class,"ownMatchRequested").setInt(f.driver,384);
+            field(AutomatedExecutionDriver.class,"ownMatchOrdinal").setInt(f.driver,1);
+            field(AutomatedExecutionDriver.class,"collectWholeStacksOnly").setBoolean(f.driver,true);
+            var book=f.screen;
+            for(int i=0;i<45;i++)book.getMenu().slots.get(i).set(ItemStack.EMPTY);
+            for(int i=0;i<2;i++) {
+                var row=new ItemStack(Items.STONE);
+                row.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("384 requested"),
+                        Component.literal("$100 each"),Component.literal((i==0?0:374)+"/384 delivered"))));
+                book.getMenu().slots.get(i).set(row);
+            }
+            read(f);settle(f);advance(f);
+            assertEquals(1,((RecordingGameMode)f.client.gameMode).slots.getLast());
+            var button=new ItemStack(Items.CHEST);button.set(DataComponents.CUSTOM_NAME,Component.literal("Collect Items"));
+            f=collectionMenu(f,"Orders -> Edit Order",0);f.screen.getMenu().slots.get(15).set(button);advance(f);
+            f=collectionMenu(f,"Orders -> Collect Items",54);advance(f);
+            assertEquals(54,f.screen.getMenu().slots.get(0).getItem().getCount(),"Physical unfinished tail must stay on the server");
+            assertEquals(0,field(AutomatedExecutionDriver.class,"ownMatchOrdinal").getInt(f.driver));
+            field(Gui.class,"screen").set(f.client.gui,book);f.client.player.containerMenu=book.getMenu();
+            field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,1);
+            field(AutomatedExecutionDriver.class,"ownOrdersArrivalNoted").setBoolean(f.driver,true);
+            f=new Fixture(f.driver,f.client,book);advance(f);settle(f);advance(f);
+            f=collectionMenu(f,"Orders -> Edit Order",0);f.screen.getMenu().slots.get(15).set(button);advance(f);
+            f.client.player.tickCount+=100;
+            field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);
+            field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);
+            read(f); // The empty duplicate leaves Edit Order on screen after Collect.
+            assertTrue(f.driver.lastTerminalEvent().detail().contains(AutomatedExecutionDriver.PART_STACK_WAITING),
+                    "The native54-unit partial-stock result must not be replaced by a duplicate's navigation timeout: "+f.driver.lastTerminalEvent().detail());
+            assertEquals(0,f.driver.lastTerminalEvent().itemCount());
+            assertEquals(0,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
+            assertTrue(f.driver.collectionRowsExhausted());
+            var controller=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);
+            var type=controller.getClass();
+            field(type,"policy").set(controller,dev.doughbay.core.automation.ContinuousAutomationPolicy.fromConfigValues(2,100_000,50_000,5_000,12,80,10,8,120,1));
+            var recovery=field(type,"deskRecovery").get(controller);
+            var failed=recovery.getClass().getDeclaredMethod("navigationFailed",long.class);failed.setAccessible(true);failed.invoke(recovery,999_000L);
+            Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            @SuppressWarnings({"unchecked","rawtypes"}) Object collect=Enum.valueOf((Class)action,"COLLECT");
+            field(type,"deskStep").set(controller,ctor.newInstance(collect,"minecraft:stone",384,100L,"collecting owned stock"));
+            var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);observe.invoke(controller,f.client,1_000_000L);
+            var pending=recovery.getClass().getDeclaredMethod("pending");pending.setAccessible(true);
+            assertEquals(false,pending.invoke(recovery),"Native partial stock must leave no global navigation hold");
+            assertEquals(1_000_000L,((Map<?,?>)field(type,"partStackAt").get(controller)).get("minecraft:stone|100|384"));
+            assertTrue(((Map<?,?>)field(type,"collectedByKey").get(controller)).isEmpty(),"No physical transfer must create no collected credits");
+        }finally{Tuning.set("orders.max_per_market",mode);Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
     }
     @SuppressWarnings({"unchecked","rawtypes"})
     private static void missingCollectionNavigation(int stage,String title,String expectedFailure,boolean navigation) throws Exception {
