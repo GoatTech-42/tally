@@ -1702,6 +1702,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
                 if (!collectMenuObserved && collectClicks == 0 && now == inventoryCountBefore) {
+                    // An empty earlier duplicate can still offer Collect without
+                    // opening a stock page. Do not replan onto that same row
+                    // forever while a later matching owned row has deliveries.
+                    // Existing rotation is bounded and refuses after a stock
+                    // click or any inventory change.
+                    if (tryAnotherCollectRow(client)) return;
                     abort(client, "Collect Items did not open (page: \"" + title + "\")");
                     return;
                 }
