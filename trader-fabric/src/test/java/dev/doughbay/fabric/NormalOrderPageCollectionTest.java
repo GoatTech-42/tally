@@ -159,6 +159,38 @@ class NormalOrderPageCollectionTest {
         f.client.player.tickCount+=100;field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,100);
         field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);read(f);
     }
+    @SuppressWarnings({"unchecked","rawtypes"})
+    @Test void fourLostEditOrderMenusMustNotPermanentlySuppressAnAlreadyCompletedOrder() throws Exception {
+        Map<String,Double> before=new HashMap<>();
+        for(String k:List.of("orders.max_per_market","orders.bid","orders.collect","orders.reserve_stock","pace.human_steps"))before.put(k,Tuning.get(k));
+        try {
+            Tuning.set("orders.max_per_market",0);Tuning.set("orders.bid",0);Tuning.set("orders.collect",1);Tuning.set("orders.reserve_stock",0);Tuning.set("pace.human_steps",0);
+            var f=fixture(false);var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);
+            var type=c.getClass();field(type,"policy").set(c,dev.doughbay.core.automation.ContinuousAutomationPolicy.fromConfigValues(2,100_000,50_000,5_000,12,80,10,8,120,1));
+            var rows=List.of(new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",192,100,192,0,false));
+            field(type,"ownOrders").set(c,rows);field(type,"ownOrdersComplete").setBoolean(c,true);field(type,"ownOrdersReadAt").setLong(c,1_000_000);
+            Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);
+            for(int i=0;i<4;i++){
+                setOperation(f.driver,"COLLECT_ORDER");field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+                field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,3);
+                f=collectionMenu(f,"Loading order...",0);
+                field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);
+                read(f);assertTrue(f.driver.lastTerminalEvent().detail().contains("Edit Order did not open"));
+                assertEquals(0,f.driver.lastTerminalEvent().itemCount());
+                field(type,"deskStep").set(c,ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),"minecraft:stone",192,100L,"collecting completed order"));
+                observe.invoke(c,f.client,1_000_000L+i*300_000L);
+            }
+            var attempts=(Map<String,Integer>)field(type,"collectAttempts").get(c);
+            assertFalse(attempts.containsKey("minecraft:stone|100|192"),"Never reaching the Edit Order menu must use navigation recovery, not exhaust the stock collection budget forever");
+            field(type,"ownOrdersReadAt").setLong(c,3_000_000);
+            var plan=type.getDeclaredMethod("planDesk",MarketWatcher.Snapshot.class,long.class);plan.setAccessible(true);plan.invoke(c,null,3_000_000L);
+            assertTrue(((Deque<?>)field(type,"deskQueue").get(c)).stream().anyMatch(x->x.toString().contains("COLLECT")),"Unchanged fully delivered goods must remain eligible after navigation recovers");
+            assertTrue(((Map<?,?>)field(type,"collectedByKey").get(c)).isEmpty(),"No menu or inventory transfer may fabricate collection credits");
+            assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+        }finally{before.forEach(Tuning::set);ServerStrain.reset();}
+    }
     private static void plan(Object controller,AutomatedExecutionDriver driver,long at)throws Exception{
         Class<?> type=controller.getClass();field(type,"ownOrders").set(controller,driver.lastOwnOrders());
         field(type,"ownOrdersComplete").setBoolean(controller,driver.lastOwnOrdersComplete());field(type,"ownOrdersReadAt").setLong(controller,at);

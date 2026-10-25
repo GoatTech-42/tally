@@ -63,10 +63,13 @@ class OrderDeskRecoveryTest {
         for (String detail : new String[]{
                 "ABORTED: No progress at stage 0 of OWN_ORDERS on orders (page 1)",
                 "ABORTED: Your Orders did not open (page: orders (page 1))",
-                "No phase progress; orderStage=1, ticks=500"}) {
+                "No phase progress; orderStage=1, ticks=500",
+                "ABORTED: Edit Order did not open (page: Loading order...)"}) {
             assertTrue(OrderDeskRecovery.navigationFailure(detail));
         }
         assertFalse(OrderDeskRecovery.navigationFailure("Nothing arrived from the order"));
+        assertFalse(OrderDeskRecovery.navigationFailure("Edit Order shows no collect control"));
+        assertFalse(OrderDeskRecovery.navigationFailure("The collect page keeps its stacks after 40 clicks"));
         assertFalse(OrderDeskRecovery.navigationFailure("The order was not on Your Orders"));
         assertFalse(OrderDeskRecovery.navigationFailure("No progress at stage 3 of COLLECT_ORDER"));
         assertFalse(OrderDeskRecovery.navigationFailure(null));
