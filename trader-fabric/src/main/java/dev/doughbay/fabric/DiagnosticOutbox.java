@@ -97,7 +97,17 @@ public final class DiagnosticOutbox implements AutoCloseable {
     }
     public synchronized ObjectNode batch(long now,int maxEvents)throws Exception{
         prune(now);String id=null,version=null;
-        try(var s=db.createStatement();var r=s.executeQuery("SELECT id,build FROM sessions WHERE id IN (SELECT session FROM events UNION SELECT session FROM gaps) ORDER BY created_at LIMIT1".replace("LIMIT1","LIMIT 1"))){if(r.next()){id=r.getString(1);version=r.getString(2);}}
+        // Keep FIFO within each session, but let every pending session send a
+        // frame before returning to an old backlog. The durable cursor is shared
+        // by clients using the same spool and advances only when a frame is sent.
+        String previous=metadata("last_sent_session");long previousAt=-1;
+        try(var s=db.prepareStatement("SELECT created_at FROM sessions WHERE id=?")){
+            s.setString(1,previous);try(var r=s.executeQuery()){if(r.next())previousAt=r.getLong(1);}
+        }
+        try(var s=db.prepareStatement("SELECT id,build FROM sessions WHERE id IN (SELECT session FROM events UNION SELECT session FROM gaps) ORDER BY CASE WHEN created_at>? OR (created_at=? AND id>?) THEN 0 ELSE 1 END,created_at,id LIMIT 1")){
+            s.setLong(1,previousAt);s.setLong(2,previousAt);s.setString(3,previous);
+            try(var r=s.executeQuery()){if(r.next()){id=r.getString(1);version=r.getString(2);}}
+        }
         if(id==null)return null;
         // A flood of routine observations must not put the next real failure hours behind them.
         // Keep a recent baseline and declare the omitted prefix instead of pretending it uploaded.
@@ -120,7 +130,7 @@ public final class DiagnosticOutbox implements AutoCloseable {
         return events.isEmpty()&&gaps.isEmpty()?null:out;
     }
     private static long highest(JsonNode frame){long max=0;for(var e:frame.path("events"))max=Math.max(max,e.path("sequence").asLong());for(var g:frame.path("gaps"))max=Math.max(max,g.path("to").asLong());return max;}
-    public synchronized void sent(ObjectNode frame)throws SQLException{try(var s=db.prepareStatement("UPDATE sessions SET sent_through=max(sent_through,?) WHERE id=?")){s.setLong(1,highest(frame));s.setString(2,frame.path("sessionId").asText());s.executeUpdate();}}
+    public synchronized void sent(ObjectNode frame)throws SQLException{try(var s=db.prepareStatement("UPDATE sessions SET sent_through=max(sent_through,?) WHERE id=?")){s.setLong(1,highest(frame));s.setString(2,frame.path("sessionId").asText());if(s.executeUpdate()>0)metadata("last_sent_session",frame.path("sessionId").asText());}}
     public synchronized boolean acknowledge(JsonNode ack)throws SQLException{
         if(ack.path("version").asInt()!=1||!ack.path("throughSequence").isIntegralNumber())return false;
         String id=ack.path("sessionId").asText();long through=ack.path("throughSequence").asLong(),sent=0;
