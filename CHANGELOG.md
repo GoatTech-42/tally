@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 03:25 UTC
+
+- **PR #311: Keep lost Edit Order navigation from permanently suppressing filled-order collection.** A failure to reach the Edit Order menu now uses the existing bounded navigation recovery and backoff instead of spending the physical-stock collection attempt budget. Previously four such failures could leave an already-filled order ineligible forever because its delivered total could not increase again.
+- Genuine empty-stock failures, unknown stage failures, failures after collection clicks, timeout history, credits, ownership, inventory proofs, spending and exposure gates retain their existing behavior. No settings, live client installation or restart for this publication. Affected-report recovery remains unverified.
+- Client artifact published **2026-10-25T03:25:08Z**. Build `1792898511651`; SHA256 `046582962e06dd2fe322431c5aa7f18ed1d76c92d5e7ec81f737b0759387e308`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `d024f5f25d262f6fb3f0c61f718a3f4a8607a7b2f707dac25d0e430be67e9b30`, published 2026-10-25T03:25:10Z. PR311 merge `dcad29f2e1899a7489f14d5ffc5949c04fd80d09`; tested source head `13d6c2ad0b5600a85411f7b4332388c8f0dd3d5e`. This entry documents publication and is not another binary update.
+- Full production test/build: **1,646 tests, zero failures/errors, two skipped**. A native-menu/controller regression reproduces four pre-collection menu failures suppressing an unchanged completed 192-item order on the prior source; fixed source retains eligibility without fabricating stock or credits. Added physical coverage includes three collected stacks, a completed partial tail with preexisting inventory, and an unfinished partial stack left waiting.
+
 ## 2026-10-25 02:34 UTC
 
 - **PR #308: Read and collect through full own-order pages in every order mode.** Native page traversal no longer depends on allowing multiple new buy orders per item. A full first page follows Next, a settled native end establishes a complete book, and collection can find its matching row on later pages. A final page is not reused as the starting page for another order. This also lets existing new-delivery retry rules receive complete evidence in the default order mode.
