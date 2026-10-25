@@ -25,6 +25,11 @@ public final class ReconnectController {
   public boolean disconnectedScreen(){return mc().gui.screen() instanceof DisconnectedScreen;}
   public boolean countdownScreen(){return mc().gui.screen() instanceof ReconnectScreen;}
   public String currentAddress(){var server=mc().getCurrentServer();return server==null?null:server.ip;}
+  public String failedJoinDestination(String attempted){
+   var screen=mc().gui.screen();
+   String reason=screen instanceof DisconnectedScreen ? screen.getNarrationMessage().getString() : "";
+   return dev.doughbay.fabric.JoinRecovery.next(attempted,dev.doughbay.fabric.Tuning.text("restart.hop_addresses"),reason);
+  }
   public void automaticRetryScheduled(){
    tradingResume.automaticRetryScheduled(System.currentTimeMillis());
   }
@@ -79,7 +84,7 @@ public final class ReconnectController {
  public void connectionStarted(ServerData server){
   regionEscape.cancel();
   target=server;cancelledByUser=false;donutSession=DonutServer.matches(server.ip);
-  if(!automaticAttempt){tradingResume.cancel();flow.connectionStarted(WatchConfig.get().reconnectAddress(),donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);}
+  if(!automaticAttempt){tradingResume.cancel();flow.connectionStarted(server.ip,donutSession&&WatchConfig.get().enabled&&WatchConfig.get().autoDisconnect);}
  }
  public void cancel(){tradingResume.cancel();regionEscape.cancel();flow.cancel();target=null;cancelledByUser=true;}
  public boolean canReconnectNow(){return !regionEscape.flow.ownsConnection()&&!dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&flow.canReconnectNow();}

@@ -6,6 +6,7 @@ public final class ReconnectFlow {
   boolean disconnectedScreen(); boolean countdownScreen(); String currentAddress();
   void disconnect(String watcher); void showCountdown(); void connect(String address);
   default void automaticRetryScheduled() { }
+  default String failedJoinDestination(String attempted) { return attempted; }
  }
  public enum Phase { IDLE, DISCONNECTING, WAITING, ATTEMPTING }
  private final Client client;
@@ -55,11 +56,12 @@ public final class ReconnectFlow {
   beginAttempt();return true;
  }
  private void beginAttempt() {
-  String address=schedule.address();schedule.cancel();phase=Phase.ATTEMPTING;client.connect(address);
+  String address=schedule.address();schedule.cancel();sessionAddress=address;phase=Phase.ATTEMPTING;client.connect(address);
  }
  public void tick(boolean enabled) { tick(enabled,""); }
- private void retry(String configured) {
-  String address=destination(configured,sessionAddress);
+ private void retry(String configured) { retry(configured,false); }
+ private void retry(String configured, boolean failedAttempt) {
+  String address=failedAttempt ? client.failedJoinDestination(sessionAddress) : destination(configured,sessionAddress);
   if (address==null || address.isBlank()) { cancel(); return; }
   sessionAddress=address;
   client.automaticRetryScheduled();
@@ -97,7 +99,7 @@ public final class ReconnectFlow {
     if (client.connected() && client.multiplayer()) {
      sessionAddress=client.currentAddress();
      phase=Phase.IDLE;
-    } else if (client.disconnectedScreen()) retry(configured);
+    } else if (client.disconnectedScreen()) retry(configured,true);
     else if (!client.connecting()) cancel();
    }
   }
