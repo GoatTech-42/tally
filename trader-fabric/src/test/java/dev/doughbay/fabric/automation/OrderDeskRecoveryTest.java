@@ -65,7 +65,8 @@ class OrderDeskRecoveryTest {
                 "ABORTED: Your Orders did not open (page: orders (page 1))",
                 "No phase progress; orderStage=1, ticks=500",
                 "ABORTED: Edit Order did not open (page: Loading order...)",
-                "ABORTED: Collect Items did not open (page: Orders)"}) {
+                "ABORTED: Collect Items did not open (page: Orders)",
+                "ABORTED: Owned order rows changed before collection; refreshing Your Orders"}) {
             assertTrue(OrderDeskRecovery.navigationFailure(detail));
         }
         assertFalse(OrderDeskRecovery.navigationFailure("Nothing arrived from the order"));
