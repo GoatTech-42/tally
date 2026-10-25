@@ -165,6 +165,46 @@ class NormalOrderPageCollectionTest {
     @Test void fourLostCollectItemsMenusMustNotPermanentlySuppressAnAlreadyCompletedOrder() throws Exception {
         missingCollectionNavigation(5,"Loading order...","Collect Items did not open",true);
     }
+    @SuppressWarnings({"unchecked","rawtypes"})
+    @Test void aMatchingOrderAtANewOrdinalMustNotBeReportedAsAbsent() throws Exception {
+        double mode=Tuning.get("orders.max_per_market"), pace=Tuning.get("pace.human_steps");
+        try {
+            Tuning.set("orders.max_per_market",3);Tuning.set("pace.human_steps",0);
+            var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+            field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+            field(AutomatedExecutionDriver.class,"ownTargetUnitPrice").setLong(f.driver,100);
+            field(AutomatedExecutionDriver.class,"ownMatchRequested").setInt(f.driver,192);
+            // The older matching row left the book after planning. The owned row
+            // still exists, but is now ordinal zero rather than ordinal one.
+            field(AutomatedExecutionDriver.class,"ownMatchOrdinal").setInt(f.driver,1);
+            read(f);settle(f);
+            field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);read(f);
+            var terminal=f.driver.lastTerminalEvent();
+            assertTrue(terminal.detail().contains("Owned order rows changed before collection"),terminal.detail());
+            assertFalse(terminal.detail().contains("not on Your Orders"));
+            assertEquals(0,terminal.itemCount());
+            assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty(),"A stale ordinal must refresh before any stock click");
+            var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);
+            Class<?> type=c.getClass(),action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            field(type,"deskStep").set(c,ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),"minecraft:stone",192,100L,"collecting owned order"));
+            var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);observe.invoke(c,f.client,1_000_000L);
+            assertTrue(((Map<?,?>)field(type,"collectAttempts").get(c)).isEmpty(),"A moved row cannot exhaust physical stock retries");
+            assertTrue(((Map<?,?>)field(type,"collectedByKey").get(c)).isEmpty(),"Refreshing a row cannot create collection credits");
+            Object recovery=field(type,"deskRecovery").get(c);
+            var pending=recovery.getClass().getDeclaredMethod("pending");pending.setAccessible(true);
+            assertEquals(true,pending.invoke(recovery),"Use the existing paced recovery read before replanning");
+        } finally {Tuning.set("orders.max_per_market",mode);Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
+    }
+    @Test void anActuallyMissingOrderMustNotBeReclassifiedAsAMovedRow() throws Exception {
+        var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+        field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:diamond");
+        field(AutomatedExecutionDriver.class,"ownTargetUnitPrice").setLong(f.driver,100);
+        field(AutomatedExecutionDriver.class,"ownMatchRequested").setInt(f.driver,192);
+        read(f);settle(f);field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);read(f);
+        assertTrue(f.driver.lastTerminalEvent().detail().contains("not on Your Orders"));
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());ServerStrain.reset();
+    }
     @Test void actuallyReachedEmptyStockMenusStillConsumeTheBoundedPhysicalAttemptBudget() throws Exception {
         missingCollectionNavigation(5,"Orders -> Collect Items","Nothing arrived from the order",false);
     }

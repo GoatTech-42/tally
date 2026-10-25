@@ -1535,6 +1535,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (matchSlot < 0) {
                         // The title can arrive before the order rows finish loading.
                         if (ticksInPhase < OPEN_TIMEOUT_TICKS) return;
+                        // An ordinal is only a hint from the earlier book. If an
+                        // identical older row disappears, the owned order moves.
+                        // Refresh before targeting it again; this is not evidence
+                        // that its physical stock is absent or uncollectible.
+                        if (operation == Operation.COLLECT_ORDER && matchesSeen > 0
+                                && ownMatchOrdinal >= matchesSeen && collectClicks == 0
+                                && countInventory(client,targetItemId) == inventoryCountBefore) {
+                            abort(client,"Owned order rows changed before collection; refreshing Your Orders");
+                            return;
+                        }
                         abort(client, "Your order for " + shortName(targetItemId) + " at " + money(ownTargetUnitPrice) + " is not on Your Orders");
                         return;
                     }
