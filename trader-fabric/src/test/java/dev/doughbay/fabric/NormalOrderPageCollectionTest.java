@@ -193,6 +193,84 @@ class NormalOrderPageCollectionTest {
         }finally{Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
     }
 
+    @Test void reportedLockedUpgradePageCompletesAndRetainsEarlierOwnedRows() throws Exception {
+        var f=fixture(true);fillLockedSlots(f,0);
+        var pages=(OwnOrderPages)field(AutomatedExecutionDriver.class,"ownPages").get(f.driver);
+        var earlier=java.util.Collections.nCopies(3,new AutomatedExecutionDriver.OwnOrderRow("minecraft:diamond","minecraft:diamond",192,200,64,1000));
+        assertTrue(pages.append(earlier));read(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(earlier,f.driver.lastOwnOrders());
+        assertEquals(0,f.driver.lastOwnReadUnparsedCount());
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty(),"A locked final page must not be clicked or treated as purchase capacity");
+    }
+
+    @Test void mixedNativeOrdersAndLockedSlotsCompleteWithoutLosingOrders() throws Exception {
+        var f=fixture(true);fillLockedSlots(f,3);read(f);settle(f);read(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(3,f.driver.lastOwnOrders().size());
+        assertEquals(0,f.driver.lastOwnReadUnparsedCount());
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+    }
+
+    @Test void maxOrdersNameAloneAndUnknownFillerRemainIncomplete() throws Exception {
+        for(String name:List.of("Max Orders","Unrecognized native control")) {
+            var f=fixture(false);for(int i=0;i<45;i++)f.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
+            var tile=new ItemStack(Items.BARRIER);tile.set(DataComponents.CUSTOM_NAME,Component.literal(name));
+            f.screen.getMenu().slots.get(0).set(tile);read(f);settle(f);read(f);
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome());
+            assertFalse(f.driver.lastOwnOrdersComplete());assertEquals(1,f.driver.lastOwnReadUnparsedCount());
+        }
+    }
+
+    @Test void lockedUpgradeTilesAreNeverClickablePlacementSlots() throws Exception {
+        var f=fixture(false);fillLockedSlots(f,0);setOperation(f.driver,"PLACE_ORDER");
+        read(f);settle(f);read(f);
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty(),"A locked tile is not a free native slot or a Create button");
+        assertNotEquals(AutomatedExecutionDriver.TerminalOutcome.NONE,f.driver.lastTerminalEvent().outcome());
+    }
+
+    @Test void actualOrderNamedMaxOrdersIsStillRetained() throws Exception {
+        var f=fixture(false);fillLockedSlots(f,1);
+        f.screen.getMenu().slots.get(0).getItem().set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
+        read(f);settle(f);read(f);
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(1,f.driver.lastOwnOrders().size());
+        assertEquals(192,f.driver.lastOwnOrders().get(0).requested());
+    }
+
+    @Test void malformedOrderAndOversizedExactCountRemainIncompleteBesideLockedTiles() throws Exception {
+        double mode=Tuning.get("orders.max_per_market");
+        try {
+            Tuning.set("orders.max_per_market",3);
+            for(boolean oversized:List.of(false,true)) {
+                var f=fixture(false);fillLockedSlots(f,1);var row=f.screen.getMenu().slots.get(0).getItem();
+                row.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
+                row.set(DataComponents.LORE,new ItemLore(List.of(Component.literal(oversized?"1.2K requested":"unknown requested"),Component.literal("$100 each"),Component.literal("Buy Donut++ for even more order slots"))));
+                read(f);settle(f);read(f);
+                assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome());
+                assertFalse(f.driver.lastOwnOrdersComplete());assertEquals(1,f.driver.lastOwnReadUnparsedCount());
+            }
+        }finally{Tuning.set("orders.max_per_market",mode);}
+    }
+
+    @Test void reportedCombinedLockedTileNameAlsoCompletes() throws Exception {
+        var f=fixture(false);fillLockedSlots(f,0);
+        for(int i=0;i<45;i++) {
+            var tile=f.screen.getMenu().slots.get(i).getItem();
+            tile.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders | Buy Donut++ for even more order slots"));
+            tile.remove(DataComponents.LORE);
+        }
+        read(f);settle(f);read(f);assertTrue(f.driver.lastOwnOrdersComplete());
+        assertEquals(0,f.driver.lastOwnReadUnparsedCount());assertTrue(f.driver.lastOwnOrders().isEmpty());
+    }
+
+    private static void fillLockedSlots(Fixture f,int from) {
+        for(int i=from;i<45;i++) {
+            var tile=new ItemStack(Items.BARRIER);tile.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
+            tile.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Buy Donut++ for even more order slots"))));
+            f.screen.getMenu().slots.get(i).set(tile);
+        }
+    }
+
     @Test void unparsedPageMustNotPublishSuccessfulZeroOpenWhileRetainingAccumulatedRows() throws Exception {
         var f=fixture(false);for(int i=0;i<45;i++)f.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
         var unknown=new ItemStack(Items.PAPER);unknown.set(DataComponents.CUSTOM_NAME,Component.literal("Unrecognized native control"));f.screen.getMenu().slots.get(22).set(unknown);

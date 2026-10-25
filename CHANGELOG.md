@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 — Locked native order-slot controls
+
+- Recognize the reported `Max Orders` rank-upgrade control, with its exact `Buy Donut++ for even more order slots` text, when reading Your Orders. A page filled with these locked tiles can end the bounded read while retaining real orders from earlier pages; mixed pages keep every parsed native order.
+- Locked controls never become clickable empty placement slots and do not increase order or auction capacity. Unknown controls, malformed order rows and unsupported abbreviated quantities remain incomplete; ownership, credits, spending limits and collection guards are unchanged.
+- Related reports #335 and #338 remain open pending affected-client verification. No healthy live bot rollout is implied.
+- Clean full build: **1,681 tests, zero failures/errors, two skipped**. Both reproduced native-menu failures pass after repair; 28 native-menu tests retain unknown-content, malformed-order, exact-count and locked-placement negatives.
+
 ## 2026-10-25 17:15 UTC
 
 - **PR #336: Recover incomplete native reads and bounded partial cleanup.** An unparsed own-order page no longer reports a successful empty book while returning rows accumulated from earlier pages. The read fails explicitly into existing paced recovery, retains observed owned rows, and does not renew book freshness. Reports include the existing book-completeness flag and an unparsed-item count; unknown native tooltip text is omitted. This repairs a reproduced path related to report335; the reporter's exact native content and whole incident remain unverified.

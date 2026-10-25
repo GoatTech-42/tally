@@ -1212,6 +1212,22 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 (int) Math.max(0, delivered), expires, cancelled);
     }
 
+    /** A known rank-upgrade tile is not an order or a usable placement slot. */
+    private boolean lockedOwnOrderSlot(Minecraft client, ItemStack stack) {
+        String name=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT)
+                .replace('|',' ').replaceAll("\\s+"," ").strip();
+        String upgrade="buy donut++ for even more order slots";
+        if (!name.equals("max orders") && !name.equals("max orders "+upgrade)) return false;
+        boolean upgradeSeen=name.equals("max orders "+upgrade);
+        for (String raw:tooltipLines(client,stack)) {
+            String line=raw.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+"," ");
+            // A malformed real order must not become an empty slot because its name resembles a control.
+            if (line.contains("requested") || line.contains("delivered") || ORDER_PRICE.matcher(line).find()) return false;
+            if (line.equals(upgrade) || line.equals("max orders | "+upgrade)) upgradeSeen=true;
+        }
+        return upgradeSeen;
+    }
+
     /** Your Orders and the pages behind it, for all four own-order operations. */
     private void tickOwnOrdersPage(Minecraft client, AbstractContainerScreen<?> container) {
         Inventory inventory = client.player.getInventory();
@@ -1358,6 +1374,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             OwnOrderRow selectedRow = null;
             int matchesSeen = ownMatchOffset;
             int emptySlot = -1;
+            int lockedSlot = -1;
             for (int menuSlot = 0; menuSlot < Math.min(45, container.getMenu().slots.size()); menuSlot++) {
                 Slot slot = container.getMenu().slots.get(menuSlot);
                 if (slot.container == inventory) continue;
@@ -1368,6 +1385,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 OwnOrderRow row = parseOwnOrder(client, stack);
                 if (row == null) {
+                    if (lockedOwnOrderSlot(client,stack)) {
+                        if (lockedSlot < 0) lockedSlot=menuSlot;
+                        continue;
+                    }
                     String controlName=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT);
                     if (!java.util.Set.of("new order","create order","place order","no orders","no orders found",
                             "no orders available","no orders to show","nothing here","empty page").contains(controlName))
@@ -1414,7 +1435,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     // The native content grid has45 cells. Its Next button may remain drawn on a
                     // final partial page. A compact list followed by empty native content cells
                     // is the end; a full grid must follow Next rather than assume no other page.
-                    if(!OwnOrderPages.atEnd(rows.size(),emptySlot,nextOwnPage>=0)) {
+                    int endSlot=emptySlot<0?lockedSlot:lockedSlot<0?emptySlot:Math.min(emptySlot,lockedSlot);
+                    if(!OwnOrderPages.atEnd(rows.size(),endSlot,nextOwnPage>=0)) {
                         turnOwnOrderPage(client,container,nextOwnPage,rows,matchesSeen);return;
                     }
                     lastOwnOrders=ownPages.rows();lastCompleteOwnOrders=lastOwnOrders;
