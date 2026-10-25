@@ -14,6 +14,18 @@ public final class ReconnectController {
  private String lastResumeBlocker="";
  private String disconnectReason="";
  public String disconnectReason(){return disconnectReason;}
+ /** Reports the existing owner and intent; this callback may precede countdown creation. */
+ public String unexpectedDisconnectNextAction(){
+  if(regionEscape.flow.ownsConnection())return "Existing region recovery owns the connection; its safety checks still apply.";
+  if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection())return "Existing restart recovery owns the connection; its safety checks still apply.";
+  var config=WatchConfig.get();
+  if(!config.enabled||!config.autoDisconnect)return "Automatic reconnect is disabled.";
+  if(cancelledByUser)return "Automatic reconnect was cancelled by the user.";
+  if(!donutSession)return "No eligible server session is retained for automatic reconnect.";
+  if(schedule.active())return "Automatic reconnect countdown active: about "+((schedule.remainingMillis()+999)/1000)+" seconds remaining. Trading resumes only after native recovery checks pass.";
+  return "Automatic reconnect enabled: normally retries after 2 minutes once the disconnect screen is ready. Trading resumes only after native recovery checks pass.";
+ }
+
  public boolean controlsConnection(){if(regionEscape.flow.ownsConnection())return true;if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&schedule.watcher()==null)return false;var c=WatchConfig.get();return c.enabled&&c.autoDisconnect&&donutSession&&(cancelledByUser||schedule.active()||flow.phase()!=ReconnectFlow.Phase.IDLE||Minecraft.getInstance().gui.screen() instanceof DisconnectedScreen);}
  private String lastWatcher="";
  public String lastWatcher(){return lastWatcher;}

@@ -375,7 +375,7 @@ public final class DiscordBridge {
             var body = MAPPER.createObjectNode();
             body.putObject("allowed_mentions").putArray("parse");
             var embed = body.putArray("embeds").addObject();
-            embed.put("title", "GoNuts — CONNECTION LOST");
+            embed.put("title", dev.doughbay.fabric.DisconnectAlertSummary.title(alert.who()));
             embed.put("color", 0xFFA85C);
             embed.put("timestamp", Instant.ofEpochMilli(alert.at()).toString());
             String description = DiscordFeed.clean("Client: " + alert.client()) + "\n"

@@ -1,8 +1,6 @@
 package dev.doughbay.fabric;
 
 import dev.doughbay.fabric.staffwatch.DonutServer;
-import dev.doughbay.fabric.staffwatch.WatchConfig;
-import java.util.List;
 import java.util.Locale;
 
 /** Called once by a connection listener, before vanilla tears down its world. */
@@ -26,17 +24,13 @@ public final class ConnectionAlerts {
                 DoughBayClient.LOGGER.warn("GoNuts click-spam recovery failed", e);
             }
         }
-        var config = WatchConfig.get();
-        String retry = config.enabled && config.autoDisconnect
-                ? "Reconnect scheduled by Staff Watch in 2 minutes (unless cancelled)."
-                : "Staff Watch automatic reconnect is disabled.";
-        String detail = "Disconnected from " + server + ": " + reason + ". " + recovery + " " + retry;
+        String retry = dev.doughbay.fabric.staffwatch.ReconnectController.INSTANCE.unexpectedDisconnectNextAction();
+        String detail = DisconnectAlertSummary.detail(server, reason, recovery, retry);
         DoughBayClient.LOGGER.warn("GoNuts connection lost: {} — {}", DoughBayClient.account(), detail);
         var guard = DoughBayClient.evasionGuard();
         if (guard != null) guard.noteDisconnect(reason, detail);
         var webhook = DoughBayClient.webhook();
-        if (webhook != null) webhook.alert("GoNuts — CONNECTION LOST", 0xFFA85C,
-                List.of(new String[]{"Reason", reason}, new String[]{"Server", server},
-                        new String[]{"Recovery", recovery}, new String[]{"Reconnect", retry}), DoughBayClient.account());
+        if (webhook != null) webhook.alert(DisconnectAlertSummary.title(reason), 0xFFA85C,
+                DisconnectAlertSummary.fields(server, reason, recovery, retry), DoughBayClient.account());
     }
 }
