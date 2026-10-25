@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased — retain accepted session-close intent
+
+- A protection-owned all-clear resume can now pass one exact, durably LISTED live pause through ordinary Resume’s existing authorization, server, driver-idle and hold-time checks. A LISTED acknowledgement received while paused previously marked the position recovered, then the protection resume treated that known listing as unresolved exposure forever. Pending writes, actual uncertain exposure, manual stops, unbound positions, restart-loaded pauses and active transfer holds remain refused. No protection timing, detection or routes change.
+
+- A parked sale arriving while an accepted session-close checkpoint awaits acknowledgement now retains that closed-session intent when recording the legitimate sale. Previously its later PAUSED/open checkpoint could overwrite the close, leaving durable and native session state inconsistent. Sale records and the release of that sold position’s cost remain intact; unrelated positions, exposure, trades and caps are preserved. Normal active-session sales remain open.
+
 ## Unreleased — setting-change evidence
 
 - Include `SET_ORDERS_OUTBID_PCT` in the client decision contract so a later change to the new control is retained in the bounded decision history. PR342 already reports the effective numeric setting and applies it to bids; this follow-up does not change trading. A regression verifies every report-safe numeric setting has its closed decision code. Source only pending the next functional client release; no new binary or routine live update for this logging change.

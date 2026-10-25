@@ -17,6 +17,49 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class AutomationSessionControllerPersistenceTest {
+    @Test void parkedSaleDuringSessionCloseCannotReopenItsDurableSession() throws Exception {
+        var p=new FakePersistence();
+        var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);
+        setField(c,"policy",policy());setField(c,"state",AutomationSessionController.State.MONITORING);
+        setField(c,"committedSpend",10000L);
+        var listed=new dev.doughbay.core.model.Position(42,"REAL","minecraft:diamond",
+                dev.doughbay.core.model.StackBucket.of(64),64,10000,12000,1000,0,0,0,Double.NaN,
+                dev.doughbay.core.model.PositionStatus.LISTED);
+        ((java.util.List<dev.doughbay.core.model.Position>)field(c,"openListings")).add(listed);
+        var end=AutomationSessionController.class.getDeclaredMethod("requestSessionEnd",String.class);
+        end.setAccessible(true);assertTrue((boolean)end.invoke(c,"Test supported session close"));
+        assertEquals(AutomationSessionController.State.PAUSED,field(c,"state"));
+        var sale=AutomationSessionController.class.getDeclaredMethod("closeOpenListingSoldOffline",dev.doughbay.core.model.Position.class,long.class);
+        sale.setAccessible(true);sale.invoke(c,listed,2000L);
+        var last=p.checkpoints.getLast();
+        assertFalse(last.sessionOpen(),"A sale queued after the close checkpoint must not reopen the session");
+        assertEquals("STOPPED",last.controllerState());
+        assertEquals(42,last.position().positionId());
+        assertEquals(dev.doughbay.core.model.PositionStatus.SOLD,last.position().status());
+        assertEquals(0,last.committedSpend(),"Preserve the legitimate release of this sold position's cost");
+        p.acknowledgeAll();
+        var process=AutomationSessionController.class.getDeclaredMethod("processOutOfBandPersistence");
+        process.setAccessible(true);process.invoke(c);
+        assertEquals(AutomationSessionController.State.STOPPED,field(c,"state"));
+        assertFalse((boolean)field(c,"sessionOpen"));
+    }
+
+    @Test void parkedSaleWithoutCloseIntentKeepsItsActiveSessionAndUnrelatedCaps() throws Exception {
+        var p=new FakePersistence();var c=new AutomationSessionController(new AutomatedExecutionDriver());
+        c.setPersistence(p);c.tick(null,null);setField(c,"state",AutomationSessionController.State.MONITORING);
+        setField(c,"committedSpend",15000L);
+        var listed=new dev.doughbay.core.model.Position(43,"REAL","minecraft:diamond",
+                dev.doughbay.core.model.StackBucket.of(64),64,10000,12000,1000,0,0,0,Double.NaN,
+                dev.doughbay.core.model.PositionStatus.LISTED);
+        ((java.util.List<dev.doughbay.core.model.Position>)field(c,"openListings")).add(listed);
+        var sale=AutomationSessionController.class.getDeclaredMethod("closeOpenListingSoldOffline",dev.doughbay.core.model.Position.class,long.class);
+        sale.setAccessible(true);sale.invoke(c,listed,2000L);var last=p.checkpoints.getLast();
+        assertTrue(last.sessionOpen());assertEquals("MONITORING",last.controllerState());
+        assertEquals(5000,last.committedSpend());assertEquals(1,last.tradesStarted());
+        assertEquals(43,last.position().positionId());
+    }
+
     @Test void freshStoppedAccountNeedsNoInventedCheckpointToLeaveSafely() throws Exception {
         var p=new FakePersistence();
         p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,
@@ -438,6 +481,45 @@ final class AutomationSessionControllerPersistenceTest {
         } finally { dev.doughbay.fabric.Tuning.set("session.resume_after_leave", previous); }
     }
 
+    @Test void protectiveResumeOfDurablyListedLivePauseReachesExistingAuthorizationGate() throws Exception {
+        var c=knownListedInternalPause();
+        var result=c.resumeAfterEvasion();
+        assertFalse(result.ok());
+        assertEquals("Continuous automation is disabled in config",result.detail(),
+                "A verified live LISTED pause should reach normal Resume authorization, not deadlock as unknown exposure");
+        assertTrue((boolean)field(c,"recoveredSession"),"A refused Resume must restore the recovery marker");
+        assertEquals(dev.doughbay.core.model.PositionStatus.LISTED,
+                ((dev.doughbay.core.model.Position)field(c,"trackedPosition")).status());
+        assertEquals(4100L,field(c,"committedSpend"));
+        assertEquals(0,((FakePersistence)field(c,"persistence")).submissions.get());
+    }
+
+    @Test void protectiveListedResumeRetainsUncertaintyPendingReceiptsAndManualStops() throws Exception {
+        var c=knownListedInternalPause();assertTrue(c.durableListedPauseMayResume());
+        setField(c,"listedPersistenceGeneration",1L);assertFalse(c.durableListedPauseMayResume());
+        setField(c,"listedPersistenceGeneration",0L);setField(c,"pausedByPlayer",true);assertFalse(c.durableListedPauseMayResume());
+        setField(c,"pausedByPlayer",false);setField(c,"pauseResumable",false);assertFalse(c.durableListedPauseMayResume());
+        setField(c,"pauseResumable",true);setField(c,"staffTransferHold",true);assertFalse(c.durableListedPauseMayResume());
+        setField(c,"staffTransferHold",false);setField(c,"uncertainExposure",new dev.doughbay.storage.AutomationUncertainExposure(true,"LISTING","position:44",
+                "minecraft:ender_chest","minecraft:ender_chest",64,4100,6000,"",1000));
+        assertFalse(c.durableListedPauseMayResume());assertFalse(c.resumeAfterEvasion().ok());
+        assertTrue(((dev.doughbay.storage.AutomationUncertainExposure)field(c,"uncertainExposure")).active());
+        assertEquals(4100L,field(c,"committedSpend"));
+    }
+
+    private static AutomationSessionController knownListedInternalPause() throws Exception {
+        var c=internallyPausedAfterLeave();
+        setField(c,"recoveredSession",true);setField(c,"pauseResumable",true);
+        setField(c,"pausedFromState",AutomationSessionController.State.MONITORING);
+        setField(c,"boundListingKey","test-exact-listing");
+        var p=(FakePersistence)field(c,"persistence");
+        p.status=new AutomationPersistencePort.Status(AutomationPersistencePort.LoadState.READY,p.status.recovery(),1,1,"Exact LISTED receipt durable");
+        setField(c,"trackedPosition",new dev.doughbay.core.model.Position(44,"REAL","minecraft:ender_chest",
+                dev.doughbay.core.model.StackBucket.of(64),64,4100,6000,1000,System.currentTimeMillis(),0,0,Double.NaN,
+                dev.doughbay.core.model.PositionStatus.LISTED));
+        return c;
+    }
+
     @Test void evasionResumeCannotRearmManualStopOrDiscardUncertainExposure() throws Exception {
         var controller = internallyPausedAfterLeave();
         setField(controller, "armed", false);
@@ -682,6 +764,7 @@ final class AutomationSessionControllerPersistenceTest {
 
     private static final class FakePersistence implements AutomationPersistencePort {
         private final AtomicInteger submissions = new AtomicInteger();
+        private final java.util.List<AutomationSessionCheckpoint> checkpoints=new java.util.ArrayList<>();
         private volatile boolean rejectSubmissions;
         private volatile Status status = new Status(
                 LoadState.READY,
@@ -699,6 +782,7 @@ final class AutomationSessionControllerPersistenceTest {
         public long submit(AutomationSessionCheckpoint checkpoint) {
             long generation = submissions.incrementAndGet();
             if (rejectSubmissions) return 0;
+            checkpoints.add(checkpoint);
             status = new Status(LoadState.READY, status.recovery(),
                     generation, status.lastDurableGeneration(),
                     "Checkpoint queued");
