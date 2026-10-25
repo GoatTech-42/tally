@@ -3,6 +3,8 @@ import org.junit.jupiter.api.*;import static org.junit.jupiter.api.Assertions.*;
 class ReconnectFlowTest {
  static class Client implements ReconnectFlow.Client {
   boolean multiplayer=true,connected=true,connecting=false,disconnected=false,countdown=false;int disconnects,shows,connects;String destination;
+  java.util.function.UnaryOperator<String> failedJoin=address->address;
+  public String failedJoinDestination(String attempted){return failedJoin.apply(attempted);}
   Runnable retryScheduled=()->{};
   public void automaticRetryScheduled(){retryScheduled.run();}
   public boolean multiplayer(){return multiplayer;}public boolean connected(){return connected;}public boolean connecting(){return connecting;}public boolean disconnectedScreen(){return disconnected;}public boolean countdownScreen(){return countdown;}public String currentAddress(){return "current.example:25566";}
@@ -111,5 +113,18 @@ class ReconnectFlowTest {
   var recovery=new ReconnectResume();client.retryScheduled=()->recovery.automaticRetryScheduled(1000);
   flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);
   assertTrue(flow.reconnectNow());assertFalse(recovery.pending());
+ }
+ @Test void failedJoinUsesRegionalFallbackWithExistingDelayAndResetsAfterSuccess() {
+  client.failedJoin=address->dev.doughbay.fabric.JoinRecovery.next(address,"","Connection timed out");
+  client.connected=false;client.connecting=true;flow.connectionStarted("donutsmp.net",true);
+  client.connecting=false;client.disconnected=true;flow.tick(true,"donutsmp.net");
+  assertEquals("east.donutsmp.net",timer.address());assertEquals(120000,timer.remainingMillis());
+  now.addAndGet(120000000000L);flow.tick(true,"donutsmp.net");assertEquals("east.donutsmp.net",client.destination);
+  client.connecting=false;client.disconnected=true;flow.tick(true,"donutsmp.net");
+  assertEquals("west.donutsmp.net",timer.address());assertEquals(120000,timer.remainingMillis());
+  now.addAndGet(120000000000L);flow.tick(true,"donutsmp.net");assertEquals("west.donutsmp.net",client.destination);
+  client.connecting=false;client.connected=true;client.disconnected=false;flow.tick(true,"donutsmp.net");
+  assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertFalse(timer.active());
+  flow.cancel();assertFalse(flow.reconnectNow());
  }
 }
