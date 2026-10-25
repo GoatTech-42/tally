@@ -9708,8 +9708,7 @@ public final class AutomationSessionController {
         Position sold = listed.closed(PositionStatus.SOLD, now, salePrice, profit);
         openListings.removeIf(p -> p.positionId() == listed.positionId());
         committedSpend = Math.max(0, committedSpend - listed.purchasePrice());
-        persistence.submit(checkpoint(sessionOpen, state.name(), sold,
-                uncertainExposure, "Parked listing sold while offline: " + salePrice));
+        persistence.submit(parkedSaleCheckpoint(sold, "Parked listing sold while offline: " + salePrice));
         LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) sold while offline for {} (profit {})",
                 listed.positionId(), listed.itemKey(), listed.quantity(), salePrice, Math.round(profit));
     }
@@ -12792,10 +12791,33 @@ public final class AutomationSessionController {
         if (serverRestarting()) {reportResumeGate("WORLD_RECOVERY_HOLD",System.currentTimeMillis());return ExecutionResult.refused("The restart world is not verified yet");}
         String blocked = persistenceStartBlocker();
         if (blocked != null) {reportResumeGate("PERSISTENCE_WAIT",System.currentTimeMillis());return ExecutionResult.refused("Evasion resume is waiting for persistence: " + blocked);}
+        if (durableListedPauseMayResume()) {
+            // Evasion owns the all-clear timing. Reuse ordinary Resume's world,
+            // authorization, idle-driver and hold-time checks for this one exact
+            // already-LISTED position; a refused attempt changes no ownership.
+            boolean wasRecovered = recoveredSession;
+            recoveredSession = false;
+            ExecutionResult result = resume();
+            if (!result.ok()) recoveredSession = wasRecovered;
+            return result;
+        }
         autoResumeInternalPause(Minecraft.getInstance(), System.currentTimeMillis(), true, true);
         return state == State.PAUSED
                 ? ExecutionResult.refused("Waiting for safe inventory, exposure and server reconciliation")
                 : ExecutionResult.awaitingPlayer(detail);
+    }
+
+    boolean durableListedPauseMayResume() {
+        if (state != State.PAUSED || !armed || pausedByPlayer || !sessionOpen || policy == null
+                || !pauseResumable || pausedFromState != State.MONITORING
+                || staffTransferHold || manualResolutionFirstConfirmedAt > 0
+                || trackedPosition == null || trackedPosition.status() != PositionStatus.LISTED
+                || trackedPosition.listedAt() <= 0 || boundListingKey.isBlank()
+                || uncertainExposure.active() || !recoveredOpenPositions.isEmpty()
+                || persistence == null || hasPendingControllerPersistence()) return false;
+        var status = persistence.status();
+        return status.ready() && !status.refusalOutstanding() && status.lastDurableGeneration() > 0
+                && status.durable(status.lastAcceptedGeneration());
     }
 
     private void autoResumeInternalPause(Minecraft client, long now,
@@ -13465,6 +13487,15 @@ public final class AutomationSessionController {
         }
     }
 
+    /** A legitimate parked sale may arrive while the closed-session write awaits acknowledgement. */
+    private AutomationSessionCheckpoint parkedSaleCheckpoint(Position sold, String saleDetail) {
+        boolean closing = endSessionPersistenceGeneration > 0;
+        // The sale still settles its own position/cost. Do not queue the transient
+        // in-memory PAUSED/open state behind the already accepted close intent.
+        return checkpoint(closing ? false : sessionOpen,
+                closing ? State.STOPPED.name() : state.name(), sold, uncertainExposure, saleDetail);
+    }
+
     private boolean requestSessionEnd(String endDetail) {
         if (endSessionPersistenceGeneration > 0) {
             detail = "Session-end checkpoint is already awaiting durable acknowledgement";
@@ -13911,8 +13942,7 @@ public final class AutomationSessionController {
         // The session spend cap bounds money out at once, not turnover: a
         // sale returns its purchase price to the budget so buying continues.
         committedSpend = Math.max(0, committedSpend - listed.purchasePrice());
-        persistence.submit(checkpoint(sessionOpen, state.name(), sold,
-                uncertainExposure, "Parked listing sold: " + salePrice));
+        persistence.submit(parkedSaleCheckpoint(sold, "Parked listing sold: " + salePrice));
         LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) sold for {} (profit {}); {} still open",
                 listed.positionId(), listed.itemKey(), listed.quantity(), salePrice,
                 Math.round(profit), openListings.size());
