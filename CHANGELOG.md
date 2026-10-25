@@ -1,9 +1,12 @@
 # GoNuts changelog
 
-## 2026-10-25 02:27 UTC
+## 2026-10-25 02:34 UTC
 
-- **Read and collect through full own-order pages in every order mode.** Native page traversal no longer depends on allowing multiple new buy orders per item. A full first page follows Next, a settled native end establishes a complete book, and collection can find its matching row on later pages. A final page is not reused as the starting page for another order. This also lets existing new-delivery retry rules receive complete evidence in the default order mode.
+- **PR #308: Read and collect through full own-order pages in every order mode.** Native page traversal no longer depends on allowing multiple new buy orders per item. A full first page follows Next, a settled native end establishes a complete book, and collection can find its matching row on later pages. A final page is not reused as the starting page for another order. This also lets existing new-delivery retry rules receive complete evidence in the default order mode.
 - Existing page verification, requested-count limits, physical inventory collection proofs, spending, exposure and ownership gates remain enforced. This repairs reproduced full-page paths associated with the backlog investigation; it does not establish that every historical backlog or capacity wait is resolved.
+- Client artifact published **2026-10-25T02:34:44Z**. Build `1792895472068`; SHA256 `24e9e13cdd16b84b5697052767c943344f4545289ad34282068e2d457bbf0b40`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `670df6b08796f1bf7f72ea3d352736fd57132310ff3c283b1bbb2a30975c22a3`, published 2026-10-25T02:34:44Z. PR308 merge `09f4e2a95e232821677edd69631503a9d2bd5b5b`; tested source head `8354da3a42dead90ffb38035f69216f4e89c59f3`. This publication record is documentation only.
+- Full multi-module production test/build: **1,642 tests, zero failures/errors, two skipped**. Five actual native-menu/controller regressions pass; four fail on the previous published source. Coverage includes following Next in default mode, complete full end pages, later-page collection, full-book accumulation, final-page reuse prevention and reopening an exhausted collection after newer delivered stock is read.
+- Reports284/285/295/305 remain open pending reporter recovery. No live client installation, restart or settings change was performed for this publication.
 
 ## 2026-10-25 02:01 UTC
 
