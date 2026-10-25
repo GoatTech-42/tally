@@ -46,4 +46,5 @@ final class OwnOrderPages {
         pending=false;return Turn.READY;
     }
     List<OwnOrderRow> rows(){return List.copyOf(rows);}
+    boolean hasTurnedPage(){return seen.size()>1;}
 }

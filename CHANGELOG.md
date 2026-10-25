@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## 2026-10-25 02:27 UTC
+
+- **Read and collect through full own-order pages in every order mode.** Native page traversal no longer depends on allowing multiple new buy orders per item. A full first page follows Next, a settled native end establishes a complete book, and collection can find its matching row on later pages. A final page is not reused as the starting page for another order. This also lets existing new-delivery retry rules receive complete evidence in the default order mode.
+- Existing page verification, requested-count limits, physical inventory collection proofs, spending, exposure and ownership gates remain enforced. This repairs reproduced full-page paths associated with the backlog investigation; it does not establish that every historical backlog or capacity wait is resolved.
+
 ## 2026-10-25 02:01 UTC
 
 - **PR #306: Keep normal partial-stack collection waits from slowing all trading.** A native collection page with only partial stock and no collect click no longer adds global server-strain pacing or pauses. Its existing terminal result, controller rest and whole-stack policy stay unchanged. Real faults and previously clicked actions still count; this guard does not clear existing timeout history or holds.

@@ -758,6 +758,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int collectExpectedMatchingRows;
     private List<OwnOrderRow> lastCompleteOwnOrders=List.of();
     private static boolean multipleOwnOrders(){return Tuning.get("orders.max_per_market")>1;}
+    // Historical/completed rows can fill several pages even when only one new order per item is allowed.
+    // Reading and finding owned goods must not depend on the policy for placing additional orders.
+    private static boolean pagedOwnOrders(Operation op){
+        return multipleOwnOrders() || op==Operation.OWN_ORDERS || op==Operation.COLLECT_ORDER || op==Operation.CANCEL_ORDER;
+    }
     private int cancelMatchingBefore;
     private OwnOrderRow lastCancelledOrder;
 
@@ -841,7 +846,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (unavailable != null) {
             return ExecutionResult.refused(unavailable);
         }
-        if(multipleOwnOrders() && !client.player.containerMenu.getCarried().isEmpty())
+        if(pagedOwnOrders(op) && !client.player.containerMenu.getCarried().isEmpty())
             return ExecutionResult.refused("Own-order page navigation waits for an empty cursor");
         opportunity = null;
         operation = op;
@@ -903,7 +908,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // order, where a dialog opening proves it is live; reading, collecting
         // and cancelling want a page known to be current.
         // A complete read leaves the final page open; searches must start at the native first page.
-        boolean kept = !multipleOwnOrders() && oneTrip() && holdsOrdersPage(client);
+        boolean kept = !pagedOwnOrders(op) && oneTrip() && holdsOrdersPage(client);
         boolean underDialogs = keptUnderDialogs;
         keptOrdersContainerId = -1;
         keptUnderDialogs = false;
@@ -919,7 +924,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.awaitingPlayer(lastMessage);
         }
         try {
-            if(multipleOwnOrders())client.player.closeContainer();
+            if(pagedOwnOrders(op))client.player.closeContainer();
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
@@ -994,7 +999,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             collectFinishedOnly = finishedOnly;
             collectMaximumUnits = maximumUnits;
             ownTargetFinished = false;
-            if(multipleOwnOrders())collectExpectedMatchingRows=(int)lastCompleteOwnOrders.stream()
+            collectExpectedMatchingRows=(int)lastCompleteOwnOrders.stream()
                     .filter(r->matchesOwnOrder(r,itemId,unitPrice,requested)&&collectionReady(r,finishedOnly)).count();
         }
         return result;
@@ -1382,7 +1387,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             lastOwnOrdersComplete=completeOwnOrderPage(rows.size(),!unparsed.isEmpty(),navigation,title);
             int nextOwnPage=findControl(container,inventory,"next page",45,54);
-            if(multipleOwnOrders() && ownStage==1 && !ownDone) {
+            if(pagedOwnOrders(operation) && ownStage==1 && !ownDone) {
                 boolean controlsReady=false;
                 for(int i=45;i<Math.min(54,container.getMenu().slots.size());i++)
                     if(container.getMenu().slots.get(i).container!=inventory&&!container.getMenu().slots.get(i).getItem().isEmpty())controlsReady=true;
@@ -6571,7 +6576,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         dev.doughbay.fabric.ServerStrain.noteSuccess();
         // A step that ends on Your Orders leaves it open a moment: the next
         // order-house step starts from it instead of asking for another.
-        boolean keepOrdersPage = oneTrip() && client != null
+        boolean keepOrdersPage = oneTrip() && client != null && !ownPages.hasTurnedPage()
                 && (operation == Operation.OWN_ORDERS || operation == Operation.PLACE_ORDER
                 || operation == Operation.CANCEL_ORDER)
                 && isYourOrdersPage(client.gui.screen());
