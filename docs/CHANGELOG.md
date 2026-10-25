@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-25 20:16 UTC
+
+- **PR #345: Recover a verified listing after a protective pause.** A durable LISTED acknowledgement arriving while paused could leave ordinary protection recovery treating that known listing as unresolved exposure forever. The exact live-pause case now uses ordinary Resume authorization, server, driver-idle and hold-time checks after the existing protection all-clear. Pending writes, uncertain exposure, manual stops, restart-loaded pauses and transfer holds remain refused. Protection recognition, timing and routes are unchanged.
+- A late parked sale now preserves an already accepted session-close checkpoint rather than reopening the session while its acknowledgement is pending. Legitimate sales and cost releases remain recorded; unrelated positions, spending and caps remain intact.
+- Includes PR344's bounded setting-change decision token for the existing competitive-bid increment. No numeric setting, confidence or sample-count change.
+- Clean full build: **1,689 tests, zero failures/errors, two skipped**. Both recovery races were reproduced with failing-before/passing-after regressions; negative cases retain persistence, manual-stop and exposure guards.
+- Client artifact published **2026-10-25T20:16:46Z**. Build `1792959164747`; client SHA256 `b3a1b9642465a8bb1eb3f3eed6f29e5c8e0cfe588863edf1d7c8ff3fc893173a`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `167fdeac6859ba12bc9eccf4b80598d55b8de1ffe2e7d767a88a6bfd38430cf8`, published 2026-10-25T20:16:48Z. PR345 merge `a4b0680c9a04bb53213c015a482b3a853ed45320`; tested source `9292c3b19c00c61268589efa8574d1c8d414cb37`. This publication entry is documentation only. Necessary affected-client recovery is verified separately; healthy peers are not automatically upgraded.
+
 ## 2026-10-25 19:41 UTC
 
 - **PR #342: Configure the percentage above competing buy orders.** Add `Bid: above competing orders` (`orders.outbid_pct`), preserving the public default of 1%. A 3% selection targets 10,300 per item against a 10,000 best observed competing bid. Competitive new bids, retail/shaped bids and bid chasing use the selected increment; existing higher normal offers remain higher. Explicit player prices stay unchanged.
