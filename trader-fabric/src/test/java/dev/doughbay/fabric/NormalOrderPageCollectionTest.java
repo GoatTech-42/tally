@@ -208,6 +208,46 @@ class NormalOrderPageCollectionTest {
     @Test void actuallyReachedEmptyStockMenusStillConsumeTheBoundedPhysicalAttemptBudget() throws Exception {
         missingCollectionNavigation(5,"Orders -> Collect Items","Nothing arrived from the order",false);
     }
+    @SuppressWarnings({"unchecked","rawtypes"})
+    @Test void successfulBookReadsMustNotEraseRepeatedCollectMenuBackoff() throws Exception {
+        double bid=Tuning.get("orders.bid"),reserve=Tuning.get("orders.reserve_stock");
+        try {
+            Tuning.set("orders.bid",0);Tuning.set("orders.reserve_stock",0);
+            var f=fixture(false);var driver=f.driver;
+            var controller=new dev.doughbay.fabric.automation.AutomationSessionController(driver);
+            var type=controller.getClass();
+            field(type,"policy").set(controller,dev.doughbay.core.automation.ContinuousAutomationPolicy.fromConfigValues(2,100_000,50_000,5_000,12,80,10,8,120,1));
+            Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);
+            for(int i=0;i<3;i++) {
+                long at=1_000_000L+i*300_000L;
+                setOperation(driver,"COLLECT_ORDER");field(AutomatedExecutionDriver.class,"targetItemId").set(driver,"minecraft:stone");
+                field(AutomatedExecutionDriver.class,"ownStage").setInt(driver,5);
+                f=collectionMenu(f,"Orders -> Edit Order",0);
+                field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(driver,200);
+                field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(driver,0);read(f);
+                field(type,"deskStep").set(controller,ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),"minecraft:stone",192,100L,"collecting owned goods"));
+                observe.invoke(controller,f.client,at);
+                Object recovery=field(type,"deskRecovery").get(controller);
+                var remaining=recovery.getClass().getDeclaredMethod("remainingSeconds",long.class);remaining.setAccessible(true);
+                assertEquals(new long[]{5,15,60}[i],remaining.invoke(recovery,at),
+                        "Reading the book does not prove the still-failing stock menu recovered");
+                var book=fixture(false);f=new Fixture(driver,book.client,book.screen);
+                setOperation(driver,"OWN_ORDERS");field(AutomatedExecutionDriver.class,"ownStage").setInt(driver,1);
+                field(OwnOrderPages.class,"candidateAt").setLong(field(AutomatedExecutionDriver.class,"ownPages").get(driver),0);
+                var reset=OwnOrderPages.class.getDeclaredMethod("reset");reset.setAccessible(true);reset.invoke(field(AutomatedExecutionDriver.class,"ownPages").get(driver));
+                field(AutomatedExecutionDriver.class,"ownPageAccepted").setBoolean(driver,false);
+                field(AutomatedExecutionDriver.class,"ownOrdersArrivalNoted").setBoolean(driver,true);
+                read(f);settle(f);read(f);
+                assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,driver.lastTerminalEvent().outcome());
+                field(type,"deskStep").set(controller,ctor.newInstance(Enum.valueOf((Class)action,"READ"),"",0,0L,"refreshing Your Orders"));
+                observe.invoke(controller,f.client,at+250_000L);
+            }
+            assertTrue(((Map<?,?>)field(type,"collectAttempts").get(controller)).isEmpty(),"Navigation must not consume physical-stock attempts");
+            assertTrue(((Map<?,?>)field(type,"collectedByKey").get(controller)).isEmpty(),"No inventory transfer means no credits");
+        } finally {Tuning.set("orders.bid",bid);Tuning.set("orders.reserve_stock",reserve);ServerStrain.reset();}
+    }
     @Test void missingCollectMenuOnFirstDuplicateMustNotStarveDeliveredSecondRow() throws Exception {
         double mode=Tuning.get("orders.max_per_market"),pace=Tuning.get("pace.human_steps");
         try {

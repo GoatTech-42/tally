@@ -76,4 +76,29 @@ class OrderDeskRecoveryTest {
         assertFalse(OrderDeskRecovery.navigationFailure("No progress at stage 3 of COLLECT_ORDER"));
         assertFalse(OrderDeskRecovery.navigationFailure(null));
     }
+
+    @Test void aRecoveredBookReleasesTheNextActionWithoutErasingItsFailingMenuHistory() {
+        var recovery=new OrderDeskRecovery();
+        recovery.navigationFailed(1000);
+        recovery.readSucceeded();
+        assertFalse(recovery.pending(),"A refreshed book must allow the owned action to run");
+        assertFalse(recovery.steppedAside(1001));
+        recovery.navigationFailed(6000);
+        assertEquals(15,recovery.remainingSeconds(6000));
+        recovery.readSucceeded();
+        recovery.navigationFailed(21000);
+        assertTrue(recovery.steppedAside(21001),"A third stock-menu failure must use the existing auction-side backoff");
+        recovery.recovered(); // A successful owned-menu action, not just another book read.
+        recovery.navigationFailed(100000);
+        assertEquals(5,recovery.remainingSeconds(100000));
+    }
+
+    @Test void aBookReadStillClearsReadOnlyFailureHistory() {
+        var recovery=new OrderDeskRecovery();
+        recovery.failed(1000);recovery.failed(6000);recovery.failed(21000);
+        recovery.readSucceeded();
+        assertFalse(recovery.pending());
+        recovery.failed(100000);
+        assertEquals(5,recovery.remainingSeconds(100000));
+    }
 }

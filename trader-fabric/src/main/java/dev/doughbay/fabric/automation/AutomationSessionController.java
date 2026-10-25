@@ -5534,7 +5534,8 @@ public final class AutomationSessionController {
             boolean navigationFailed = OrderDeskRecovery.navigationFailure(event.detail());
             if (step.action() == DeskAction.READ || navigationFailed) {
                 if (step.action() == DeskAction.READ) deskQueue.clear();
-                deskRecovery.failed(now);
+                if (step.action() == DeskAction.READ) deskRecovery.failed(now);
+                else deskRecovery.navigationFailed(now);
                 LOGGER.info("DoughBay bid desk: order navigation recovery queued in {} s; auction watching waits",
                         deskRecovery.remainingSeconds(now));
             }
@@ -5614,9 +5615,10 @@ public final class AutomationSessionController {
             transition(State.SCANNING, "Bid desk: " + step.action() + " did not complete; scanning");
             return;
         }
+        if (ownOrdersStep(step.action()) && step.action() != DeskAction.READ) deskRecovery.recovered();
         switch (step.action()) {
             case READ -> {
-                deskRecovery.recovered();
+                deskRecovery.readSucceeded();
                 noticedSinceRead.clear();
                 ownOrders = List.copyOf(driver.lastOwnOrders());
                 ownOrdersComplete=driver.lastOwnOrdersComplete();

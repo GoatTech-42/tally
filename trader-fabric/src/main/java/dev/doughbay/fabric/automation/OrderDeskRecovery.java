@@ -9,13 +9,21 @@ package dev.doughbay.fabric.automation;
  * 2026-10-10 and again with the server at its fullest on 2026-10-11, and the
  * gaps lengthen to four minutes. During those gaps the desk steps aside: the
  * session lists what it holds, reprices and watches the auction house
- * instead of standing at a page that is not coming.
+ * instead of standing at a page that is not coming. A successful book read
+ * releases the next owned action, but only a successful non-read owned action clears
+ * history from failures to navigate beyond the book.
  */
 final class OrderDeskRecovery {
     /** Failures before the order house is treated as down rather than as having dropped a click. */
     static final int DOWN_AFTER = 3;
     private int failures;
     private long retryAt;
+    private boolean nonReadFailure;
+
+    void navigationFailed(long now) {
+        nonReadFailure = true;
+        failed(now);
+    }
 
     void failed(long now) {
         failures = Math.min(5, failures + 1);
@@ -30,11 +38,17 @@ final class OrderDeskRecovery {
 
     /** Between tries at an order house that is down: nothing else should be kept waiting on it. */
     boolean steppedAside(long now) {
-        return failures >= DOWN_AFTER && now < retryAt;
+        return pending() && failures >= DOWN_AFTER && now < retryAt;
     }
 
-    void recovered() { failures = 0; retryAt = 0; }
-    boolean pending() { return failures > 0; }
+    /** The book opened; that does not prove an Edit Order/stock menu opened. */
+    void readSucceeded() {
+        if (nonReadFailure) retryAt = 0;
+        else recovered();
+    }
+
+    void recovered() { failures = 0; retryAt = 0; nonReadFailure = false; }
+    boolean pending() { return retryAt > 0; }
     boolean ready(long now) { return pending() && now >= retryAt; }
     long remainingSeconds(long now) { return Math.max(0, (retryAt - now + 999) / 1000); }
 
