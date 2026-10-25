@@ -28,8 +28,12 @@ final class OrderShape {
 
     /** One step above the best standing order, which is all it takes to be filled first; 0 with no order to beat. */
     static long topOfBook(long standing) {
-        if (standing <= 0) return 0;
-        long step = Math.max(1L, (long) Math.ceil(standing * 0.01));
+        return topOfBook(standing, 1);
+    }
+
+    static long topOfBook(long standing, double outbidPercent) {
+        if (standing <= 0 || !Double.isFinite(outbidPercent) || outbidPercent <= 0) return 0;
+        long step = Math.max(1L, (long) Math.ceil(standing * (outbidPercent / 100.0)));
         return standing > Long.MAX_VALUE - step ? 0 : standing + step;
     }
 

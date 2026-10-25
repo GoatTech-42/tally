@@ -27,6 +27,20 @@ class SettingsCodeTest {
     }
 
     @Test
+    void outbidPercentageIsShareableAndReportSafeWithoutChangingMargins() throws Exception {
+        double before=Tuning.get("orders.outbid_pct"), margin=Tuning.get("orders.chase_min_margin_pct");
+        try {
+            Tuning.set("orders.outbid_pct",3);
+            String code=SettingsCode.export();
+            SettingsCode.validateReportCode(SettingsCode.exportForReport());
+            Tuning.set("orders.outbid_pct",1);
+            assertTrue(SettingsCode.apply(code).ok());
+            assertEquals(3,Tuning.get("orders.outbid_pct"));
+            assertEquals(margin,Tuning.get("orders.chase_min_margin_pct"));
+        } finally { Tuning.set("orders.outbid_pct",before); }
+    }
+
+    @Test
     void aCodeMadeOnNinetySlotsLeavesAFriendOnEighteen() throws Exception {
         keeping(() -> {
             Tuning.set("slots.max", 90);
