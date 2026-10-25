@@ -1,10 +1,11 @@
 # GoNuts changelog
 
-## 2026-10-25
+## 2026-10-25 02:01 UTC
 
-- Waiting for a partial stack on a native own-order collection page no longer counts as an unanswered server operation or adds global server-strain pacing and pauses. The existing no-click partial-stock wait, terminal result, collection rest, whole-stack policy and all financial/ownership/safety checks remain unchanged.
-- Real collection faults and timeouts still count toward server-strain protection. A normal partial-stock wait neither clears existing timeout history nor releases an existing hold. Diagnostics retain the action with the closed `STACK_BATCH` reason.
-- This repairs a reproduced false-pause path. It does not implement fixed 1,024-item orders, change settings or establish that a reported collection backlog is fully resolved.
+- **PR #306: Keep normal partial-stack collection waits from slowing all trading.** A native collection page with only partial stock and no collect click no longer adds global server-strain pacing or pauses. Its existing terminal result, controller rest and whole-stack policy stay unchanged. Real faults and previously clicked actions still count; this guard does not clear existing timeout history or holds.
+- Client artifact published October 24 at **19:01:56 Los Angeles time (October 25 02:01:56 UTC)**. Build `1792893662722`; SHA256 `6c9e7aa651337398671b9e12f5d755e9539f28b0247932b4aa435e55c1df7ebf`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `09d06eda9c846d5a4d42d5860fbdb3bba178961a29a4d285cd3d1a224878b7e3`, published 02:02:04 UTC. PR306 merge `c9cfe2397cc5cf8c8d04e529cf69529e2e5c673c`; tested source head `ba1ab870dc19edcc90a3a5c64ad657be5a590ec9`. This publication record is documentation only.
+- Full multi-module production test/build: **1,637 tests, zero failures/errors, two skipped**. Regressions cover repeated native partial-stock waits, unchanged terminal/collection handling, retained prior timeout history and existing holds, and genuine collection faults. The closed `STACK_BATCH` reason distinguishes this no-click guard. The receiver/worker retain raw evidence and exclude only the exact normal guard from failure summaries; unknown and other faults remain.
+- Order sizing, settings, spending, ownership, collection credits and safety gates are unchanged. This does not complete draft PR304's fixed 1,024-item order integration or establish resolution of reports285/305. No live client installation or restart was performed for this publication.
 
 ## 2026-10-24 22:42 UTC
 
