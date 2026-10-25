@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-25 17:15 UTC
+
+- **PR #336: Recover incomplete native reads and bounded partial cleanup.** An unparsed own-order page no longer reports a successful empty book while returning rows accumulated from earlier pages. The read fails explicitly into existing paced recovery, retains observed owned rows, and does not renew book freshness. Reports include the existing book-completeness flag and an unparsed-item count; unknown native tooltip text is omitted. This repairs a reproduced path related to report335; the reporter's exact native content and whole incident remain unverified.
+- Bounded collection now respects an already-authorized partial-stack cleanup operation. Previously the whole-stack preference was disabled for cleanup before cancelling an order, but the capacity check still rejected its unfinished tail. The repair keeps the same quantity ceiling and native inventory transfer/credit checks. Whole-stack-only collection and insufficient capacity still refuse partial stock. A local client repeatedly revisited a native five-diamond tail without transferring it; exact repair progress is verified separately.
+
+- Client artifact published **2026-10-25T17:15:15Z**. Build `1792947905537`; client SHA256 `0af041eb12155880c161cd5df7d844c8e29d55bfb92a858436536973641728fd`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `60afdab3efe927058fa5b1428df42700f5269b4f42c102617bdcf18ff56ee891`, published 2026-10-25T17:15:18Z. PR336 merge `f2967e74cdf4ec8fe8487a3a03f78369194b0aac`; tested source `47c49e11c04161cc432570789badcbd4a7073c10`. This dated entry is documentation only. A necessary repair of only the confirmed affected local client is verified separately; healthy peers retain PR331.
+- Clean full build: **1,674 tests, zero failures/errors, two skipped**. Both actual native-menu regressions fail on prior public code and pass after repair. Controller coverage verifies paced read recovery, retained rows/credits and no freshness renewal; negative cases retain whole-stack policy and quantity limits. Typed report-context validation excludes unknown/raw fields. Report #335 remains open pending affected-client evidence; no whole-incident recovery claim.
+
 ## 2026-10-25 16:05 UTC
 
 - **PR #333: Refresh expired native auction occupancy.** Re-arm the native auction audit when its count is missing or older than the existing10-minute validity limit, even when listings remain below capacity and market data is unavailable. Previously Stop/Start or a quiet long-running session could retain an unknown count indefinitely; collection sizing then refused new batches without an audit to recover.
