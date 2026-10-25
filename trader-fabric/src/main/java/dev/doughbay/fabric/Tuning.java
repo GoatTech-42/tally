@@ -898,6 +898,9 @@ public final class Tuning {
                     "When another player's order goes above one of ours, sellers fill theirs first and ours sits. Pull "
                     + "ours and place it again just above theirs, while the margin below still holds (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
+            new Setting("orders.outbid_pct", "Orders", "Bid: above competing orders",
+                    "Percentage above the best observed competing bid for new competitive orders and bid chasing. "
+                    + "Existing higher offers, resale margins, live-price and spending checks still apply", 1, 0.1, 10, Kind.PERCENT),
             new Setting("orders.chase_min_margin_pct", "Orders", "Bid: follow only above margin",
                     "An outbid order is only moved up while the new price still leaves at least this margin on the "
                     + "resale price; below it the order is left where it is", 10, 3, 50, Kind.PERCENT),

@@ -6025,7 +6025,7 @@ public final class AutomationSessionController {
             if (why == null && priced == null && chasing && best > r.unitPrice()
                     && now - chasedAt.getOrDefault(r.itemId(), 0L) > 10 * 60_000L) {
                 long chaseCeiling = bidCeilingUnit(snapshot, r.itemId(), r.requested(), minimumProfit, chaseRoi);
-                long above = OrderBidPricing.chaseTarget(r.unitPrice(), best, chaseCeiling);
+                long above = OrderBidPricing.chaseTarget(r.unitPrice(), best, chaseCeiling, outbidPercent());
                 if (above > 0 && chaseAllowed(r.itemId(), r.requested(), above, now)) {
                     why = "outbid at " + best + " each; placing again above it";
                     chaseThisOrder = true;
@@ -6034,7 +6034,7 @@ public final class AutomationSessionController {
                     // single slots may: left alone, an order that cannot
                     // follow holds the item for hours with nothing delivered.
                     long singles = OrderBidPricing.chaseTarget(r.unitPrice(), best,
-                            bidCeilingUnit(snapshot, r.itemId(), singleSlots(), minimumProfit, chaseRoi));
+                            bidCeilingUnit(snapshot, r.itemId(), singleSlots(), minimumProfit, chaseRoi), outbidPercent());
                     if (singles > 0 && chaseAllowed(r.itemId(), 1, singles, now)) {
                         why = "outbid at " + best + " each; a stack does not pay there, placing the single slots above it";
                         chaseThisOrder = true;
@@ -6251,7 +6251,7 @@ public final class AutomationSessionController {
                         // pay, and over anything else in the book - a coin a
                         // unit on stock they ask twenty times as much for.
                         long theirs = Math.round(m.medianBuy() / (double) Math.max(1, m.count()));
-                        unit = OrderShape.topOfBook(Math.max(theirs, standing));
+                        unit = OrderShape.topOfBook(Math.max(theirs, standing), outbidPercent());
                         long lot = shadowLotTarget(m, undercut);
                         long paid = unit * Math.max(1, m.count());
                         if (unit <= 0 || lot <= 0 || paid <= 0) continue;
@@ -6267,7 +6267,7 @@ public final class AutomationSessionController {
                     // cannot be delivered.
                     int askFor = Math.min(m.count(), fullStack(m.itemId()));
                     if (askFor <= 0) continue;
-                    if (standing > 0 && unit < standing * 1.01) continue;
+                    if (standing > 0 && unit < standing * (1 + outbidPercent() / 100.0)) continue;
                     if (standing > 0 && unit > standing * 5 && !m.fromAsks()) continue;
                     long cost = unit * askFor;
                     if (cost > effectivePurchaseCap() || cost > room) continue;
@@ -6317,7 +6317,7 @@ public final class AutomationSessionController {
                     double stackResale = stackResalePrice(snapshot, m.itemKey(), retail, now);
                     long stackCeiling = OrderBidPricing.breakevenUnit(stackResale, full, auctionFees, minimumProfit);
                     stackResaleUnit = stackResale / full;
-                    long offer = OrderShape.topOfBook(standing);
+                    long offer = OrderShape.topOfBook(standing, outbidPercent());
                     if (offer > 0) {
                         shaped = OrderShape.mode(offer, singleCeiling, stackCeiling);
                         if (shaped == OrderShape.Mode.NONE) { bump(why, "no margin at the going order price"); continue; }
@@ -6361,8 +6361,8 @@ public final class AutomationSessionController {
             if (retail != null && shaped == null) {
                 // Compete at the order book's price; the retail ceiling is a limit, not an offer.
                 if (standing <= 0) { bump(why, "retail needs a standing bid"); continue; }
-                long competitive = standing + Math.max(1L, (long) Math.ceil(standing * 0.01));
-                if (competitive > unit) { bump(why, "retail batch margin too small"); continue; }
+                long competitive = OrderShape.topOfBook(standing, outbidPercent());
+                if (competitive <= 0 || competitive > unit) { bump(why, "retail batch margin too small"); continue; }
                 unit = competitive;
             }
             // Finalize the offer before validating it. The resale ceiling is
@@ -6376,12 +6376,13 @@ public final class AutomationSessionController {
                 bump(why,"outbid already"); continue;
             }
             if (sharingOurPrice) unit = ourStanding;
-            if (standing > 0 && !sharingOurPrice && unit < standing * 1.01) { bump(why, "outbid already"); continue; }
+            if (standing > 0 && !sharingOurPrice && unit < standing * (1 + outbidPercent() / 100.0)) { bump(why, "outbid already"); continue; }
             // Far above every standing bid means the statistic is wrong, not
             // that the market is generous: a polluted single-item median.
             if (standing > 0 && unit > standing * 5) { bump(why, "price looks wrong"); continue; }
             if (standing > 0 && retail == null && shaped == null && !sharingOurPrice) {
-                unit = Math.min(unit, Math.max((long) (standing * 1.05), unit * 3 / 4));
+                unit = Math.min(unit, Math.max(OrderShape.topOfBook(standing, outbidPercent()),
+                        Math.max((long) (standing * 1.05), unit * 3 / 4)));
             }
             // Asks are only what sellers hope for. Junk markets carry rows of
             // troll listings that agree with each other - nine raw mutton
@@ -7333,6 +7334,10 @@ public final class AutomationSessionController {
     private static final long FAST_PREPARE_SETTLE_MILLIS = 400;
     private static final long FAST_LIST_SETTLE_MILLIS = 700;
     private static final long FAST_LIST_COOLDOWN_MILLIS = 250;
+
+    private static double outbidPercent() {
+        return dev.doughbay.fabric.Tuning.get("orders.outbid_pct");
+    }
 
     private static boolean fastPace() {
         return dev.doughbay.fabric.Tuning.get("pace.fast") >= 0.5;

@@ -91,6 +91,14 @@ class OrderBidPricingTest {
                 m -> Double.NaN, FeeConfig.zero(), 500, 0.1));
     }
 
+    @Test void configuredThreePercentChaseStillHonorsTheResaleCeiling() {
+        assertEquals(2678, OrderBidPricing.chaseTarget(2500, 2600, 2678, 3));
+        assertEquals(0, OrderBidPricing.chaseTarget(2500, 2600, 2677, 3));
+        assertEquals(0, OrderBidPricing.chaseTarget(2700, 2600, 3000, 3));
+        assertEquals(0, OrderBidPricing.chaseTarget(2500, Long.MAX_VALUE, Long.MAX_VALUE, 3));
+        assertEquals(0, OrderBidPricing.chaseTarget(2500, 2600, 3000, Double.NaN));
+    }
+
     @Test void chaseOnlyRaisesOutbidOrdersWithinTheCeiling() {
         assertEquals(2626, OrderBidPricing.chaseTarget(2500, 2600, 2626));
         assertEquals(0, OrderBidPricing.chaseTarget(2500, 2600, 2625));

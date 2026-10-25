@@ -5,6 +5,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OrderShapeTest {
+    @Test void configuredCompetitivePriceChangesLotEligibilityWithoutChangingItsCeiling() {
+        assertEquals(10300, OrderShape.topOfBook(10000, 3));
+        assertEquals(OrderShape.Mode.STACKS, OrderShape.mode(OrderShape.topOfBook(10000, 1), 10200, 10200));
+        assertEquals(OrderShape.Mode.NONE, OrderShape.mode(OrderShape.topOfBook(10000, 3), 10200, 10200));
+        assertEquals(6, OrderShape.topOfBook(5, 3));
+        assertEquals(0, OrderShape.topOfBook(Long.MAX_VALUE, 3));
+        assertEquals(0, OrderShape.topOfBook(100, Double.NaN));
+    }
+
     @Test void twelveStacksMeans768BlocksAndSevenMeans448() {
         assertEquals(768,OrderShape.stackOrderCount(12,64,45_885,40_000_000,12));
         assertEquals(448,OrderShape.stackOrderCount(7,64,45_885,40_000_000,12));

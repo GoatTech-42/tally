@@ -58,8 +58,12 @@ final class OrderBidPricing {
 
     /** Zero means keep the current order rather than chase beyond its resale margin. */
     static long chaseTarget(long currentUnit, long bestUnit, long ceilingUnit) {
-        if (currentUnit <= 0 || bestUnit <= currentUnit) return 0;
-        long increase = Math.max(1, Math.round(bestUnit * 0.01));
+        return chaseTarget(currentUnit, bestUnit, ceilingUnit, 1);
+    }
+
+    static long chaseTarget(long currentUnit, long bestUnit, long ceilingUnit, double outbidPercent) {
+        if (currentUnit <= 0 || bestUnit <= currentUnit || !Double.isFinite(outbidPercent) || outbidPercent <= 0) return 0;
+        long increase = Math.max(1, Math.round(bestUnit * (outbidPercent / 100.0)));
         if (bestUnit > Long.MAX_VALUE - increase) return 0;
         long above = bestUnit + increase;
         return above <= ceilingUnit ? above : 0;

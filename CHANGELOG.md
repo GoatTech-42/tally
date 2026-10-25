@@ -1,5 +1,9 @@
 # GoNuts changelog
 
+## Unreleased
+
+- Add **Bid: above competing orders** (`orders.outbid_pct`), default 1%. New competitive bids and bid chasing use the chosen increment; choosing 3 targets 10,300 against a 10,000 competing bid. Existing higher offers remain higher. The target must still fit the resale ceiling, required margin, native evidence, spending and ownership checks; increasing the increment can leave fewer eligible markets. Explicit player prices are unchanged.
+
 ## 2026-10-25 18:03 UTC
 
 - **PR #339: Read locked native order-slot controls.** Recognize the reported `Max Orders` rank-upgrade control, with its exact `Buy Donut++ for even more order slots` text, when reading Your Orders. A page filled with these locked tiles can end the bounded read while retaining real orders from earlier pages; mixed pages keep every parsed native order.

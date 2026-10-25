@@ -344,6 +344,7 @@ public final class SettingsCode {
             "orders.bid_on_real_trades",
             "orders.chase",
             "orders.chase_min_margin_pct",
+            "orders.outbid_pct",
             "orders.size_by_sale",
             "orders.nofill_min",
             "orders.bid_min_value",
