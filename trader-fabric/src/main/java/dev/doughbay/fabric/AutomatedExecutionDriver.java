@@ -895,6 +895,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         collectMatchingRows = 0;
         collectRowsExhausted = false;
         collectClicks = 0;
+        collectMenuObserved = false;
         placeConfirmed = false;
         placeMatchingBefore = -1;
         lastPlacementOrders = null;
@@ -1053,6 +1054,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return false;
         }
         ownMatchOrdinal=next;
+        collectMenuObserved=false;
         ownPages.reset();ownPageAccepted=false;ownMatchOffset=0;
         ownStage=0;
         ownDone=false;
@@ -1070,6 +1072,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int ownNavRetries;
     private int ownNavigationReopens;
     private int collectClicks;
+    private boolean collectMenuObserved;
     private int newOrderNavigationRetries;
 
     boolean shouldRetryNewOrderNavigation(String title) {
@@ -1553,6 +1556,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return;
         }
         if (ownStage == 3 && title.contains("collect items") && operation == Operation.COLLECT_ORDER) {
+            collectMenuObserved = true;
             ownStage = 5;
             collectClicks = 0;
             resetPhaseObservation();
@@ -1622,6 +1626,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             // on the page and each one is clicked into the inventory.
             int now = countInventory(client, targetItemId);
             if (title.contains("collect items")) {
+                collectMenuObserved = true;
                 int pending = -1;
                 // A part stack stays on an order that is still being filled:
                 // it becomes a whole one, and a whole one is what sells.
@@ -1686,6 +1691,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
             if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
+                if (!collectMenuObserved && collectClicks == 0 && now == inventoryCountBefore) {
+                    abort(client, "Collect Items did not open (page: \"" + title + "\")");
+                    return;
+                }
                 if (tryAnotherCollectRow(client)) return;
                 List<String> onPage = new ArrayList<>();
                 for (int menuSlot = 0; menuSlot < container.getMenu().slots.size(); menuSlot++) {
