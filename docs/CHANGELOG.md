@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-25 16:05 UTC
+
+- **PR #333: Refresh expired native auction occupancy.** Re-arm the native auction audit when its count is missing or older than the existing10-minute validity limit, even when listings remain below capacity and market data is unavailable. Previously Stop/Start or a quiet long-running session could retain an unknown count indefinitely; collection sizing then refused new batches without an audit to recover.
+- Maintenance only begins while scanning, with no pending purchase or tracked position, no active driver operation, no uncertain exposure or staff transfer hold, and an empty-cursor native inventory boundary. A refused missing-count maintenance attempt retries no faster than once per minute. Successful native audits remain authoritative; no count, capacity, credit or position is fabricated or reset. No automatic start, spending-policy change or safety-gate relaxation.
+
+- Client artifact published **2026-10-25T16:05:15Z**. Build `1792943935123`; client SHA256 `88154a50028831d53fc27d2cb7678643263330038ece6a8dfac62044430aa124`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `b59fb5872c6c9351a29ccade5c70a3a607737691bd63f6507034a895e3c4fcf8`, published 2026-10-25T16:05:19Z. PR333 merge `d91fef18b75cda220617225efb19c8e284a0408d`; source `ab51fa2c9a0a025c025406f04377144a29fcbb73`. This dated publication entry is documentation only. No live installation or restart; all three current clients retain PR331.
+- Clean full build: **1,671 tests, zero failures/errors, two skipped**. Native-controller regressions cover expired below-capacity evidence without a market snapshot, bounded retries and fresh/busy/container/transfer exclusions. Related report #330 remains open pending reporter installation and recovery evidence; this patch does not establish remote recovery.
+
 ## 2026-10-25 15:47 UTC
 
 - **PR #331: Restore Staff Watch completion replies.** Restore server replies to the shard-local Staff Watch completion probe by sending `/minecraft:msg ` with its leading slash. A bounded live comparison observed the old slashless request passing the outbound hook with no reply, while the slash-prefixed request received197 suggestions, including the controlled requesting account and excluding two controlled accounts in other mapped areas. The ordinary `/msg ` response was much larger and is not substituted as local proof.
