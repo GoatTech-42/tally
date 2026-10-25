@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 05:24 UTC
+
+- **PR #317: Give pending diagnostic sessions fair upload turns.** An older session with a large backlog or an unacknowledged gap previously monopolized the shared spool, delaying newer client sessions and their evidence. A durable last-sent cursor now rotates pending sessions while retaining FIFO within each session. Creating a batch does not advance the cursor; an attempted frame send does.
+- Builds, event sequences, settings, declared loss gaps, unacknowledged retries and ACK validation remain intact. No schema, endpoint, credential, upload rate, receiver limit, trading setting or safety gate changes. This fixes reproduced cross-session starvation; it does not resolve within-session backlog volume, establish the full local upload-stall cause, or explain physical order-collection failures. No live installation/restart for this publication; the three clients remain on PR311.
+- Client artifact published **2026-10-25T05:24:52Z**. Build `1792905691822`; client SHA256 `222012b964ca0cf4a4dc5d25fe21ad3167a0b4b04b74bf3bb89f8008dba33836`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `ffd8dd1383825edee02c3ce926b391e6353d20a3862c822bc103ef1f95d9c03f`, published 2026-10-25T05:24:55Z. PR317 merge `6e6441501c9a095c9d974e4d527ab5a87c59d0b1`; tested source head `3964604458190496fcff3f33bda85e2154884fc1`. This publication entry is documentation only.
+- Full production test/build: **1,653 tests, zero failures/errors, two skipped**. Actual SQLite-outbox coverage fails on prior public code when a fresh-session fault waits behind 100 older events. Regressions also cover a gap-only older session, three sessions created together sharing a spool, retained unacknowledged evidence and cross-session/future ACK protection.
+
 ## 2026-10-25 04:11 UTC
 
 - **PR #315: Refresh a shifted owned-order row before collecting it.** An older identical row disappearing can move the remaining owned row to an earlier ordinal. The driver previously reported the order absent despite a matching owned row being visible, allowing its collection retry state to be exhausted. With no collection click and unchanged inventory, that case now requests a fresh own-order read through existing paced navigation recovery.
