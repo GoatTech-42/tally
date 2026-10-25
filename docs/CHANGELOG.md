@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 13:09 UTC
+
+- **PR #326: Join recovery through separate regional servers.** After a confirmed network join failure, the existing reconnect flow advances through explicit regional addresses from the restart-recovery route list. Retrying the generic address could route back to the same unavailable region. Default routes cover east, west, Asia, Oceania, EU Central and EU West; custom same-network ordering and ports are preserved. The saved preferred server is unchanged and the existing two-minute retry delay remains.
+- Authentication/enforcement refusals, unknown errors, manual cancellation, intentional stops, staff cooldowns and external restart ownership do not gain a regional bypass. No additional reconnect loop or worker. Trading resumes only through existing fresh-world/balance, persistence, ownership, exposure and safety gates. Manual attempts now record the actual selected address.
+- Client artifact published **2026-10-25T13:09:09Z**. Build `1792933552584`; client SHA256 `b7c084c6e80afd901f911eae7b8d9be6a6681283f3c04f42a58b3047055ae5ce`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `508ab1ecdeddf0339d51ab334778934f652bde7854789823193fbec1a4df0a83`, published 2026-10-25T13:09:12Z. PR326 merge `1258e6596dff36243551b9449a0ad9587f6201c5`; tested source `6e6af639998011bda18db82566b211c84bc1d95a`. This publication entry is documentation only.
+- Full test/build: **1,665 tests, zero failures/errors, two skipped**. The failed-join lifecycle regression fails on prior routing (expected explicit east address, observed generic host) and passes with regional rotation. Tests retain custom routes/ports, refusal exclusions, cancellation, existing delay, connection ownership and native resume gates. Live repair and affected-client recovery are verified separately; publication alone does not establish recovery.
+
 ## 2026-10-25 12:37 UTC
 
 - **PR #324: Keep a verified partial-stock result across matching owned-order rows.** Native inspection on the third local client showed 54 golden apples left untouched by the existing whole-stack rule. Another matching order offered Collect but did not open a stock page. Previously that final check discarded the valid partial-stock result and incorrectly held the entire own-order desk in navigation recovery. Bounded zero-click traversal now preserves the physical result, applies the existing per-order wait and releases navigation recovery for other eligible work.
