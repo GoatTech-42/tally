@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-25 03:48 UTC
+
+- **PR #313: Distinguish a missing collection menu from an empty order.** After choosing Collect, failure to reach Collect Items no longer spends the physical-stock retry budget. Recovery uses the existing bounded navigation backoff only when that menu was never observed, no collection click occurred, and inventory is unchanged. Previously four such navigation timeouts could permanently suppress an already-completed order.
+- An actually reached empty stock page still uses its bounded physical retry budget. Clicked failures, unknown faults, server-strain history, inventory proofs, credits, ownership, spending and exposure guards remain enforced. Menu observation resets for each operation and each no-click transition between matching orders.
+- Client artifact published **2026-10-25T03:48:45Z**. Build `1792899929347`; client SHA256 `03c9d18817fb6331685a95f28b80a0c9e2542a9539400912e41dc9e8bb49e93b`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `501cb7f7f30c772a6b753495bed4382dc42acbc9cc5a5a0a889c6c3cfae03329`, published 2026-10-25T03:48:47Z. PR313 merge `df3040eacb256331a3ee19ae060bd55bae72b75e`; tested source head `1452189256c91a31404055ec79b52a381b50c6b2`. This publication entry is documentation only.
+- Full production test/build: **1,648 tests, zero failures/errors, two skipped**. Actual native-menu/controller coverage fails on the previous public source after four missing-stock-menu timeouts, and passes after repair. A negative case keeps actual empty-stock failures bounded. The zero-click/wrong-page trigger was observed locally on PR311, but physical stock on that order and external reporter recovery remain unproven.
+- No live client installation, restart or settings change for this publication. The three clients remain on their separately authorized PR311 rollout. Existing backlog reports stay open. Delayed private diagnostic receipts do not establish current build adoption or post-publication recurrence.
+
 ## 2026-10-25 03:25 UTC
 
 - **PR #311: Keep lost Edit Order navigation from permanently suppressing filled-order collection.** A failure to reach the Edit Order menu now uses the existing bounded navigation recovery and backoff instead of spending the physical-stock collection attempt budget. Previously four such failures could leave an already-filled order ineligible forever because its delivered total could not increase again.
