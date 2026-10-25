@@ -5615,7 +5615,9 @@ public final class AutomationSessionController {
             transition(State.SCANNING, "Bid desk: " + step.action() + " did not complete; scanning");
             return;
         }
-        if (ownOrdersStep(step.action()) && step.action() != DeskAction.READ) deskRecovery.recovered();
+        // A full-book PLACE can succeed without opening any order dialog.
+        // Only confirmed collection/cancellation clears downstream recovery.
+        if (step.action() == DeskAction.COLLECT || step.action() == DeskAction.CANCEL) deskRecovery.recovered();
         switch (step.action()) {
             case READ -> {
                 deskRecovery.readSucceeded();

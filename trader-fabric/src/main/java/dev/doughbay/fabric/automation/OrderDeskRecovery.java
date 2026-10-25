@@ -10,7 +10,7 @@ package dev.doughbay.fabric.automation;
  * gaps lengthen to four minutes. During those gaps the desk steps aside: the
  * session lists what it holds, reprices and watches the auction house
  * instead of standing at a page that is not coming. A successful book read
- * releases the next owned action, but only a successful non-read owned action clears
+ * releases the next owned action, but only a successful collection or cancellation clears
  * history from failures to navigate beyond the book.
  */
 final class OrderDeskRecovery {
