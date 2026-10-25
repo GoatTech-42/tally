@@ -78,7 +78,6 @@ public final class AntiVanishModule extends ClientModule {
       AntiVanishModule module = instance();
       return module == null ? "avAvailable=false" : "avEnabled=" + module.isEnabled() + " " + module.health.summary();
    }
-   private static final String PROBE_COMMAND = "minecraft:msg";
    private static final int SENSOR_RANGE = 64;
    private static final long SIGNAL_WINDOW_MS = 15000L;
    private static final long DETECTION_TTL_MS = 20000L;
@@ -646,7 +645,6 @@ public final class AntiVanishModule extends ClientModule {
 
    private void sendCompletionProbe() {
       if (MC.getConnection() != null) {
-         String command = "minecraft:msg";
          int id = this.nextCompletionId++;
          if (this.nextCompletionId > 40000) {
             this.nextCompletionId = 30000;
@@ -656,7 +654,8 @@ public final class AntiVanishModule extends ClientModule {
          this.health.probeRequest();
 
          try {
-            MC.getConnection().send(new ServerboundCommandSuggestionPacket(id, command.trim() + " "));
+            MC.getConnection().send(new ServerboundCommandSuggestionPacket(id,
+                  dev.doughbay.fabric.staffwatch.StaffCompletionProbe.REQUEST));
          } catch (Throwable var4) {
             this.health.probeSendFailed();
          }

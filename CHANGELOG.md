@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## Unreleased — Staff Watch completion transport repair
+
+- Restore server replies to the shard-local Staff Watch completion probe by sending `/minecraft:msg ` with its leading slash. A bounded live comparison observed the old slashless request passing the outbound hook with no reply, while the slash-prefixed request received197 suggestions, including the controlled requesting account and excluding two controlled accounts in other mapped areas. The ordinary `/msg ` response was much larger and is not substituted as local proof.
+- Use the same request for Anti Vanish probes and the existing manual/automatic region-arrival round trips. No recognition filters, locality requirements, request frequency, cooldowns, transfers, persistence, ownership, spending or trading guards change. This repairs a reproduced input-compatibility failure; the date the live server behavior changed and the whole historical staff-alert incident are not established.
+- An isolated real-Minecraft replay passes on both the original import and current code: packet recognition, global-versus-local negative cases, detector-triggered warning banner, owned completion handling and real vanilla completion transport. Test harnesses are excluded from production jars. A separately packaged temporary four-request diagnostic records only counts and controlled-account match flags, not suggestion names.
+
 ## 2026-10-25 14:00 UTC
 
 - **PR #328: Explain connection loss separately from Staff Watch detection.** Timeout, explicit click-spam disconnect and other connection-loss alerts now state the reported reason, that this event was not initiated by local Staff Watch detection, the server, settings recovery and the next recovery action. Unknown underlying causes remain unknown. Immediate webhook and durable feed delivery share the clearer message.

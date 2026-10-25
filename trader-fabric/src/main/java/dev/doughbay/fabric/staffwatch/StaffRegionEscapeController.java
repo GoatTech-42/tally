@@ -82,7 +82,7 @@ final class StaffRegionEscapeController {
                 // but do require a server teleport and a fresh post-teleport reply.
                 if (arrival.needsProbe(moved)) {
                     int id=IDS.incrementAndGet();arrival.probe(id);
-                    mc().getConnection().send(new ServerboundCommandSuggestionPacket(id,"minecraft:msg "));
+                    mc().getConnection().send(new ServerboundCommandSuggestionPacket(id,StaffCompletionProbe.REQUEST));
                 }
                 return arrival.confirmed(commandSent(),moved);
             }

@@ -126,16 +126,18 @@ public final class StaffSignalSmoke implements ClientModInitializer {
                         "unowned completion reply remains available to vanilla");
                     PacketReceiveNettyEvent.TYPE.listen(this, event -> {
                         if (event.packet instanceof ClientboundCommandSuggestionsPacket reply
-                                && (reply.id() == 60001 || reply.id() == 60002)) roundTripReplies.add(reply.id());
+                                && (reply.id() == 60001 || reply.id() == 60002 || reply.id() == 60003)) roundTripReplies.add(reply.id());
                     });
                     mc.getConnection().send(new ServerboundCommandSuggestionPacket(60001, "minecraft:msg "));
                     mc.getConnection().send(new ServerboundCommandSuggestionPacket(60002, "/msg "));
+                    mc.getConnection().send(new ServerboundCommandSuggestionPacket(60003, StaffCompletionProbe.REQUEST));
                     next();
                 }
                 case 6 -> {
                     if (ticks < 60) return;
                     check(roundTripReplies.contains(60001), "actual vanilla server round trip returns a reply to the existing probe text");
                     check(roundTripReplies.contains(60002), "actual vanilla server round trip returns a reply to normal slash command completion");
+                    check(roundTripReplies.contains(60003), "actual vanilla server round trip returns a reply to the repaired production request");
                     Files.write(Path.of("staff-signal-replay-pass.txt"), checks);
                     phase = 99; mc.stop();
                 }

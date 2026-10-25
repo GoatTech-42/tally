@@ -259,6 +259,12 @@ if (project.hasProperty('staffSignalReplay')) {
 }
 tasks.named('jar') { exclude '**/StaffSignalSmoke*.class' }
 
+// Optional disposable transport diagnostic; packaged separately, never in GoNuts.
+if (project.hasProperty('staffProbeDiagnostic')) {
+    sourceSets.main.java.srcDir 'src/staffProbeDiagnostic/java'
+}
+tasks.named('jar') { exclude '**/StaffProbeDiagnostic*.class' }
+
 if (project.hasProperty('documentationScreenshots')) {
  sourceSets.main.java.srcDir 'src/documentationSmoke/java'
  tasks.processResources.doLast {
