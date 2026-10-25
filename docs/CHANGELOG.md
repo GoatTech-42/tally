@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 02:01 UTC
+
+- **PR #306: Keep normal partial-stack collection waits from slowing all trading.** A native collection page with only partial stock and no collect click no longer adds global server-strain pacing or pauses. Its existing terminal result, controller rest and whole-stack policy stay unchanged. Real faults and previously clicked actions still count; this guard does not clear existing timeout history or holds.
+- Client artifact published October 24 at **19:01:56 Los Angeles time (October 25 02:01:56 UTC)**. Build `1792893662722`; SHA256 `6c9e7aa651337398671b9e12f5d755e9539f28b0247932b4aa435e55c1df7ebf`. Client, source ZIP and checksum manifest independently downloaded and hash-verified. Source ZIP SHA256 `09d06eda9c846d5a4d42d5860fbdb3bba178961a29a4d285cd3d1a224878b7e3`, published 02:02:04 UTC. PR306 merge `c9cfe2397cc5cf8c8d04e529cf69529e2e5c673c`; tested source head `ba1ab870dc19edcc90a3a5c64ad657be5a590ec9`. This publication record is documentation only.
+- Full multi-module production test/build: **1,637 tests, zero failures/errors, two skipped**. Regressions cover repeated native partial-stock waits, unchanged terminal/collection handling, retained prior timeout history and existing holds, and genuine collection faults. The closed `STACK_BATCH` reason distinguishes this no-click guard. The receiver/worker retain raw evidence and exclude only the exact normal guard from failure summaries; unknown and other faults remain.
+- Order sizing, settings, spending, ownership, collection credits and safety gates are unchanged. This does not complete draft PR304's fixed 1,024-item order integration or establish resolution of reports285/305. No live client installation or restart was performed for this publication.
+
 ## 2026-10-24 22:42 UTC
 
 - **PR #302: Reopen collection for new deliveries and report native auction occupancy.** An exhausted collection retry budget no longer blocks newly delivered goods under the same item/price/quantity key. A newer complete native order book must show increased deliveries; unchanged or incomplete pages do not reset attempts. A key absent from a complete book retires only its old transient attempt state. Inventory movement must still prove every collection.
