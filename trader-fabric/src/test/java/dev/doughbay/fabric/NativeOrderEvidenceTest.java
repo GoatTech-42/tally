@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NativeOrderEvidenceTest {
+    @Test void collectionInspectionUsesOnlyClosedControlWords() {
+        assertEquals(java.util.List.of("collect","items","click","inventory","full"),
+                NativeOrderEvidence.collectionWords("Collect Items: click. PrivatePlayer secret123 $98765 inventory full"));
+    }
     @Test void opaqueRowComparisonNeverWritesTheNativeValueOrArbitraryControlText() {
         CompoundTag root=new CompoundTag(),values=new CompoundTag();root.put("PublicBukkitValues",values);
         values.putLong("minecraft:wi",123456789012345L);

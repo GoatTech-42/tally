@@ -894,6 +894,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         collectTriedOrdinals.clear();
         collectMatchingRows = 0;
         collectRowsExhausted = false;
+        collectPartialStockObserved = false;
         collectClicks = 0;
         collectMenuObserved = false;
         placeConfirmed = false;
@@ -1030,6 +1031,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private final java.util.Set<Integer> collectTriedOrdinals = new java.util.HashSet<>();
     private int collectMatchingRows;
     private boolean collectRowsExhausted;
+    private boolean collectPartialStockObserved;
     public synchronized boolean collectionRowsExhausted() { return collectRowsExhausted; }
 
     /** Identical rows may reorder; pooled credits suggest a start, never prove which row still has physical goods. */
@@ -1212,6 +1214,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private void tickOwnOrdersPage(Minecraft client, AbstractContainerScreen<?> container) {
         Inventory inventory = client.player.getInventory();
         String title = container.getTitle().getString().toLowerCase(Locale.ROOT);
+        if(operation==Operation.COLLECT_ORDER)NativeOrderEvidence.captureCollectionIfRequested(client,container,
+                targetItemId,ownStage,ownMatchOrdinal,collectMatchingRows,collectClicks,
+                inventoryCountBefore,countInventory(client,targetItemId));
         if (ticksInPhase < ownSettleUntilTick) return;
         if (shouldReopenOwnOrdersNavigation(title)) {
             ownNavigationReopens++;
@@ -1659,6 +1664,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     break;
                 }
                 if (pending < 0 && partsLeft > 0 && collectClicks == 0 && ticksInPhase >= 10) {
+                    collectPartialStockObserved = true;
                     if (tryAnotherCollectRow(client)) return;
                     finishPartStackWait(client);
                     return;
@@ -1708,6 +1714,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     // Existing rotation is bounded and refuses after a stock
                     // click or any inventory change.
                     if (tryAnotherCollectRow(client)) return;
+                    if (collectRowsExhausted && collectPartialStockObserved) {
+                        // Another matching owned row answered with physical stock
+                        // that the existing stack/quantity guard left untouched.
+                        // Preserve that result after checking all duplicates; an
+                        // empty row's Collect button must not turn it into a
+                        // global navigation failure. No credits or clicks arise.
+                        finishPartStackWait(client);
+                        return;
+                    }
                     abort(client, "Collect Items did not open (page: \"" + title + "\")");
                     return;
                 }
