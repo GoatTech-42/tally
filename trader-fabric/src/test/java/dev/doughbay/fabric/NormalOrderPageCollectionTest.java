@@ -159,8 +159,17 @@ class NormalOrderPageCollectionTest {
         f.client.player.tickCount+=100;field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,100);
         field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);read(f);
     }
-    @SuppressWarnings({"unchecked","rawtypes"})
     @Test void fourLostEditOrderMenusMustNotPermanentlySuppressAnAlreadyCompletedOrder() throws Exception {
+        missingCollectionNavigation(3,"Loading order...","Edit Order did not open",true);
+    }
+    @Test void fourLostCollectItemsMenusMustNotPermanentlySuppressAnAlreadyCompletedOrder() throws Exception {
+        missingCollectionNavigation(5,"Loading order...","Collect Items did not open",true);
+    }
+    @Test void actuallyReachedEmptyStockMenusStillConsumeTheBoundedPhysicalAttemptBudget() throws Exception {
+        missingCollectionNavigation(5,"Orders -> Collect Items","Nothing arrived from the order",false);
+    }
+    @SuppressWarnings({"unchecked","rawtypes"})
+    private static void missingCollectionNavigation(int stage,String title,String expectedFailure,boolean navigation) throws Exception {
         Map<String,Double> before=new HashMap<>();
         for(String k:List.of("orders.max_per_market","orders.bid","orders.collect","orders.reserve_stock","pace.human_steps"))before.put(k,Tuning.get(k));
         try {
@@ -174,19 +183,19 @@ class NormalOrderPageCollectionTest {
             var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);
             for(int i=0;i<4;i++){
                 setOperation(f.driver,"COLLECT_ORDER");field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
-                field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,3);
-                f=collectionMenu(f,"Loading order...",0);
+                field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,stage);
+                f=collectionMenu(f,title,0);
                 field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);
-                read(f);assertTrue(f.driver.lastTerminalEvent().detail().contains("Edit Order did not open"));
+                read(f);assertTrue(f.driver.lastTerminalEvent().detail().contains(expectedFailure),f.driver.lastTerminalEvent().detail());
                 assertEquals(0,f.driver.lastTerminalEvent().itemCount());
                 field(type,"deskStep").set(c,ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),"minecraft:stone",192,100L,"collecting completed order"));
                 observe.invoke(c,f.client,1_000_000L+i*300_000L);
             }
             var attempts=(Map<String,Integer>)field(type,"collectAttempts").get(c);
-            assertFalse(attempts.containsKey("minecraft:stone|100|192"),"Never reaching the Edit Order menu must use navigation recovery, not exhaust the stock collection budget forever");
+            assertEquals(navigation?null:Integer.valueOf(4),attempts.get("minecraft:stone|100|192"),"Only an actually reached stock page may spend the physical collection budget");
             field(type,"ownOrdersReadAt").setLong(c,3_000_000);
             var plan=type.getDeclaredMethod("planDesk",MarketWatcher.Snapshot.class,long.class);plan.setAccessible(true);plan.invoke(c,null,3_000_000L);
-            assertTrue(((Deque<?>)field(type,"deskQueue").get(c)).stream().anyMatch(x->x.toString().contains("COLLECT")),"Unchanged fully delivered goods must remain eligible after navigation recovers");
+            assertEquals(navigation,((Deque<?>)field(type,"deskQueue").get(c)).stream().anyMatch(x->x.toString().contains("COLLECT")),"Unchanged completed goods recover after navigation failure, while genuinely empty stock remains bounded");
             assertTrue(((Map<?,?>)field(type,"collectedByKey").get(c)).isEmpty(),"No menu or inventory transfer may fabricate collection credits");
             assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
         }finally{before.forEach(Tuning::set);ServerStrain.reset();}
