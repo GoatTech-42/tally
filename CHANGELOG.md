@@ -1,5 +1,10 @@
 # GoNuts changelog
 
+## Unreleased — Refresh expired native auction occupancy
+
+- Re-arm the native auction audit when its count is missing or older than the existing10-minute validity limit, even when listings remain below capacity and market data is unavailable. Previously Stop/Start or a quiet long-running session could retain an unknown count indefinitely; collection sizing then refused new batches without an audit to recover.
+- Maintenance only begins while scanning, with no pending purchase or tracked position, no active driver operation, no uncertain exposure or staff transfer hold, and an empty-cursor native inventory boundary. A refused missing-count maintenance attempt retries no faster than once per minute. Successful native audits remain authoritative; no count, capacity, credit or position is fabricated or reset. No automatic start, spending-policy change or safety-gate relaxation.
+
 ## Unreleased — Staff Watch completion transport repair
 
 - Restore server replies to the shard-local Staff Watch completion probe by sending `/minecraft:msg ` with its leading slash. A bounded live comparison observed the old slashless request passing the outbound hook with no reply, while the slash-prefixed request received197 suggestions, including the controlled requesting account and excluding two controlled accounts in other mapped areas. The ordinary `/msg ` response was much larger and is not substituted as local proof.
