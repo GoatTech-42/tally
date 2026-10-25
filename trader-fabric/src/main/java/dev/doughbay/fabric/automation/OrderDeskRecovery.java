@@ -44,6 +44,9 @@ final class OrderDeskRecovery {
         return text.contains("your orders did not open") || text.contains("your orders could not be clicked")
                 || text.contains("no your orders control") || text.contains("no progress at stage 0")
                 || text.contains("no progress at stage 1 of") || text.contains("orderstage=0")
-                || text.contains("orderstage=1,") || text.contains("order house did not open");
+                || text.contains("orderstage=1,") || text.contains("order house did not open")
+                // Opening the order row failed before Collect Items or any stock transfer.
+                // Fully delivered rows cannot gain newer deliveries to rearm an exhausted stock budget.
+                || text.contains("edit order did not open");
     }
 }
