@@ -208,6 +208,50 @@ class NormalOrderPageCollectionTest {
     @Test void actuallyReachedEmptyStockMenusStillConsumeTheBoundedPhysicalAttemptBudget() throws Exception {
         missingCollectionNavigation(5,"Orders -> Collect Items","Nothing arrived from the order",false);
     }
+    @Test void missingCollectMenuOnFirstDuplicateMustNotStarveDeliveredSecondRow() throws Exception {
+        double mode=Tuning.get("orders.max_per_market"),pace=Tuning.get("pace.human_steps");
+        try {
+            Tuning.set("orders.max_per_market",3);Tuning.set("pace.human_steps",0);
+            var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+            field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+            field(AutomatedExecutionDriver.class,"ownTargetUnitPrice").setLong(f.driver,100);
+            field(AutomatedExecutionDriver.class,"ownMatchRequested").setInt(f.driver,384);
+            field(AutomatedExecutionDriver.class,"collectWholeStacksOnly").setBoolean(f.driver,true);
+            var book=f.screen;
+            for(int i=0;i<45;i++)book.getMenu().slots.get(i).set(ItemStack.EMPTY);
+            for(int i=0;i<2;i++) {
+                var row=new ItemStack(Items.STONE);
+                row.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("384 requested"),
+                        Component.literal("$100 each"),Component.literal((i==0?0:374)+"/384 delivered"))));
+                book.getMenu().slots.get(i).set(row);
+            }
+            read(f);settle(f);advance(f);
+            assertEquals(List.of(0),((RecordingGameMode)f.client.gameMode).slots);
+            f=collectionMenu(f,"Orders -> Edit Order",0);
+            var button=new ItemStack(Items.CHEST);button.set(DataComponents.CUSTOM_NAME,Component.literal("Collect Items"));
+            f.screen.getMenu().slots.get(11).set(button);advance(f);
+            field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,200);
+            field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);
+            f.client.player.tickCount+=100;
+            read(f); // The first row never opens its physical stock menu.
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.NONE,f.driver.lastTerminalEvent().outcome(),
+                    "A zero-click menu timeout must inspect the other matching owned row before terminating");
+            assertEquals(1,field(AutomatedExecutionDriver.class,"ownMatchOrdinal").getInt(f.driver));
+            assertEquals(0,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
+            field(Gui.class,"screen").set(f.client.gui,book);f.client.player.containerMenu=book.getMenu();
+            field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,1);
+            field(AutomatedExecutionDriver.class,"ownOrdersArrivalNoted").setBoolean(f.driver,true);
+            f=new Fixture(f.driver,f.client,book);advance(f);settle(f);advance(f);
+            assertEquals(1,((RecordingGameMode)f.client.gameMode).slots.getLast());
+            f=collectionMenu(f,"Orders -> Edit Order",0);f.screen.getMenu().slots.get(11).set(button);advance(f);
+            f=collectionMenu(f,"Orders -> Collect Items",374);((RecordingGameMode)f.client.gameMode).moveStacks=true;
+            for(int i=0;i<12&&f.driver.lastTerminalEvent().outcome()==AutomatedExecutionDriver.TerminalOutcome.NONE;i++)advance(f);
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+            assertEquals(320,f.driver.lastTerminalEvent().itemCount(),"Book only physical whole stacks; leave the unfinished54-unit tail");
+            assertEquals(320,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
+            assertEquals(54,f.screen.getMenu().slots.get(5).getItem().getCount());
+        } finally {Tuning.set("orders.max_per_market",mode);Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
+    }
     @SuppressWarnings({"unchecked","rawtypes"})
     private static void missingCollectionNavigation(int stage,String title,String expectedFailure,boolean navigation) throws Exception {
         Map<String,Double> before=new HashMap<>();
