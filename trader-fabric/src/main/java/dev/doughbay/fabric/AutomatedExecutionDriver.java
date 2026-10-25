@@ -1640,7 +1640,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 if (pending < 0 && partsLeft > 0 && collectClicks == 0 && ticksInPhase >= 10) {
                     if (tryAnotherCollectRow(client)) return;
-                    abort(client, PART_STACK_WAITING + " for " + shortName(targetItemId) + "; left until it is whole");
+                    finishPartStackWait(client);
                     return;
                 }
                 if (pending >= 0) {
@@ -6624,10 +6624,22 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
     }
 
+    private void finishPartStackWait(Minecraft client) {
+        String reason = PART_STACK_WAITING + " for " + shortName(targetItemId) + "; left until it is whole";
+        // Reached only after the native collect menu showed physical partial stock and no click was sent.
+        // Keep the existing terminal/rest handling; an answered stock guard is not a server timeout.
+        boolean guarded = operation == Operation.COLLECT_ORDER && collectClicks == 0;
+        finishAbort(client, reason, guarded ? "STACK_BATCH" : null, !guarded);
+    }
+
     private void abort(Minecraft client, String reason) {
+        finishAbort(client, reason, null, true);
+    }
+
+    private void finishAbort(Minecraft client, String reason, String explicitReason, boolean serverFailure) {
         // Counted across every subsystem: a run of these is how a server says
         // it has stopped listening, well before it says so in words.
-        dev.doughbay.fabric.ServerStrain.noteFailure(reason);
+        if (serverFailure) dev.doughbay.fabric.ServerStrain.noteFailure(reason);
         boolean dryRun = operation == Operation.DRY_RUN;
         // A screen-driven buy runs unattended; nobody will close the page it
         // leaves behind, and an open page blocks the session's next buy.
@@ -6643,7 +6655,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         lastMessage = message;
         DoughBayClient.LOGGER.warn("{}", message);
-        publishTerminal(TerminalOutcome.ABORTED, message);
+        publishTerminal(TerminalOutcome.ABORTED, message, explicitReason);
         clearTarget();
         phase = Phase.ABORTED;
         resetPhaseObservation();

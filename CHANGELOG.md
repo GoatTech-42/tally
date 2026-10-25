@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-25
+
+- Waiting for a partial stack on a native own-order collection page no longer counts as an unanswered server operation or adds global server-strain pacing and pauses. The existing no-click partial-stock wait, terminal result, collection rest, whole-stack policy and all financial/ownership/safety checks remain unchanged.
+- Real collection faults and timeouts still count toward server-strain protection. A normal partial-stock wait neither clears existing timeout history nor releases an existing hold. Diagnostics retain the action with the closed `STACK_BATCH` reason.
+- This repairs a reproduced false-pause path. It does not implement fixed 1,024-item orders, change settings or establish that a reported collection backlog is fully resolved.
+
 ## 2026-10-24 22:42 UTC
 
 - **PR #302: Reopen collection for new deliveries and report native auction occupancy.** An exhausted collection retry budget no longer blocks newly delivered goods under the same item/price/quantity key. A newer complete native order book must show increased deliveries; unchanged or incomplete pages do not reset attempts. A key absent from a complete book retires only its old transient attempt state. Inventory movement must still prove every collection.
