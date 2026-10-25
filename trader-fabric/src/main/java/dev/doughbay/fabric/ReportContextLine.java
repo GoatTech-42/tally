@@ -4,8 +4,8 @@ import java.util.*;
 
 /** Closed validation for frozen on-disk diagnostic context, not free-form log text. */
 final class ReportContextLine {
-    private static final Set<String> BOOL=Set.of(("armed historical_counters_available only_price_list pause_resumable paused_by_player pending_controller_checkpoint policy_ready recovered_session recovery_applied session_open uncertain_active write_refused driver_watch").split(" "));
-    private static final Set<String> NUM=Set.of(("accepted_generation captured_at_ms committed_spend driver_cheapest_visible driver_phase_age_ms driver_target_ceiling driver_target_count driver_target_price driver_watch_age_ms durable_generation fault_age_ms fault_count last_desk_gate_age_ms last_flip_gate_age_ms last_resume_gate_age_ms own_orders_age_ms own_orders_count parked_listings pending_age_ms prior_inventory_blocker_age_ms purchase_cap queued_steps recovered_exposure_count sale_notice_age_ms session_elapsed_ms spend_cap state_age_ms trades_started").split(" "));
+    private static final Set<String> BOOL=Set.of(("own_orders_complete armed historical_counters_available only_price_list pause_resumable paused_by_player pending_controller_checkpoint policy_ready recovered_session recovery_applied session_open uncertain_active write_refused driver_watch").split(" "));
+    private static final Set<String> NUM=Set.of(("own_read_unparsed_count accepted_generation captured_at_ms committed_spend driver_cheapest_visible driver_phase_age_ms driver_target_ceiling driver_target_count driver_target_price driver_watch_age_ms durable_generation fault_age_ms fault_count last_desk_gate_age_ms last_flip_gate_age_ms last_resume_gate_age_ms own_orders_age_ms own_orders_count parked_listings pending_age_ms prior_inventory_blocker_age_ms purchase_cap queued_steps recovered_exposure_count sale_notice_age_ms session_elapsed_ms spend_cap state_age_ms trades_started").split(" "));
     static boolean valid(String line,Set<String> seen) {
         if(!line.startsWith("ctx ")||line.length()>500)return false;
         String[] pairs=line.substring(4).split(" ");if(pairs.length>12)return false;

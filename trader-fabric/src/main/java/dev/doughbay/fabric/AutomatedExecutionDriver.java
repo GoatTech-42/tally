@@ -752,6 +752,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private List<OwnOrderRow> lastOwnOrders = List.of();
     private boolean lastOwnOrdersComplete;
+    private int lastOwnReadUnparsedCount;
     private final OwnOrderPages ownPages=new OwnOrderPages();
     private boolean ownPageAccepted;
     private int ownMatchOffset;
@@ -768,6 +769,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     public synchronized OwnOrderRow lastCancelledOrder() { return lastCancelledOrder; }
     public synchronized boolean lastOwnOrdersComplete() { return lastOwnOrdersComplete; }
+    public synchronized int lastOwnReadUnparsedCount() { return lastOwnReadUnparsedCount; }
 
     static boolean fullOwnOrderGrid(List<String> occupiedLabels) {
         // A repeated (or empty) hover name is still a separate occupied cell.
@@ -1388,6 +1390,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             lastOwnOrders = List.copyOf(rows);
+            if(operation==Operation.OWN_ORDERS)lastOwnReadUnparsedCount=unparsed.size();
             NativeOrderEvidence.captureIfRequested(client,container);
             boolean navigation=false;
             for(String control:new String[]{"next page","previous page","prev page"}) {
@@ -1426,7 +1429,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             if (operation == Operation.COLLECT_ORDER) collectMatchingRows=Math.max(matchesSeen,collectExpectedMatchingRows);
             if (operation == Operation.OWN_ORDERS && !unparsed.isEmpty()) {
-                DoughBayClient.LOGGER.info("DoughBay: {} item(s) on Your Orders did not parse as orders: {}", unparsed.size(), unparsed);
+                // An incomplete page is not a successful empty book. Keep observed rows for
+                // ownership, but let the controller use its existing bounded READ recovery.
+                // Counts only: unknown native names/tooltips are not diagnostic output.
+                DoughBayClient.LOGGER.info("DoughBay: Your Orders incomplete: {} unparsed native item(s), {} accumulated row(s)",
+                        unparsed.size(), lastOwnOrders.size());
+                abort(client,"Own-order book incomplete: " + unparsed.size() + " native item(s) could not be parsed; "
+                        + lastOwnOrders.size() + " observed row(s) retained; refreshing Your Orders");
+                return;
             }
             switch (operation) {
                 case OWN_ORDERS -> complete(client, "Your orders read: " + rows.size() + " open");
@@ -1652,7 +1662,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     if (slot.container == inventory) continue;
                     ItemStack stack = slot.getItem();
                     if (stack.isEmpty() || !itemId(stack).equals(targetItemId)) continue;
-                    if (!collectionStackFits(now-inventoryCountBefore,stack.getCount(),stack.getMaxStackSize(),collectMaximumUnits,ownTargetFinished)) {
+                    if (!collectionStackFits(now-inventoryCountBefore,stack.getCount(),stack.getMaxStackSize(),collectMaximumUnits,ownTargetFinished || !collectWholeStacksOnly)) {
                         partsLeft++;
                         continue;
                     }

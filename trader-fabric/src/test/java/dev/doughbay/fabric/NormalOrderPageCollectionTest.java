@@ -164,6 +164,65 @@ class NormalOrderPageCollectionTest {
             assertEquals(text,java.nio.file.Files.readString(target),"Expired inspection must have no filesystem effect");
         }finally{field(NativeOrderEvidence.class,"collectionUntil").setLong(null,0);}
     }
+    @Test void boundedCleanupCanTakeAnUnfinishedPhysicalTailWhenWholeStacksAreNotRequired() throws Exception {
+        double pace=Tuning.get("pace.human_steps");
+        try {
+            Tuning.set("pace.human_steps",0);var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+            field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+            field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,5);
+            field(AutomatedExecutionDriver.class,"collectWholeStacksOnly").setBoolean(f.driver,false);
+            field(AutomatedExecutionDriver.class,"collectMaximumUnits").setInt(f.driver,64);
+            field(AutomatedExecutionDriver.class,"ownTargetFinished").setBoolean(f.driver,false);
+            f=collectionMenu(f,"Orders -> Collect Items",5);((RecordingGameMode)f.client.gameMode).moveStacks=true;
+            for(int i=0;i<5&&f.driver.lastTerminalEvent().outcome()==AutomatedExecutionDriver.TerminalOutcome.NONE;i++)advance(f);
+            assertEquals(5,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"),"Explicit cleanup must transfer the native tail within its unchanged64-unit capacity budget");
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+            assertEquals(5,f.driver.lastTerminalEvent().itemCount());
+            for(boolean wholeOnly:new boolean[]{true,false}) {
+                var blocked=fixture(false);setOperation(blocked.driver,"COLLECT_ORDER");
+                field(AutomatedExecutionDriver.class,"targetItemId").set(blocked.driver,"minecraft:stone");
+                field(AutomatedExecutionDriver.class,"ownStage").setInt(blocked.driver,5);
+                field(AutomatedExecutionDriver.class,"collectWholeStacksOnly").setBoolean(blocked.driver,wholeOnly);
+                field(AutomatedExecutionDriver.class,"collectMaximumUnits").setInt(blocked.driver,wholeOnly?64:4);
+                blocked=collectionMenu(blocked,"Orders -> Collect Items",5);((RecordingGameMode)blocked.client.gameMode).moveStacks=true;
+                for(int i=0;i<5&&blocked.driver.lastTerminalEvent().outcome()==AutomatedExecutionDriver.TerminalOutcome.NONE;i++)advance(blocked);
+                assertEquals(0,AutomatedExecutionDriver.inventoryCount(blocked.client,"minecraft:stone"),"Whole-stack policy and insufficient capacity must still refuse the tail");
+                assertEquals(5,blocked.screen.getMenu().slots.get(0).getItem().getCount());
+                assertEquals(0,blocked.driver.lastTerminalEvent().itemCount());
+            }
+        }finally{Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
+    }
+
+    @Test void unparsedPageMustNotPublishSuccessfulZeroOpenWhileRetainingAccumulatedRows() throws Exception {
+        var f=fixture(false);for(int i=0;i<45;i++)f.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
+        var unknown=new ItemStack(Items.PAPER);unknown.set(DataComponents.CUSTOM_NAME,Component.literal("Unrecognized native control"));f.screen.getMenu().slots.get(22).set(unknown);
+        var pages=(OwnOrderPages)field(AutomatedExecutionDriver.class,"ownPages").get(f.driver);
+        var rows=java.util.Collections.nCopies(3,new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",192,100,0,1000));
+        assertTrue(pages.append(rows));field(AutomatedExecutionDriver.class,"ownPageAccepted").setBoolean(f.driver,true);
+        read(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome(),"Unparsed native content must enter paced read recovery instead of being reported as a successful empty book");
+        assertFalse(f.driver.lastOwnOrdersComplete());
+        assertEquals(3,f.driver.lastOwnOrders().size(),"Incomplete observation must not erase owned rows or manufacture an empty book");
+        assertTrue(f.driver.lastTerminalEvent().detail().contains("incomplete"));
+        var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
+        field(type,"ownOrders").set(c,rows);field(type,"ownOrdersReadAt").setLong(c,1_000_000L);
+        Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+        var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+        @SuppressWarnings({"unchecked","rawtypes"}) Object readAction=Enum.valueOf((Class)action,"READ");
+        field(type,"deskStep").set(c,ctor.newInstance(readAction,"",0,0L,"reading your orders"));
+        var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);observe.invoke(c,f.client,1_000_100L);
+        var recovery=field(type,"deskRecovery").get(c);var pending=recovery.getClass().getDeclaredMethod("pending");pending.setAccessible(true);
+        assertEquals(true,pending.invoke(recovery),"Incomplete native content must schedule the existing paced recovery");
+        assertEquals(1_000_000L,field(type,"ownOrdersReadAt").getLong(c),"An incomplete read must not renew freshness");
+        assertEquals(rows,field(type,"ownOrders").get(c));
+        assertTrue(((Map<?,?>)field(type,"collectedByKey").get(c)).isEmpty());
+        assertEquals(1,f.driver.lastOwnReadUnparsedCount());
+        String report=c.bugReportContext(1_000_100L);
+        assertTrue(report.contains("own_orders_complete=false"));
+        assertTrue(report.contains("own_read_unparsed_count=1"));
+        assertFalse(report.contains("Unrecognized native control"),"Report evidence is bounded counts, never native tooltip text");
+    }
+
     @Test void completedOrderCollectsItsPhysicalTailDespiteWholeStackPreference() throws Exception {
         physicalCollection(192,17,175,true,17);
     }

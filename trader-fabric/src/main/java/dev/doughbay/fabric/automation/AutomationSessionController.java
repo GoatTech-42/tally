@@ -2850,7 +2850,9 @@ public final class AutomationSessionController {
                 .append(" uncertain_active=").append(uncertainExposure.active()).append(" tracked_status=")
                 .append(trackedPosition==null?"NONE":trackedPosition.status().name()).append(" parked_listings=").append(openListings.size()).append('\n');
         out.append("ctx driver_action=").append(driver.operationIntent().name()).append(" desk_action=").append(deskStep==null?"NONE":deskStep.action().name())
-                .append(" queued_steps=").append(deskQueue.size()).append(" own_orders_count=").append(ownOrders.size()).append('\n');
+                .append(" queued_steps=").append(deskQueue.size()).append(" own_orders_count=").append(ownOrders.size())
+                .append(" own_orders_complete=").append(ownOrdersComplete)
+                .append(" own_read_unparsed_count=").append(driver.lastOwnReadUnparsedCount()).append('\n');
         out.append("ctx own_orders_age_ms=").append(reportAge(now,ownOrdersReadAt)).append(" sale_notice_age_ms=").append(reportAge(now,saleNoticeObservedAtMillis))
                 .append(" last_desk_gate=").append(reportDeskGate).append(" last_desk_gate_age_ms=").append(reportAge(now,reportDeskGateAt)).append('\n');
         out.append("ctx last_flip_gate=").append(reportFlipGate).append(" last_flip_gate_age_ms=").append(reportAge(now,reportFlipGateAt))
