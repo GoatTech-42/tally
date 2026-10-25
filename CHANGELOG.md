@@ -1,5 +1,9 @@
 # GoNuts changelog
 
+## Unreleased — setting-change evidence
+
+- Include `SET_ORDERS_OUTBID_PCT` in the client decision contract so a later change to the new control is retained in the bounded decision history. PR342 already reports the effective numeric setting and applies it to bids; this follow-up does not change trading. A regression verifies every report-safe numeric setting has its closed decision code. Source only pending the next functional client release; no new binary or routine live update for this logging change.
+
 ## 2026-10-25 19:41 UTC
 
 - **PR #342: Configure the percentage above competing buy orders.** Add `Bid: above competing orders` (`orders.outbid_pct`), preserving the public default of 1%. A 3% selection targets 10,300 per item against a 10,000 best observed competing bid. Competitive new bids, retail/shaped bids and bid chasing use the selected increment; existing higher normal offers remain higher. Explicit player prices stay unchanged.
