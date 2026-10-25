@@ -1,5 +1,14 @@
 # GoNuts changelog
 
+## 2026-10-25 18:03 UTC
+
+- **PR #339: Read locked native order-slot controls.** Recognize the reported `Max Orders` rank-upgrade control, with its exact `Buy Donut++ for even more order slots` text, when reading Your Orders. A page filled with these locked tiles can end the bounded read while retaining real orders from earlier pages; mixed pages keep every parsed native order.
+- Locked controls never become clickable empty placement slots and do not increase order or auction capacity. Unknown controls, malformed order rows and unsupported abbreviated quantities remain incomplete; ownership, credits, spending limits and collection guards are unchanged.
+- Related reports #335 and #338 remain open pending affected-client verification. No healthy live bot rollout is implied.
+- Clean full build: **1,681 tests, zero failures/errors, two skipped**. Both reproduced native-menu failures pass after repair; 28 native-menu tests retain unknown-content, malformed-order, exact-count and locked-placement negatives.
+- Client artifact published **2026-10-25T18:03:41Z**. Build `1792951169298`; client SHA256 `8160a1adb6a07acb37c1e3ea629a933401254aa31194eec5de34fe0442aa095f`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `82bcc43b85f13c33ce74ecd827afe5ea2b921beba22744956725ef7d20446da8`, published 2026-10-25T18:03:45Z. PR339 merge `9da43b9d5b3cb5763600cf274c59d8f0296da10e`; tested source `8a216011e3996dc315f593511e94a8a33ebccfa8`. This dated publication entry is documentation only. No live installation or restart; A remains PR336 and B/C remain PR331. Affected-reporter recovery is not yet verified.
+
+
 ## 2026-10-25 17:15 UTC
 
 - **PR #336: Recover incomplete native reads and bounded partial cleanup.** An unparsed own-order page no longer reports a successful empty book while returning rows accumulated from earlier pages. The read fails explicitly into existing paced recovery, retains observed owned rows, and does not renew book freshness. Reports include the existing book-completeness flag and an unparsed-item count; unknown native tooltip text is omitted. This repairs a reproduced path related to report335; the reporter's exact native content and whole incident remain unverified.
