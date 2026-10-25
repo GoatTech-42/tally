@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-25 04:11 UTC
+
+- **PR #315: Refresh a shifted owned-order row before collecting it.** An older identical row disappearing can move the remaining owned row to an earlier ordinal. The driver previously reported the order absent despite a matching owned row being visible, allowing its collection retry state to be exhausted. With no collection click and unchanged inventory, that case now requests a fresh own-order read through existing paced navigation recovery.
+- Actually absent orders, reached empty stock, failures after clicks, inventory proofs, collection credits, ownership, spending, exposure and all other trade guards retain existing behavior. Similar missing-row aborts occur locally, but this specific live cause and external reporter recovery remain unverified. No live client installation, restart or settings change for this publication; the three clients remain on PR311.
+- Client artifact published **2026-10-25T04:11:50Z**. Build `1792901322018`; client SHA256 `459b0144dce1789d868fef3458d215cbf2e44c2d5fc30f9100aa1a0153b55d29`. Client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `efcd08f11345ef8e3744c9abd4791407cc89ed2a52199e6e1933e20d71bd44d3`, published 2026-10-25T04:11:50Z. PR315 merge `a4fc0cfcf70c4af426be7e712d661795a19094a7`; tested source head `3f649c52bc4e61652394864f929875f86a993fbe`. This entry documents publication and is not a separate binary update.
+- Full production test/build: **1,650 tests, zero failures/errors, two skipped**. The actual native-menu regression fails on the prior public source. Coverage verifies the shifted row uses controller recovery without stock clicks or credit creation, truly absent rows keep their existing result, and previous physical collection/tail/empty-stock protections remain tested. Reports remain open pending affected recovery.
+
 ## 2026-10-25 03:48 UTC
 
 - **PR #313: Distinguish a missing collection menu from an empty order.** After choosing Collect, failure to reach Collect Items no longer spends the physical-stock retry budget. Recovery uses the existing bounded navigation backoff only when that menu was never observed, no collection click occurred, and inventory is unchanged. Previously four such navigation timeouts could permanently suppress an already-completed order.
