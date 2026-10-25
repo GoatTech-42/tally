@@ -193,6 +193,41 @@ class NormalOrderPageCollectionTest {
         }finally{Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
     }
 
+    @Test void requestedNativeCaptureMustRetainRejectedContentTilesWithoutRawText() throws Exception {
+        var f=fixture(false);
+        for(int i=0;i<45;i++)f.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
+        for(int i=0;i<27;i++) {
+            var tile=new ItemStack(Items.BARRIER);
+            tile.set(DataComponents.CUSTOM_NAME,Component.literal("Unknown private-player secret123"));
+            tile.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Max orders - unlock more slots private-home"))));
+            f.screen.getMenu().slots.get(i).set(tile);
+        }
+        var dir=java.nio.file.Files.createTempDirectory("native-order-rejection-test");
+        field(Minecraft.class,"gameDirectory").set(f.client,dir.toFile());
+        NativeOrderEvidence.request();read(f);settle(f);read(f);
+        var text=java.nio.file.Files.readString(dir.resolve("config/doughbay/native-order-evidence.json"));
+        var data=dev.doughbay.fabric.hosted.DashboardProtocol.JSON.readTree(text);
+        long retained=java.util.stream.StreamSupport.stream(data.get("controls").spliterator(),false)
+                .filter(row->row.get("slot").asInt()<45).count();
+        assertEquals(27,retained,"The previous capture silently discarded the rejected content tiles");
+        assertFalse(text.contains("private-player"));assertFalse(text.contains("private-home"));assertFalse(text.contains("secret123"));
+        assertEquals(27,f.driver.lastOwnReadUnparsedCount());assertFalse(f.driver.lastOwnOrdersComplete());
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+    }
+
+    @Test void rejectionEvidenceIsReplacedByTheNextCompleteReadWithoutChangingGuards() throws Exception {
+        var f=fixture(false);for(int i=0;i<45;i++)f.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
+        var tile=new ItemStack(Items.BARRIER);tile.set(DataComponents.CUSTOM_NAME,Component.literal("Private label"));
+        f.screen.getMenu().slots.get(0).set(tile);read(f);settle(f);read(f);
+        assertTrue(f.driver.ownReadRejectionContext().contains("own_read_reject_shapes=1"));
+        var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);
+        assertTrue(c.bugReportContext(System.currentTimeMillis()).contains("own_read_reject_shapes=1"));
+        assertFalse(c.bugReportContext(System.currentTimeMillis()).contains("Private label"));
+        f.screen.getMenu().slots.get(0).set(ItemStack.EMPTY);setOperation(f.driver,"OWN_ORDERS");read(f);
+        assertTrue(f.driver.ownReadRejectionContext().contains("own_read_reject_shapes=0"));
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+    }
+
     @Test void reportedLockedUpgradePageCompletesAndRetainsEarlierOwnedRows() throws Exception {
         var f=fixture(true);fillLockedSlots(f,0);
         var pages=(OwnOrderPages)field(AutomatedExecutionDriver.class,"ownPages").get(f.driver);

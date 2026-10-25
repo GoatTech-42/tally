@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## Unreleased - obvious Report Bug action and native rejection evidence
+
+- A large, persistent **REPORT BUG** button is available in a dedicated footer across GoNuts workspaces, settings, setup guides and other mod screens. It opens the existing review/send form and returns to the prior screen; opening never collects or sends a report. The footer reserves its own space, survives rebuilds/resizing, and retains native focus/narration. Smaller windows choose a scale that preserves usable content height.
+- Repair a reproduced local evidence omission: explicitly requested native captures now include rejected content-grid tiles that have no recognized quantity, using only closed structural masks. Previously a page of 27 rejected tiles could produce an empty capture.
+- Existing diagnostic snapshots report fixed numeric word/category/syntax masks, bounded distinct shapes and observation age. Receiver support is additive; names, raw tooltips, NBT and identities are excluded. No new worker or polling loop.
+- This is evidence repair for the unresolved 27-unparsed investigation, not a claimed parser fix. Incomplete reads still fail closed, retain observed orders and do not renew freshness or permit bids; all trading limits and ownership guards remain unchanged.
+
 ## 2026-10-25 20:16 UTC
 
 - **PR #345: Recover a verified listing after a protective pause.** A durable LISTED acknowledgement arriving while paused could leave ordinary protection recovery treating that known listing as unresolved exposure forever. The exact live-pause case now uses ordinary Resume authorization, server, driver-idle and hold-time checks after the existing protection all-clear. Pending writes, uncertain exposure, manual stops, restart-loaded pauses and transfer holds remain refused. Protection recognition, timing and routes are unchanged.

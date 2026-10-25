@@ -144,12 +144,15 @@ final class NativeOrderEvidence {
                     row.put("customNumericSchema",custom==null?Map.of():numericSchema(custom.copyTag()));
                     if(custom!=null)row.put("opaqueRowFingerprint",opaqueRowFingerprint(custom.copyTag()));
                     rows.add(row);
-                } else if(i>=45) {
+                } else {
                     String lower=(name+" "+String.join(" ",lore)).toLowerCase(Locale.ROOT);
                     String label=lower.contains("next")?"next":lower.contains("previous")?"previous":
                             lower.contains("page")?"page":lower.contains("new order")||lower.contains("create order")?"create order":"other control";
                     Map<String,Object> control=new LinkedHashMap<>();control.put("slot",i);control.put("kind",label);
                     control.put("words",controlWords(lower));
+                    var shape=OwnOrderRejectionEvidence.shape(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),name,lore,false);
+                    control.put("nameMask",shape.nameMask());control.put("loreMask",shape.loreMask());
+                    control.put("itemMask",shape.itemMask());control.put("parseMask",shape.parseMask());
                     var p=PAGE.matcher(name+" "+String.join(" ",lore));
                     if(p.find()){control.put("page",Integer.parseInt(p.group(1)));if(p.group(2)!=null)control.put("pages",Integer.parseInt(p.group(2)));}
                     controls.add(control);

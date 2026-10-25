@@ -2853,6 +2853,7 @@ public final class AutomationSessionController {
                 .append(" queued_steps=").append(deskQueue.size()).append(" own_orders_count=").append(ownOrders.size())
                 .append(" own_orders_complete=").append(ownOrdersComplete)
                 .append(" own_read_unparsed_count=").append(driver.lastOwnReadUnparsedCount()).append('\n');
+        out.append(driver.ownReadRejectionContext()).append('\n');
         out.append("ctx own_orders_age_ms=").append(reportAge(now,ownOrdersReadAt)).append(" sale_notice_age_ms=").append(reportAge(now,saleNoticeObservedAtMillis))
                 .append(" last_desk_gate=").append(reportDeskGate).append(" last_desk_gate_age_ms=").append(reportAge(now,reportDeskGateAt)).append('\n');
         out.append("ctx last_flip_gate=").append(reportFlipGate).append(" last_flip_gate_age_ms=").append(reportAge(now,reportFlipGateAt))

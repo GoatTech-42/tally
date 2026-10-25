@@ -20,6 +20,8 @@ public final class BugReportIntegrationSmoke implements ClientModInitializer {
     private long start = System.nanoTime();
     private final List<String> checks = new ArrayList<>();
     private BugReportScreen screen;
+    private net.minecraft.client.gui.screens.Screen reportParent;
+    private int workspace;
     private CompletableFuture<BugReportTransport.Result> duplicate;
     private String issue;
     public void onInitializeClient() {
@@ -99,34 +101,66 @@ public final class BugReportIntegrationSmoke implements ClientModInitializer {
             phase = 99; mc.stop();
         }
     }
+    private Button reportButton(Minecraft mc) {
+        var current=mc.gui.screen();
+        var buttons=Screens.getWidgets(current).stream().filter(w->w instanceof Button && w.getMessage().getString().equals("REPORT BUG")).toList();
+        check(buttons.size()==1,"Exactly one REPORT BUG on "+current.getClass().getSimpleName());
+        var button=(Button)buttons.getFirst();
+        check(button.active&&button.visible,"Report action is available");
+        check(button.getHeight()>=28&&button.getWidth()>=200,"Prominent report target");
+        check(button.getY()>current.height&&button.getY()+button.getHeight()<=mc.getWindow().getGuiScaledHeight(),"Footer lies outside content and inside viewport");
+        for(var widget:Screens.getWidgets(current))if(widget!=button&&widget.visible)
+            check(widget.getY()+widget.getHeight()<=button.getY()||widget.getY()>=button.getY()+button.getHeight(),"No visible widget overlaps report footer: "+widget.getMessage().getString());
+        return button;
+    }
     private void screenshots(Minecraft mc) throws Exception {
         switch (phase) {
             case 0 -> {
-                if (ticks < 70) return;
-                mc.options.pauseOnLostFocus=false; mc.options.guiScale().set(2); mc.resizeGui();
-                mc.gui.setScreen(new DoughBayScreen(DoughBayClient.watcher())); next();
+                if(ticks<70)return;
+                mc.options.pauseOnLostFocus=false;mc.options.guiScale().set(2);mc.resizeGui();
+                mc.gui.setScreen(new DoughBayScreen(DoughBayClient.watcher()));next();
             }
             case 1 -> {
-                if(ticks < 15) return;
-                ((Button)Screens.getWidgets(mc.gui.screen()).stream().filter(w -> w instanceof Button && w.getMessage().getString().equals("About")).findFirst().orElseThrow()).onPress(null);
-                next();
+                if(ticks<12)return;
+                reportButton(mc);String[] roots={"Trading","Markets","Accounts","Safety","Settings"};
+                capture(mc,"global-report-workspace-"+workspace+".png");
+                if(workspace<roots.length-1) {
+                    String label=roots[++workspace];
+                    ((Button)Screens.getWidgets(mc.gui.screen()).stream().filter(w->w instanceof Button&&w.getMessage().getString().equals(label)).findFirst().orElseThrow()).onPress(null);
+                    ticks=0;return;
+                }
+                reportParent=mc.gui.screen();reportButton(mc).onPress(null);next();
             }
             case 2 -> {
-                if(ticks < 15) return;
-                capture(mc,"bug-report-entrypoint.png");
-                ((Button)Screens.getWidgets(mc.gui.screen()).stream().filter(w -> w instanceof Button && w.getMessage().getString().equals("Report bug")).findFirst().orElseThrow()).onPress(null);
-                screen=(BugReportScreen)mc.gui.screen(); next();
+                if(ticks<20)return;
+                check(mc.gui.screen() instanceof BugReportScreen,"Global action opens native report form");screen=(BugReportScreen)mc.gui.screen();
+                check(!(boolean)field("collecting")&&!(boolean)field("sending")&&field("payload")==null,"Opening report never collects or submits automatically");
+                capture(mc,"global-report-form.png");screen.onClose();next();
             }
             case 3 -> {
-                if(ticks < 60) return;
-                ((EditBox)field("happened")).setValue("Example: the bot pauses while preparing a listing and does not continue.");
-                ((EditBox)field("expected")).setValue("Finish the listing or explain what needs attention.");
-                press("Prepare"); next();
+                if(ticks<10)return;
+                check(mc.gui.screen()==reportParent,"Closing report returns to exact previous screen");reportButton(mc);
+                mc.gui.screen().resize(mc.getWindow().getGuiScaledWidth(),mc.getWindow().getGuiScaledHeight());
+                reportButton(mc);capture(mc,"global-report-settings-return.png");
+                mc.gui.setScreen(new StartHereScreen(new DoughBayScreen(DoughBayClient.watcher())));next();
             }
             case 4 -> {
-                if(ticks < 30 || (boolean)field("collecting")) return;
-                capture(mc,"bug-report-shareable.png");
-                phase=99; mc.stop();
+                if(ticks<12)return;reportButton(mc);capture(mc,"global-report-guide.png");
+                org.lwjgl.glfw.GLFW.glfwSetWindowSize(mc.getWindow().handle(),1280,720);next();
+            }
+            case 5 -> {
+                if(ticks<20)return;reportButton(mc);capture(mc,"global-report-small-guide.png");
+                mc.gui.setScreen(new SimpleSettingsScreen(new DoughBayScreen(DoughBayClient.watcher())));next();
+            }
+            case 6 -> {
+                if(ticks<12)return;reportButton(mc);capture(mc,"global-report-small-settings.png");
+                var c=Screens.getWidgets(mc.gui.screen()).stream().filter(w->w instanceof Button&&w.getMessage().getString().equals("Advanced view")).findFirst().orElseThrow();
+                ((Button)c).onPress(null);next();
+            }
+            case 7 -> {
+                if(ticks<12)return;reportButton(mc);capture(mc,"global-report-small-advanced.png");
+                java.nio.file.Files.writeString(Path.of("global-report-smoke-result.json"),"{\"passed\":true,\"checks\":"+checks.size()+"}");
+                phase=99;mc.stop();
             }
         }
     }
