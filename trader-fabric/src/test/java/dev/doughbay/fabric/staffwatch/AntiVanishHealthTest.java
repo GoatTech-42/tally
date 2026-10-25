@@ -20,4 +20,13 @@ class AntiVanishHealthTest {
         assertTrue(health.summary().contains("avBundles=1 avModePackets=2 avInitialModePacketsIgnored=1 avModesQueued=1"));
         assertTrue(health.summary().contains("avProbeKnownStaff=2 avProbeHiddenCandidates=1 avAlertRequests=1"));
     }
+    @Test void distinguishMissingReplyFromUnmatchedReplyAndLocalSendFailure() {
+        var health = new AntiVanishHealth();
+        health.probeRequest(); health.probeSendFailed();
+        health.suggestionPacket(false); health.suggestionPacket(true); health.probeReply(0);
+        String summary=health.summary();
+        assertTrue(summary.contains("avProbeAttempts=1 avProbeReplies=1"));
+        assertTrue(summary.contains("avSuggestionPackets=2 avUnmatchedSuggestionReplies=1 avProbeSendFailures=1"));
+        assertFalse(summary.contains("minecraft:msg"));
+    }
 }

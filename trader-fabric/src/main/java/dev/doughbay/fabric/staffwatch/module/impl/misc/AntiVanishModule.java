@@ -281,6 +281,7 @@ public final class AntiVanishModule extends ClientModule {
             }
 
             boolean owned = this.completionInbox.complete(suggestions.id(), names);
+            this.health.suggestionPacket(owned);
             if (owned) this.health.probeReply(names.size());
             return owned;
          }
@@ -657,6 +658,7 @@ public final class AntiVanishModule extends ClientModule {
          try {
             MC.getConnection().send(new ServerboundCommandSuggestionPacket(id, command.trim() + " "));
          } catch (Throwable var4) {
+            this.health.probeSendFailed();
          }
       }
    }
