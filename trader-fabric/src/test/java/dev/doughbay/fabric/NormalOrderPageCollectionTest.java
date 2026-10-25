@@ -28,6 +28,39 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Runs the actual native own-order reader against an offline menu, using report305's order mode. */
 class NormalOrderPageCollectionTest {
+    @Test void expiredNativeCountRearmsBelowCapEvenWithoutMarketSnapshot() throws Exception {
+        var f=fixture(false);setOperation(f.driver,"NONE");
+        var menu=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
+        field(Player.class,"inventoryMenu").set(f.client.player,menu);f.client.player.containerMenu=menu;
+        field(Gui.class,"screen").set(f.client.gui,null);
+        var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
+        long now=System.currentTimeMillis();field(type,"serverListedSlots").setInt(c,6);
+        field(type,"serverListedAt").setLong(c,now-601_000);
+        var scan=type.getDeclaredMethod("scanAndBuy",Minecraft.class,MarketWatcher.Snapshot.class,long.class);scan.setAccessible(true);
+        scan.invoke(c,f.client,null,now);
+        assertEquals(now,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"Expired occupancy must reach the native audit path below capacity, even with no market snapshot");
+        assertEquals(-1,c.serverListedSlots(),"Attempting a recount must never fabricate a fresh count");
+        scan.invoke(c,f.client,null,now+59_000);
+        assertEquals(now,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"A refused native audit must not be retried every tick");
+        scan.invoke(c,f.client,null,now+60_000);
+        assertEquals(now+60_000,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"An expired source may retry at the existing minute cadence");
+    }
+
+    @Test void missingCountMaintenanceRetainsInventoryAndOperationGates() throws Exception {
+        var f=fixture(false);var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
+        var scan=type.getDeclaredMethod("scanAndBuy",Minecraft.class,MarketWatcher.Snapshot.class,long.class);scan.setAccessible(true);
+        long now=System.currentTimeMillis();scan.invoke(c,f.client,null,now);
+        assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"An active own-order read cannot be interrupted by occupancy maintenance");
+        setOperation(f.driver,"NONE");scan.invoke(c,f.client,null,now);
+        assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"An open container is not a safe inventory boundary");
+        var menu=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
+        field(Player.class,"inventoryMenu").set(f.client.player,menu);f.client.player.containerMenu=menu;field(Gui.class,"screen").set(f.client.gui,null);
+        field(type,"serverListedSlots").setInt(c,6);field(type,"serverListedAt").setLong(c,now);
+        scan.invoke(c,f.client,null,now);
+        assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"Fresh native occupancy must not cause an extra audit");
+        field(type,"serverListedAt").setLong(c,0);field(type,"staffTransferHold").setBoolean(c,true);scan.invoke(c,f.client,null,now);
+        assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"A native transfer hold remains authoritative");
+    }
     @org.junit.jupiter.api.BeforeAll static void bootstrap(){
         SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
         net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS

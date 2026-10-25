@@ -1040,6 +1040,7 @@ public final class AutomationSessionController {
      * count the slots other, hand-made listings occupy.
      */
     private boolean slotAuditPending;
+    private long lastMissingCountAuditAttemptAt;
     /**
      * Whether the current pause was asked for (END key, Stop button,
      * evasion) rather than raised by the session itself. Only the latter
@@ -3313,6 +3314,18 @@ public final class AutomationSessionController {
     }
 
     private void scanAndBuy(Minecraft client, MarketWatcher.Snapshot snapshot, long now) {
+        // Slot evidence expires independently of market data and session restarts.
+        // Re-arm at an idle native inventory boundary even below the listing cap;
+        // otherwise an expired count can block collection sizing indefinitely.
+        if (pendingOpportunity == null && trackedPosition == null
+                && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
+                && !uncertainExposure.active() && !staffTransferHold
+                && safeInventoryContext(client) && serverListedSlots() < 0
+                && now - lastMissingCountAuditAttemptAt >= 60_000L) {
+            lastMissingCountAuditAttemptAt = now;
+            slotAuditPending = true;
+            if (startSlotAudit(client)) return;
+        }
         if (snapshot == null) {
             detail = "Waiting for a real market snapshot";
             return;
