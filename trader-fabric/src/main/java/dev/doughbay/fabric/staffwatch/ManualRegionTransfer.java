@@ -56,7 +56,7 @@ public final class ManualRegionTransfer {
             double dx=mc.player.getX()-x,dy=mc.player.getY()-y,dz=mc.player.getZ()-z;
             boolean moved=mc.level!=world||mc.player!=player||dx*dx+dy*dy+dz*dz>=128*128;
             if(proof.needsProbe(moved)) { int id=IDS.incrementAndGet();proof.probe(id);
-                mc.getConnection().send(new ServerboundCommandSuggestionPacket(id,"minecraft:msg ")); }
+                mc.getConnection().send(new ServerboundCommandSuggestionPacket(id,StaffCompletionProbe.REQUEST)); }
             return proof.confirmed(dispatched,moved);
         }
         public void release() {

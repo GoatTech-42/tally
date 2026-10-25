@@ -243,6 +243,28 @@ if (project.hasProperty('settingsScreenshots')) {
 }
 tasks.named('jar') { exclude '**/SettingsGuiSmoke*.class' }
 
+// Owner-requested detector replay in a disposable offline world. Never ships.
+if (project.hasProperty('staffSignalReplay')) {
+    sourceSets.main.java.srcDir 'src/staffSignalSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.staffwatch.StaffSignalSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/staff-signal-replay-current'
+        programArgs '--width', '856', '--height', '512', '--username', 'SignalReplay'
+    }
+}
+tasks.named('jar') { exclude '**/StaffSignalSmoke*.class' }
+
+// Optional disposable transport diagnostic; packaged separately, never in GoNuts.
+if (project.hasProperty('staffProbeDiagnostic')) {
+    sourceSets.main.java.srcDir 'src/staffProbeDiagnostic/java'
+}
+tasks.named('jar') { exclude '**/StaffProbeDiagnostic*.class' }
+
 if (project.hasProperty('documentationScreenshots')) {
  sourceSets.main.java.srcDir 'src/documentationSmoke/java'
  tasks.processResources.doLast {
