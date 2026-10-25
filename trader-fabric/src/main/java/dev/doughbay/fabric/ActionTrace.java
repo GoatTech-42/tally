@@ -16,7 +16,7 @@ public final class ActionTrace {
             "PURCHASE_CAP", "TOP_BID_CEILING", "PRICE_SANITY", "BUY_FOCUS", "UNKNOWN_ITEM", "SERVER_REFUSED_ITEM",
             "WORLD_RECOVERY_HOLD", "PROTECTIVE_HOLD", "AMBIGUOUS_EVIDENCE", "NOT_ARMED", "PLAYER_PAUSE",
             "POLICY_UNAVAILABLE", "SESSION_CLOSED", "NOT_PAUSED", "NO_RESUMABLE_SESSION", "RETAINED_STOCK_RECOVERY",
-            "PLAYER_LEFT_SERVER", "COOLDOWN", "AUTHORIZATION_HOLD", "RESUMING", "ABOVE_CEILING", "UNCLEAR_PRICE", "GHOST_ROW");
+            "PLAYER_LEFT_SERVER", "COOLDOWN", "AUTHORIZATION_HOLD", "RESUMING", "ABOVE_CEILING", "UNCLEAR_PRICE", "GHOST_ROW", "STACK_BATCH");
     private record Entry(long sequence, Scope scope, Event event, String code, String reason,
                          long first, long last, long count, long quantity, long price, long ceiling, String market) { }
     private final ArrayDeque<Entry> recent = new ArrayDeque<>();
