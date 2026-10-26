@@ -259,4 +259,39 @@ class FlipRepeatCycleTest {
         assertTrue(queued.getFirst().contains("action=READ"));
         assertFalse(queued.stream().anyMatch(s->s.contains("action=COLLECT")),"the requested order size is not known yet");
     }
+    AutomationSessionController fullBookCompletion(long now) throws Exception {
+        var c=controller(now);
+        assertTrue(plan(c,now).getFirst().contains("action=PLACE"));
+        Object next=((Deque<?>)get(c,"deskQueue")).removeFirst();set(c,"deskStep",next);
+        var driver=(AutomatedExecutionDriver)get(c,"driver");
+        set(driver,"lastTerminalEvent",new AutomatedExecutionDriver.TerminalEvent(1,
+                AutomatedExecutionDriver.OperationIntent.PLACE_ORDER,AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,
+                "","",ITEM,64,200,"",false,now,"The order book is full (45 orders); no room for another"));
+        invoke(c,"observeDeskTerminal",new Class[]{net.minecraft.client.Minecraft.class,long.class},null,now);
+        return c;
+    }
+    @Test void fullNativeBookDoesNotImmediatelyInvalidateAndRereadTheSameBook()throws Exception {
+        long now=1000000;var c=fullBookCompletion(now);
+        assertEquals(now-1000,get(c,"ownOrdersReadAt"),"no bid or charge occurred, so the prior complete native read remains evidence");
+        assertEquals(false,get(c,"deskReadDue"),"full-book no-op must not trigger the immediate read/place loop");
+        assertTrue(((Map<?,?>)get(c,"placedBids")).isEmpty());
+        assertTrue(((Map<?,?>)get(c,"collectedByKey")).isEmpty());
+    }
+    @Test void fullNativeBookPacesOnlyNewBidsAndRetriesAfterTheNormalBookRefreshInterval()throws Exception {
+        long now=1000000;var c=fullBookCompletion(now);
+        assertFalse(plan(c,now+1).stream().anyMatch(s->s.contains("action=PLACE")));
+        assertFalse(plan(c,now+89999).stream().anyMatch(s->s.contains("action=PLACE")));
+        ((Map<String,long[]>)get(c,"orderQuotes")).put(ITEM,new long[]{100,now+90000});
+        assertTrue(plan(c,now+90000).stream().anyMatch(s->s.contains("action=PLACE")),"a full book is rechecked, never held forever");
+    }
+    @Test void fullNativeBookStillCollectsFreshOwnedDeliveriesDuringTheBidCooldown()throws Exception {
+        long now=1000000;var c=fullBookCompletion(now);
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,64,200,64,100000)));
+        set(c,"ownOrdersComplete",true);set(c,"ownOrdersReadAt",now+1);
+        var steps=plan(c,now+1);
+        assertTrue(steps.stream().anyMatch(s->s.contains("action=COLLECT")));
+        assertFalse(steps.stream().anyMatch(s->s.contains("action=PLACE")));
+        assertTrue(((Map<?,?>)get(c,"collectedByKey")).isEmpty(),"only a physical native collection may credit goods");
+    }
+
 }
