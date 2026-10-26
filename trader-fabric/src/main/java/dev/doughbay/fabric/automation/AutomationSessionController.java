@@ -5290,6 +5290,12 @@ public final class AutomationSessionController {
                 deskQueue.addLast(sweep);
             }
         }
+        // A discovery probe is optional. With an empty auction book the desk
+        // wins every turn, and a probe due every 15 seconds could indefinitely
+        // prevent the public order-house read below from collecting fill/price
+        // evidence. Leave this probe queued while the due source gets its turn.
+        if (deskQueue.peekFirst() != null && deskQueue.peekFirst().action() == DeskAction.SWEEP
+                && orderSourceReadDue(now)) return false;
         // The auction lane holds a position from the moment it buys until the
         // stack is listed and gone. If that is nearly always, the desk never
         // gets a turn however many slots and candidates it has.
@@ -8957,6 +8963,12 @@ public final class AutomationSessionController {
             LOGGER.info("DoughBay automation: order book read {} min ago; next read in {} min, next full sweep in {} min",
                     (now - book.readAt()) / 60_000, Math.max(0, nextOrdersReadAt - now) / 60_000, Math.max(0, nextFullSweepAt - now) / 60_000);
         }
+    }
+
+    private boolean orderSourceReadDue(long now) {
+        if (dev.doughbay.fabric.Tuning.get("orders.enabled") < 0.5 || ownOnly() || deskRecovery.pending()) return false;
+        seedOrdersSchedule(now);
+        return now >= nextOrdersReadAt;
     }
 
     private boolean startOrdersRead(Minecraft client, long now) {
