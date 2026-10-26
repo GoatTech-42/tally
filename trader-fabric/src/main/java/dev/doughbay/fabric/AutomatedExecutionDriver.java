@@ -4936,6 +4936,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized void sendWhenClear(Minecraft client, String command) {
+        // Background callers run directly from the Minecraft tick. A policy refusal
+        // must not crash that tick, and must happen before touching the transport.
+        if (!OutgoingCommandText.valid(command)) {
+            DoughBayClient.LOGGER.warn("DoughBay: background command refused; only ASCII letters, digits and spaces are allowed");
+            return;
+        }
         sendWhenClear(commandTransport(client), command, System.currentTimeMillis(),
                 client != null && client.getConnection() != null);
     }

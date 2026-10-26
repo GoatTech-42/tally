@@ -7,6 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class FollowsTest {
+    @Test void refusedFollowStopsWithoutPendingOrRewritingItsRecipient(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        var driver = new AutomatedExecutionDriver();
+        var follows = new Follows(dir, driver);
+        for (String name : java.util.List.of("Example_Player", ".ExamplePlayer", "Example\ud83c\udf57")) {
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> follows.queueFollow(null, name, 100_000));
+            org.junit.jupiter.api.Assertions.assertTrue(follows.status().contains("command text refused"));
+            var pending = Follows.class.getDeclaredField("pending"); pending.setAccessible(true);
+            assertNull(pending.get(follows));
+            org.junit.jupiter.api.Assertions.assertFalse(driver.externalCommandQueued());
+        }
+    }
     @Test
     void liveFollowFormatsObservedOctoberSixteenKeepTheirDistinctMeaning() {
         String[] lines={"FollowActor listed 64 Arrow for $ 43.9K",

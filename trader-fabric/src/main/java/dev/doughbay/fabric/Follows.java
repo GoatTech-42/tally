@@ -336,6 +336,14 @@ public final class Follows {
         capAnnounced = false;
         String next = nextRequestedName();
         if (next == null) return;
+        queueFollow(client, next, now);
+    }
+
+    synchronized void queueFollow(Minecraft client, String next, long now) {
+        if (!OutgoingCommandText.valid("follow " + next)) {
+            stop("command text refused: only ASCII letters, digits and spaces are allowed");
+            return;
+        }
         pending = next;
         pendingSince = now;
         pendingSentAt = 0;
