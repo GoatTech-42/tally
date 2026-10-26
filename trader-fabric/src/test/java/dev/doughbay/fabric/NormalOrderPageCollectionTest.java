@@ -325,6 +325,66 @@ class NormalOrderPageCollectionTest {
         assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome());
     }
 
+    @Test void screenshotDisabledRedTailNeedsNoUpgradeMessage() throws Exception {
+        for(String name:List.of("","Max Orders","Locked","Locked slot","Red Stained Glass Pane")) {
+            var f=fixture(false);fillDisabledRedTail(f,0,name);read(f);settle(f);read(f);
+            assertEquals(0,f.driver.lastOwnReadUnparsedCount(),"Disabled 18/27 layout, label="+name);
+            assertTrue(f.driver.lastOwnOrdersComplete());assertTrue(f.driver.lastOwnOrders().isEmpty());
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+            assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+        }
+    }
+
+    @Test void screenshotDisabledTailRetainsRealAndEarlierPageOrders() throws Exception {
+        var f=fixture(false);fillDisabledRedTail(f,3,"");read(f);settle(f);read(f);
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(3,f.driver.lastOwnOrders().size());
+        var earlier=fixture(true);fillDisabledRedTail(earlier,0,"");
+        var pages=(OwnOrderPages)field(AutomatedExecutionDriver.class,"ownPages").get(earlier.driver);
+        var rows=java.util.Collections.nCopies(3,new AutomatedExecutionDriver.OwnOrderRow("minecraft:diamond","minecraft:diamond",192,200,64,1000));
+        assertTrue(pages.append(rows));read(earlier);
+        assertTrue(earlier.driver.lastOwnOrdersComplete());assertEquals(rows,earlier.driver.lastOwnOrders());
+    }
+
+    @Test void realRedPaneOrderBeforeDisabledTailIsStillAnOrder() throws Exception {
+        var f=fixture(false);fillDisabledRedTail(f,1,"");
+        var order=new ItemStack(Items.STAINED_GLASS_PANE.red());
+        order.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
+        order.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("192 requested"),Component.literal("$100 each"),Component.literal("64/192 delivered"))));
+        f.screen.getMenu().slots.get(0).set(order);read(f);settle(f);read(f);
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(1,f.driver.lastOwnOrders().size());
+        assertEquals("minecraft:red_stained_glass_pane",f.driver.lastOwnOrders().getFirst().itemId());
+        assertEquals(192,f.driver.lastOwnOrders().getFirst().requested());
+    }
+
+    @Test void screenshotDisabledRedCellsCannotBeClickedForPlacement() throws Exception {
+        var f=fixture(false);fillDisabledRedTail(f,0,"");setOperation(f.driver,"PLACE_ORDER");read(f);settle(f);read(f);
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.stream().allMatch(slot->slot<18));
+    }
+
+    @Test void malformedOrUnknownContentMustNotHideInsideDisabledRedTail() throws Exception {
+        for(String lore:List.of("unknown requested","delivered unknown","price unavailable","$? each","quantity unknown")) {
+            var f=fixture(false);fillDisabledRedTail(f,0,"");
+            f.screen.getMenu().slots.get(18).getItem().set(DataComponents.LORE,new ItemLore(List.of(Component.literal(lore))));
+            read(f);settle(f);read(f);assertFalse(f.driver.lastOwnOrdersComplete(),lore);
+        }
+        for(String kind:List.of("wrong material","two items","unknown name","broken prefix")) {
+            var f=fixture(false);fillDisabledRedTail(f,0,"");var tile=f.screen.getMenu().slots.get(18).getItem();
+            if(kind.equals("wrong material"))f.screen.getMenu().slots.get(18).set(new ItemStack(Items.PAPER));
+            if(kind.equals("two items"))tile.setCount(2);
+            if(kind.equals("unknown name"))tile.set(DataComponents.CUSTOM_NAME,Component.literal("Unrecognized native order"));
+            if(kind.equals("broken prefix"))f.screen.getMenu().slots.get(0).set(new ItemStack(Items.PAPER));
+            read(f);settle(f);read(f);assertFalse(f.driver.lastOwnOrdersComplete(),kind);
+        }
+    }
+
+    private static void fillDisabledRedTail(Fixture f,int realOrders,String name) {
+        fillBaseRankPage(f,realOrders);
+        for(int i=18;i<45;i++) {
+            var tile=f.screen.getMenu().slots.get(i).getItem();
+            tile.set(DataComponents.CUSTOM_NAME,Component.literal(name));tile.remove(DataComponents.LORE);
+        }
+    }
+
     private static void fillBaseRankPage(Fixture f,int realOrders) {
         for(int i=realOrders;i<18;i++) {
             var tile=new ItemStack(Items.STAINED_GLASS_PANE.gray());

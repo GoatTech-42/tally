@@ -1231,6 +1231,34 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         return upgradeSeen;
     }
 
+    /** The observed 18 available / 27 disabled native grid, independent of upgrade advertising. */
+    private int disabledOwnOrderTail(Minecraft client, AbstractContainerScreen<?> container, Inventory inventory) {
+        if(container.getMenu().slots.size()<54)return -1;
+        var emptyControls=java.util.Set.of("new order","create order","place order","no orders","no orders found",
+                "no orders available","no orders to show","nothing here","empty page");
+        for(int i=0;i<18;i++) {
+            Slot slot=container.getMenu().slots.get(i);if(slot.container==inventory)return -1;
+            ItemStack stack=slot.getItem();if(stack.isEmpty()||parseOwnOrder(client,stack)!=null)continue;
+            if(!itemId(stack).equals("minecraft:gray_stained_glass_pane")||stack.getCount()!=1
+                    ||!emptyControls.contains(stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT)))return -1;
+        }
+        var disabledNames=java.util.Set.of("","max orders","locked","locked slot","red stained glass pane");
+        for(int i=18;i<45;i++) {
+            Slot slot=container.getMenu().slots.get(i);if(slot.container==inventory)return -1;
+            ItemStack stack=slot.getItem();
+            if(!itemId(stack).equals("minecraft:red_stained_glass_pane")||stack.getCount()!=1
+                    ||!disabledNames.contains(stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT)))return -1;
+            for(String raw:tooltipLines(client,stack)) {
+                String line=raw.toLowerCase(Locale.ROOT);
+                // An order-like or damaged quantity/price field vetoes furniture recognition for the whole tail.
+                if(line.contains("requested")||line.contains("delivered")||line.contains("each")
+                        ||line.contains("price")||line.contains("quantity")||line.contains("amount")
+                        ||line.contains("expires")||line.contains("$")||ORDER_PRICE.matcher(line).find())return -1;
+            }
+        }
+        return 18;
+    }
+
     /** Your Orders and the pages behind it, for all four own-order operations. */
     private void tickOwnOrdersPage(Minecraft client, AbstractContainerScreen<?> container) {
         Inventory inventory = client.player.getInventory();
@@ -1379,6 +1407,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             int matchesSeen = ownMatchOffset;
             int emptySlot = -1;
             int lockedSlot = -1;
+            int disabledFrom=disabledOwnOrderTail(client,container,inventory);
             for (int menuSlot = 0; menuSlot < Math.min(45, container.getMenu().slots.size()); menuSlot++) {
                 Slot slot = container.getMenu().slots.get(menuSlot);
                 if (slot.container == inventory) continue;
@@ -1389,7 +1418,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 OwnOrderRow row = parseOwnOrder(client, stack);
                 if (row == null) {
-                    if (lockedOwnOrderSlot(client,stack)) {
+                    if ((disabledFrom>=0 && menuSlot>=disabledFrom) || lockedOwnOrderSlot(client,stack)) {
                         if (lockedSlot < 0) lockedSlot=menuSlot;
                         continue;
                     }
@@ -1513,7 +1542,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     int newOrder = -1;
                     int slots = container.getMenu().slots.size();
                     for (String name : new String[] {"new order", "create order", "place order", "create", "new"}) {
-                        newOrder = findControl(container, inventory, name, 0, 45);
+                        newOrder = findControl(container, inventory, name, 0, disabledFrom>=0?disabledFrom:45);
                         if (newOrder >= 0) break;
                     }
                     if (newOrder < 0) newOrder = emptySlot;
