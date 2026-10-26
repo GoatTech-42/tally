@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 18:04 UTC
+
+- **PR #387: Retain owned purchases after exact-stack preparation retries fail.** Repeated failed inventory swaps previously cancelled the purchase record and released its spending commitment whether stock was physically still present or absent. Failed preparation and inventory absence do not establish a sale, loss or cancelled ownership. The exact owned position and cost now remain in the ordinary guarded recovery hold; this refusal sends no listing. Existing bounded preparation, inventory/selected-slot checks and recovery gates remain authoritative.
+- Both actual controller regressions fail before and pass after: stock present and stock absent. Existing filter, queued-stock and manual-resolution regressions stay green. Clean production build: **1,764 tests, zero failures/errors, two skipped**. No historical records, collection credits or caps are reset; no live client installation/restart/settings change accompanies publication. This related current defect was found in report209 investigation; the original first-page incident and affected recovery remain unverified and the report stays open.
+- Client artifact published **2026-10-26T18:04:24Z**. Build `1793037547973`; client SHA256 `38de23376eb8749ecd0340d6ba60db64fe02257a5f381d8aa3433ec7fce7940b`. Source SHA256 `f095bf69ae7f9062182c27918dd59375267a092701274394c838ab3c1be6ba43`, published 2026-10-26T18:04:27Z. Public client/source/checksums independently downloaded and verified. PR387 merge `14126a312ab9cb1377cee0a52e225987f83e66f3`; tested source `de3f08ca7423cdc338c71f285e4640e132afdf98`. Documentation only; PR385, PR383, PR381 and all earlier separately dated client publications remain below.
+
 ## 2026-10-26 17:52 UTC
 
 - **PR #385: Retain owned stock when item filters block listing.** A reproduced listing-entry defect cancelled an already-owned PURCHASED position and subtracted its cost from committed spending solely because Included/Excluded no longer allowed the item, even while the goods were physically in inventory. The exact position, inventory and spending commitment now remain in the ordinary guarded recovery hold; no listing is sent for a disallowed item. Existing explicit liquidation permission is unchanged.
