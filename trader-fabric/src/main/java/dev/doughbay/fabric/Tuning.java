@@ -1027,14 +1027,40 @@ public final class Tuning {
         save();
     }
 
-    /** Item ids without the namespace, parsed from a comma-separated list. */
-    public static java.util.Set<String> itemSet(String key) {
+    private record ParsedItemList(String text, java.util.Set<String> tokens) {
+        boolean matches(String bare) {
+            if (tokens.contains(bare) || tokens.contains("=" + bare)) return true;
+            for (int at = bare.indexOf('_'); at >= 0; at = bare.indexOf('_', at + 1)) {
+                if (tokens.contains(bare.substring(at + 1))) return true;
+            }
+            return false;
+        }
+    }
+    private static final java.util.concurrent.ConcurrentMap<String, ParsedItemList> ITEM_LISTS =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static ParsedItemList parsedItemList(String key) {
+        String raw = text(key);
+        ParsedItemList prior = ITEM_LISTS.get(key);
+        if (prior != null && prior.text().equals(raw)) return prior;
+        return ITEM_LISTS.compute(key, (ignored, current) -> {
+            if (current != null && current.text().equals(raw)) return current;
+            return new ParsedItemList(raw, parseItemTokens(raw));
+        });
+    }
+
+    private static java.util.Set<String> parseItemTokens(String raw) {
         java.util.Set<String> out = new java.util.HashSet<>();
-        for (String token : text(key).split("[,;\\s]+")) {
+        for (String token : raw.split("[,;\\s]+")) {
             String id = normalizeItem(token);
             if (!id.isEmpty()) out.add(id);
         }
-        return out;
+        return java.util.Set.copyOf(out);
+    }
+
+    /** Mutable independent copy for callers that edit a selection before saving it. */
+    public static java.util.Set<String> itemSet(String key) {
+        return new java.util.HashSet<>(parsedItemList(key).tokens());
     }
 
     public static String normalizeItem(String value) {
@@ -1180,10 +1206,7 @@ public final class Tuning {
      */
     public static boolean setMatches(String key, String itemId) {
         String id = normalizeItem(itemId);
-        for (String token : itemSet(key)) {
-            if (tokenCovers(token, id)) return true;
-        }
-        return false;
+        return parsedItemList(key).matches(id);
     }
 
     /**
@@ -1232,7 +1255,8 @@ public final class Tuning {
         if (FEED_BLIND.contains(id)) return false;
         if (setMatches("items.deny", id)) return false;
         if (setMatches("items.liquidate", id)) return false;
-        return itemSet("items.allow").isEmpty() || setMatches("items.allow", id);
+        ParsedItemList allowed = parsedItemList("items.allow");
+        return allowed.tokens().isEmpty() || allowed.matches(id);
     }
 
     /** Focus narrows new buying without excluding owned stock or its price checks. */
