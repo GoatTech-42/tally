@@ -3,6 +3,7 @@ package dev.doughbay.fabric.automation;
 import dev.doughbay.core.automation.ContinuousAutomationPolicy;
 import dev.doughbay.core.model.*;
 import dev.doughbay.fabric.AutomatedExecutionDriver;
+import dev.doughbay.fabric.MarketWatcher;
 import dev.doughbay.storage.*;
 import java.lang.reflect.*;
 import java.util.*;
@@ -64,6 +65,34 @@ class ExternalSaleRecovery209Test {
         assertTrue(f.c.snapshot().unresolvedExposure());
     }
 
+    @Test void queuedPurchaseAgeAndEmptyInventoryCannotCancelOwnershipOrReleaseSpend() throws Exception {
+        var f=new Fixture();Object previous=field(Minecraft.class,"instance").get(null);
+        try {
+            field(Minecraft.class,"instance").set(null,f.mc);
+            field(Minecraft.class,"isLocalServer").setBoolean(f.mc,true);
+            field(LocalPlayer.class,"connection").set(f.mc.player,allocate(net.minecraft.client.multiplayer.ClientPacketListener.class));
+            field(Minecraft.class,"gui").set(f.mc,allocate(net.minecraft.client.gui.Gui.class));
+            f.mc.gameMode=allocate(net.minecraft.client.multiplayer.MultiPlayerGameMode.class);
+            f.d.setAuthorizedExecutionEnabled(true);f.d.setAuthorizedServers(List.of("singleplayer"));
+            set(f.c,"continuousAuthorizationEnabled",true);set(f.c,"continuousAuthorizedServers",Set.of("singleplayer"));
+            set(f.c,"saleNotificationTrustedServers",Set.of("singleplayer"));set(f.c,"auctionFeesConfirmed",true);
+            set(f.c,"pausedByPlayer",false);set(f.c,"manualResolutionFirstConfirmedAt",0L);
+            set(f.c,"trackedPosition",null);set(f.c,"recoveredSession",false);
+            set(f.c,"uncertainExposure",AutomationUncertainExposure.none());set(f.c,"state",AutomationSessionController.State.SCANNING);
+            set(f.c,"serverListedSlots",0);set(f.c,"serverListedAt",f.now);
+            var stock=new Position(78,"REAL","minecraft:golden_apple",StackBucket.of(1),1,1000,1500,f.now-31*60_000,0,0,0,Double.NaN,PositionStatus.PURCHASED);
+            @SuppressWarnings("unchecked") var queue=(List<Position>)get(f.c,"recoveredQueue");queue.add(stock);
+            var snapshot=new MarketWatcher.Snapshot(List.of(),List.of(),List.of(),List.of(),Map.of(),Map.of(),null,"",-1,"OK",null,f.now-100,f.now,false);
+            var scan=f.c.getClass().getDeclaredMethod("scanAndBuy",Minecraft.class,MarketWatcher.Snapshot.class,long.class);
+            scan.setAccessible(true);scan.invoke(f.c,f.mc,snapshot,f.now);
+            assertTrue(f.p.writes.stream().noneMatch(w->w.position()!=null&&w.position().status().isClosed()),"Inventory absence alone cannot cancel a queued purchase");
+            assertEquals(12345L,get(f.c,"committedSpend"),"An unresolved purchase cannot release the durable spending cap");
+            assertEquals(stock,get(f.c,"trackedPosition"),f.c.snapshot().detail());
+            assertTrue(f.c.snapshot().unresolvedExposure());
+            assertEquals(AutomationSessionController.State.PAUSED,f.c.snapshot().state());
+        } finally {field(Minecraft.class,"instance").set(null,previous);}
+    }
+
     private static final class Fixture {
         final AutomatedExecutionDriver d=new AutomatedExecutionDriver();
         final AutomationSessionController c=new AutomationSessionController(d);
@@ -71,7 +100,7 @@ class ExternalSaleRecovery209Test {
         final Minecraft mc;final long now=System.currentTimeMillis();
         Fixture() throws Exception {
             SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
-            mc=allocate(Minecraft.class);mc.player=allocate(LocalPlayer.class);mc.level=allocate(ClientLevel.class);
+            mc=allocate(Minecraft.class);mc.player=allocate(AlivePlayer.class);mc.level=allocate(ClientLevel.class);
             var inventory=new Inventory(mc.player,new EntityEquipment());
             field(Player.class,"inventory").set(mc.player,inventory);
             var menu=new InventoryMenu(inventory,true,mc.player);
@@ -99,14 +128,20 @@ class ExternalSaleRecovery209Test {
         }
     }
     private static final class Persistence implements AutomationPersistencePort {
+        final List<AutomationSessionCheckpoint> writes=new ArrayList<>();
         int resolutions;AutomationSessionCheckpoint last;
         Status status=new Status(LoadState.READY,AutomationSessionRecovery.empty(),1,1,"offline fixture");
         public void start(){}public void close(){}public Status status(){return status;}
-        public long submit(AutomationSessionCheckpoint c){throw new AssertionError("Unexpected ordinary write");}
+        public long submit(AutomationSessionCheckpoint c){writes.add(c);return writes.size()+2;}
         public long submitManualResolution(AutomationManualResolution r,AutomationSessionCheckpoint c){
             resolutions++;last=c;status=new Status(LoadState.READY,status.recovery(),2,1,"queued");return 2;
         }
         void acknowledge(){status=new Status(LoadState.READY,new AutomationSessionRecovery(true,"CONTINUOUS","PAUSED",7,12345,100,200,"offline durable receipt","",AutomationUncertainExposure.none(),List.of()),2,2,"durable");}
+    }
+    private static class AlivePlayer extends LocalPlayer {
+        private AlivePlayer(){super(null,null,null,null,null,null,false,null);}
+        @Override public boolean isAlive(){return true;}
+        @Override public void sendSystemMessage(net.minecraft.network.chat.Component c){}
     }
     private static Field field(Class<?> c,String n)throws Exception{var f=c.getDeclaredField(n);f.setAccessible(true);return f;}
     private static Object get(Object o,String n)throws Exception{return field(o.getClass(),n).get(o);}

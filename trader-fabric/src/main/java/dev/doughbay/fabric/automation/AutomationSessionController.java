@@ -3474,20 +3474,10 @@ public final class AutomationSessionController {
                     return;
                 }
                 recoveredQueue.remove(next);
-                // A recovered purchase whose item is nowhere in the inventory is a
-                // ghost from an earlier session - a lost buy, or a denied item that
-                // never got a listing attempt to reconcile it, so it sat as open
-                // exposure for days. Close it instead of pausing to "list" a stack
-                // that does not exist. Preparing-to-list was the only path that ever
-                // closed a phantom, and denied items skip it, so ghosts piled up
-                // here unchecked; this reconciles them on sight so they cannot.
-                if (safeInventoryContext(client)
-                        && now - next.purchasedAt() > 30 * 60_000L
-                        && !inventoryContainsItem(client, baseItemId(next.itemKey()))) {
-                    closePhantom(next, "recovered purchase " + baseItemId(next.itemKey()) + " x"
-                            + next.quantity() + " has no matching stack in the inventory");
-                    return;
-                }
+                // Age and an empty inventory do not establish what happened to
+                // this owned purchase: it may still be listed or require explicit
+                // reconciliation. Retain it and its committed spend through the
+                // same guarded recovery path used for a newer queued purchase.
                 recoveredOpenPositions = List.of(next);
                 trackedPosition = next;
                 positionValuation = null;
