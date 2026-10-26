@@ -2777,7 +2777,7 @@ public final class AutomationSessionController {
 
     /** Read-only accounting view; never corrects counters, scans pages or collects stock. */
     public synchronized dev.doughbay.fabric.CapitalBreakdown.Orders capitalOrders() {
-        return dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt, List.copyOf(ownOrders), java.util.Map.copyOf(collectedByKey));
+        return dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt, List.copyOf(ownOrders), java.util.Map.copyOf(creditsForCurrentBook()));
     }
 
     public synchronized dev.doughbay.fabric.OrderMetrics.Report orderMetricsReport(dev.doughbay.fabric.OrderMetrics metrics) {
@@ -4920,6 +4920,17 @@ public final class AutomationSessionController {
         }
     }
 
+    /** Historical receipts with an audited cohort collision cannot credit another visible row.
+     * Keep visible deliveries reserved until their native rows disappear/collect; never
+     * rewrite receipts or turn uncertain stock into free spending room. */
+    private java.util.Map<String,Integer> creditsForCurrentBook() {
+        if(physicallyAuditedCreditKeys.isEmpty())return collectedByKey;
+        var current=new java.util.HashMap<>(collectedByKey);
+        for(String key:physicallyAuditedCreditKeys)
+            if(current.getOrDefault(key,0)>=0)current.put(key,0);
+        return current;
+    }
+
     /** Only a confirmed native inventory transfer reaches this accounting path. */
     private void creditPhysicalCollection(DeskStep step,int count) {
         if(count<=0)return;
@@ -4996,7 +5007,7 @@ public final class AutomationSessionController {
     private boolean ordinaryOrderRoom(String item, boolean legacyAlreadyOut) {
         if (dev.doughbay.fabric.Tuning.get("orders.max_per_market") == 0) return !legacyAlreadyOut;
         if(multipleOrdersEnabled() && !ownOrdersComplete) return false;
-        var book = ReserveStock.book(item,ownOrders,collectedByKey);
+        var book = ReserveStock.book(item,ownOrders,creditsForCurrentBook());
         if (!OrderBatchLimit.hasRoom(book,ordinaryOrderLimit())) return false;
         return book.units() != 0 || pendingFills.stream().noneMatch(f -> {
             var bid=bidForFill(f); return bid!=null && bid.itemId().equals(item);
@@ -5049,7 +5060,7 @@ public final class AutomationSessionController {
     }
 
     private boolean reserveRoom(String item) {
-        var book = ReserveStock.book(item,ownOrders,collectedByKey);
+        var book = ReserveStock.book(item,ownOrders,creditsForCurrentBook());
         if (book.units() == 0 && pendingFills.stream().anyMatch(f -> {
             var bid = bidForFill(f); return bid != null && bid.itemId().equals(item);
         })) return false; // A delivery absent from the native book still needs reconciliation.
@@ -5065,7 +5076,7 @@ public final class AutomationSessionController {
     private long bidsOut() {
         if(multipleOrdersEnabled() && !ownOrdersComplete) return Long.MAX_VALUE/4;
         if (reserveEnabled() || multipleOrdersEnabled()) {
-            var capital = dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt,ownOrders,collectedByKey);
+            var capital = dev.doughbay.fabric.CapitalBreakdown.orders(ownOrdersReadAt,ownOrders,creditsForCurrentBook());
             if (capital.reserved() == null || capital.awaitingCollection() == null) return Long.MAX_VALUE / 4;
             try { return Math.addExact(capital.reserved(),capital.awaitingCollection()); }
             catch(ArithmeticException overflow) { return Long.MAX_VALUE/4; }
@@ -5469,7 +5480,7 @@ public final class AutomationSessionController {
         }
         if (multipleOrderMarket(step.itemId()) && !reserveMarket(step.itemId())) {
             if (step.action()==DeskAction.PLACE) {
-                var outstanding=ReserveStock.book(step.itemId(),ownOrders,collectedByKey);
+                var outstanding=ReserveStock.book(step.itemId(),ownOrders,creditsForCurrentBook());
                 Long depth=plannedOrderDepth.get(step.itemId());
                 boolean fits=depth!=null ? OrderBatchLimit.fitsDepth(outstanding,reserveHeldUnits(step.itemId()),step.count(),depth)
                         : outstanding.batches()==0;
@@ -5978,9 +5989,9 @@ public final class AutomationSessionController {
         for (AutomatedExecutionDriver.OwnOrderRow r : ownOrders) {
             if (!r.alreadyCancelled() && r.remaining() > 0) bidItems.add(r.itemId());
             String pendingKey = orderKey(r.itemId(), r.unitPrice(), r.requested());
-            if (deliveredByKey.getOrDefault(pendingKey, 0) - collectedByKey.getOrDefault(pendingKey, 0) > 0) bidItems.add(r.itemId());
+            if (deliveredByKey.getOrDefault(pendingKey, 0) - creditsForCurrentBook().getOrDefault(pendingKey, 0) > 0) bidItems.add(r.itemId());
             String k = orderKey(r.itemId(), r.unitPrice(), r.requested());
-            int collected = collectedByKey.getOrDefault(k, 0);
+            int collected = creditsForCurrentBook().getOrDefault(k, 0);
             int pending = deliveredByKey.getOrDefault(k, 0) - collected;
             boolean wholeOnly = dev.doughbay.fabric.Tuning.get("orders.collect_whole_stacks") >= 0.5;
             // Sold one at a time, there is nothing to wait for: a part stack
@@ -6003,7 +6014,7 @@ public final class AutomationSessionController {
                     || reserve && reserveCollectUnits(r.itemId()) <= 0) && !windingDown();
             // Collection credits are pooled for identical native rows in every mode, not only Reserve Stock.
             // Skip rows already covered by those credits; the driver rechecks physical goods before booking any.
-            int collectionOrdinal = ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,collectedByKey,
+            int collectionOrdinal = ReserveStock.collectOrdinal(r.itemId(),r.unitPrice(),r.requested(),ownOrders,creditsForCurrentBook(),
                     reserve && !winding ? fullStack(r.itemId()) : 1);
             if (collectionOrdinal < 0) listablePart = false;
             if (pending > 0 && listablePart && !lotStillSelling
@@ -6185,7 +6196,7 @@ public final class AutomationSessionController {
             if(!ownOrdersComplete) return;
             active=0;
             for(String item:ownOrders.stream().map(AutomatedExecutionDriver.OwnOrderRow::itemId).distinct().toList()) {
-                var outstanding=ReserveStock.book(item,ownOrders,collectedByKey);
+                var outstanding=ReserveStock.book(item,ownOrders,creditsForCurrentBook());
                 if(!outstanding.valid()) return;
                 active+=outstanding.batches();
             }
@@ -6551,7 +6562,7 @@ public final class AutomationSessionController {
                 if (per != full || shaped == OrderShape.Mode.SINGLES || retail != null) {
                     bump(why,"reserve requires a whole-stack market"); continue;
                 }
-                var reserveBook = ReserveStock.book(m.itemKey(),ownOrders,collectedByKey);
+                var reserveBook = ReserveStock.book(m.itemKey(),ownOrders,creditsForCurrentBook());
                 int requestedStacks = Math.min(stacks,(int)dev.doughbay.fabric.Tuning.get("orders.reserve_stacks"));
                 count = ReserveStock.batchUnits(requestedStacks,full,unit,
                         (long)Math.min(effectivePurchaseCap(),room),
@@ -6572,7 +6583,7 @@ public final class AutomationSessionController {
             long cost = unit * count;
             if (multipleOrderMarket(m.itemKey()) && !reserveMarket(m.itemKey())) {
                 long depth=sharePct>=100 ? -1 : (long)depthStacks*per;
-                var outstanding=ReserveStock.book(m.itemKey(),ownOrders,collectedByKey);
+                var outstanding=ReserveStock.book(m.itemKey(),ownOrders,creditsForCurrentBook());
                 if (!OrderBatchLimit.fitsDepth(outstanding,reserveHeldUnits(m.itemKey()),count,depth)) {
                     bump(why,"combined orders exceed market depth"); continue;
                 }

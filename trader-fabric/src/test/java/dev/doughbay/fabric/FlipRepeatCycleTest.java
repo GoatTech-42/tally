@@ -359,4 +359,29 @@ class FlipRepeatCycleTest {
         assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty(),"An audit cannot monopolize the desk");
     }
 
+    @Test void cumulativeAuditedReceiptsDoNotBecomeInvalidCapitalOrEraseVisibleStock()throws Exception {
+        long now=1000000;var c=controller(now);double oldLimit=Tuning.get("orders.max_per_market");try {Tuning.set("orders.max_per_market",3);
+        String key=ITEM+"|200|192";
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000)));
+        set(c,"ownOrdersComplete",true);((Map<String,Integer>)get(c,"collectedByKey")).put(key,576);
+        ((Set<String>)get(c,"physicallyAuditedCreditKeys")).add(key);
+        assertEquals(38400L,amountReserved(c),"Current visible goods stay conservatively reserved; historical receipts are not an invalid exposure sentinel");
+        assertTrue(plan(c,now).stream().anyMatch(x->x.contains("action=COLLECT")),"The next visible identical order needs its own native collection proof");
+        assertEquals(576,((Map<?,?>)get(c,"collectedByKey")).get(key),"Derived exposure must never rewrite prior receipts");
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,64,100000)));
+        assertEquals(38400L,amountReserved(c),"A newer partially delivered identical order retains both unfilled funds and all unverified delivered stock");
+        }finally{Tuning.set("orders.max_per_market",oldLimit);}
+    }
+    @Test void auditedCreditViewKeepsUnknownCorruptAndIncompleteBookGuards()throws Exception {
+        long now=1000000;var c=controller(now);double oldLimit=Tuning.get("orders.max_per_market");try {Tuning.set("orders.max_per_market",3);
+        String key=ITEM+"|200|192";set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000)));
+        set(c,"ownOrdersComplete",true);((Map<String,Integer>)get(c,"collectedByKey")).put(key,576);
+        assertEquals(Long.MAX_VALUE/4,amountReserved(c),"Unproven oversized credits remain unknown and block new exposure");
+        ((Set<String>)get(c,"physicallyAuditedCreditKeys")).add(key);
+        set(c,"ownOrdersComplete",false);assertEquals(Long.MAX_VALUE/4,amountReserved(c));
+        set(c,"ownOrdersComplete",true);((Map<String,Integer>)get(c,"collectedByKey")).put(key,-1);
+        assertEquals(Long.MAX_VALUE/4,amountReserved(c),"Even an audit marker cannot legitimize corrupt negative credits");
+        }finally{Tuning.set("orders.max_per_market",oldLimit);}
+    }
+
 }
