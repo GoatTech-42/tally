@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 17:52 UTC
+
+- **PR #385: Retain owned stock when item filters block listing.** A reproduced listing-entry defect cancelled an already-owned PURCHASED position and subtracted its cost from committed spending solely because Included/Excluded no longer allowed the item, even while the goods were physically in inventory. The exact position, inventory and spending commitment now remain in the ordinary guarded recovery hold; no listing is sent for a disallowed item. Existing explicit liquidation permission is unchanged.
+- The actual controller regression fails before and passes after. Two new cases cover explicit exclusion, removal from Included, repeated recovery attempts, retained inventory/position/cost and no listing intent. Clean production build: **1,762 tests, zero failures/errors, two skipped**. No historical records or collection credits are rewritten, and no ownership, spending or protection gates are relaxed. No live client installation/restart/settings change accompanies publication. Related report209 remains open: its original first-page stall and affected recovery have not been proven resolved.
+- Client artifact published **2026-10-26T17:52:43Z**. Build `1793036860144`; client SHA256 `761c7dc2a6023baa6b0e24e4574fa1c29479244531d156c484fe33d79aa3952d`. Source SHA256 `a5f7ff03dfb5a02920c9de8a1309644d5c227cffd80bc9ee76d65623f76338fd`, published 2026-10-26T17:52:47Z. Public client/source/checksums independently downloaded and verified. PR385 merge `4808ae8b7cb7348def4010c4e37721f62bfff367`; tested source `f7c0f823ed4a1bdb7def895ca5a858f722f2fdb7`. Documentation only; PR383, PR381 and all earlier separately dated client publications remain below.
+
 ## 2026-10-26 17:37 UTC
 
 - **PR #383: Save named item loadouts.** Requested feature132 now has a separate item-only manager under **B → Trading → Items → Item loadouts**. Save the current Included, Excluded and tracked markets with a name, keep independent sets, and apply, rename, replace, copy or delete a selected loadout. Applying an explicitly empty list clears that list. Full settings presets remain separate; an ordinary settings code cannot be applied as an item loadout.
