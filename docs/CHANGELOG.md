@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 17:37 UTC
+
+- **PR #383: Save named item loadouts.** Requested feature132 now has a separate item-only manager under **B → Trading → Items → Item loadouts**. Save the current Included, Excluded and tracked markets with a name, keep independent sets, and apply, rename, replace, copy or delete a selected loadout. Applying an explicitly empty list clears that list. Full settings presets remain separate; an ordinary settings code cannot be applied as an item loadout.
+- Clean production build: **1,760 tests, zero failures/errors, two skipped**. Scoped-code/store regressions cover independent persistence, inherited tracked markets, empty lists, unchanged limits and malformed/oversized/full-settings-code refusal before mutation. Actual offline Minecraft UI verified save, reload, apply, rename, confirmed delete, reopen and resize; screenshots inspected. Trading limits, protections, positions and durable credits are not included in a loadout. No live client installation/restart accompanies this publication.
+- Client artifact published **2026-10-26T17:37:08Z**. Build `1793035844884`; client SHA256 `ab0393d9a3e9761a3bd1db65fe6d435e1f8cac0064c43d634b5594abccb68691`. Source SHA256 `18b66102ce27497e92ea7d00a5bdc3646e0260651c21e26ea1e81f7730aabbe5`, published 2026-10-26T17:37:08Z. Public client/source/checksums independently downloaded and verified. PR383 merge `b8a58deee4bfe21a03a91351f44d97dbb61ba1bb`; tested source `9c127f71eef5ac8298ba4a482c261eedc8e00aa2`. This documentation adds no binary; PR381 and all earlier separately dated publications remain below.
+
 ## 2026-10-26 17:11 UTC
 
 - **PR #381: Retain queued purchases until verified recovery.** Investigation of report209 reproduced a current scanner defect: a queued PURCHASED position older than thirty minutes was canceled and its purchase cost subtracted from committed spending solely because its item was absent from inventory. Age and inventory absence do not establish its auction outcome. The exact position and spending commitment now remain in the existing guarded recovery path, as for a newer queued purchase.
