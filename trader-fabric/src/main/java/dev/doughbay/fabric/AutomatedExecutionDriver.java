@@ -901,6 +901,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         collectPartialStockObserved = false;
         collectClicks = 0;
         collectMenuObserved = false;
+        collectEmptyReceipt = false;
         placeConfirmed = false;
         placeMatchingBefore = -1;
         lastPlacementOrders = null;
@@ -1061,6 +1062,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         ownMatchOrdinal=next;
         collectMenuObserved=false;
+        collectEmptyReceipt=false;
         ownPages.reset();ownPageAccepted=false;ownMatchOffset=0;
         ownStage=0;
         ownDone=false;
@@ -1079,6 +1081,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int ownNavigationReopens;
     private int collectClicks;
     private boolean collectMenuObserved;
+    private boolean collectEmptyReceipt;
+    public static final String EMPTY_COLLECTION_REPLY = "Server reports no collectible items";
     private int newOrderNavigationRetries;
 
     boolean shouldRetryNewOrderNavigation(String title) {
@@ -1712,6 +1716,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             // Collect opens "Orders -> Collect Items": the delivered stacks sit
             // on the page and each one is clicked into the inventory.
             int now = countInventory(client, targetItemId);
+            if (collectEmptyReceipt && !collectMenuObserved && !title.contains("collect items")
+                    && collectClicks == 0 && now == inventoryCountBefore) {
+                if (tryAnotherCollectRow(client)) return;
+                if (collectRowsExhausted && collectPartialStockObserved) {finishPartStackWait(client);return;}
+                finishAbort(client, EMPTY_COLLECTION_REPLY + "; no inventory transfer or collection credit", null, false);
+                return;
+            }
             if (title.contains("collect items")) {
                 collectMenuObserved = true;
                 int pending = -1;
@@ -5032,6 +5043,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     public synchronized void observeGameMessage(String text) {
         if (text == null) return;
         rememberReceipt(text);
+        // Exact native system reply, tied to a pending Collect control. This
+        // does not claim goods were collected or amend any durable credits.
+        if (operation == Operation.COLLECT_ORDER && ownStage == 5 && !collectMenuObserved
+                && collectClicks == 0 && collectMatchingRows > 0
+                && text.strip().matches("(?i)You have no items to collect[!.]?")) collectEmptyReceipt=true;
         if (DELIVER_RECEIPT.matcher(text.strip()).find()) {
             // Kept whatever the driver is doing: the server's receipt can
             // arrive after the wait has already given up, and a delivery that

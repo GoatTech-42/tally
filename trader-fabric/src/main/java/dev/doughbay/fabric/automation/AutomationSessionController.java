@@ -5621,6 +5621,13 @@ public final class AutomationSessionController {
                 partStackAt.put(orderKey(step.itemId(), step.unitPrice(), step.count()), now);
                 LOGGER.info("DoughBay bid desk: {} at {} each has only part of a stack waiting; leaving it to fill",
                         step.itemId(), step.unitPrice());
+            } else if (step.action() == DeskAction.COLLECT && event.detail() != null
+                    && event.detail().contains(AutomatedExecutionDriver.EMPTY_COLLECTION_REPLY)) {
+                // The server answered the exact owned Collect control with no
+                // goods. Keep the discrepancy/credits intact, but do not call
+                // it a navigation outage or retry unchanged empty history.
+                deskRecovery.recovered();
+                collectAttempts.put(orderKey(step.itemId(),step.unitPrice(),step.count()),4);
             } else if (step.action() == DeskAction.COLLECT && event.detail() != null && event.detail().contains("Nothing arrived")) {
                 collectedNothing(client, now, step);
                 if (trackedPosition != null) return;   // a hand-collected stack was booked and is being listed
