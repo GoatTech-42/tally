@@ -508,6 +508,71 @@ class NormalOrderPageCollectionTest {
             }
         }finally{Tuning.set("orders.max_per_market",mode);Tuning.set("pace.human_steps",pace);ServerStrain.reset();}
     }
+
+    private static Fixture awaitingCollectReply() throws Exception {
+        ServerStrain.reset();var f=fixture(false);setOperation(f.driver,"COLLECT_ORDER");
+        field(AutomatedExecutionDriver.class,"targetItemId").set(f.driver,"minecraft:stone");
+        field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,5);
+        field(AutomatedExecutionDriver.class,"collectMatchingRows").setInt(f.driver,1);
+        ((Set<Integer>)field(AutomatedExecutionDriver.class,"collectTriedOrdinals").get(f.driver)).add(0);
+        return collectionMenu(f,"Edit Order",0);
+    }
+    @Test void explicitEmptyCollectionReplyIsNotAMissingMenuFailure() throws Exception {
+        var f=awaitingCollectReply();f.driver.observeGameMessage("You have no items to collect!");advance(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome());
+        assertTrue(f.driver.lastTerminalEvent().detail().contains("Server reports no collectible items"));
+        assertEquals(0,f.driver.lastTerminalEvent().itemCount());
+        assertEquals(0,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
+    }
+    @Test void quotedPlayerTextAndOtherOperationsCannotSupplyEmptyCollectionEvidence() throws Exception {
+        for(String text:List.of("<player> You have no items to collect!","You have no items to collect! extra","No items found")) {
+            var f=awaitingCollectReply();f.driver.observeGameMessage(text);advance(f);
+            assertEquals(AutomatedExecutionDriver.TerminalOutcome.NONE,f.driver.lastTerminalEvent().outcome());
+        }
+        var f=awaitingCollectReply();setOperation(f.driver,"OWN_ORDERS");
+        f.driver.observeGameMessage("You have no items to collect!");setOperation(f.driver,"COLLECT_ORDER");advance(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.NONE,f.driver.lastTerminalEvent().outcome());
+        f=awaitingCollectReply();field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,3);
+        f.driver.observeGameMessage("You have no items to collect!");field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,5);advance(f);
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.NONE,f.driver.lastTerminalEvent().outcome(),"A reply before the Collect control was sent cannot answer that control");
+    }
+    @Test void anObservedStockMenuOutranksAnEmptyReplyWithoutDiscardingItsGoods() throws Exception {
+        var f=awaitingCollectReply();f=collectionMenu(f,"Orders -> Collect Items",64);
+        field(AutomatedExecutionDriver.class,"collectMaximumUnits").setInt(f.driver,64);
+        ((RecordingGameMode)f.client.gameMode).moveStacks=true;
+        f.driver.observeGameMessage("You have no items to collect!");advance(f);advance(f);
+        assertEquals(64,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+        assertEquals(64,f.driver.lastTerminalEvent().itemCount());
+    }
+
+    @SuppressWarnings({"unchecked","rawtypes"})
+    @Test void emptyServerReplyKeepsCreditsAndRearmsOnlyOnNewCompleteDeliveryEvidence() throws Exception {
+        double bid=Tuning.get("orders.bid"),reserve=Tuning.get("orders.reserve_stock");
+        try {
+            Tuning.set("orders.bid",0);Tuning.set("orders.reserve_stock",0);
+            var f=awaitingCollectReply();f.driver.observeGameMessage("You have no items to collect!");advance(f);
+            var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
+            field(type,"policy").set(c,dev.doughbay.core.automation.ContinuousAutomationPolicy.fromConfigValues(2,100_000,50_000,5_000,12,80,10,8,120,1));
+            String key="minecraft:stone|100|384";
+            var credits=(Map<String,Integer>)field(type,"collectedByKey").get(c);credits.put(key,64);
+            field(type,"ownOrders").set(c,List.of(new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",384,100,192,100000)));
+            field(type,"ownOrdersComplete").setBoolean(c,true);field(type,"ownOrdersReadAt").setLong(c,1_000_000);
+            var recovery=field(type,"deskRecovery").get(c);var failed=recovery.getClass().getDeclaredMethod("navigationFailed",long.class);failed.setAccessible(true);failed.invoke(recovery,999_000L);
+            Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            field(type,"deskStep").set(c,ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),"minecraft:stone",384,100L,"collecting native delivery"));
+            var observe=type.getDeclaredMethod("observeDeskTerminal",Minecraft.class,long.class);observe.setAccessible(true);observe.invoke(c,f.client,1_000_000L);
+            var pending=recovery.getClass().getDeclaredMethod("pending");pending.setAccessible(true);assertEquals(false,pending.invoke(recovery));
+            assertEquals(4,((Map<?,?>)field(type,"collectAttempts").get(c)).get(key));assertEquals(64,credits.get(key));
+            var plan=type.getDeclaredMethod("planDesk",MarketWatcher.Snapshot.class,long.class);plan.setAccessible(true);plan.invoke(c,null,1_000_001L);
+            assertFalse(((Deque<?>)field(type,"deskQueue").get(c)).stream().anyMatch(x->x.toString().contains("COLLECT")));
+            field(type,"ownOrders").set(c,List.of(new AutomatedExecutionDriver.OwnOrderRow("minecraft:stone","minecraft:stone",384,100,256,100000)));
+            field(type,"ownOrdersReadAt").setLong(c,1_000_002);plan.invoke(c,null,1_000_003L);
+            assertTrue(((Deque<?>)field(type,"deskQueue").get(c)).stream().anyMatch(x->x.toString().contains("COLLECT")),"New complete native delivery evidence must permit another guarded physical collection");
+            assertEquals(64,credits.get(key),"Neither the empty reply nor the newer delivery is a collection credit");
+        } finally {Tuning.set("orders.bid",bid);Tuning.set("orders.reserve_stock",reserve);ServerStrain.reset();}
+    }
     private static Fixture collectionMenu(Fixture f,String title,int units)throws Exception{
         var contents=new SimpleContainer(54);
         for(int i=0;units>0;i++){int n=Math.min(64,units);contents.setItem(i,new ItemStack(Items.STONE,n));units-=n;}
