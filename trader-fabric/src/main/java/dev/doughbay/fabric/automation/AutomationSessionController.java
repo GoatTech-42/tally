@@ -12414,31 +12414,17 @@ public final class AutomationSessionController {
     }
 
     private void listPurchasedStackInHand(Minecraft client, long now, String why) {
-        // Every route to listing a stack found in hand comes through here, so
-        // this is where the deny list has to be honoured. The desk already
-        // refuses to list what it names ("held but the desk will not list what
-        // it is not allowed to trade"), while nothing stopped that same stack
-        // being adopted as an unlisted purchase - so the two halves disagreed
-        // and the stack went round for ever: adopt, fail to prepare six times,
-        // close for good, get adopted again on the next pass. Two damaged
-        // turtle helmets did that 282 times, writing a cancelled position at
-        // $87,255 on every lap, none of which was a purchase.
-        //
-        // Give up on the first lap instead of the sixth, and set the key aside
-        // so the next pass leaves it alone. The item itself stays in the
-        // inventory for a person to deal with; only the record stops.
+        // An item restriction stops listing, but does not undo its purchase.
+        // Retain the exact owned position and committed spending through the
+        // ordinary recovery hold rather than cancelling an unsold record.
         String heldId = baseItemId(trackedPosition.itemKey());
-        // A liquidating item is denied from buying but must still be sold off,
-        // so it is the one denied thing this path lists rather than sets aside.
+        // Liquidation remains the explicit existing permission to sell denied stock.
         if (!dev.doughbay.fabric.Tuning.itemAllowed(heldId)
                 && !dev.doughbay.fabric.Tuning.liquidating(heldId)) {
             setAsideItems.add(trackedPosition.itemKey());
-            closePhantom(trackedPosition,
-                    "it is on the deny list; it stays in the inventory to be dealt with by hand");
-            trackedPosition = null;
-            positionValuation = null;
             prepareRetries = 0;
-            transition(State.SCANNING, "Set aside " + heldId + ": not allowed to trade");
+            pauseInternal("Owned purchase #" + trackedPosition.positionId()
+                    + " is not allowed by the current item filter; stock record and spending retained, no listing sent");
             return;
         }
         int slot = unlistedPurchaseSlot(client, trackedPosition.itemKey(),
