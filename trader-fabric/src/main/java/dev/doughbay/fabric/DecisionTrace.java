@@ -54,7 +54,7 @@ public final class DecisionTrace {
         }
         if(Set.of(ActionTrace.Event.REFUSED,ActionTrace.Event.FAULT,ActionTrace.Event.ABORTED,ActionTrace.Event.EMERGENCY_STOPPED).contains(event))problems.put(scope,e);
         while(recent.size()>2048){recent.removeFirst();evicted++;}
-        org.slf4j.LoggerFactory.getLogger("DoughBay").info("GoNuts decision {}",line);
+        // Bounded local evidence remains in memory; retired reporting no longer writes this stream to logs.
     }
     /** Numeric projection only. Changes are bounded observation intervals, never claimed as exact mutation times. */
     public synchronized void observeSettings(long now) {

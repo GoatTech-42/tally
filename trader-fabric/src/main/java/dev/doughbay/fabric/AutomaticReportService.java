@@ -40,7 +40,7 @@ public final class AutomaticReportService implements AutoCloseable {
             var log=gameRoot.resolve("logs/latest.log");
             return new Prepared(new BugReportPayload(build,"26.2",metadata.description(),metadata.expected(),
                 BugReportDiagnostics.readCountersForReport(log)),BugReportEvidence.readForReport(log,metadata.description()));
-        },System::currentTimeMillis,true);
+        },System::currentTimeMillis,false);
     }
     AutomaticReportService(Path gameRoot,String build,String minecraft,Gateway gateway,Evidence evidence,LongSupplier clock,boolean startDaemon) {
         this.build=build;this.minecraft=minecraft;this.gateway=gateway;this.evidence=evidence;this.wallClock=clock;

@@ -31,8 +31,8 @@ final class StartHereScreen extends GoNutsScreen {
         setInitialFocus(setup);
         button("2  Open Trade - status, Start, Stop and recovery", row(1),
                 b -> parent.openBeginnerTarget("autopilot", this));
-        button("Watch the setup video (opens website)", row(2),
-                b -> Util.getPlatform().openUri(URI.create("https://gonuts.at/#install")));
+        button("Existing releases (public support has ended)", row(2),
+                b -> Util.getPlatform().openUri(URI.create("https://github.com/cody-raves/Gonuts/releases/latest")));
         button("Show menus + hotbar", row(3), b -> {
             try { BeginnerHelp.showGameUi(); message = "Menus and hotbar are visible. Trading settings were kept."; }
             catch (java.io.IOException e) { message = "Could not save display settings. Open Settings and try again."; }

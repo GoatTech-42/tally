@@ -13,11 +13,10 @@ for(const hostedPanel of [false,true]) {
  assert.equal(pages.children.length,5,'Navigation is divided into five work areas');
  assert.equal(mobile.children.length,5,'Mobile selector retains every work area');
  assert(all.some(n=>n.text==='Analyzer'),'Analyzer must be reachable in both sidebars');
- assert(all.some(n=>n.text==='Swarm savings'),'Swarm savings must be reachable in both sidebars');
+ assert(!all.some(n=>n.text==='Swarm savings'),'Retired Swarm must not be offered in navigation');
  assert(all.some(n=>n.text==='Order settings'),'Settings are reachable even before the native page picker arrives');
  assert(pages.children.find(n=>n.children[0].text==='Settings').open,'Current work area is expanded');
- const dashboard=all.find(n=>n.text==='Dashboard');assert(dashboard);
- if(hostedPanel)assert.equal(dashboard.href,'https://gonuts.at/dashboard/');else assert.equal(typeof dashboard.click,'function');
+ const dashboard=all.find(n=>n.text==='Dashboard');assert(!dashboard,'Hosted dashboard is retired');
 }
 const source=html.slice(html.indexOf('async function openSavedPresets()'),html.indexOf('async function openSettings()'));
 const nodes=[];function el(tag,cls,text=''){const n={tag,className:cls,textContent:text,children:[],dataset:{},attrs:{},style:{},appendChild(c){this.children.push(c);},replaceChildren(...c){this.children=c;},setAttribute(k,v){this.attrs[k]=v;},addEventListener(t,f){this[t]=f;},select(){}};Object.defineProperty(n,'innerHTML',{set(){throw Error('User labels must remain text');}});nodes.push(n);return n;}

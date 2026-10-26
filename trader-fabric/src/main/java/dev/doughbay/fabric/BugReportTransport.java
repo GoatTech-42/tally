@@ -12,40 +12,15 @@ public final class BugReportTransport {
     private static final URI ENDPOINT = URI.create("https://gonuts.at/v1/bugs");
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final int MAX_CAPABILITY_BYTES = 8192;
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NEVER).build();
     public record Result(boolean filed, String message, String issueUrl, long retryAtMillis) { }
     public record AutomaticResult(Result result, boolean permanent) { }
     /** Public capability lookup; never forwards the market API credential. */
     public com.fasterxml.jackson.databind.JsonNode automaticCapabilities() throws Exception {
-        var request = HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/capabilities"))
-            .timeout(Duration.ofSeconds(10)).GET().build();
-        var response = http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(15, TimeUnit.SECONDS);
-        try (var stream = response.body()) {
-            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> { try { stream.close(); } catch(Exception ignored) {} });
-            return readCapabilities(response.statusCode(), stream);
-        }
+        return JSON.createObjectNode().put("configured",false).put("retired",true);
     }
     /** Runs on the report daemon only. The caller validates its frozen outbox before calling. */
     public AutomaticResult sendAutomatic(byte[] frozenBody, String key) throws Exception {
-        if (frozenBody.length>65536 || key==null || !key.matches("[A-Za-z0-9_-]{8,64}"))
-            throw new IllegalArgumentException("Invalid automatic request");
-        var request=HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
-            .header("Content-Type","application/json").header("Idempotency-Key",key)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(frozenBody)).build();
-        MandatoryDiagnostics.flushBeforeReport().orTimeout(3,TimeUnit.SECONDS).exceptionally(failure->null).join();
-        HttpRequest outgoing=request;
-        try {var body=JSON.readTree(frozenBody);outgoing=SwarmReportLinks.attach(request,body.path("diagnosticLog").asText(),automaticCapabilities(),System.currentTimeMillis());}
-        catch(Exception ignored){} // Public reporting remains available if optional linkage is unavailable.
-        var response=http.sendAsync(MandatoryDiagnostics.attach(outgoing),HttpResponse.BodyHandlers.ofInputStream()).get(30,TimeUnit.SECONDS);
-        try(var stream=response.body()) {
-            CompletableFuture.delayedExecutor(10,TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
-            byte[] bytes=stream.readNBytes(16385);
-            if(bytes.length>16384) throw new java.io.IOException("Unexpected receiver reply");
-            int code=response.statusCode();
-            return new AutomaticResult(interpret(code,new String(bytes,java.nio.charset.StandardCharsets.UTF_8),
-                response.headers().firstValue("Retry-After").orElse(""),System.currentTimeMillis()),
-                code>=400 && code<500 && code!=429);
-        }
+        return new AutomaticResult(new Result(false,ProjectStatus.RETIRED,"",0),true);
     }
     static HttpRequest request(BugReportPayload payload, String key, String token) {
         return request(payload, key, token, "");
@@ -85,14 +60,7 @@ public final class BugReportTransport {
             .POST(HttpRequest.BodyPublishers.ofByteArray((advertisesSettingsSupport(capabilities) ? payload : payload.withoutSettings()).json(diagnosticLog,automatic))).build();
     }
     public CompletableFuture<Boolean> supportsLogAttachments(String apiBaseUrl, String token) {
-        var request = HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/capabilities"))
-            .timeout(Duration.ofSeconds(10)).GET().build();
-        return http.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).thenApplyAsync(response -> {
-            try (var stream = response.body()) {
-                CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {try {stream.close();} catch(Exception ignored) {}});
-                return advertisesLogSupport(readCapabilities(response.statusCode(), stream));
-            } catch (Exception e) {return false;}
-        }).orTimeout(15, TimeUnit.SECONDS).exceptionally(e -> false);
+        return CompletableFuture.completedFuture(false);
     }
     /** Both manual and automatic reporting must accept the same bounded capability document. */
     static com.fasterxml.jackson.databind.JsonNode readCapabilities(int status, java.io.InputStream stream)
@@ -140,19 +108,7 @@ public final class BugReportTransport {
         return sendRelated(payload,key,diagnosticLog,0);
     }
     public CompletableFuture<Result> sendRelated(BugReportPayload payload,String key,String diagnosticLog,int relatedIssue) {
-        if(relatedIssue<0)return CompletableFuture.completedFuture(new Result(false,"Invalid related issue.","",0));
-        return CompletableFuture.supplyAsync(() -> {
-            try { return automaticCapabilities(); }
-            catch (Exception e) { return JSON.createObjectNode(); }
-        }).thenComposeAsync(capabilities -> {
-            if(relatedIssue>0&&!advertisesRelatedIssue(capabilities))
-                return CompletableFuture.completedFuture(new Result(false,"Attaching evidence is unavailable. Keep this preview and retry later; no new issue was created.","",0));
-            if (diagnosticLog != null && !diagnosticLog.isEmpty() && !advertisesLogSupport(capabilities))
-                return CompletableFuture.completedFuture(new Result(false,"Report service capabilities unavailable. Retry this prepared report later.","",0));
-            if (payload.settingsCode() != null && !payload.settingsCode().isEmpty() && !advertisesSettingsSupport(capabilities))
-                return CompletableFuture.completedFuture(new Result(false,"Settings attachment support unavailable. Keep this prepared report and retry later.","",0));
-            return sendSupported(payload,key,"",diagnosticLog,advertisesReporterKey(capabilities)?BugReporterKey.current():"",relatedIssue,capabilities);
-        });
+        return CompletableFuture.completedFuture(new Result(false,ProjectStatus.RETIRED,"",0));
     }
 
     static boolean advertisesRelatedIssue(com.fasterxml.jackson.databind.JsonNode capabilities) {
@@ -160,25 +116,7 @@ public final class BugReportTransport {
                 &&capabilities.path("relatedIssue").path("route").asText().equals("/v1/bugs/{issue}/evidence");
     }
     private CompletableFuture<Result> sendSupported(BugReportPayload payload, String key, String token, String diagnosticLog, String reporter,int relatedIssue,com.fasterxml.jackson.databind.JsonNode capabilities) {
-        try {
-            MandatoryDiagnostics.flushBeforeReport().orTimeout(3,TimeUnit.SECONDS).exceptionally(failure->null).join();
-            var outgoing=SwarmReportLinks.attach(request(payload,key,token,diagnosticLog,reporter,relatedIssue),diagnosticLog,capabilities,System.currentTimeMillis());
-            return http.sendAsync(MandatoryDiagnostics.attach(outgoing), HttpResponse.BodyHandlers.ofInputStream())
-                .thenApplyAsync(response -> {
-                    try (var body = response.body()) {
-                        CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
-                            try { body.close(); } catch (java.io.IOException ignored) { }
-                        });
-                        byte[] bytes = body.readNBytes(16385);
-                        if (bytes.length > 16384) return new Result(false, "Unexpected receiver reply. Retry later.", "", 0);
-                        String text=new String(bytes,java.nio.charset.StandardCharsets.UTF_8);
-                        String retry=response.headers().firstValue("Retry-After").orElse("");
-                        return relatedIssue==0?interpret(response.statusCode(),text,retry,System.currentTimeMillis())
-                                :interpretEvidence(response.statusCode(),text,retry,System.currentTimeMillis(),relatedIssue);
-                    } catch (Exception e) { return new Result(false, "Receiver reply unavailable. Retry later with this report.", "", 0); }
-                }).orTimeout(30, TimeUnit.SECONDS)
-                .exceptionally(e -> new Result(false, "Connection failed. Retry this report; its retry identifier is retained.", "", 0));
-        } catch (Exception e) { return CompletableFuture.completedFuture(new Result(false, "Report could not be sent. Nothing was uploaded.", "", 0)); }
+        return CompletableFuture.completedFuture(new Result(false,ProjectStatus.RETIRED,"",0));
     }
     static Result interpretEvidence(int code,String body,String retry,long now,int issue) {
         if(code==200||code==201) {

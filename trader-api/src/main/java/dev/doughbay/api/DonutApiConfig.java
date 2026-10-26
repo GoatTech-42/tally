@@ -14,6 +14,16 @@ public record DonutApiConfig(
         int requestTimeoutSeconds
 ) {
     public static final String DEFAULT_BASE_URL = "https://api.donutsmp.net";
+    /** Former project-hosted relays are retired; never send a saved key to them. */
+    public static boolean retiredService(String baseUrl) {
+        if(baseUrl==null)return false;
+        try {
+            String host=URI.create(baseUrl).getHost();
+            if(host==null)return false;
+            host=host.toLowerCase(java.util.Locale.ROOT);
+            return host.equals("gonuts.at")||host.endsWith(".gonuts.at")||host.equals("147.189.172.152");
+        } catch(IllegalArgumentException invalid){return false;}
+    }
     /** Conservative operating target below DonutSMP's published ceiling. */
     /**
      * What we aim to stay under. The published allowance is 250 a minute per
@@ -51,6 +61,7 @@ public record DonutApiConfig(
     }
 
     public DonutApiConfig {
+        if(retiredService(baseUrl))throw new IllegalArgumentException("The public GoNuts API relay is retired. Use local keyless mode or your own Donut API access.");
         if (baseUrl == null || baseUrl.isBlank()) {
             throw new IllegalArgumentException("API base URL is missing");
         }

@@ -163,8 +163,7 @@ public class DoughBayClient implements ClientModInitializer {
         Tuning.load(config.directory());
         SavedPresets.load(config.directory());
         StaffWatchReport.start(config.directory(), DoughBayClient::account);
-        AUTOMATIC_REPORTS = new AutomaticReportService(
-                net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(), BugReportBuild.current());
+        // Public reporting retired; local trading and recovery stay active.
         // What one account has ordered, collected and last counted is that
         // account's own. Clients sharing this folder each keep theirs under
         // their own name; in one file, each start read what the other wrote.
@@ -465,8 +464,7 @@ public class DoughBayClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_PAGE_UP,
                 category));
 
-        MandatoryDiagnostics.start(net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir(),BugReportBuild.current());
-        ClientTickEvents.END_CLIENT_TICK.register(MandatoryDiagnostics::tick);
+        DoughBayClient.LOGGER.info(ProjectStatus.NOTICE);
         ClientTickEvents.END_CLIENT_TICK.register(SidebarBalance::tick);
         ClientTickEvents.END_CLIENT_TICK.register(RegionMapReport::tick);
         dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.start(
@@ -923,12 +921,12 @@ public class DoughBayClient implements ClientModInitializer {
         UpdateCheck.Notice notice = UpdateCheck.takeNotice();
         net.minecraft.client.gui.screens.Screen entry=TutorialProgress.takeInitialOffer()?new StartHereScreen(main):main;
         if (HiveDiscovery.takeOffer()!=null) entry=new HiveDiscoveryScreen(entry);
-        client.gui.setScreen(switch (notice) {
+        client.gui.setScreen(PublicSupportNoticeScreen.firstOpen(switch (notice) {
             case NONE -> entry;
             case REAL -> new UpdateScreen(entry, UpdateScreen.Mode.UPDATE);
             case CHANGED -> new UpdateScreen(entry, UpdateScreen.Mode.CHANGED);
             case SAMPLE -> new UpdateScreen(entry, UpdateScreen.Mode.SAMPLE);
-        });
+        }));
     }
 
     /** The key that opens the mod's screen, as the player has it bound; "" before the keys exist. */

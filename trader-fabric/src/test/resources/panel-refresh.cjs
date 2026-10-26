@@ -20,7 +20,7 @@ async function scenario(status){
  const busy=await scenario(429);assert.match(busy.notice,/busy.*retry/i);assert.equal(busy.parsed,0);assert.equal(busy.pictures,0);
  const timeout=await scenario(504);assert.match(timeout.notice,/timed out.*retry/i);assert.equal(timeout.parsed,0);
  const offline=await scenario(503);assert.match(offline.notice,/link.*Minecraft.*retry/i);
- const large=await scenario(413);assert.match(large.notice,/too large.*Report bug/i);
+ const large=await scenario(413);assert.match(large.notice,/too large.*local error details/i);
  const denied=await scenario(401);assert.equal(denied.reloaded,1);assert.equal(denied.drawn,0);
  const okay=await scenario(200);assert.equal(okay.drawn,1);assert.equal(okay.pictures,1);assert.equal(okay.notice,'');
 })().catch(e=>{console.error(e);process.exitCode=1;});

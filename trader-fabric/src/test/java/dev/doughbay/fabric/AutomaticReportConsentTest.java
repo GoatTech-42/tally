@@ -7,14 +7,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class AutomaticReportConsentTest {
     @TempDir Path root;
     @AfterEach void clear(){Tuning.loadLocalFrom(null);}
-    @Test void consentCannotBeInheritedAndNewLocalFileCanSaveIt() throws Exception {
+    @Test void legacyConsentCannotEnableRetiredReporting() throws Exception {
         Path local=root.resolve("doughbay-local.json");
         Tuning.set("reports.auto_critical",1);
         Tuning.loadLocalFrom(local);
         assertEquals(0,Tuning.get("reports.auto_critical"));assertTrue(Tuning.thisClientOnly("reports.auto_critical"));
         Tuning.set("reports.auto_critical",1);
         assertTrue(Files.readString(local).contains("reports.auto_critical"));
-        Tuning.loadLocalFrom(local);assertEquals(1,Tuning.get("reports.auto_critical"));
+        Tuning.loadLocalFrom(local);assertEquals(0,Tuning.get("reports.auto_critical"));
         Tuning.loadLocalFrom(root.resolve("another-install.json"));assertEquals(0,Tuning.get("reports.auto_critical"));
     }
     @Test void deletedLocalConsentTurnsAutomaticReportingOff() throws Exception {

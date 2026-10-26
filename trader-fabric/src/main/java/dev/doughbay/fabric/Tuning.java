@@ -605,12 +605,9 @@ public final class Tuning {
                     + "nothing. This watches outcomes: stock held, session running, and yet nothing sold or listed "
                     + "for a long time (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
-            new Setting("reports.auto_critical", "Support", "Send critical bug reports automatically",
-                    "Off by default. On: this install sends sanitized diagnostics to public GitHub issues when a critical "
-                    + "persistence failure stays unresolved for 2 minutes, or eligible evasion recovery stalls for 5 minutes. "
-                    + "Requires receiver support for each incident type. Includes filtered log evidence, without player "
-                    + "names or private chat. Slow sales and normal waits are not reported. Maximum 3 new reports per day. "
-                    + "Enable only if you consent to background public reports (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+            new Setting("reports.auto_critical", "Support", "Public reporting retired",
+                      "Legacy setting retained for configuration compatibility. No reports or diagnostics are uploaded.",
+                      0, 0, 0, Kind.TOGGLE),
             new Setting("liveness.quiet_min", "Session", "Call it stalled after",
                     "Minutes with no sale and no new listing, while holding stock, before it says so. The median "
                     + "hold is a couple of minutes, so anything past this is a stall rather than a slow patch",

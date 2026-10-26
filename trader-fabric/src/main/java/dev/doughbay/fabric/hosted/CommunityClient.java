@@ -113,6 +113,7 @@ public final class CommunityClient {
     private ObjectNode pending;private Set<String> types=Set.of();private long nextUpload,nextQuery,nextCapabilities,nextStatus;private boolean serviceEnabled;private int failures;
     private CommunityClient(){}
     public synchronized void start(Path game,String build){
+        if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled()){status=dev.doughbay.fabric.ProjectStatus.RETIRED;return;}
         if(started)return;started=true;store=new CommunityStore(game);this.build=build;CommunityPerformance.INSTANCE.enable();
         worker.execute(()->{
             try{var config=store.read("settings.json");if(config!=null){enabled=config.path("enabled").asBoolean();guidanceConsent=config.path("guidanceEnabled").asBoolean(false);linkConsentApplied=config.path("linkConsentApplied").asBoolean(false);credential=config.path("credential").asText();contributor=config.path("contributorId").asText();registeredAccount=config.path("account").asText();
