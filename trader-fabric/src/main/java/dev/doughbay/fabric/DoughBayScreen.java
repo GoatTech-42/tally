@@ -380,6 +380,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private int itemsVisibleRows;
     private List<ItemEntry> itemsFrame = List.of();
     private String itemsHoveredId;
+    private Button itemsPriorityButton;
     /** Scroll offset for the Logs tab, in rows from the newest line. */
     private int logsScroll;
 
@@ -7657,6 +7658,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             rebuildWidgets();
         }).bounds(left + searchW + gap + filterW + gap, y, catW, 18).build());
 
+        itemsPriorityButton=CockpitButton.builder(Component.literal("Priority"),ignored->
+                this.minecraft.gui.setScreen(new ItemPriorityScreen(this,itemsSelected)))
+                .bounds(left,ui.bottom()-44,110,18).build();
+        itemsPriorityButton.active=!itemsSelected.isEmpty();addRenderableWidget(itemsPriorityButton);
+
         // Bottom action row: acts on every ticked item at once. Exclude /
         // Include / Clear edit the trade filter; Track / Untrack edit the watch
         // list; All / None manage the tick set.
@@ -7710,7 +7716,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 48;         // below search, counts and loadouts
-        int bottom = ui.bottom() - 28;           // leave the action row a strip
+        int bottom = ui.bottom() - 50;           // leave priority and item action rows
         List<ItemEntry> items = filteredItems();
         itemsFrame = items;
 
@@ -7737,6 +7743,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         itemsCols = cols;
         itemsVisibleRows = visibleRows;
 
+        if(itemsPriorityButton!=null)itemsPriorityButton.active=!itemsSelected.isEmpty();
         itemsHoveredId = null;
         int start = itemsScrollRow * cols;
         for (int r = 0; r < visibleRows; r++) {
@@ -7762,6 +7769,11 @@ public final class DoughBayScreen extends GoNutsScreen {
                 // A gold corner tick marks a tracked item even when a list colour
                 // or the selection frame already owns its border.
                 if (isTracked) graphics.fill(cx + cell - 6, cy + 1, cx + cell - 2, cy + 3, GOLD);
+                var priority=ItemPriorities.level(e.id());
+                if(priority!=ItemPriorities.Level.STANDARD){
+                    graphics.fill(cx+cell-9,cy+cell-10,cx+cell-1,cy+cell-1,0xDD10151D);
+                    graphics.text(font,priority==ItemPriorities.Level.HIGH?"H":"L",cx+cell-8,cy+cell-10,priority==ItemPriorities.Level.HIGH?GOLD:SECONDARY);
+                }
                 // A ticked item gets a bright frame over any list colour, so the
                 // selection reads even on an item already excluded or included.
                 if (ticked) graphics.outline(cx, cy, cell - 1, cell - 1, 0xFF5B9BFF);
@@ -7778,16 +7790,10 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         // The item under the cursor, named on the right of the count row, tinted
         // by which list it is already on.
-        if (itemsHoveredId != null) {
-            String bare = Tuning.normalizeItem(itemsHoveredId);
-            String info = MarketQueryClient.displayName(itemsHoveredId)
-                    + (listMatches(denySet, bare) ? " · EXCLUDED" : listMatches(allowSet, bare) ? " · INCLUDED" : "")
-                    + (trackedSet.contains(bare) ? " · TRACKED" : "");
-            String shown = truncate(info, width / 2);
-            graphics.text(this.font, shown, ui.innerRight() - this.font.width(shown), ui.contentTop() + 28,
-                    listMatches(denySet, bare) ? 0xFFE0553B : listMatches(allowSet, bare) ? GOOD
-                            : trackedSet.contains(bare) ? GOLD : TEXT);
-        }
+        String priorityInfo=itemsSelected.size()+" selected · High first · Low fallback";
+        if(itemsHoveredId!=null)priorityInfo=MarketQueryClient.displayName(itemsHoveredId)+" · Priority: "+ItemPriorities.level(itemsHoveredId).label();
+        graphics.text(font,UiTheme.fit(font,priorityInfo,Math.max(1,width-116)),x+116,ui.bottom()-39,SECONDARY);
+
     }
 
     // -------------------------------------------------------------- Logs tab

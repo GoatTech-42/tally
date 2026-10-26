@@ -311,3 +311,19 @@ if (project.hasProperty('itemLoadoutsSmoke')) {
     }
 }
 tasks.named('jar') { exclude '**/ItemLoadoutsGuiSmoke*.class' }
+
+// Disposable offline priority UI verification; never joins a server or ships in production.
+if (project.hasProperty('itemPrioritySmoke')) {
+    sourceSets.main.java.srcDir 'src/itemPrioritySmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.ItemPriorityGuiSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = project.findProperty('itemPriorityRunDir') ?: System.getenv('LOCALAPPDATA') + '/GoNuts/item-priority70-preview'
+        programArgs '--width', '1280', '--height', '960', '--username', 'OfflineFixture'
+    }
+}
+tasks.named('jar') { exclude '**/ItemPriorityGuiSmoke*.class' }
