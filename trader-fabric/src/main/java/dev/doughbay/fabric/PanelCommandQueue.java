@@ -55,9 +55,9 @@ final class PanelCommandQueue {
     synchronized boolean cancel(String id,Port port){Job j=jobs.get(id);if(j==null||!pending(j.status))return false;if(j.status.equals("WAITING")&&!port.cancel(id))return false;j.status="CANCELLED";j.note="Cancelled before sending";return true;}
     private static boolean pending(String state){return state.equals("QUEUED")||state.equals("WAITING");}
     static String normalize(String text) {
-        OutgoingCommandText.requireValid(text);
         if(text==null||text.length()>256||text.codePoints().anyMatch(c->Character.isISOControl(c)))throw new IllegalArgumentException("Use one command, at most 256 characters");
-        String command=text.strip();if(command.startsWith("/"))command=command.substring(1);
+        String command=text.replaceAll("^ +| +$", "");if(command.startsWith("/"))command=command.substring(1);
+        OutgoingCommandText.requireValid(command);
         String head=command.split(" ",2)[0].toLowerCase(Locale.ROOT);
         if(!Set.of("rtp","home","spawn","pay","bal","balance","msg","reply","r","help").contains(head))
             throw new IllegalArgumentException("Supported manual commands: /rtp, /home, /spawn, /pay, /bal, /balance, /msg, /reply and /help. Trading commands keep their normal controls.");

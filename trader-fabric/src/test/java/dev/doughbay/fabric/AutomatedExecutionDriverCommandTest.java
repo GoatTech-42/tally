@@ -13,6 +13,27 @@ class AutomatedExecutionDriverCommandTest {
     private final AutomatedExecutionDriver driver = new AutomatedExecutionDriver();
     private final FakeTransport transport = new FakeTransport();
 
+    @Test void decoratedItemNameNeverConstructsOrDispatchesASearchCommand() {
+        transport.menu = true;
+        for (String label : List.of("Cooked Chicken \ud83c\udf57", "Steak \ue001", "\u00a7aChicken", "Chicken/pay")) {
+            assertThrows(IllegalArgumentException.class, () -> driver.sendCommand(transport,
+                    "ah search " + ItemSearchText.forItem("minecraft:cooked_chicken", label), 100_000, 600));
+            assertTrue(transport.sent.isEmpty());
+            assertEquals(0, transport.closes);
+            assertFalse(driver.commandPending());
+        }
+    }
+
+    @Test void sharedSenderRefusesEverySpecialCharacterBeforeMenuCloseQueueOrDispatch() {
+        for (String command : List.of("ah search Chicken \ud83c\udf57", "pay Example_Player 123", "pay ExamplePlayer 1.5", "minecraft:msg ExamplePlayer hi", "msg ExamplePlayer caf\u00e9", "ah search Chicken;help", "msg ExamplePlayer hi!")) {
+            transport.menu = true;
+            assertThrows(IllegalArgumentException.class, () -> driver.sendCommand(transport, command, 100_000, 600));
+            assertTrue(transport.sent.isEmpty());
+            assertEquals(0, transport.closes);
+            assertFalse(driver.commandPending());
+        }
+    }
+
     @Test void illegalSearchTextIsRefusedBeforeSendingOrDeferring() {
         for (String command : List.of("ah search \u00a7aGold", "ah search gold\nhelp", "ah search gold\u007f")) {
             transport.menu = true;
