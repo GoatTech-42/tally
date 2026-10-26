@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 18:29 UTC
+
+- **PR #389: Retain spending committed to missing retail stock.** The existing bounded partial-stock write-off subtracted the missing portion's purchase cost even though no sale or refund was observed. That cost now stays committed while the verified present remainder continues through the normal retail queue. Existing repeated inventory checks, no-whole-writeoff behavior, split quantities/cost conservation, prices and recovery rules are unchanged.
+- The actual controller regression fails before and passes after: a synthetic lot of 127 items with 126 physically present still queues those 126 items after the bounded checks and conserves both split costs, without opening new spending headroom for the missing unit. Existing controller and retail regressions pass. Clean production build: **1,765 tests, zero failures/errors, two skipped**. No historical records/credits rewritten or live client installation/restart/settings changes. Related209's original first-page incident remains open and its affected recovery is not claimed.
+- Client artifact published **2026-10-26T18:29:00Z**. Build `1793038902759`; client SHA256 `fe06076117310e1d816810164027e4afef01f49aa69f04e7df7a25a3200bb201`. Source SHA256 `68bbd2f8188b6bebf398f389db38223923ea1e910b1bf92d0542b7579f474ca4`, published 2026-10-26T18:29:04Z. Public client/source/checksums independently downloaded and verified. PR389 merge `5da326e1d1ad20b3e531877a9bc8f13d518cdfbe`; tested source `79a177997fe4dcc0e5bee49ca744b8519308fb37`. Documentation only; PR387, PR385, PR383 and all earlier separately dated client publications remain below.
+
 ## 2026-10-26 18:04 UTC
 
 - **PR #387: Retain owned purchases after exact-stack preparation retries fail.** Repeated failed inventory swaps previously cancelled the purchase record and released its spending commitment whether stock was physically still present or absent. Failed preparation and inventory absence do not establish a sale, loss or cancelled ownership. The exact owned position and cost now remain in the ordinary guarded recovery hold; this refusal sends no listing. Existing bounded preparation, inventory/selected-slot checks and recovery gates remain authoritative.
