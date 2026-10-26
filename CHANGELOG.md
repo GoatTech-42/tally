@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-26 03:52 UTC
+
+- **PR #359: Prevent discovery probes from starving due order-source reads.** Investigating report #358 reproduced a scheduling defect: with a mostly empty auction book and no due reprice, optional discovery probes could repeatedly take the desk-first turn before an already-due public order-house read. That can delay the order/fill evidence used to find trades.
+- A due source read now gets its normal guarded turn while the optional probe remains queued for afterward. Owned-order maintenance keeps its existing priority. Fresh or disabled source schedules, own-price-only mode and recovery holds are respected. No scan intervals, human pacing, confidence/sample/ROI requirements, caps, spending, ownership, settings or credits are relaxed or reset.
+- Clean full build: **1,712 tests, zero failures/errors, two skipped**. Four actual controller/native-fixture regressions cover due-source fairness, non-due discovery, disabled-source discovery and owned-order maintenance. The due-source test fails on PR356 and passes after repair; all 42 native menu/controller tests pass.
+- Report #358 remains open pending affected-client verification. This is a reproduced related scheduling repair, not proof that all causes of no purchases are resolved or that profit is guaranteed. No live installation or restart accompanies publication.
+- Client artifact published **2026-10-26T03:52:10Z**. Build `1792986486690`; client SHA256 `9117a14af07572ce23aa6827265fcfe660e20eb3701a7c88a46744303d11ee5b`. Public client/source/checksums independently downloaded and verified. Source ZIP SHA256 `811b8e22e7f15341953f8ed1b58ad7814a23606377f94d034a0e8dbcc1ff6ec2`, published 2026-10-26T03:52:13Z. PR359 merge `1392a006a04972b7531624395eba7849f920700a`; tested source `d888d8503e513d9640fe6afee3afbd00a2a8e997`. This entry is documentation only; prior separately published builds remain preserved.
+
 ## 2026-10-26 02:32 UTC
 
 - **PR #356: Pace retries when the native order book is full.** A successful no-op saying the native book was full invalidated the complete book and immediately replanned another placement. A reproduced this loop while its native book contained 90 rows, 88 completed, and physical replenishment had stopped. Keep the complete read and pace new bids until the ordinary 90-second availability refresh.
