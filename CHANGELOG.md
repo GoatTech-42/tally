@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 19:54 UTC
+
+- **PR #395: Remove repeated item-filter parsing from scanning gates.** Buying eligibility checks previously rebuilt unchanged Included/Excluded/liquidation sets, often parsing Included twice, and scanned every token. Parsed sets now follow the exact saved text; exact selections and category suffixes use direct membership checks. Edits take effect immediately, and public item-set callers retain independent mutable copies. Item restrictions, price/quantity checks, ownership, spending/capacity and safety gates remain unchanged.
+- An actual production-filter allocation regression fails before and passes after. A bounded local experiment with 512 selected items and 2,000 buying gates measured **307,903,616 bytes / 369 ms before**, **643,616 bytes / 4 ms after**. These are local measurements, not a promised FPS gain or proof of report391's exact frame-time cause. Exact/category edits, denial, liquidation, focus and copy isolation plus existing native-watch/item-priority regressions pass. Clean production build: **1,779 tests, zero failures/errors, two skipped**. The report remains open; no live installation/restart/settings change or game GUI launch.
+- Client artifact published **2026-10-26T19:54:58Z**. Build `1793044254365`; client SHA256 `ea4c857582b19dc4984dc4fc0197393e4fafd70b0b05e8dee3c5d3c42f976aec`. Source SHA256 `87684c9cabad354dd2fd5c0203dce4bde1921ff41bf56780a61c61def0d80914`, published 2026-10-26T19:55:01Z. Public client/source/checksums independently downloaded and verified. PR395 merge `c8793f500cf4802654f2ab756485dfaae1db23d5`; tested source `8958073689730019b7046f61a843af0033b55720`. Documentation only; PR393 and every earlier separately dated client publication remain below.
+
 ## 2026-10-26 19:33 UTC
 
 - **PR #393: Persistent High / Standard / Low item priorities.** Open **B → Trading → Items**, select items, choose **Priority**, then High, Standard or Low. High ranks eligible new opportunities and own buy bids first; Standard preserves normal ranking; Low remains enabled as fallback. H/L item badges and hover details show the preference, and it persists across sessions. Existing item restrictions, live price/quantity checks, ownership, spending/capacity limits and owned stock/order maintenance remain authoritative.
