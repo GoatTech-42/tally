@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 02:32 UTC
+
+- **PR #356: Pace retries when the native order book is full.** A successful no-op saying the native book was full invalidated the complete book and immediately replanned another placement. A reproduced this loop while its native book contained 90 rows, 88 completed, and physical replenishment had stopped. Keep the complete read and pace new bids until the ordinary 90-second availability refresh.
+- Collections and existing owned-order maintenance remain available during the bounded new-bid cooldown. No orders/history are canceled or erased; no credits, ownership, quantities, prices, settings, caps or guards are reset. This repairs the rapid retry loop only. The underlying native creation availability and A's replenishment remain unresolved; no whole-incident recovery or extra usable capacity is claimed. No live installation or restart accompanies publication.
+- Clean full build: **1,708 tests, zero failures/errors, two skipped**. Three controller regressions verify retained evidence/no fabricated bid, bounded retry and collections during the cooldown; the first two fail before the repair.
+- Client artifact published **2026-10-26T02:32:47Z**. Build `1792981761875`; client SHA256 `493a7a78e2d044dc0e3a5f2ac6ce1aa5a98b853362cdd7685069a607946fd9d9`. Public client/source/checksums independently downloaded and verified. Source ZIP SHA256 `af0be33d0a41987a786c8888e19fa0845b3a3ba137d38f7215a6ec8a0e152a42`, published 2026-10-26T02:32:49Z. PR356 merge `b707f3888976ead6ef6c1a9464a2825bbd5b025f`; tested source `cfc98d48910d6e1236970e3839ad6c7b0109799d`. This entry is documentation only; previous separately published updates remain preserved.
+
 ## 2026-10-26 01:05 UTC
 
 - **PR #354: Read the disabled 27-slot section of Your Orders.** Recognize the native 18 available / 27 disabled red-pane layout without requiring upgrade advertising. PR352 still reproduced 27 rejected items and zero rows with blank or ordinary disabled labels; the actual Minecraft menu regressions now complete empty and mixed books and retain owned rows from earlier pages.
