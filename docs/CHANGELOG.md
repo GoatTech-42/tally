@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 17:11 UTC
+
+- **PR #381: Retain queued purchases until verified recovery.** Investigation of report209 reproduced a current scanner defect: a queued PURCHASED position older than thirty minutes was canceled and its purchase cost subtracted from committed spending solely because its item was absent from inventory. Age and inventory absence do not establish its auction outcome. The exact position and spending commitment now remain in the existing guarded recovery path, as for a newer queued purchase.
+- The actual scanner regression fails before and passes after. Seven new offline controller/native-navigation cases cover completed vacant own-listings checks, bounded navigation retries, unreadable pages, durable confirmation, retained player stop/caps and returning inventory. Clean production build: **1,753 tests, zero failures/errors, two skipped**. No historical records are rewritten; no settings, ownership, spending/exposure/price caps or confirmation gates are relaxed. No live installation/restart accompanies publication. Original209 first-page stall and affected recovery remain unverified; the report stays open.
+- Client artifact published **2026-10-26T17:11:24Z**. Build `1793034376521`; client SHA256 `01e57c070b4a0fffb0ecce2d5aec9028111e9386bc020ec41b18149e055448aa`. Source SHA256 `aef48e78dee34baa5caa41d19f4eaf0ec5a08bfd27cc7e243c41737b94b76df5`, published 2026-10-26T17:11:24Z. Public client/source/checksums independently downloaded and verified. PR381 merge `6d44df9b07e37f68f6b7f0fee9a2d9b3d2e3a00d`; tested source `a37154051f4c611c61f52678555214b4ed3ff328`. Documentation only; PR379, PR377 and all earlier separately published client updates remain dated below.
+
 ## 2026-10-26 16:26 UTC
 
 - **PR #379: Continue allowed Follow requests after unsupported names are refused.** Investigation of report265 reproduced a current queue defect: 126 of the 500 bundled Follow names are unsupported by the owner's strict ASCII command policy. Passing one to the defensive refusal stopped the whole queue and left later allowed requests unattempted. Known-bot, automatic-counterparty and retry selection now refuse each unsupported name before handoff and continue allowed intent; status reports policy refusals separately from server-confirmed outcomes and names waiting.
