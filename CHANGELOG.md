@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 10:20 UTC
+
+- **PR #366: Separate audited historical receipts from current native stock exposure.** PR363 physically collected 192 items and preserved the receipt. When that completed row disappeared, the cumulative receipt exceeded the smaller visible cohort. Existing capital/Reserve Stock checks interpreted this as unknown exposure and blocked bids. That safety hold prevented spending; boot/collection alone did not establish recovery.
+- Keep all durable receipt history intact. For explicitly physically audited keys, credit none of those historical receipts against another visible row in the derived current-book view. Conservatively reserve all current deliveries and unfilled funds, and collect only through ordinary native matching/quantity/inventory/shelf/capacity guards. Native row disappearance removes its visible stock. Oversized unmarked credits, negative counters and incomplete books retain existing refusals. No records, credits, settings, caps or guards are reset.
+- Clean full build: **1,721 tests, zero failures/errors, two skipped**. Two new actual controller regressions cover the failing-before capital hold, conservative visible/partially filled stock exposure, collection planning, preserved receipts and corrupt/incomplete evidence guards. All 46 native menu/controller regressions pass. Live recovery and sustained profitability require separate verification; no live installation accompanies publication. PR363 remains a separate dated client update below.
+- Client artifact published **2026-10-26T10:20:44Z**. Build `1793009842276`; client SHA256 `ec7d32edbcf1f052fb215c63e12f438d6360b03fe0ed23cbffe8de65a9cfb0b6`. Public client/source/checksums independently downloaded and verified. Source SHA256 `d0b876e3b17110224e8c18e8c12227beb92d658e13985dc344e4e5c6d1aedb8f`, published 2026-10-26T10:20:46Z. PR366 merge `32fa5aba30672af916cffb2bf3e6149889f70470`; tested source `5e9d40d2d7391729d7b3ee29d6bbb12fc9c37bef`. Documentation only; prior dated entries preserved.
+
 ## 2026-10-26 10:01 UTC
 
 - **PR #363: Inspect completed native stock hidden by pooled historical credits.** A live completed order still held 192 physical items even though credits shared by identical item/price/quantity rows covered the visible delivered total. The planner skipped those goods and reached repeated full-history placement responses. Parsed completed history is not an active-order count.
