@@ -11355,33 +11355,18 @@ public final class AutomationSessionController {
                 String stuckKey = trackedPosition == null ? "" : trackedPosition.itemKey();
                 if (!retailLots.containsKey(trackedPosition.positionId())
                         && !stuckKey.isEmpty() && unpreparableItems.merge(stuckKey, 1, Integer::sum) > 6) {
-                    // Setting it aside in memory was not enough: the position is
-                    // read back from the ledger on the next pass and prepared
-                    // again, so the same phantom trident was set aside twelve
-                    // times in six minutes and wrote a row on every cycle. If
-                    // the stack is not in the inventory at all then it is gone -
-                    // sold by hand, dropped, or lost - and the position is
-                    // closed for good rather than prepared for ever.
-                    // Whether or not it is still in the inventory, the ledger
-                    // must stop tracking it: keeping the position only means it
-                    // is picked up and prepared again on the next pass, which is
-                    // how the same trident was set aside twelve times in six
-                    // minutes and wrote a row every cycle. The item itself stays
-                    // where it is for a person to list; the record does not.
+                    // Exhausting preparation attempts proves a swap did not
+                    // verify, not that an owned purchase ceased to exist or sold.
+                    // Keep its exact record and committed cost in recovery.
                     boolean here = uniqueExactPlainSlot(client, stuckKey, trackedPosition.quantity()) >= 0
                             || inventoryContainsItem(client, baseItemId(stuckKey));
                     setAsideItems.add(stuckKey);
-                    // A prepare failure is often transient; record it so the
-                    // cooldown retry can release it rather than strand it for good.
                     preparationSetAsideAt.put(stuckKey, System.currentTimeMillis());
                     preparationSetAsideRounds.merge(stuckKey, 1, Integer::sum);
-                    closePhantom(trackedPosition, here
-                            ? "it will not go into the reserved slot; it stays in the inventory to be listed by hand"
-                            : "the stack is not in the inventory; it is gone");
-                    trackedPosition = null;
-                    positionValuation = null;
                     prepareRetries = 0;
-                    transition(State.SCANNING, "Set aside a stack that would not prepare; scanning");
+                    pauseInternal(here
+                            ? "Owned stack did not verify in the reserved slot; stock record and spending retained for recovery"
+                            : "Owned stack is not verified in inventory; stock record and spending retained for reconciliation");
                     return;
                 }
                 if (prepareRetries < PREPARE_MAX_RETRIES) {

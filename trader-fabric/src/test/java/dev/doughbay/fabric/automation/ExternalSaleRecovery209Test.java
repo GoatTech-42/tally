@@ -127,6 +127,34 @@ class ExternalSaleRecovery209Test {
         }
     }
 
+    @Test void preparationRetryExhaustionCannotCancelStockStillInInventory() throws Exception {
+        preparationRetryRetainsOwnedPurchase(true);
+    }
+    @Test void preparationRetryExhaustionCannotTreatMissingStockAsAnOutcome() throws Exception {
+        preparationRetryRetainsOwnedPurchase(false);
+    }
+    private void preparationRetryRetainsOwnedPurchase(boolean present) throws Exception {
+        var f=new Fixture();Object previous=field(Minecraft.class,"instance").get(null);
+        try {
+            field(Minecraft.class,"instance").set(null,f.mc);
+            field(Minecraft.class,"gui").set(f.mc,allocate(net.minecraft.client.gui.Gui.class));
+            f.mc.gameMode=allocate(net.minecraft.client.multiplayer.MultiPlayerGameMode.class);
+            Position owned=(Position)get(f.c,"trackedPosition");
+            if(present)f.mc.player.getInventory().setItem(20,new ItemStack(Items.GOLDEN_APPLE));
+            set(f.c,"state",AutomationSessionController.State.PREPARING_LIST);
+            set(f.c,"preparationStartedAtMillis",f.now);set(f.c,"preListMarketVerified",true);
+            set(f.c,"preListVerifiedScanStartedAt",f.now);set(f.c,"swapIssuedAtTick",0L);set(f.c,"controllerTick",20L);
+            set(f.c,"prepareRetryPositionId",owned.positionId());
+            @SuppressWarnings("unchecked") var failures=(Map<String,Integer>)get(f.c,"unpreparableItems");failures.put(owned.itemKey(),6);
+            var prepare=f.c.getClass().getDeclaredMethod("prepareAndList",Minecraft.class,MarketWatcher.Snapshot.class,long.class);
+            prepare.setAccessible(true);prepare.invoke(f.c,f.mc,null,f.now);
+            assertTrue(f.p.writes.stream().noneMatch(w->w.position()!=null&&w.position().status().isClosed()),"Failed preparation is not proof of sale, loss or cancelled ownership");
+            assertEquals(12345L,get(f.c,"committedSpend"));assertEquals(owned,get(f.c,"trackedPosition"));
+            assertEquals(AutomatedExecutionDriver.OperationIntent.NONE,f.d.operationIntent());
+            assertEquals(AutomationSessionController.State.PAUSED,f.c.snapshot().state());
+        } finally {field(Minecraft.class,"instance").set(null,previous);}
+    }
+
     private static final class Fixture {
         final AutomatedExecutionDriver d=new AutomatedExecutionDriver();
         final AutomationSessionController c=new AutomationSessionController(d);
