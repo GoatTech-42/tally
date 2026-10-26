@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 10:01 UTC
+
+- **PR #363: Inspect completed native stock hidden by pooled historical credits.** A live completed order still held 192 physical items even though credits shared by identical item/price/quantity rows covered the visible delivered total. The planner skipped those goods and reached repeated full-history placement responses. Parsed completed history is not an active-order count.
+- After a full-history response, queue one paced native audit requiring fresh complete ownership evidence. Retain native matching, bounded duplicate-row rotation/empty attempts, inventory/shelf/auction-capacity and whole-stack quantity guards. Only successful physical transfer adds credit. Preserve physical receipts across smaller visible cohorts/reload in the same atomically replaced existing credit file with backward-compatible metadata. No records/history/settings/ownership/credits/limits reset.
+- Clean full build: **1,719 tests, zero failures/errors, two skipped**. Three new controller/persistence/guard regressions include the failing-before path; all 46 native menu/controller regressions pass, including actual 192-item transfer. Live collection, active capacity and sustained profitability require separate verification. No live installation accompanies publication.
+- Client artifact published **2026-10-26T10:01:54Z**. Build `1793008710088`; client SHA256 `22963601096abaced8b10c04d51b74e3de89399cb1a90e57b2f743d3267ec737`. Public client/source/checksums independently downloaded and verified. Source SHA256 `3dcf544da8f2c5573c4b20cf4730eb955048413cd7a7337e199696ddcee44439`, published 2026-10-26T10:01:59Z. PR363 merge `c2f93c78a07cbc68e57a2b1591b3f532120b535d`; tested source `d894be84a6e658b91b6c0176cfd9da6e7f1697b5`. Documentation only; all separately published dated entries remain below.
+
 ## 2026-10-26 04:08 UTC
 
 - **PR #361: Handle an answered empty Collect control without navigation recovery.** Live native evidence showed the exact system reply `You have no items to collect!` after a matched owned Collect control, while Edit Order remained open and inventory stayed unchanged. The driver ignored this answer, later called it a missing menu and fed navigation/server-failure holds.
