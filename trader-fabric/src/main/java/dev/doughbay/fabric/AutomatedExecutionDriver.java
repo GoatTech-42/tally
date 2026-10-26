@@ -646,12 +646,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 List.of(), null,
                 "Preflight search is running; no GUI input will be sent");
 
-        String command = "ah search " + searchTermFor(requested);
+        String command = "";
         try {
+            command = "ah search " + searchTermFor(requested);
             sendCommand(client, command);
         } catch (RuntimeException e) {
-            String failure = "DRY RUN FAILED: could not send /" + command
-                    + "; no GUI input was sent";
+            String failure = command.isEmpty() ? "DRY RUN FAILED: " + e.getMessage() + "; no command or GUI input was sent"
+                    : "DRY RUN FAILED: could not send /" + command + "; no GUI input was sent";
             lastPreflightReport = reportFor(requested, PreflightOutcome.FAILED,
                     List.of(), null, failure);
             publishTerminal(TerminalOutcome.ABORTED, failure);
@@ -2251,11 +2252,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         inventoryCountBefore = countInventory(client, itemId);
         deliverStage = 0;
         deliverUnitPrice = unitPrice;
-        deliverSearch = searchTermForItemId(itemId);
+        deliverSearch = "";
         deliverExpectedTotal = unitPrice * requested.quantity();
         deliverSettleUntilTick = 0;
         deliverReceipt = "";
         try {
+            deliverSearch = searchTermForItemId(itemId);
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
@@ -2320,11 +2322,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         lastCapturePath = null;
         deliverStage = 0;
         deliverUnitPrice = 0;
-        deliverSearch = searchTermForItemId(canonical);
+        deliverSearch = "";
         deliverExpectedTotal = 0;
         deliverSettleUntilTick = 0;
         deliverReceipt = "";
         try {
+            deliverSearch = searchTermForItemId(canonical);
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
@@ -3016,15 +3019,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
         prepareOpportunity(client, requested, Operation.BUY);
 
-        String command = "ah search " + searchTermFor(requested);
+        String command = "";
         try {
+            command = "ah search " + searchTermFor(requested);
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
                     "Could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start automated buy", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -3118,15 +3122,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         confirmationCaptureTaken = false;
         lastCapturePath = null;
 
-        String command = "ah search " + searchTermForItemId(canonical);
+        String command = "";
         try {
+            command = "ah search " + searchTermForItemId(canonical);
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
                     "Could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start screen-driven buy", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -3207,9 +3212,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         confirmationCaptureTaken = false;
         lastCapturePath = null;
 
-        watchSearchTerm = searchTerm == null ? "" : searchTerm.strip();
+        watchSearchTerm = "";
         watchPagesOverride = Math.max(0, pages);
         try {
+            if (searchTerm != null && !searchTerm.isEmpty()) watchSearchTerm = ItemSearchText.requirePlain(searchTerm);
             sendCommand(client, watchSearchTerm.isEmpty() ? "ah" : "ah search " + watchSearchTerm);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
@@ -3445,14 +3451,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         listingCaptureTaken = false;
         confirmationCaptureTaken = false;
         lastCapturePath = null;
-        String command = "ah search " + searchTermForItemId(canonical);
+        String command = "";
         try {
+            command = "ah search " + searchTermForItemId(canonical);
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED, "Could not send the auction search");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
@@ -5781,8 +5788,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         huntLooksRemaining--;
         // Not every look is worth a screenshot; the page that gets clicked is.
         huntedSinceCapture = true;
-        String command = "ah search " + searchTermForItemId(targetItemId);
+        String command = "";
         try {
+            command = "ah search " + searchTermForItemId(targetItemId);
             sendCommand(client, command);
         } catch (RuntimeException e) {
             abort(client, "Could not re-send the auction search while hunting");
@@ -5852,8 +5860,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         confirmationContainerId = -1;
         listingCaptureTaken = false;
         confirmationCaptureTaken = false;
-        String command = "ah search " + searchTermForItemId(targetItemId);
+        String command = "";
         try {
+            command = "ah search " + searchTermForItemId(targetItemId);
             sendCommand(client, command);
         } catch (RuntimeException e) {
             abort(client, "Could not re-send the auction search after a vanished listing");
@@ -7677,16 +7686,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     /** The /ah search term for a canonical item id. */
     static String searchTermForItemId(String canonical) {
-        String bare = canonical.substring(canonical.indexOf(':') + 1);
-        String fromId = bare.replace('_', ' ');
-
         // The auction house searches display names, and Minecraft's do not
         // always follow the id: minecraft:iron_block reads "Block of Iron",
         // not "Iron Block", so an id-derived term finds nothing. Ask the
-        // registry for the real name and fall back to the id when the client
-        // has never heard of the item.
+        // registry for the real name then validate the label before command construction.
+        // Pack decorations and all non-alphanumeric characters are refused, not stripped.
         String displayName = displayNameFor(canonical);
-        return displayName.isEmpty() ? fromId : displayName;
+        return ItemSearchText.forItem(canonical, displayName);
     }
 
     /** The client's display name for an item id, or "" when unknown. */

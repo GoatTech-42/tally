@@ -5,9 +5,11 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PanelCommandQueueTest {
-    @Test void rejectsFormattingCodesButPreservesAllowedUnicode() {
+    @Test void rejectsFormattingUnicodeAndPunctuationBeforeQueueing() {
         assertThrows(IllegalArgumentException.class, () -> PanelCommandQueue.normalize("/msg ExamplePlayer \u00a7ahello"));
-        assertEquals("msg ExamplePlayer caf\u00e9 \u91d1", PanelCommandQueue.normalize("/msg ExamplePlayer caf\u00e9 \u91d1"));
+        for (String command : List.of("/msg ExamplePlayer caf\u00e9 \u91d1", "/pay Example_Player 123", "/pay ExamplePlayer 1.5", "/msg ExamplePlayer hi!"))
+            assertThrows(IllegalArgumentException.class, () -> PanelCommandQueue.normalize(command));
+        assertEquals("msg ExamplePlayer hello123", PanelCommandQueue.normalize("/msg ExamplePlayer hello123"));
     }
     static class Port implements PanelCommandQueue.Port {
         String blocker="Native action still in progress";Object connection;final List<String> sent=new ArrayList<>();final Map<String,String> state=new HashMap<>();boolean fail;
