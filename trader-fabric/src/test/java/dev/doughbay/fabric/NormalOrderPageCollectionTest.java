@@ -61,6 +61,39 @@ class NormalOrderPageCollectionTest {
         field(type,"serverListedAt").setLong(c,0);field(type,"staffTransferHold").setBoolean(c,true);scan.invoke(c,f.client,null,now);
         assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"A native transfer hold remains authoritative");
     }
+
+    @SuppressWarnings({"unchecked","rawtypes"})
+    private void discoverySourceAdmission(boolean due,boolean sourceEnabled,boolean ownRead) throws Exception {
+        double enabled=Tuning.get("orders.enabled"),bid=Tuning.get("orders.bid"),only=Tuning.get("prices.only");
+        try {
+            ServerStrain.reset();
+            Tuning.set("orders.enabled",sourceEnabled?1:0);Tuning.set("orders.bid",1);Tuning.set("prices.only",0);
+            var f=fixture(false);setOperation(f.driver,"NONE");
+            var inventory=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
+            field(Player.class,"inventoryMenu").set(f.client.player,inventory);f.client.player.containerMenu=inventory;
+            field(Gui.class,"screen").set(f.client.gui,null);
+            var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
+            long now=1_000_000;
+            field(type,"ordersScheduleSeeded").setBoolean(c,true);
+            field(type,"nextOrdersReadAt").setLong(c,due?now-1:now+60_000);
+            Class<?> action=Class.forName(type.getName()+"$DeskAction"),step=Class.forName(type.getName()+"$DeskStep");
+            var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+            var queue=(Deque<Object>)field(type,"deskQueue").get(c);
+            Object queued=ctor.newInstance(Enum.valueOf((Class)action,ownRead?"READ":"SWEEP"),"minecraft:stone",64,0L,"fixture discovery");queue.add(queued);
+            var start=type.getDeclaredMethod("startDeskAction",Minecraft.class,MarketWatcher.Snapshot.class,long.class);start.setAccessible(true);
+            start.invoke(c,f.client,null,now);
+            boolean mustYield=due&&sourceEnabled&&!ownRead;
+            assertEquals(mustYield,queue.contains(queued),"A due public source read must keep optional discovery queued for afterward; owned reads keep their normal turn");
+            var swept=(Map<String,Long>)field(type,"sweptAt").get(c);
+            assertEquals(mustYield||ownRead?0L:now,swept.getOrDefault("minecraft:stonex64",0L));
+            assertEquals(AutomatedExecutionDriver.OperationIntent.NONE,f.driver.operationIntent(),"Execution-disabled fixture must never send native input");
+        } finally {Tuning.set("orders.enabled",enabled);Tuning.set("orders.bid",bid);Tuning.set("prices.only",only);ServerStrain.reset();}
+    }
+    @Test void duePublicOrderReadCannotBeStarvedByAnotherDiscoveryProbe() throws Exception {discoverySourceAdmission(true,true,false);}
+    @Test void discoveryKeepsItsTurnWhenTheSourceReadIsNotDue() throws Exception {discoverySourceAdmission(false,true,false);}
+    @Test void disabledPublicSourceDoesNotHoldDiscoveryForever() throws Exception {discoverySourceAdmission(true,false,false);}
+    @Test void duePublicSourceDoesNotDisplaceOwnedOrderMaintenance() throws Exception {discoverySourceAdmission(true,true,true);}
+
     @org.junit.jupiter.api.BeforeAll static void bootstrap(){
         SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
         net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
