@@ -298,6 +298,46 @@ class NormalOrderPageCollectionTest {
         assertEquals(0,f.driver.lastOwnReadUnparsedCount());assertTrue(f.driver.lastOwnOrders().isEmpty());
     }
 
+    @Test void baseRankEighteenAvailableAndTwentySevenDonutPlusTilesComplete() throws Exception {
+        var f=fixture(false);fillBaseRankPage(f,0);read(f);settle(f);read(f);
+        assertEquals(0,f.driver.lastOwnReadUnparsedCount(),"The base-rank upgrade controls must not become 27 unparsed orders");
+        assertTrue(f.driver.lastOwnOrdersComplete());assertTrue(f.driver.lastOwnOrders().isEmpty());
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,f.driver.lastTerminalEvent().outcome());
+        assertTrue(((RecordingGameMode)f.client.gameMode).slots.isEmpty());
+    }
+
+    @Test void baseRankUpgradeRetainsRealOrdersAndNeverBecomesPlacementCapacity() throws Exception {
+        var f=fixture(false);fillBaseRankPage(f,3);read(f);settle(f);read(f);
+        assertTrue(f.driver.lastOwnOrdersComplete());assertEquals(3,f.driver.lastOwnOrders().size());
+        assertEquals(0,f.driver.lastOwnReadUnparsedCount());
+        var locked=fixture(false);fillBaseRankPage(locked,0);
+        for(int i=0;i<18;i++)locked.screen.getMenu().slots.get(i).set(ItemStack.EMPTY);
+        setOperation(locked.driver,"PLACE_ORDER");read(locked);settle(locked);read(locked);
+        assertTrue(((RecordingGameMode)locked.client.gameMode).slots.stream().allMatch(slot->slot<18),"Only the eighteen available slots may be clicked; rank controls must not become capacity");
+    }
+
+    @Test void malformedRedPaneOrderBesideBaseRankControlsStillRefuses() throws Exception {
+        var f=fixture(false);fillBaseRankPage(f,0);
+        var tile=f.screen.getMenu().slots.get(18).getItem();
+        tile.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Buy Donut+ for even more order slots"),Component.literal("unknown requested"),Component.literal("$100 each"))));
+        read(f);settle(f);read(f);
+        assertFalse(f.driver.lastOwnOrdersComplete());assertEquals(1,f.driver.lastOwnReadUnparsedCount());
+        assertEquals(AutomatedExecutionDriver.TerminalOutcome.ABORTED,f.driver.lastTerminalEvent().outcome());
+    }
+
+    private static void fillBaseRankPage(Fixture f,int realOrders) {
+        for(int i=realOrders;i<18;i++) {
+            var tile=new ItemStack(Items.STAINED_GLASS_PANE.gray());
+            tile.set(DataComponents.CUSTOM_NAME,Component.literal("New Order"));f.screen.getMenu().slots.get(i).set(tile);
+        }
+        for(int i=18;i<45;i++) {
+            var tile=new ItemStack(Items.STAINED_GLASS_PANE.red());
+            tile.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
+            tile.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Buy Donut+ for even more order slots"))));
+            f.screen.getMenu().slots.get(i).set(tile);
+        }
+    }
+
     private static void fillLockedSlots(Fixture f,int from) {
         for(int i=from;i<45;i++) {
             var tile=new ItemStack(Items.BARRIER);tile.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));

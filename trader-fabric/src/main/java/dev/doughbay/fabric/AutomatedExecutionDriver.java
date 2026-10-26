@@ -1218,14 +1218,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private boolean lockedOwnOrderSlot(Minecraft client, ItemStack stack) {
         String name=stack.getHoverName().getString().strip().toLowerCase(Locale.ROOT)
                 .replace('|',' ').replaceAll("\\s+"," ").strip();
-        String upgrade="buy donut++ for even more order slots";
-        if (!name.equals("max orders") && !name.equals("max orders "+upgrade)) return false;
-        boolean upgradeSeen=name.equals("max orders "+upgrade);
+        var upgrades=java.util.Set.of("buy donut+ for even more order slots",
+                "buy donut++ for even more order slots");
+        boolean upgradeSeen=upgrades.stream().anyMatch(upgrade->name.equals("max orders "+upgrade));
+        if (!name.equals("max orders") && !upgradeSeen) return false;
         for (String raw:tooltipLines(client,stack)) {
             String line=raw.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+"," ");
             // A malformed real order must not become an empty slot because its name resembles a control.
             if (line.contains("requested") || line.contains("delivered") || ORDER_PRICE.matcher(line).find()) return false;
-            if (line.equals(upgrade) || line.equals("max orders | "+upgrade)) upgradeSeen=true;
+            if (upgrades.stream().anyMatch(upgrade->line.equals(upgrade) || line.equals("max orders | "+upgrade))) upgradeSeen=true;
         }
         return upgradeSeen;
     }
