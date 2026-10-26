@@ -13,6 +13,13 @@ class AutomatedExecutionDriverCommandTest {
     private final AutomatedExecutionDriver driver = new AutomatedExecutionDriver();
     private final FakeTransport transport = new FakeTransport();
 
+    @Test void rejectedBackgroundCommandCannotEscapeIntoMinecraftTick() {
+        for (String command : List.of("follow Example_Player", "follow .ExamplePlayer", "pay ExamplePlayer 1.5")) {
+            assertDoesNotThrow(() -> driver.sendWhenClear((net.minecraft.client.Minecraft)null, command));
+            assertFalse(driver.externalCommandQueued());
+        }
+    }
+
     @Test void decoratedItemNameNeverConstructsOrDispatchesASearchCommand() {
         transport.menu = true;
         for (String label : List.of("Cooked Chicken \ud83c\udf57", "Steak \ue001", "\u00a7aChicken", "Chicken/pay")) {
