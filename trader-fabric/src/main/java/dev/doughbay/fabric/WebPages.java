@@ -269,6 +269,7 @@ public final class WebPages {
             g.put("name", group);
             ArrayNode rows = g.putArray("settings");
             for (Tuning.Setting s : Tuning.SETTINGS.stream().sorted(java.util.Comparator.comparingInt(st->SettingsSection.priority(st.key()))).toList()) {
+                if(s.key().equals("reports.auto_critical"))continue;
                 if (!SettingsSection.group(s.key(),s.group()).equals(group)) continue;
                 double v = Tuning.get(s.key());
                 ObjectNode row = rows.addObject();

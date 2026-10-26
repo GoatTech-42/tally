@@ -32,7 +32,7 @@ class SettingsFeedbackTest {
   assertEquals(SettingsSection.values().length,j.path("sections").size());
   var keys=new HashSet<String>();
   for(var group:j.path("groups"))for(var row:group.path("settings")){assertTrue(keys.add(row.path("key").asText()));assertDoesNotThrow(()->SettingsSection.valueOf(row.path("section").asText()));}
-  assertEquals(Tuning.SETTINGS.size(),keys.size());
+  assertEquals(Tuning.SETTINGS.size()-1,keys.size());assertFalse(keys.contains("reports.auto_critical"));
   for(var row:j.path("lists"))assertDoesNotThrow(()->SettingsSection.valueOf(row.path("section").asText()));
  }
  @Test void categoriesSeparateMoneyItemsSafetyAndDisplay(){

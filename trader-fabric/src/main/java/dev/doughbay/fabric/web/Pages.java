@@ -334,6 +334,7 @@ final class Pages {
      * searched, ticked and changed and not only looked at.
      */
     static final String APP = HEAD
+            + "<section class=\"panel\" role=\"note\"><strong>PUBLIC SUPPORT HAS ENDED</strong><p>After seven weeks, GoNuts is no longer publicly maintained or supported by its original developer. Fork the source to add features, change behavior or fix bugs. Swarm, hosted sign-in, reporting and diagnostic uploads are retired.</p><a href=\"https://github.com/cody-raves/Gonuts\" target=\"_blank\" rel=\"noopener noreferrer\">Source code and forks</a></section>"
             + "<header class=\"panel\"><img src=\"/logo.png\" alt=\"GoNuts\">"
             + "<span id=\"state\">...</span><span class=\"gap\"></span><span id=\"clock\"></span>"
             + "<form class=\"out\" method=\"post\" action=\"/logout\"><button type=\"submit\">Lock</button></form></header>"
@@ -717,8 +718,6 @@ final class Pages {
               settings: { label: 'Settings', open: openSettings },
               auction: { label: 'Auction settings', open: async()=>{S.section='AUCTION';await openSettings();} },
               orders: { label: 'Order settings', open: async()=>{S.section='ORDERS';await openSettings();} },
-              dashboard: { label: 'Dashboard', open: openDashboard },
-              savings: { label: 'Swarm savings', open: openSwarmSavings },
               bots: { label: 'Hive & commands', open: openBots },
               analyzer: { label: 'Analyzer', open: openAnalyzer },
               evasion: { label: 'Evasion', open: openEvasion },
@@ -726,14 +725,9 @@ final class Pages {
               prices: { label: 'Flips', open: openPrices },
               rivals: { label: 'Rivals', open: openRivals },
               staff: { label: 'Staff Watch', open: openStaff },
-              reports: { label: 'Report bug', open: openReports },
               proxies: { label: 'Proxies', open: openProxies }
             };
             function show(name) {
-              if (name === 'dashboard' && hostedPanel) {
-                location.assign('https://gonuts.at/dashboard/');
-                return;
-              }
               view = OWN[name] ? name : '';
               try { history.replaceState(null, '', view ? '#' + view : location.pathname); } catch (e) { }
               $('pic').hidden = !!view;
@@ -770,13 +764,7 @@ final class Pages {
                 groups[group].appendChild(b);
               };
               const mine = name => add(OWN[name].label, view === name, () => show(name),destinations[name]);
-              mine('bots'); mine('savings'); mine('reports'); mine('proxies');
-              if (hostedPanel) {
-                const back = el('a', '', 'Dashboard');
-                back.href = 'https://gonuts.at/dashboard/';
-                groups.Trading.appendChild(back);
-                const option=el('option','','Dashboard');option.value='dashboard-home';mobileGroups.Trading.append(option);mobileActions.set(option.value,()=>location.assign(back.href));
-              } else mine('dashboard');
+              mine('bots'); mine('proxies');
               mine('analyzer');
               if(!options.some(o=>o.value==='TUNE')){mine('settings');mine('auction');mine('orders');mine('items');}
               for (const o of options) {
@@ -860,128 +848,11 @@ final class Pages {
             // ---- Settings: every setting the screen in game has, changed where it stands
             const S = { data: null, q: '', open: '', section: 'AUCTION', simple: true };
             let reportData = {}, reportTimer;
-            async function reportNotice() {
-              try {
-                reportData = await api('reports');
-                const box = $('reportalert');
-                box.hidden = !reportData.alert;
-                box.replaceChildren();
-                if (reportData.alert) box.append(el('p', '', reportData.notice),
-                  button('', 'Review report', () => show('reports')),
-                  button('', 'Dismiss', async () => { await change('reports', {action:'dismiss', incident:reportData.incident}); await reportNotice(); }));
-              } catch (e) { /* Panel status must continue when report status is unavailable. */ }
-            }
-            async function renderBugTracker(box, onAffected) {
-              const title = el('h3', '', 'Known bugs — check before reporting');
-              const state = el('p','muted','Loading the shared bug tracker…');
-              const rows = el('div');
-              const all = el('a','','View all bugs and affected-user votes');
-              all.href='https://gonuts.at/dashboard/bugs';all.target='_blank';all.rel='noopener noreferrer';
-              box.replaceChildren(title,state,rows,all);
-              try {
-                const response=await fetch('https://gonuts.at/dashboard/api/public/bugs',{credentials:'omit',signal:AbortSignal.timeout(5000)});
-                if(!response.ok)throw new Error('unavailable');
-                const text=await response.text();if(text.length>262144)throw new Error('too large');
-                const data=JSON.parse(text);if(!data.available||!data.snapshot)throw new Error('unavailable');
-                const stats=data.snapshot.stats||{},day=stats.last24h||{},totals=stats.totals||{};
-                const count=v=>Number.isSafeInteger(v)&&v>=0?String(v):'unknown';
-                state.textContent='Last 24h: '+count(day.newReports)+' reported · '+count(day.patchAvailable)+' with patches · '+count(day.confirmedResolved)+' confirmed resolved · '+count(day.unresolved)+' unresolved. Current unresolved: '+count(totals.unresolved)+'.'+(data.stale?' Snapshot is stale.':'');
-                const items=Array.isArray(data.snapshot.items)?data.snapshot.items:[];
-                const active=items.filter(i=>Number.isSafeInteger(i.issue)&&i.issue>0&&!['resolved','feature','closed_unfixed'].includes(i.status));
-                for(const item of active.slice(0,8)) {
-                  const row=el('div','bug-row');row.style.position='relative';row.style.padding='8px';row.style.borderBottom='1px solid var(--edge)';
-                  const brief=button('', '#'+item.issue+' '+String(item.summary||'Bug report').slice(0,100),()=>{tip.hidden=!tip.hidden;});
-                  brief.style.textAlign='left';brief.setAttribute('aria-expanded','false');
-                  const label=el('span','muted',' '+String(item.status||'unknown').replaceAll('_',' '));
-                  const tip=el('div','card');tip.hidden=true;tip.setAttribute('role','note');
-                  tip.textContent='Symptom: '+String(item.summary||'Awaiting triage').slice(0,240)+' · Cause: '+String(item.cause||'Not established').slice(0,180)+' · Patch: '+String(item.patch||'Not confirmed').slice(0,100)+' · Status: '+String(item.status||'unknown').replaceAll('_',' ');
-                  const toggle=show=>{tip.hidden=!show;brief.setAttribute('aria-expanded',String(show));};
-                  row.onmouseenter=()=>toggle(true);row.onmouseleave=()=>{if(!row.contains(document.activeElement))toggle(false);};
-                  brief.onfocus=()=>toggle(true);row.onfocusout=()=>setTimeout(()=>{if(!row.contains(document.activeElement))toggle(false);},0);
-                  brief.onclick=()=>toggle(tip.hidden);
-                  const affected=button('','I’m affected too',()=>onAffected(item.issue));
-                  const tally=item.affected||{};
-                  const votes=el('span','muted',' '+count(tally.people)+' users · '+count(tally.installations)+' installation reports');
-                  row.append(brief,label,affected,votes,tip);rows.appendChild(row);
-                }
-                if(!active.length)rows.appendChild(el('p','muted','No active bugs in this snapshot.'));
-                const time=new Date(data.generatedAt||data.snapshot.generatedAt);if(!isNaN(time))box.appendChild(el('p','muted','Updated '+time.toLocaleString()));
-              } catch(e) {state.textContent='Bug tracker unavailable. You can still report a new problem; counts are unknown.';}
-            }
-            async function openReports() {
-              clearTimeout(reportTimer);
-              if (view !== 'reports') return;
-              await reportNotice();
-              if (view !== 'reports') return;
-              const feature = el('a', '', 'Feature request');
-              feature.href = 'https://github.com/cody-raves/Gonuts/issues/new?template=feature-request.yml';
-              feature.target = '_blank'; feature.rel = 'noopener noreferrer';
-              const featureHelp = el('p', 'muted', 'Have an idea instead of a bug? Feature request opens the same public GitHub form as the in-game button. Nothing from this report is attached.');
-              const description = el('textarea'), expected = el('textarea');
-              description.maxLength = expected.maxLength = 1500;
-              description.rows = 5; expected.rows = 3;
-              description.style.width = expected.style.width = '100%';
-              description.style.boxSizing = expected.style.boxSizing = 'border-box';
-              description.value = reportData.description || '';
-              expected.value = reportData.expected || '';
-              const logLabel = el('p','muted','Sanitized diagnostic logs are included automatically.');
-              const privacy = el('p', 'muted', 'Reports are public on GitHub. Diagnostics remove player names, chat and personal details. Review the preview for anything sensitive you typed. Nothing is uploaded until you send. This reports the client hosting this panel.');
-              const status = el('p', '', ''), preview = el('pre', '', '');
-              preview.style.whiteSpace = 'pre-wrap'; preview.style.overflowWrap = 'anywhere';
-              let preparedId = '', blockedId = '', changedSinceSend = true;
-              let relatedIssue=Number.isSafeInteger(reportData.relatedIssue)&&reportData.relatedIssue>0?reportData.relatedIssue:0;
-              const related=el('p','muted',relatedIssue?'Attach diagnostics to existing bug #'+relatedIssue+' — no new issue.':'New bug report');
-              const resetRelated=button('', 'Report a different bug',()=>{relatedIssue=0;related.textContent='New bug report';send.textContent='Send report';changed();});
-              const tracker=el('section','card');
-              const fields = action => ({action, description:description.value, expected:expected.value, consent:'true',relatedIssue:String(relatedIssue)});
-              const send = button('', relatedIssue?'Attach reviewed diagnostics':'Send report', async () => {
-                clearTimeout(reportTimer);
-                send.disabled = true; changedSinceSend = false;
-                const form=relatedIssue?{action:'send',id:preparedId,reviewed:'true'}:fields('submit');
-                if(relatedIssue&&!preparedId){status.textContent='Preview and review these diagnostics before attaching.';send.disabled=false;return;}
-                const result = await change('reports', form);
-                if (!result || !result.ok) {
-                  status.textContent = result?.note || 'Report request failed. Please try again.';
-                  send.disabled = false; changedSinceSend = true; return;
-                }
-                status.textContent = result.note || 'Preparing report...';
-                poll();
-              });
-              const prepare = button('', 'Preview (optional)', async () => {
-                clearTimeout(reportTimer);
-                preparedId = ''; blockedId = ''; send.disabled = true; prepare.disabled = true;
-                const result = await change('reports', fields('prepare'));
-                if (!result || !result.ok) {
-                  status.textContent = result?.note || 'Preview request failed. Please try again.';
-                  prepare.disabled = false; send.disabled = false; return;
-                }
-                status.textContent = result.note || 'Preparing preview...';
-                poll();
-              });
-              const link = el('a', '', 'Open submitted issue'); link.hidden = true; link.rel = 'noopener noreferrer'; link.target = '_blank';
-              function changed() { blockedId = reportData.id || ''; preparedId = ''; changedSinceSend = true; send.disabled = false; preview.textContent = ''; }
-              description.oninput = expected.oninput = changed;
-              async function poll() {
-                clearTimeout(reportTimer);
-                if (view !== 'reports' || !status.isConnected) return;
-                try {
-                  const d = await api('reports'); reportData = d;
-                  status.textContent = d.note || '';
-                  prepare.disabled = !!d.busy;
-                  if (d.id && d.id !== preparedId && d.id !== blockedId && d.preview && !d.busy && (d.relatedIssue||0)===relatedIssue) {
-                    preparedId = d.id; preview.textContent = d.preview;
-                  }
-                  send.disabled = !!d.busy || !changedSinceSend && !!d.issueUrl || Date.now() < (d.retryAt || 0);
-                  link.hidden = !/^https:\\/\\/github\\.com\\/cody-raves\\/Gonuts\\/issues\\/[1-9][0-9]*$/.test(d.issueUrl || '');
-                  if (!link.hidden) link.href = d.issueUrl;
-                } catch (e) { status.textContent = 'Report status unavailable. Try again shortly.'; send.disabled = true; }
-                reportTimer = setTimeout(poll, 1500);
-              }
-              own.replaceChildren(el('h2', '', 'Report bug'), tracker, related, resetRelated, feature, featureHelp, privacy, el('label', '', 'What happened?'), description,
-                el('label', '', 'What did you expect?'), expected, logLabel, el('p', 'muted', 'Send report sanitizes and attaches diagnostics automatically, then publishes them to GitHub.'), send, prepare, status, preview, link);
-              renderBugTracker(tracker,issue=>{relatedIssue=issue;related.textContent='Attach diagnostics to existing bug #'+issue+' — no new issue.';send.textContent='Attach reviewed diagnostics';if(!description.value)description.value='I am also affected by bug #'+issue+'. ';if(!expected.value)expected.value='This issue should be fixed for my client too.';changed();prepare.click();});
-              poll();
-            }
+            async function reportNotice() { return; }
+
+            async function renderBugTracker() { return; }
+
+            async function openReports() { own.replaceChildren(el('p','muted','Public reporting is retired. Fork the source to maintain your own version.')); }
 
             async function openProxies() {
               try {
@@ -1672,28 +1543,8 @@ final class Pages {
               own.replaceChildren(...parts);
             }
             
-            async function openSwarmSavings() {
-              try {
-                const d=await api('dashboard');if(view!=='savings')return;
-                let select=document.getElementById('savings-account');
-                if(!select){
-                  select=el('select');select.id='savings-account';select.setAttribute('aria-label','Read savings account');
-                  select.onchange=openSwarmSavings;
-                  const result=el('div');result.id='savings-result';
-                  const master=el('div');master.id='savings-hive-total';
-                  const detail=el('details');detail.replaceChildren(el('summary','','Per-account details'),el('label','','Account'),select,result);
-                  own.replaceChildren(el('h2','title','Your Hive - master read savings'),master,detail,
-                    el('p','muted','Whole-Swarm counters are in the website dashboard’s Swarm stats section.'));
-                }
-                const rows=d.accounts||[],selected=select.value;
-                document.getElementById('savings-hive-total').replaceChildren(...[...hiveDataUseLines(d.hiveDataUse),...hiveSavingsLines(d.hiveReadSavings)].map(t=>el('p','desc',t)));
-                select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
-                if(rows.some(r=>r.id===selected))select.value=selected;
-                const current=rows.find(r=>r.id===select.value)||{};
-                const lines=!current.available?['Selected bot is offline or its status is stale; no current measurements.']:readSavingsLines(current.community?.readSavings);
-                document.getElementById('savings-result').replaceChildren(...lines.map(t=>el('p','muted',t)));
-              }catch(e){failed();}
-            }
+            async function openSwarmSavings() { own.replaceChildren(el('p','muted','Swarm services are retired.')); }
+
             function hiveDataUseLines(total){
               const s=total||{},c=s.cloudAccepted||{},h=s.hintsConsumed||{},i=s.historyImported||{};
               if(!s.reportingAccounts)return ['Shared data use: measurements unavailable from these clients; older clients are unmeasured.'];
@@ -1730,55 +1581,7 @@ final class Pages {
               rows.push('Ratio covers calibrated successful lookups only; net estimate subtracts fallback waits too. Selected bot, current session; discovery only, not a controlled speed or profit comparison. Live trade checks still run.');
               return rows;
             }
-            async function openDashboard() {
-              try {
-                const d=await api('dashboard');if(view!=='dashboard')return;
-                if(!document.getElementById('dashboard-status')) {
-                  const account=el('select');account.id='dashboard-account';account.setAttribute('aria-label','Dashboard account');
-                  account.onchange=()=>{document.getElementById('dashboard-code').value='';openDashboard();};
-                  const code=el('input');code.id='dashboard-code';code.maxLength=16;code.placeholder='K7PQ-M3ZD';code.setAttribute('aria-label','Pairing code');
-                  const name=el('input');name.id='dashboard-name';name.maxLength=48;name.value='GoNuts client';name.setAttribute('aria-label','Client label');
-                  const website=el('a','','Open gonuts.at dashboard');website.href='https://gonuts.at/dashboard/';website.target='_blank';website.rel='noopener noreferrer';
-                  const link=button('go','Link selected account',async()=>{
-                    const value=code.value;code.value='';await change('dashboard',{action:'link',account:account.value,code:value,name:name.value});openDashboard();
-                  });link.id='dashboard-link';
-                  const reconnect=button('','Reconnect selected account',async()=>{await change('dashboard',{action:'reconnect',account:account.value});openDashboard();});reconnect.id='dashboard-reconnect';
-                  const unlink=button('stop','Unlink selected account',async()=>{await change('dashboard',{action:'unlink',account:account.value});openDashboard();});unlink.id='dashboard-unlink';
-                  const status=el('p','','');status.id='dashboard-status';status.setAttribute('aria-live','polite');
-                  const all=el('div');all.id='dashboard-accounts';
-                  const community=el('p');community.id='dashboard-community-status';
-                  const savings=el('div');savings.id='dashboard-read-savings';
-                  const enable=button('go','Retry Swarm connection',async()=>{await change('dashboard',{action:'community_enable',account:account.value});openDashboard();});enable.id='dashboard-community-enable';
-                  own.replaceChildren(el('h2','title','Hosted Dashboard'),website,
-                    el('p','desc','Choose a bot below. Get a fresh five-minute code from Link client on the website for each bot. Linking joins the Swarm: public market observations are contributed and discovery hints received. Linked bots share one hive group.'),
-                    el('label','','Account'),account,el('label','','Pairing code'),code,el('label','','Client label'),name,link,reconnect,unlink,status,all,
-                    el('h2','title','Swarm API'),el('p','muted','Linking a bot opts it into contributing public market and follow observations, including observed account identities and payments, and receiving shared discovery guidance. Live price, inventory and trading checks remain required. Swarm contribution is required for the hosted dashboard. Unlink to leave the Swarm.'),community,enable,
-                    el('h2','title','Swarm read savings'),savings,
-                    el('p','muted','Each bot keeps its own credential in its own installation. Dashboard outages do not stop trading. After unlinking, remove its offline entry on the website too.'));
-                }
-                const select=document.getElementById('dashboard-account');const selected=select.value;
-                const rows=d.accounts||[];
-                if(JSON.stringify(rows.map(r=>[r.id,r.label]))!==select.dataset.rows){
-                  select.replaceChildren(...rows.map(r=>{const o=el('option','',r.label);o.value=r.id;return o;}));
-                  if(rows.some(r=>r.id===selected))select.value=selected;
-                  select.dataset.rows=JSON.stringify(rows.map(r=>[r.id,r.label]));
-                }
-                const current=rows.find(r=>r.id===select.value)||{available:false,status:'No hive accounts available'};
-                document.getElementById('dashboard-status').textContent=(current.linked?'Linked as '+current.name+'  |  ':'')+current.status;
-                document.getElementById('dashboard-link').disabled=!current.available||current.busy||current.linked||Date.now()<current.retryAt;
-                document.getElementById('dashboard-code').disabled=!current.available||current.busy||current.linked;
-                document.getElementById('dashboard-name').disabled=!current.available||current.busy||current.linked;
-                for(const id of ['dashboard-reconnect','dashboard-unlink'])document.getElementById(id).disabled=!current.available||current.busy||!current.linked;
-                const contribution=current.community||{};
-                const healthy=contribution.enabled&&contribution.guidanceEnabled&&contribution.enrolled&&contribution.eligible&&!contribution.needsRenewal;
-                document.getElementById('dashboard-community-enable').disabled=!current.available||current.busy||!current.linked||healthy;
-                document.getElementById('dashboard-community-enable').textContent=contribution.needsRenewal?'Renew Swarm membership':'Retry Swarm connection';
-                document.getElementById('dashboard-community-status').textContent=(contribution.status||'Unavailable')+' | accepted '+(contribution.accepted||0)+' | rejected '+(contribution.rejected||0)+' | discovery guidance: '+(contribution.guidanceEnabled?'opted in':'off');
-                const savingRows=readSavingsLines(contribution.readSavings);
-                document.getElementById('dashboard-read-savings').replaceChildren(...savingRows.map(t=>el('p','muted',t)));
-                document.getElementById('dashboard-accounts').replaceChildren(...rows.map(r=>el('p','desc',r.label+'  |  '+(r.linked?'Linked  |  ':'')+r.status)));
-              } catch(e){failed();}
-            }
+            async function openDashboard() { own.replaceChildren(el('p','muted','The hosted dashboard is retired. Local bot and Hive controls remain available.')); }
 
             async function openStaff() {
               try {
@@ -1990,9 +1793,9 @@ final class Pages {
                     429: 'Panel is busy refreshing. It will retry automatically.',
                     503: 'Panel link is not ready. Keep Minecraft open; retrying automatically.',
                     504: 'Panel request timed out. It will retry automatically.',
-                    413: 'Panel data was too large to load. In game, open About → Report bug and mention panel response too large.'
+                    413: 'Panel data was too large to load. Review the local error details. Public support has ended.'
                   };
-                  if (!view) put('notice', messages[r.status] || 'Panel could not refresh. Retrying automatically; if this continues, use About → Report bug in game.');
+                  if (!view) put('notice', messages[r.status] || 'Panel could not refresh. Retrying automatically; if this continues, review the local error details.');
                   return;
                 }
                 const state=await r.json();
@@ -2004,7 +1807,7 @@ final class Pages {
                 else if(view==='evasion'&&$('evasion-shot'))$('evasion-shot').src='/panel.png?t='+Date.now();
               } catch (e) {
                 if(generation!==navVersion)return;
-                if (!view) put('notice', 'Panel connection was interrupted. Retrying automatically; if this continues, use About → Report bug in game.');
+                if (!view) put('notice', 'Panel connection was interrupted. Retrying automatically; if this continues, review the local error details.');
               }finally{clearTimeout(timeout);if(refreshAbort===abort)refreshAbort=null;pollPending=false;queueWarm();}
             }
             if (OWN[(location.hash || '').slice(1)]) show(location.hash.slice(1)); else refresh();

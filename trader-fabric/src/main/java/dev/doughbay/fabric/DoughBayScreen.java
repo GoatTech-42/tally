@@ -53,7 +53,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private enum Tab {
         START_HERE("START HERE"),
         OVERVIEW("Dashboard"),
-        SWARM("Swarm"),
+        SWARM("Project status"),
         AUCTION("Auction"),
         OPPORTUNITIES("Opportunities"),
         MARKETS("Markets"),
@@ -740,7 +740,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             int aboutX = ui.innerRight() - 8;
             int aboutCardTop=ui.contentTop()+8;
             int aboutCardHeight=(ui.bottom()-10-aboutCardTop-8)/2;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Link bot / Swarm"),b->navigate(Tab.SWARM))
+            addRenderableWidget(CockpitButton.builder(Component.literal("Project status"),b->navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+9,aboutCardTop+aboutCardHeight-25,Math.max(40,Math.min(150,aboutCard-18)),18).build());
             if (aboutRight >= 330) {
                 aboutX -= 132;
@@ -759,7 +759,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
 
         if (tab == Tab.OVERVIEW) {
-            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Link bot / Swarm"), b -> navigate(Tab.SWARM))
+            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Project status"), b -> navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+286,ui.contentTop()+69,120,22).build());
             if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Preview HUD"), b -> {
                 DoughBayClient.previewHud();
@@ -3271,6 +3271,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     /** Whether the settings search hides a row; matches on key, label or description. */
     private boolean settingHidden(String key, String label, String desc) {
+        if(key.equals("reports.auto_critical"))return true;
         if (tab == Tab.EVASION && (key.equals("evasion.enabled") || key.equals("evasion.use_homes"))) return true;
         if(tab!=Tab.EVASION){
             String group=isListSetting(key)||key.startsWith("key.")?"Items":Tuning.setting(key).group();
@@ -4295,7 +4296,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                             + (driverMessage.isBlank() ? "" : "Last action: " + driverMessage + "\n")
                             + "Your existing limits stay in place. A recovery confirmation does not start a new trade.\n"
                             + "If a check keeps waiting or the item is not recognized, go Back to Trade"
-                            + " and send a bug report. Do not reset or remove saved trade records.";
+                            + " and keep the local evidence for your own investigation. Do not reset or remove saved trade records.";
                     this.minecraft.gui.setScreen(new RecoveryHelpScreen(this, instructions, confirmation, () -> {
                     ExecutionResult result;
                     if ("FIRST_CONFIRMATION_REQUIRED".equals(stage)) {
@@ -4336,25 +4337,25 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         if (session.recoveredExposureCount() != 1) {
             return "The saved records do not identify one interrupted trade safely. Keep your items and listings unchanged;"
-                    + " send a bug report from this screen for help.";
+                    + " keep the local evidence for your own investigation.";
         }
         return switch (session.manualResolutionStage()) {
             case "FIRST_CONFIRMATION_REQUIRED" ->
                     "1. Check your inventory and your own auction listings for the item.\n"
-                    + "Found it? Keep it; send a bug report if it is not recognized.\n"
+                    + "Found it? Keep it; keep its local evidence if it is not recognized.\n"
                     + "In neither place? Continue with step 1 below only after checking both.";
             case "EVIDENCE_SCANNING" ->
                     "Close this panel with Esc so the bot can check your listings."
-                    + " Reopen Trade after the checks. If it keeps waiting, send a bug report; do not reset.";
+                    + " Reopen Trade after the checks. If it keeps waiting, keep the local evidence for your own investigation; do not reset.";
             case "SECOND_CONFIRMATION_REQUIRED" ->
                     "The listing checks are ready.\nOnly if the item is still in neither your inventory"
                     + " nor your listings, continue with step 2 below.\n"
                     + "Then wait for the saved confirmation.";
             case "AUDIT_WRITE_PENDING" ->
                     "Saving your recovery checks. Wait for Resume trading; do not repeat the confirmation."
-                    + " If this keeps waiting, send a bug report from this screen.";
+                    + " If this keeps waiting, keep the local evidence for your own investigation.";
             default -> "Recovery needs another check. Read Last action below."
-                    + " If no next step is shown, send a bug report from this screen.";
+                    + " If no next step is shown, keep the local evidence for your own investigation.";
         };
     }
 

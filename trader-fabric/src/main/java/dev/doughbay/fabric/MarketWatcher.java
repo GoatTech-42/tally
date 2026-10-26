@@ -535,7 +535,7 @@ public final class MarketWatcher {
         // With the Donut API gone (2026-09-29) nobody can get a key, so no key
         // no longer means demo: keyless mode needs none, and run() goes
         // straight to it. Demo data is only for the API-only setting.
-        if (!config.hasApiKey() && Tuning.get("feed.keyless") < 0.5) {
+        if (!config.hasApiKey() && Tuning.get("feed.keyless") < 0.5 && !DonutApiConfig.retiredService(config.apiBaseUrl())) {
             // Show the interface populated rather than empty, so it can be
             // reviewed before a key exists. Loudly labelled as invented.
             latest.set(Snapshot.demo(System.currentTimeMillis()));
@@ -596,8 +596,9 @@ public final class MarketWatcher {
                     // returning API is picked up again on its own.
                     int mode = (int) Math.round(Tuning.get("feed.keyless"));
                     String key = config.apiKey();
-                    boolean noKey = key == null || key.isBlank();
-                    if (FlipsMode.only() || mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
+                    boolean retiredRelay=DonutApiConfig.retiredService(config.apiBaseUrl());
+                    boolean noKey = key == null || key.isBlank() || retiredRelay;
+                    if (retiredRelay || FlipsMode.only() || mode == 1 || (mode == 2 && (noKey || apiFailures >= 2))) {
                         faultStage=FaultTrace.Stage.MARKET_KEYLESS;
                         ActionTrace.INSTANCE.record(ActionTrace.Scope.MARKET,ActionTrace.Event.REQUEST,ActionTrace.Code.KEYLESS,"NONE",-1,-1,-1);
                         runKeyless(mode == 2 && !noKey);

@@ -52,7 +52,7 @@ final class HivePanel {
             }).bounds(secondX+16+(secondW-26)/2,secondY+45,(secondW-26)/2,22).build();review.setTooltip(Tooltip.create(Component.literal("Review before queuing. Nothing is deleted or imported here. Disconnect from the server first.")));add.accept(review);
         }
         boolean pending=Files.exists(game().resolve("gonuts-hive-combine.json"));
-        add.accept(CockpitButton.builder(Component.literal("Setup guide"),b->net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://gonuts.at/guide/#hive"))).bounds(x,bottom-23,pending?half:w,20).build());
+        add.accept(CockpitButton.builder(Component.literal("Setup guide"),b->net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create("https://cody-raves.github.io/Gonuts/guide/#hive"))).bounds(x,bottom-23,pending?half:w,20).build());
         if(pending)add.accept(CockpitButton.builder(Component.literal("Cancel queued combine"),b->{try{requireOffline();HiveCombine.cancelPending(game());note=HiveCombine.startupMessage;}catch(Exception e){failed(e);}rebuild.run();}).bounds(x+half+6,bottom-23,half,20).build());
     }
     private static Path game(){return FabricLoader.getInstance().getGameDir();}

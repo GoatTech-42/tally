@@ -15,7 +15,7 @@ import java.io.InputStream;
 
 /** Mandatory, disclosed, typed diagnostics. Independent of Swarm, dashboard pairing and trading authorization. */
 public final class MandatoryDiagnostics {
-    public static final String NOTICE="GoNuts uploads sanitized diagnostic events and numeric settings for bug diagnosis and cross-client failure detection. Rolling cloud retention:24 hours. No chat, names, locations, credentials or raw logs/settings files. Network outages do not stop trading.";
+    public static final String NOTICE="Public diagnostic uploads have been retired. Local trade and recovery records remain on this computer.";
     public static final URI CAPABILITIES=URI.create("https://gonuts.at/v1/bugs/diagnostics/capabilities");
     public static final URI EVENTS=URI.create("https://gonuts.at/v1/bugs/diagnostics/events");
     public static final String HEADER="X-GoNuts-Diagnostics";
@@ -36,28 +36,13 @@ public final class MandatoryDiagnostics {
     private static int attempts,frameEvents=32;
     private MandatoryDiagnostics(){}
     public static synchronized void start(Path gameDirectory,String currentBuild){
-        if(started)return;started=true;directory=gameDirectory.resolve("config/doughbay/diagnostics");build=dev.doughbay.fabric.hosted.DashboardProtocol.build(currentBuild);
-        if(build.isEmpty())build="unknown";
-        DoughBayClient.LOGGER.info(NOTICE);
-        worker.execute(()->{try{outbox=new DiagnosticOutbox(directory,build,System.currentTimeMillis());credential=outbox.credential();settings=SettingsCode.exportForReport();outbox.append("LIFECYCLE",List.of("life event=START build="+build+" reason=GAME_START"),settings,System.currentTimeMillis());state="Queued for upload";}catch(Exception unavailable){state="Local diagnostic storage unavailable";}});
-        worker.scheduleWithFixedDelay(MandatoryDiagnostics::cycle,1,1,TimeUnit.SECONDS);
+        state=ProjectStatus.RETIRED; // No outbox, credential, timer or network connection.
     }
     public static void tick(Minecraft client){
-        long now=System.currentTimeMillis();if(!started||now>=contextAt&&now-contextAt<5000)return;contextAt=now;
-        try{settings=SettingsCode.exportForReport();String context=DoughBayClient.automationSessionController().bugReportContext(now);List<String> safe=context.lines().filter(l->l.length()<=500&&ReportContextLine.valid(l,new HashSet<>())).limit(32).toList();if(!safe.isEmpty())offer("SNAPSHOT",safe,now);}catch(RuntimeException ignored){/* Never affect native safety or trading. */}
+        // Retired: no diagnostic snapshots are collected.
     }
     public static void offer(String kind,List<String> lines,long at){
-        if(!started||settings.isEmpty()||!DiagnosticOutbox.valid(kind,lines))return;
-        if(kind.equals("GATE"))synchronized(repeatedGates){String shape=lines.stream().map(l->l.replaceFirst("at=\\d+","at=0")).collect(java.util.stream.Collectors.joining("\n"));Long last=repeatedGates.put(shape,at);if(repeatedGates.size()>2048)repeatedGates.remove(repeatedGates.keySet().iterator().next());if(last!=null&&at>=last&&at-last<10_000){localDrops.incrementAndGet();return;}}
-        var captured=new ArrayList<>(lines);
-        if((kind.equals("GATE")||kind.equals("DECISION"))&&localDrops.get()>0)captured.add("cov v=1 captured_at="+at+" first_at="+at+" last_at="+at+" retained=1 omitted="+localDrops.get()+" evicted="+localDrops.get());
-        var pending=new Pending(kind,List.copyOf(captured),settings,at);
-        if(!queue.offer(pending)){
-            boolean replaced=false;
-            if(!kind.equals("GATE")&&!kind.equals("SNAPSHOT"))for(var older:queue)if((older.kind.equals("GATE")||older.kind.equals("SNAPSHOT"))&&queue.remove(older)){localDrops.incrementAndGet();replaced=queue.offer(pending);break;}
-            if(!replaced)localDrops.incrementAndGet();
-        }
-        if(kind.equals("FAULT")&&faultWake.compareAndSet(false,true))worker.execute(()->{try{expedite();cycle();}finally{faultWake.set(false);}});
+        // Retired: do not queue or persist diagnostic uploads.
     }
     public static void action(String line,long at){offer("ACTION",List.of(line.stripTrailing()),at);}
     public static void decision(String line,long at){offer(line.contains(" event=REFUSED ")?"GATE":"DECISION",List.of(line),at);}
@@ -111,5 +96,7 @@ public final class MandatoryDiagnostics {
         var builder=HttpRequest.newBuilder(original.uri()).method(original.method(),original.bodyPublisher().orElse(HttpRequest.BodyPublishers.noBody()));original.timeout().ifPresent(builder::timeout);
         original.headers().map().forEach((name,values)->{if(!name.equalsIgnoreCase(HEADER))for(String value:values)builder.header(name,value);});return builder.header(HEADER,key).build();
     }
-    public static Map<String,Object> status(){return Map.of("required",true,"state",state,"retentionHours",24,"storedOrDuplicateAcked",acked,"refused",refused,"localOmitted",localDrops.get(),"queuedInMemory",queue.size());}
+    public static Map<String,Object> status(){
+        return Map.of("required",false,"state",ProjectStatus.RETIRED,"retentionHours",0,"queuedInMemory",0);
+    }
 }

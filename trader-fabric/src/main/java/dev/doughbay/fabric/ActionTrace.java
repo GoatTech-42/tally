@@ -63,7 +63,7 @@ public final class ActionTrace {
         long logged = loggedAt.getOrDefault(scope,0L);
         if (!same && now - logged >= 1000) {
             loggedAt.put(scope,now);
-            org.slf4j.LoggerFactory.getLogger("DoughBay").info("GoNuts action {}", line(next,now).stripTrailing());
+            // Keep bounded local state without the retired diagnostic log stream.
         }
     }
 

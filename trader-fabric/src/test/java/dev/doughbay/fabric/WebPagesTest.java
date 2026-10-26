@@ -57,7 +57,7 @@ class WebPagesTest {
         JsonNode page = json(WebPages.settings());
         int rows = 0;
         for (JsonNode group : page.path("groups")) rows += group.path("settings").size();
-        assertEquals(Tuning.SETTINGS.size(), rows);
+        assertEquals(Tuning.SETTINGS.size()-1, rows); // Retired report consent has no UI control.
         assertEquals(SettingsSection.groups().size(), page.path("groups").size());
         assertEquals(Tuning.LISTS.size(), page.path("lists").size());
         assertEquals("Default", page.path("presets").get(0).asText());

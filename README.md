@@ -1,3 +1,5 @@
+> **No longer publicly maintained or supported.** After seven weeks of development, public support has ended. Fork the source to make changes or maintain your own version. See [RETIREMENT.md](RETIREMENT.md).
+
 <div align="center">
 
 <img src="docs/assets/logo.png" alt="GoNuts" width="440">

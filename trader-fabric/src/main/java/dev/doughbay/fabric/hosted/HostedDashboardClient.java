@@ -86,6 +86,7 @@ public final class HostedDashboardClient {
         }
     }
     public synchronized void start(Path game,Path shared,Path db,String currentBuild) {
+        if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled()){view=new View(false,false,false,"",dev.doughbay.fabric.ProjectStatus.RETIRED,0);return;}
         if(started)return;started=true;store=new DashboardStore(game);hivePanel=new DashboardHive(shared);database=db;build=DashboardProtocol.build(currentBuild);rankDirectory=game.resolve("gonuts-dashboard/rank-coverage");
         worker.execute(()->{
             try{hive=DashboardStore.hive(shared);link=store.load();if(link!=null){view=new View(true,false,false,link.name,"Checking link",0);nextConnect=0;}}
@@ -117,6 +118,7 @@ public final class HostedDashboardClient {
     }
     /** Only community enrollment may use this dashboard credential; it never leaves this transport. */
     public CompletableFuture<HttpResponse<byte[]>> enrollCommunity(ObjectNode body) {
+        if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled())return CompletableFuture.failedFuture(new IllegalStateException(dev.doughbay.fabric.ProjectStatus.RETIRED));
         var result=new CompletableFuture<HttpResponse<byte[]>>();
         worker.execute(()->{
             var current=link;if(current==null){result.completeExceptionally(new IllegalStateException("Dashboard not linked"));return;}
@@ -147,6 +149,7 @@ public final class HostedDashboardClient {
     public void reconnect(){if(!started||!view.linked()||view.busy())return;SwarmRank.clear();SwarmStaffSightings.INSTANCE.clear();worker.execute(()->{rankingSalt="";publishedAccountId="";epochs.incrementAndGet();commands.disconnected(epoch);panel.disconnected(epoch);attempts=0;nextConnect=0;if(socket!=null)socket.abort();socket=null;welcome=false;connecting=false;});}
     /** Called on the client thread: only reads already-held figures, never SQL or networking. */
     public void tick(Minecraft client){
+        if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled())return;
         DecisionTrace.INSTANCE.observeSettings(System.currentTimeMillis());
         CommunityClient.INSTANCE.dashboardLinked(view.linked());
         long now=System.currentTimeMillis();String account=DoughBayClient.account();panelAccount=account;CommunityClient.INSTANCE.account(account);CommunityRegion.tick(client);CommunityClient.INSTANCE.connected(CommunityRegion.donut(client));CommunityPerformance.INSTANCE.tick(CommunityRegion.donut(client),System.nanoTime());

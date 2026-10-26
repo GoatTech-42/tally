@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-26 — final standalone release; public support retired
+
+- After seven weeks of development, GoNuts is no longer publicly maintained or supported by its original developer. The source and existing downloads remain available; anyone wishing to fix bugs or add/change features must fork and maintain their own version. A prominent notice appears when the player first opens the mod, and the local panel and static website carry the same disclaimer.
+- Retire Swarm and hosted dashboard connections, hosted sign-in, in-game/browser bug reporting, automatic critical reports and diagnostic/settings uploads. Remove the reporting footer, remote tracker and automatic support workflow. The standalone client does not start these hosted services or retry their connections. Local action/decision diagnostic streams are no longer written to logs. Essential local errors, trading history, ownership, settings and durable recovery records remain.
+- Local trading, native order/auction reads, optional user-provided Donut API access, local Hive and safety/persistence gates are retained. Shared discovery/history, remote control and public support are unavailable. GitHub releases and static GitHub Pages remain. This retirement is not a claim that unresolved reports are fixed; it does not reset records or install/restart live bots.
+- Release publication time, binary identity and verification will be recorded after actual publication. Prior separately dated releases remain below.
+
+
 ## 2026-10-26 20:05 UTC
 
 - **PR #397: Let explicitly confirmed recovery leave an idle auction page.** After the user begins reconciliation, a completed native audit can leave the auction container open. Waiting for gameplay before the next own-listings check then stalled recovery and only asked the user to close the panel. Recovery now closes a recognized auction page with both cursors empty, the driver idle and ordinary authorization satisfied, then waits for the normal inventory boundary. Unrelated containers and screens remain untouched; trading never resumes from this step.
