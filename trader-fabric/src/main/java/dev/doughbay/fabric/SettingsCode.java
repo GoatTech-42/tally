@@ -79,6 +79,39 @@ public final class SettingsCode {
         return exportPreset(changes, lists, true);
     }
 
+    /** Item-only copies intentionally carry no trading limits or protection settings. */
+    static String exportItemLoadout() {
+        var mapper=new ObjectMapper();var root=mapper.createObjectNode();root.put("v",VERSION);
+        root.putObject("n").put("watch.tracked_managed",1);
+        var lists=root.putObject("t");
+        lists.put("items.allow",Tuning.text("items.allow"));lists.put("items.deny",Tuning.text("items.deny"));
+        lists.put("watch.tracked",String.join(", ",new java.util.TreeSet<>(ItemLists.tracked())));
+        try{return encode(mapper.writeValueAsBytes(root));}
+        catch(java.io.IOException e){throw new IllegalStateException("Could not capture item loadout");}
+    }
+
+    private static void validateItemLoadout(String code) throws java.io.IOException {
+        if(code==null || code.length()>32000 || !code.startsWith("DB1-"))throw new java.io.IOException("Invalid item loadout");
+        try(var gz=new GZIPInputStream(new ByteArrayInputStream(base32Decode(code)))) {
+            byte[] bytes=gz.readNBytes(65537);if(bytes.length>65536)throw new java.io.IOException("Item loadout is too large");
+            var root=new ObjectMapper().enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
+                .enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(bytes);
+            if(root==null || !root.isObject() || root.size()!=3 || !root.path("v").isIntegralNumber()
+                    || root.path("v").asInt()!=VERSION || !root.path("n").isObject() || root.path("n").size()!=1
+                    || !root.path("n").path("watch.tracked_managed").isNumber()
+                    || root.path("n").path("watch.tracked_managed").asDouble()!=1
+                    || !root.path("t").isObject() || root.path("t").size()!=3)throw new java.io.IOException("Not an item-only loadout");
+            for(String key:java.util.List.of("items.allow","items.deny","watch.tracked"))
+                if(!root.path("t").path(key).isTextual() || root.path("t").path(key).asText().length()>16000)
+                    throw new java.io.IOException("Invalid item selection");
+        }catch(RuntimeException e){throw new java.io.IOException("Invalid item loadout",e);}
+    }
+    static boolean isItemLoadout(String code){try{validateItemLoadout(code);return true;}catch(java.io.IOException e){return false;}}
+    static Result applyItemLoadout(String code){
+        try{validateItemLoadout(code);}catch(java.io.IOException e){return Result.failed(e.getMessage());}
+        return apply(code);
+    }
+
     private static String exportPreset(Map<String, Double> changes, Map<String, String> lists, boolean emptyLists) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode root = mapper.createObjectNode();

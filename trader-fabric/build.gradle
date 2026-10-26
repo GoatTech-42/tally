@@ -295,3 +295,19 @@ if (project.hasProperty('websiteSmoke')) {
     }
 }
 tasks.named('jar') { exclude '**/WebsiteGuiSmoke*.class' }
+
+// Isolated item-loadout GUI regression; never joins a server or ships in releases.
+if (project.hasProperty('itemLoadoutsSmoke')) {
+    sourceSets.main.java.srcDir 'src/itemLoadoutsSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.ItemLoadoutsGuiSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/item-loadouts-preview'
+        programArgs '--width', '1280', '--height', '960'
+    }
+}
+tasks.named('jar') { exclude '**/ItemLoadoutsGuiSmoke*.class' }

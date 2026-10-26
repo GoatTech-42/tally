@@ -7614,6 +7614,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         int y = ui.contentTop() + 4;
         int left = ui.innerLeft();
         int width = ui.innerWidth();
+        addRenderableWidget(CockpitButton.builder(Component.literal("Item loadouts"), ignored ->
+                this.minecraft.gui.setScreen(PresetsScreen.itemLoadouts(this)))
+                .bounds(left+width-110,ui.contentTop()+25,110,18).build());
         int filterW = width >= 560 ? 150 : 118;
         int catW = width >= 560 ? 118 : 92;
         int gap = 4;
@@ -7706,7 +7709,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         resetListGeometry();
         int x = ui.innerLeft();
         int width = ui.innerWidth();
-        int top = ui.contentTop() + 40;         // below the search row and the count line
+        int top = ui.contentTop() + 48;         // below search, counts and loadouts
         int bottom = ui.bottom() - 28;           // leave the action row a strip
         List<ItemEntry> items = filteredItems();
         itemsFrame = items;
@@ -7719,7 +7722,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         counts += itemsSelected.isEmpty()
                 ? "  ·  tick icons, then use the buttons below  ·  right-click one to flip it"
                 : "  ·  " + itemsSelected.size() + " selected";
-        graphics.text(this.font, counts, x, ui.contentTop() + 28, SECONDARY);
+        graphics.text(this.font, UiTheme.fit(this.font,counts,Math.max(1,width-118)), x, ui.contentTop() + 28, SECONDARY);
 
         int cell = 20;
         int cols = Math.max(1, width / cell);
