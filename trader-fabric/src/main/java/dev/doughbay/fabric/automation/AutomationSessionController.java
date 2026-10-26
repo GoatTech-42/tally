@@ -6649,16 +6649,12 @@ public final class AutomationSessionController {
     }
 
     /**
-     * Closes a position whose stack no longer exists, so it is never recovered
-     * and prepared again.
-     *
-     * <p>Nothing is claimed to have sold: the money went out when it was bought
-     * and no sale was seen, so it is recorded as cancelled at zero. What matters
-     * is that the ledger stops offering a stack the world does not have.
+     * Closes only the missing portion already split by the bounded retail
+     * shortfall flow. No sale or refund was observed, so its cost remains
+     * committed; the verified present remainder continues at its own cost.
      */
-    private void closePhantom(Position stuck, String why) {
+    private void closeMissingRetailPortion(Position stuck, String why) {
         Position closed = stuck.closed(PositionStatus.CANCELLED, System.currentTimeMillis(), 0, Double.NaN);
-        committedSpend = Math.max(0, committedSpend - stuck.purchasePrice());
         openListings.removeIf(p -> p.positionId() == stuck.positionId());
         recoveredQueue.removeIf(p -> p.positionId() == stuck.positionId());
         persistence.submit(checkpoint(sessionOpen, state.name(), closed, uncertainExposure,
@@ -7671,7 +7667,7 @@ public final class AutomationSessionController {
         retailLots.put(split.remainder().positionId(), lot.child(split.remainder().positionId()));
         recoveredQueue.removeIf(p -> p.positionId() == parent.positionId());
         retailRetryAfter.remove(parent.positionId());
-        closePhantom(split.single(), "it was recorded and is not in the inventory");
+        closeMissingRetailPortion(split.single(), "it was recorded and is not in the inventory");
         trackedPosition = split.remainder();
         return deferRetail(now, "the lot now matches what is in the inventory");
     }
