@@ -37,6 +37,40 @@ class NativeWatchEligibility48Test {
             assertTrue(f.d.lastTerminalEvent().detail().contains("nothing was charged"));
         }
     }
+    @Test void highPriorityLaterRowWinsOnlyAmongQualifiedNativeRows()throws Exception{
+        String old=Tuning.text("items.priority");
+        try{
+            Tuning.setText("items.priority","diamond=low, emerald=high");
+            var f=fixture();set(f.d,"watchTargets",List.of(new AutomatedExecutionDriver.WatchTarget("minecraft:diamond",64,1000),new AutomatedExecutionDriver.WatchTarget("minecraft:emerald",64,1000)));
+            row(f,0,64,"$900","");var high=new ItemStack(Items.EMERALD,64);high.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Price: $900"))));f.screen.getMenu().slots.get(1).set(high);
+            read(f);assertEquals(List.of(1),f.clicks(),"Explicit High should precede an eligible Low row");
+            assertEquals("minecraft:emerald",get(f.d,"targetItemId"));assertEquals(0,f.d.lastTerminalEvent().sequence(),"Selected row is not proof of buying");
+        }finally{Tuning.setText("items.priority",old);}
+    }
+
+    @Test void highPriorityDoesNotHideQualifiedLowWhenPriceQuantityOrSellerRefusesIt()throws Exception{
+        String old=Tuning.text("items.priority");try{
+            Tuning.setText("items.priority","diamond=low,emerald=high");
+            for(int variant=0;variant<4;variant++){
+                var f=fixture();set(f.d,"watchTargets",List.of(new AutomatedExecutionDriver.WatchTarget("minecraft:diamond",64,1000),new AutomatedExecutionDriver.WatchTarget("minecraft:emerald",64,1000)));
+                row(f,0,64,"$900","");var high=new ItemStack(Items.EMERALD,variant==1?32:64);var lore=new java.util.ArrayList<Component>();lore.add(Component.literal("Price: "+(variant==0?"$1100":variant==2?"not a price":"$900")));if(variant==3)lore.add(Component.literal("Seller: OfflineFixture"));high.set(DataComponents.LORE,new ItemLore(lore));f.screen.getMenu().slots.get(1).set(high);
+                read(f);assertEquals(List.of(0),f.clicks(),"High cannot override native guard variant "+variant);assertEquals("minecraft:diamond",get(f.d,"targetItemId"));
+            }
+        }finally{Tuning.setText("items.priority",old);}
+    }
+    @Test void switchingBetweenEligibleBoxAndPlainPrioritiesKeepsTheSelectedItemIdentity()throws Exception{
+        String old=Tuning.text("items.priority");try{
+            for(boolean boxHigh:List.of(false,true)){
+                Tuning.setText("items.priority",boxHigh?"diamond=low,shulker_box=high":"diamond=high,shulker_box=low");var f=fixture();
+                set(f.d,"containerPricer",(java.util.function.Function<ItemStack,long[]>)(stack->stack.is(Items.SHULKER_BOX)?new long[]{1000,2000}:null));
+                var box=new ItemStack(Items.SHULKER_BOX);box.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Price: $900"))));
+                f.screen.getMenu().slots.get(boxHigh?1:0).set(box);row(f,boxHigh?0:1,64,"$900","");read(f);
+                assertEquals(List.of(1),f.clicks());String chosen=f.d.watchClickedItemKey();
+                if(boxHigh)assertTrue(chosen.startsWith("minecraft:shulker_box#"));else assertEquals("minecraft:diamond",chosen,"A plain High target must not inherit the earlier box descriptor");
+            }
+        }finally{Tuning.setText("items.priority",old);}
+    }
+
     private static NativeRecoveryNavigation209Test.Fixture fixture()throws Exception{
         var f=new NativeRecoveryNavigation209Test.Fixture();f.page("Auction (Page 1)",false);
         var op=field(f.d,"operation");@SuppressWarnings({"unchecked","rawtypes"}) var buy=Enum.valueOf((Class)op.getType(),"BUY");op.set(f.d,buy);

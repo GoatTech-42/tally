@@ -1000,6 +1000,10 @@ public final class Tuning {
                     + "stacks it arrives in, and leaves that listing at your price until it sells. It stops buying these "
                     + "on the auction, and stops re-ordering while a full set of listings of the item is still up. "
                     + "Blank means the bot prices everything itself."),
+            new ListSetting(ItemPriorities.KEY, "Item priorities",
+                    "Use Items > Priority to choose High, Standard or Low for selected items. "
+                    + "High is evaluated first among eligible new purchases and bids; Low stays enabled as a fallback. "
+                    + "All item restrictions, prices and trading limits still apply. Existing stock and orders keep their normal management."),
             new ListSetting("items.liquidate", "Sell off and stop buying these",
                     "Comma-separated item names or ids to clear out: they are never bought, but stock "
                     + "you already hold is pulled back and relisted down to the market even below cost until "

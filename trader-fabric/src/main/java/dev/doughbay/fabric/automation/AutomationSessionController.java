@@ -3757,6 +3757,7 @@ public final class AutomationSessionController {
             } else {
                 watched.sort(Comparator.comparingDouble(Opportunity::score).reversed());
             }
+            dev.doughbay.fabric.ItemPriorities.prioritize(watched,o->o.listing().itemId());
             int underdogs = 0;
             for (Opportunity o : watched) if (isUnderdog(o)) underdogs++;
             String underdogNote = underdogs > 0 ? " Â· underdog " + underdogs : "";
@@ -6266,6 +6267,8 @@ public final class AutomationSessionController {
         dev.doughbay.fabric.OrderBook book = dev.doughbay.fabric.DoughBayClient.orderBook();
         java.util.Map<String, Long> topBid = tradingBestBids(book == null ? List.of() : book.orders(),now);
         candidates.sort((a, b) -> {
+            int priority=dev.doughbay.fabric.ItemPriorities.compare(a.itemKey(),b.itemKey());
+            if(priority!=0)return priority;
             int sharedRank=dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.compareForDiscovery(
                     sharedDiscovery.get(a.itemKey()+"|"+a.bucket().exactCount()),sharedDiscovery.get(b.itemKey()+"|"+b.bucket().exactCount()));
             if(sharedRank!=0)return sharedRank;
@@ -6291,7 +6294,9 @@ public final class AutomationSessionController {
             dev.doughbay.fabric.RivalIntel.Snapshot rs = rivals();
             if (rs != null) {
                 double undercut = dev.doughbay.fabric.Tuning.get("underdog.undercut_pct") / 100.0;
-                for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : rs.shadows()) {
+                var preferredShadows=new ArrayList<>(rs.shadows());
+                dev.doughbay.fabric.ItemPriorities.prioritize(preferredShadows,dev.doughbay.fabric.RivalIntel.ShadowMarket::itemId);
+                for (dev.doughbay.fabric.RivalIntel.ShadowMarket m : preferredShadows) {
                     if (free <= 0 || underdogSlots <= 0) break;
                     if (!dev.doughbay.fabric.Tuning.buyingAllowed(m.itemId()) || ownPrice(m.itemId()) != null || siblingsMarket(m.itemId())) continue;
                     if (bidItems.contains(m.itemId()) || chosen.contains(m.itemId()) || hasRetailStock(m.itemId())) continue;
@@ -6616,6 +6621,8 @@ public final class AutomationSessionController {
                 && dev.doughbay.fabric.KeylessFeed.active()
                 && dev.doughbay.fabric.Tuning.get("keyless.sweep") >= 0.5) {
             refreshPrices.sort((a,b)->{
+                int priority=dev.doughbay.fabric.ItemPriorities.compare(a.itemKey(),b.itemKey());
+                if(priority!=0)return priority;
                 int sharedRank=dev.doughbay.fabric.hosted.CommunityDiscoveryFeed.compareForDiscovery(
                         sharedDiscovery.get(a.itemKey()+"|"+a.bucket().exactCount()),sharedDiscovery.get(b.itemKey()+"|"+b.bucket().exactCount()));
                 return sharedRank!=0?sharedRank:Long.compare(sweptAt.getOrDefault(a.itemKey()+"x"+a.bucket().exactCount(),0L),
@@ -7227,7 +7234,9 @@ public final class AutomationSessionController {
             ownPriceProblems = problems;
             if (!problems.isEmpty()) LOGGER.warn("DoughBay your prices: not understood, and so not traded: {}", problems);
         }
-        for (dev.doughbay.fabric.OwnPrices.Entry own : dev.doughbay.fabric.OwnPrices.all()) {
+        var preferredOwnPrices=new ArrayList<>(dev.doughbay.fabric.OwnPrices.all());
+        dev.doughbay.fabric.ItemPriorities.prioritize(preferredOwnPrices,dev.doughbay.fabric.OwnPrices.Entry::itemId);
+        for (dev.doughbay.fabric.OwnPrices.Entry own : preferredOwnPrices) {
             if (free <= 0) break;
             String id = "minecraft:" + own.itemId();
             if (bidItems.contains(id) || chosen.contains(id)) continue;

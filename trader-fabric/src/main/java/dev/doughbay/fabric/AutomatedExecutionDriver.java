@@ -4297,7 +4297,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // had the least time to be bought by someone else, so it is the
                 // least likely ghost; the cheapest row is the most likely one.
                 long margin = target.ceiling() - displayed;
-                if (bestTarget == null) {
+                if (bestTarget == null || ItemPriorities.compare(target.itemId(),bestTarget.itemId()) < 0) {
+                    bestItemKey = null;
                     bestMargin = margin;
                     bestSlot = menuSlot;
                     bestTarget = target;
@@ -4307,7 +4308,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
             }
             // A filled shulker box or bundle is priced by what is inside it.
-            if (bestTarget == null) {
+            if (bestTarget == null || ItemPriorities.compare(id,bestTarget.itemId()) < 0) {
                 long[] priced = boxPrice(stack);
                 if (priced != null && priced[0] > 0) {
                     PriceEvidence price = authoritativePriceEvidence(tooltipLines(client, stack));
