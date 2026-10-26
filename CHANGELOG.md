@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 12:37 UTC
+
+- **PR #371: Refuse background commands without crashing Minecraft.** A PR368 Follow request with punctuation correctly triggered the strict command policy, but the exception escaped into the client tick and crashed bot A. Background commands now refuse invalid text before touching transport; Follow stops before creating pending state. Existing followed-player notices continue. ASCII letters, digits and spaces remain the only allowed command text; no stripping, substitutions or relaxed guards.
+- Clean full build: **1,733 tests, zero failures/errors, two skipped**. The crash regression fails before and passes after the fix; refusal leaves no queued command or pending Follow. A compatible necessary repair is limited to the confirmed crashed client; its saved settings, positions and native recovery state are preserved. Peer clients are not routinely upgraded or restarted.
+- Client artifact published **2026-10-26T12:37:15Z**. Build `1793017987735`; client SHA256 `fbc6a58a01949ba3f9fcf51fd22a0a726de154657e88466e120a5dc42a612f73`. Source SHA256 `7c4d70ca0f1c0bd30dfdb7a5dfe971609f79ceeb5e55dee8fbdae6d41805483e`, published 2026-10-26T12:37:20Z. Public client/source/checksums independently downloaded and verified. PR371 merge `e5bbfe640ed2cbcf7eea0c5f0dc85b2e8a338e01`; tested source `b6b0e3663f30cb23093fbea6096a2a45ab87d6ff`. This documentation entry creates no additional binary; all earlier dated publications remain below.
+
 ## 2026-10-26 12:00 UTC
 
 - **PR #368: Strict ASCII command text and item-search construction.** At the owner's explicit request, bot command text accepts only ASCII A-Z, a-z, 0-9 and spaces. All punctuation, emoji, private-use font glyphs, formatting codes, other Unicode and controls are refused before queueing/menu closure/dispatch and checked again at actual connection handoff. This is deliberately stricter than Minecraft's rules: underscored recipients, decimal amounts and namespaced command text are refused, never rewritten.
