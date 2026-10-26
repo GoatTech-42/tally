@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 19:33 UTC
+
+- **PR #393: Persistent High / Standard / Low item priorities.** Open **B → Trading → Items**, select items, choose **Priority**, then High, Standard or Low. High ranks eligible new opportunities and own buy bids first; Standard preserves normal ranking; Low remains enabled as fallback. H/L item badges and hover details show the preference, and it persists across sessions. Existing item restrictions, live price/quantity checks, ownership, spending/capacity limits and owned stock/order maintenance remain authoritative.
+- Actual native selector regression fails before and passes after; tests cover eligibility fallback and box/plain identity. Actual bid planning covers High-first choice and incomplete-book refusal. Durable reload, full saved setup roundtrip and isolated offline Minecraft GUI selection/mixed levels/Back/resize/reload pass. Clean production build: **1,776 tests, zero failures/errors, two skipped**. Full settings presets include preferences; named item-only loadouts retain their existing Included/Excluded/tracked scope. No live installation, restart or settings change.
+- Client artifact published **2026-10-26T19:33:04Z**. Build `1793042761423`; client SHA256 `d8418922256893ec2b3c15240fa1de57568c4897ed30193ac4f36a2df381d5e0`. Source SHA256 `9cc284e36b201e184e8e78a10faa80e5ac378fce9da7cba86f7887f1d42c52f2`, published 2026-10-26T19:33:06Z. Public client/source/checksums independently downloaded and verified. PR393 merge `7a75ffcfdbec2d8210e43efec2c0815d158cdbd2`; tested source `230bd62c1604a6fef744b9eb1891098a91feeb01`. Documentation only; PR389 and all earlier separately dated client publications remain below.
+
 ## 2026-10-26 18:29 UTC
 
 - **PR #389: Retain spending committed to missing retail stock.** The existing bounded partial-stock write-off subtracted the missing portion's purchase cost even though no sale or refund was observed. That cost now stays committed while the verified present remainder continues through the normal retail queue. Existing repeated inventory checks, no-whole-writeoff behavior, split quantities/cost conservation, prices and recovery rules are unchanged.
