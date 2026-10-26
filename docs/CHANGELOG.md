@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 01:05 UTC
+
+- **PR #354: Read the disabled 27-slot section of Your Orders.** Recognize the native 18 available / 27 disabled red-pane layout without requiring upgrade advertising. PR352 still reproduced 27 rejected items and zero rows with blank or ordinary disabled labels; the actual Minecraft menu regressions now complete empty and mixed books and retain owned rows from earlier pages.
+- The complete expected layout is required: valid orders, existing empty-slot controls or air in the prefix, followed by native one-item red panes with blank/default or closed disabled labels. Unknown material/name/count, broken prefix cells and order-like quantity/price fields invalidate this recognition. Real red-pane orders still parse as orders. Disabled cells are excluded from placement searches and do not add capacity. Ownership, collected credits, spending caps, settings and other safety gates remain intact.
+- Clean full build: **1,705 tests, zero failures/errors, two skipped**. Five added native tests cover blank/disabled labels, mixed and accumulated rows, placement exclusion, malformed/unknown-content refusal and a real red-pane order. The two failing-before regressions remain recorded. Reporter adoption and subsequent complete reads/new bids are still being verified; related reports remain open. No live bot installation or restart accompanied publication.
+- Client artifact published **2026-10-26T01:05:15Z**. Build `1792976477342`; client SHA256 `0f2d6a4ba9ac644cda58914fbdd1609fc9aa8f59ceb21e68373244ecbf2c27c7`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `d62bab9d2cc32c386cff15972282d6d60ef03d78e1876a063ee67c559bae0f40`, published 2026-10-26T01:05:21Z. PR354 merge `63f018de971d3c4840956b49b519d0ee182b6284`; tested source `1b21da86aa9431aab7792d779a04938b8680c1b6`. This dated entry is documentation only; prior separately published updates, including PR352, remain preserved.
+
 ## 2026-10-26 00:51 UTC
 
 - **PR #352: Recognize the Donut+ own-order slot control.** Accept the exact `Max Orders` / `Buy Donut+ for even more order slots` control alongside the existing Donut++ variant. The former reader rejected this variant as 27 unknown items in an actual Minecraft menu fixture with 18 gray New Order controls and 27 red upgrade tiles. Empty and mixed books now complete while retaining real orders.
