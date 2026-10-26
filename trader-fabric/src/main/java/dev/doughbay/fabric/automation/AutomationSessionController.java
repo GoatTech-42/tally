@@ -9419,7 +9419,13 @@ public final class AutomationSessionController {
             for (int i = 0; i < rows.size(); i++) {
                 var row = rows.get(i);
                 if (!row.itemId().equals(itemId)) continue;
-                if (listed.itemKey().indexOf('#') >= 0 && !row.itemKey().equals(listed.itemKey())) continue;
+                // Same-count repricing was already considered above. In particular,
+                // it may have refused this row because another position owns it.
+                if (row.count() == listed.quantity()) continue;
+                if (openListings.stream().anyMatch(other -> other.positionId() != listed.positionId()
+                        && rowMatches(row, other) && row.covers(other.targetPrice()))) continue;
+                if ((listed.itemKey().indexOf('#') >= 0 || row.itemKey().indexOf('#') >= 0)
+                        && !row.itemKey().equals(listed.itemKey())) continue;
                 if (row.count() < floor || row.count() > ceiling) continue;
                 int apart = Math.abs(row.count() - listed.quantity());
                 if (apart < nearest) {
