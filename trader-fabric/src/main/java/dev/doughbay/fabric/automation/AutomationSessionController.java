@@ -3223,6 +3223,20 @@ public final class AutomationSessionController {
         if (now < manualNativeNextAuditAt || authorizationBlocker(client) != null) return;
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return;
         if (!safeInventoryContext(client)) {
+            // After the explicit first recovery confirmation, a completed audit
+            // can leave the auction container open. Waiting for gameplay here
+            // then prevents the next read-only check from ever starting.
+            // Close only that recognized page, with both cursors empty; keep
+            // the recovery hold and wait for the ordinary inventory boundary.
+            if (client.player.containerMenu != null && client.player.inventoryMenu != null
+                    && client.player.containerMenu.getCarried().isEmpty()
+                    && client.player.inventoryMenu.getCarried().isEmpty()
+                    && client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> page
+                    && page.getTitle().getString().toLowerCase(java.util.Locale.ROOT).contains("auction")
+                    && closeStrayAuctionPage(client)) {
+                detail = "Recovery: closing the auction page before the next own-listings check";
+                return;
+            }
             detail = "Recovery: close the panel with an empty cursor so your auction listings can be checked";
             return;
         }
