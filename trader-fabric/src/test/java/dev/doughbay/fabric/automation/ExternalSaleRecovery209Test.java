@@ -155,6 +155,27 @@ class ExternalSaleRecovery209Test {
         } finally {field(Minecraft.class,"instance").set(null,previous);}
     }
 
+    @Test void boundedRetailShortfallRetainsMissingCostWhilePresentRemainderCanContinue() throws Exception {
+        var f=new Fixture();Object previous=field(Minecraft.class,"instance").get(null);
+        try {
+            field(Minecraft.class,"instance").set(null,f.mc);
+            var parent=new Position(77,"REAL","minecraft:golden_apple",StackBucket.of(127),127,127000,254000,100,0,0,0,Double.NaN,PositionStatus.PURCHASED);
+            set(f.c,"trackedPosition",parent);set(f.c,"committedSpend",200000L);
+            f.mc.player.getInventory().setItem(0,new ItemStack(Items.GOLDEN_APPLE,63));
+            f.mc.player.getInventory().setItem(1,new ItemStack(Items.GOLDEN_APPLE,63));
+            @SuppressWarnings("unchecked") var lots=(Map<Long,RetailLot>)get(f.c,"retailLots");lots.put(parent.positionId(),new RetailLot(parent.positionId(),parent.positionId(),2000));
+            var shortfall=f.c.getClass().getDeclaredMethod("writeOffMissingRetail",long.class,int.class);shortfall.setAccessible(true);
+            for(int i=0;i<5;i++)assertFalse((boolean)shortfall.invoke(f.c,f.now+i*40000,126));
+            assertEquals(0,f.p.retailSplits,"Shortfall still requires bounded repeated native inventory evidence");
+            assertTrue((boolean)shortfall.invoke(f.c,f.now+200000,126));
+            assertEquals(200000L,get(f.c,"committedSpend"),"Missing stock is not returned money and cannot reopen spending headroom");
+            assertEquals(1,f.p.retailSplits);assertEquals(126,f.p.retailRemainder.quantity());
+            assertEquals(parent.purchasePrice(),f.p.retailRemainder.purchasePrice()+f.p.retailMissing.purchasePrice());
+            @SuppressWarnings("unchecked") var queue=(List<Position>)get(f.c,"recoveredQueue");
+            assertTrue(queue.stream().anyMatch(q->q.positionId()==f.p.retailRemainder.positionId()),"Verified present remainder still continues under existing retail flow");
+        } finally {field(Minecraft.class,"instance").set(null,previous);}
+    }
+
     private static final class Fixture {
         final AutomatedExecutionDriver d=new AutomatedExecutionDriver();
         final AutomationSessionController c=new AutomationSessionController(d);
@@ -195,6 +216,10 @@ class ExternalSaleRecovery209Test {
         Status status=new Status(LoadState.READY,AutomationSessionRecovery.empty(),1,1,"offline fixture");
         public void start(){}public void close(){}public Status status(){return status;}
         public long submit(AutomationSessionCheckpoint c){writes.add(c);return writes.size()+2;}
+        int retailSplits;Position retailRemainder,retailMissing;
+        public long submitRetail(AutomationSessionCheckpoint c,RetailLot lot,Position parent,Position remainder){
+            retailSplits++;retailMissing=c.position();retailRemainder=remainder;writes.add(c);return writes.size()+2;
+        }
         public long submitManualResolution(AutomationManualResolution r,AutomationSessionCheckpoint c){
             resolutions++;last=c;status=new Status(LoadState.READY,status.recovery(),2,1,"queued");return 2;
         }
