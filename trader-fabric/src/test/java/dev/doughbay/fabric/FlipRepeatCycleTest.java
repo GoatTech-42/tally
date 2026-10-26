@@ -294,4 +294,69 @@ class FlipRepeatCycleTest {
         assertTrue(((Map<?,?>)get(c,"collectedByKey")).isEmpty(),"only a physical native collection may credit goods");
     }
 
+    @Test void fullCompletedHistoryMustCheckNativeStockEvenWhenOldCreditsCoverItsTotals()throws Exception {
+        long now=1000000;var c=controller(now);
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000),
+                new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000)));
+        set(c,"ownOrdersComplete",true);set(c,"ownOrdersReadAt",now);
+        String key=ITEM+"|200|192";((Map<String,Integer>)get(c,"collectedByKey")).put(key,384);
+        Class<?> action=Class.forName(c.getClass().getName()+"$DeskAction"),step=Class.forName(c.getClass().getName()+"$DeskStep");
+        var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+        set(c,"deskStep",ctor.newInstance(Enum.valueOf((Class)action,"PLACE"),ITEM,64,200L,"fixture"));
+        set(get(c,"driver"),"lastTerminalEvent",new AutomatedExecutionDriver.TerminalEvent(1,
+                AutomatedExecutionDriver.OperationIntent.PLACE_ORDER,AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED,
+                "","",ITEM,64,200,"",false,now,"The order book is full (45 orders); no room for another"));
+        invoke(c,"observeDeskTerminal",new Class[]{net.minecraft.client.Minecraft.class,long.class},null,now);
+        var queued=((Collection<?>)get(c,"deskQueue")).stream().map(Object::toString).toList();
+        assertTrue(queued.stream().anyMatch(x->x.contains("action=COLLECT")&&x.contains("PHYSICAL_COMPLETED_AUDIT")&&x.contains("ordinal=0")),
+                "A native full-history result must not strand physically held goods behind credits from an earlier identical order");
+        assertEquals(384,((Map<?,?>)get(c,"collectedByKey")).get(key),"Scheduling an inspection must not reset or invent credit");
+        assertTrue(((Map<?,?>)get(c,"placedBids")).isEmpty());
+    }
+
+    @Test void physicalAuditCreditSurvivesASmallerNativeCohortAndReloadWithoutRewritingPriorReceipts()throws Exception {
+        long now=1000000;var c=controller(now);Path store=root.resolve("orders-collected.txt");
+        c.setCollectedStore(store);String key=ITEM+"|200|192",unrelated="minecraft:diamond|300|64";
+        var credits=(Map<String,Integer>)get(c,"collectedByKey");credits.put(key,384);credits.put(unrelated,640);
+        Class<?> action=Class.forName(c.getClass().getName()+"$DeskAction"),step=Class.forName(c.getClass().getName()+"$DeskStep");
+        var ctor=step.getDeclaredConstructor(action,String.class,int.class,long.class,String.class);ctor.setAccessible(true);
+        Object audit=ctor.newInstance(Enum.valueOf((Class)action,"COLLECT"),ITEM,192,200L,"PHYSICAL_COMPLETED_AUDIT");
+        invoke(c,"creditPhysicalCollection",new Class[]{step,int.class},audit,0);
+        assertEquals(384,credits.get(key));assertFalse(Files.exists(store),"An empty result cannot create an audit receipt");
+        invoke(c,"creditPhysicalCollection",new Class[]{step,int.class},audit,192);
+        assertEquals(576,credits.get(key));assertEquals(640,credits.get(unrelated));
+        assertTrue(Files.readString(store).contains("#physical-audit "+key));
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000)));
+        set(c,"ownOrdersComplete",true);set(c,"ownOrdersReadAt",now);plan(c,now);
+        assertEquals(576,credits.get(key),"The visible cohort shrinking cannot erase the newly verified native collection");
+        var reloaded=controller(now);reloaded.setCollectedStore(store);
+        set(reloaded,"ownOrders",get(c,"ownOrders"));set(reloaded,"ownOrdersComplete",true);plan(reloaded,now);
+        assertEquals(576,((Map<?,?>)get(reloaded,"collectedByKey")).get(key));
+        assertEquals(640,((Map<?,?>)get(reloaded,"collectedByKey")).get(unrelated));
+    }
+
+    @Test void completedStockAuditRetainsReadCollectionAndAttemptGuards()throws Exception {
+        long now=1000000;var c=controller(now);String key=ITEM+"|200|192";
+        set(c,"ownOrders",List.of(new AutomatedExecutionDriver.OwnOrderRow(ITEM,ITEM,192,200,192,100000)));
+        ((Map<String,Integer>)get(c,"collectedByKey")).put(key,192);
+        set(c,"ownOrdersComplete",false);
+        invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty());
+        set(c,"ownOrdersComplete",true);set(c,"ownOrdersReadAt",now-60001);
+        invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty());
+        set(c,"ownOrdersReadAt",now);double collect=Tuning.get("orders.collect");
+        try {
+            Tuning.set("orders.collect",0);invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now);
+            assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty());
+        }finally{Tuning.set("orders.collect",collect);}
+        ((Map<String,Integer>)get(c,"collectAttempts")).put(key,4);
+        invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty(),"An unchanged empty native history cannot be retried indefinitely");
+        ((Map<?,?>)get(c,"collectAttempts")).clear();invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now);
+        assertEquals(1,((Collection<?>)get(c,"deskQueue")).size());((Collection<?>)get(c,"deskQueue")).clear();
+        invoke(c,"queueCompletedStockAudit",new Class[]{long.class},now+1);
+        assertTrue(((Collection<?>)get(c,"deskQueue")).isEmpty(),"An audit cannot monopolize the desk");
+    }
+
 }

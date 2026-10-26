@@ -4406,6 +4406,9 @@ public final class AutomationSessionController {
     private final java.util.Map<BidKey, Integer> bidCollected = new java.util.HashMap<>();
     /** Collected counts per order key (item|price|requested), kept on disk: completed orders linger for months. */
     private final java.util.Map<String, Integer> collectedByKey = new java.util.HashMap<>();
+    private static final String PHYSICAL_COMPLETED_AUDIT = "PHYSICAL_COMPLETED_AUDIT";
+    private final java.util.Set<String> physicallyAuditedCreditKeys = new java.util.HashSet<>();
+    private long lastCompletedStockAuditAt;
     private final java.util.Map<String, Integer> collectAttempts = new java.util.HashMap<>();
     private final java.util.Map<String,Integer> collectionDeliveryEvidence = new java.util.HashMap<>();
     private long collectionDeliveryEvidenceAt;
@@ -4899,9 +4902,14 @@ public final class AutomationSessionController {
             LOGGER.error("DoughBay could not read retail order plans: {}", e.toString());
         }
         collectedByKey.clear();
+        physicallyAuditedCreditKeys.clear();
         try {
             if (path != null && java.nio.file.Files.exists(path)) {
                 for (String line : java.nio.file.Files.readAllLines(path)) {
+                    if (line.startsWith("#physical-audit ")) {
+                        physicallyAuditedCreditKeys.add(line.substring("#physical-audit ".length()).strip());
+                        continue;
+                    }
                     int eq = line.lastIndexOf('=');
                     if (eq <= 0) continue;
                     collectedByKey.put(line.substring(0, eq).strip(), Integer.parseInt(line.substring(eq + 1).strip()));
@@ -4912,12 +4920,48 @@ public final class AutomationSessionController {
         }
     }
 
+    /** Only a confirmed native inventory transfer reaches this accounting path. */
+    private void creditPhysicalCollection(DeskStep step,int count) {
+        if(count<=0)return;
+        String key=orderKey(step.itemId(),step.unitPrice(),step.count());
+        bidCollected.merge(new BidKey(step.itemId(),step.unitPrice()),count,Integer::sum);
+        collectedByKey.merge(key,count,Integer::sum);
+        if(PHYSICAL_COMPLETED_AUDIT.equals(step.why()))physicallyAuditedCreditKeys.add(key);
+        collectAttempts.remove(key);
+        saveCollected();
+    }
+
+    /** A full history grid is not proof that previously credited native goods are absent. */
+    private void queueCompletedStockAudit(long now) {
+        if(dev.doughbay.fabric.Tuning.get("orders.collect")<0.5 || !ownOrdersComplete
+                || ownOrdersReadAt<=0 || now<ownOrdersReadAt || now-ownOrdersReadAt>60_000
+                || lastCompletedStockAuditAt>0 && now-lastCompletedStockAuditAt<60_000)return;
+        java.util.Set<String> seen=new java.util.HashSet<>();
+        for(var row:ownOrders) {
+            String key=orderKey(row.itemId(),row.unitPrice(),row.requested());
+            if(!seen.add(key) || row.remaining()!=0 || row.delivered()<=0 || row.unitPrice()<=0
+                    || row.requested()<=0 || multipleOrdersEnabled()&&row.requested()>=1000
+                    || !dev.doughbay.fabric.Tuning.itemAllowed(row.itemId())
+                    || collectedByKey.getOrDefault(key,0)<deliveredFor(key)
+                    || collectAttempts.getOrDefault(key,0)>=4)continue;
+            // This only selects a known owned row. Admission retains the ordinary shelf,
+            // inventory, capacity and whole-stack gates; the native driver verifies goods.
+            deskQueue.addFirst(new DeskStep(DeskAction.COLLECT,row.itemId(),row.requested(),row.unitPrice(),PHYSICAL_COMPLETED_AUDIT,0));
+            lastCompletedStockAuditAt=now;
+            return;
+        }
+    }
+
     private void saveCollected() {
         if (collectedStore == null) return;
         List<String> lines = new ArrayList<>();
         for (var e : collectedByKey.entrySet()) lines.add(e.getKey() + "=" + e.getValue());
+        for (String key : physicallyAuditedCreditKeys) lines.add("#physical-audit " + key);
         try {
-            java.nio.file.Files.write(collectedStore, lines);
+            java.nio.file.Path temp=collectedStore.resolveSibling(collectedStore.getFileName()+".tmp");
+            java.nio.file.Files.write(temp, lines);
+            try { java.nio.file.Files.move(temp,collectedStore,java.nio.file.StandardCopyOption.ATOMIC_MOVE,java.nio.file.StandardCopyOption.REPLACE_EXISTING); }
+            catch (java.nio.file.AtomicMoveNotSupportedException e) { java.nio.file.Files.move(temp,collectedStore,java.nio.file.StandardCopyOption.REPLACE_EXISTING); }
         } catch (Exception e) {
             LOGGER.warn("DoughBay could not save the collected-orders record: {}", e.toString());
         }
@@ -5411,6 +5455,12 @@ public final class AutomationSessionController {
             detail = "Bid desk: dropped a bid outside the current market focus";
             return true;
         }
+        if (step.action()==DeskAction.COLLECT && PHYSICAL_COMPLETED_AUDIT.equals(step.why())
+                && (!ownOrdersComplete || ownOrdersReadAt<=0 || now<ownOrdersReadAt || now-ownOrdersReadAt>60_000)) {
+            deskReadDue=true;
+            detail="Completed stock inspection waits for a fresh complete owned book";
+            return true;
+        }
         int collectionLimit = 0; // Zero retains ordinary/cleanup collection; reserve top-ups must be positive.
         if(multipleOrdersEnabled() && step.count()>=1000
                 &&(step.action()==DeskAction.COLLECT||step.action()==DeskAction.CANCEL)) {
@@ -5673,6 +5723,7 @@ public final class AutomationSessionController {
                     fullOwnBookRetryAt=now+90_000;
                     deskReadDue=false;
                     deskQueue.removeIf(q->q.action()==DeskAction.PLACE);
+                    queueCompletedStockAudit(now);
                     break; // No order was created and no money was charged.
                 }
                 deskSettleUntilMillis = now + 900;
@@ -5756,11 +5807,7 @@ public final class AutomationSessionController {
             }
             case COLLECT -> {
                 int count = event.itemCount();
-                BidKey key = new BidKey(step.itemId(), step.unitPrice());
-                bidCollected.merge(key, count, Integer::sum);
-                collectedByKey.merge(orderKey(step.itemId(), step.unitPrice(), step.count()), count, Integer::sum);
-                if (count > 0) collectAttempts.remove(orderKey(step.itemId(), step.unitPrice(), step.count()));
-                saveCollected();
+                creditPhysicalCollection(step,count);
                 if (reserveMarket(step.itemId())) {
                     // The next top-up must use a new native book, never a second queued copy of this delivery.
                     ownOrdersReadAt = 0;
@@ -5909,6 +5956,7 @@ public final class AutomationSessionController {
             int collected = collectedByKey.getOrDefault(k, 0);
             String item = k.substring(0, k.indexOf('|'));
             int owed = fillSum.getOrDefault(item, 0);
+            if (physicallyAuditedCreditKeys.contains(k)) continue; // A smaller visible cohort cannot undo a native physical receipt.
             int corrected = Math.min(collected, delivered);
             if (owed > 0 && corrected >= delivered) corrected = Math.max(0, delivered - owed);
             if (corrected != collected) {
