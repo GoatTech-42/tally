@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-26 00:51 UTC
+
+- **PR #352: Recognize the Donut+ own-order slot control.** Accept the exact `Max Orders` / `Buy Donut+ for even more order slots` control alongside the existing Donut++ variant. The former reader rejected this variant as 27 unknown items in an actual Minecraft menu fixture with 18 gray New Order controls and 27 red upgrade tiles. Empty and mixed books now complete while retaining real orders.
+- Color and layout alone do not identify a safe control. Exact wording remains required; malformed order quantities/prices and unknown content still fail closed. Locked controls do not become usable placement slots or increase capacity. No trading settings, ownership, spending caps or collected credits are changed.
+- **The screenshot cohort remains unverified.** Its new screenshot shows the 18/27 layout but not the red tiles' tooltip. This release fixes the reproduced Donut+ variant; affected-reporter complete-read/new-bid evidence is still needed before claiming the wider incident resolved. Reports remain open. No local bot installation or restart was performed for this publication.
+- Clean full build: **1,700 tests, zero failures/errors, two skipped**. Two new native menu regressions fail before/pass after; the focused native/evidence suite passes 39 tests, including malformed red-pane order and locked-placement guards.
+- Client artifact published **2026-10-26T00:51:20Z**. Build `1792975530091`; client SHA256 `465e4ca8dec3a90fb3478f068d578765c9d5896549ba3fb68940233b71424407`. Public client, source ZIP and checksum manifest independently downloaded and verified. Source ZIP SHA256 `dcf63055fe36a025a81cf1d2c3bad427c7ad01cb91a0461a4b4c589a46a513d7`, published 2026-10-26T00:51:22Z. PR352 merge `e5366626795d3f14349a40a96ada69ce2eacf3ef`; tested source `6d86c2694c8378f94b11e0da154e386301a135bf`. This entry is documentation only; earlier separately published client updates remain preserved.
+
 ## 2026-10-25 22:13 UTC
 
 - **PR #350: Persistent Report Bug button and native rejection evidence.** A large **REPORT BUG** button is available in a reserved footer across GoNuts workspaces, settings, setup guides and other mod screens. It stays visible through tab changes and resizing, opens the existing review/send form without collecting or submitting automatically, and returns to the previous screen. The layout preserves usable content space and native focus/narration.
