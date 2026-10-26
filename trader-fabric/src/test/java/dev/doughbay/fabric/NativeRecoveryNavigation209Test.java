@@ -53,7 +53,7 @@ class NativeRecoveryNavigation209Test {
         assertTrue(f.d.lastTerminalEvent().detail().contains("unrecognized"));
         assertEquals(List.of(49),f.clicks());
     }
-    private static final class Fixture {
+    static final class Fixture {
         final AutomatedExecutionDriver d=new AutomatedExecutionDriver();final Minecraft mc;ContainerScreen screen;
         Fixture()throws Exception{
             mc=allocate(Minecraft.class);mc.player=allocate(QuietPlayer.class);
@@ -88,6 +88,7 @@ class NativeRecoveryNavigation209Test {
     private static class QuietPlayer extends LocalPlayer {
         private QuietPlayer(){super(null,null,null,null,null,null,false,null);}
         @Override public void sendSystemMessage(Component c){}
+        @Override public com.mojang.authlib.GameProfile getGameProfile(){return new com.mojang.authlib.GameProfile(new java.util.UUID(0,1),"OfflineFixture");}
         @Override public net.minecraft.server.permissions.PermissionSet permissions(){return net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS;}
         @Override public void closeContainer(){}
     }
