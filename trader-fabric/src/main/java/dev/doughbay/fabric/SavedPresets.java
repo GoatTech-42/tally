@@ -10,10 +10,14 @@ import java.util.*;
 public final class SavedPresets {
     public record Entry(String id, String name, String code, long savedAt) { }
     private static volatile SavedPresets current;
+    private static volatile SavedPresets itemLoadouts;
     private final Path file;
+    private final boolean itemOnly;
     private static final ObjectMapper JSON = new ObjectMapper();
-    SavedPresets(Path directory) { file = directory.resolve("saved-presets.json"); }
-    static void load(Path directory) { current = new SavedPresets(directory); }
+    SavedPresets(Path directory) { this(directory,false); }
+    SavedPresets(Path directory,boolean itemOnly) { this.itemOnly=itemOnly;file = directory.resolve(itemOnly?"item-loadouts.json":"saved-presets.json"); }
+    static void load(Path directory) { current = new SavedPresets(directory);itemLoadouts=new SavedPresets(directory,true); }
+    static SavedPresets items(){if(itemLoadouts==null)throw new IllegalStateException("Item loadouts are not ready yet");return itemLoadouts;}
     static SavedPresets current() {
         if (current == null) throw new IllegalStateException("Presets are not ready yet");
         return current;
@@ -29,6 +33,7 @@ public final class SavedPresets {
         for (var node : root.path("presets")) {
             var entry = JSON.treeToValue(node, Entry.class);
             validate(entry.name(), entry.code());
+            if(itemOnly&&!SettingsCode.isItemLoadout(entry.code()))throw new IOException("Invalid item-only loadout; existing file kept");
             if (!entry.id().matches("[a-f0-9-]{36}") || !ids.add(entry.id()) || !names.add(entry.name().toLowerCase(Locale.ROOT)))
                 throw new IOException("Invalid saved presets; existing file kept");
             result.add(entry);
@@ -45,6 +50,7 @@ public final class SavedPresets {
     }
     public synchronized Entry save(String id, String name, String code) throws IOException {
         name = name == null ? "" : name.strip(); validate(name, code);
+        if(itemOnly&&!SettingsCode.isItemLoadout(code))throw new IOException("Save an item-only loadout here");
         final String cleanName = name;
         return mutate(rows -> {
             Entry previous = id == null || id.isEmpty() ? null : rows.stream().filter(e -> e.id().equals(id)).findFirst().orElseThrow(() -> new IOException("Select an existing preset"));
@@ -65,7 +71,7 @@ public final class SavedPresets {
     private interface Edit { Entry apply(List<Entry> rows) throws IOException; }
     private Entry mutate(Edit edit) throws IOException {
         Files.createDirectories(file.getParent());
-        try (var channel = FileChannel.open(file.resolveSibling("saved-presets.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+        try (var channel = FileChannel.open(file.resolveSibling(itemOnly?"item-loadouts.lock":"saved-presets.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
             java.nio.channels.FileLock lock;
             try { lock = channel.tryLock(); } catch (java.nio.channels.OverlappingFileLockException busy) { throw new IOException("Presets are being saved by another client; try again"); }
             if (lock == null) throw new IOException("Presets are being saved by another client; try again");
