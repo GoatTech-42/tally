@@ -93,6 +93,40 @@ class ExternalSaleRecovery209Test {
         } finally {field(Minecraft.class,"instance").set(null,previous);}
     }
 
+    @Test void excludedOwnedPurchaseKeepsRecordAndSpendingCommitment() throws Exception {
+        restrictedOwnedPurchase("", "=golden_apple");
+    }
+    @Test void ownedPurchaseRemovedFromIncludedMarketsKeepsRecordAndSpendingCommitment() throws Exception {
+        restrictedOwnedPurchase("=diamond", "");
+    }
+    private void restrictedOwnedPurchase(String include,String exclude) throws Exception {
+        var f=new Fixture();Object previous=field(Minecraft.class,"instance").get(null);
+        String allow=dev.doughbay.fabric.Tuning.text("items.allow"), deny=dev.doughbay.fabric.Tuning.text("items.deny"), liquidate=dev.doughbay.fabric.Tuning.text("items.liquidate");
+        try {
+            field(Minecraft.class,"instance").set(null,f.mc);
+            dev.doughbay.fabric.Tuning.setText("items.allow",include);
+            dev.doughbay.fabric.Tuning.setText("items.deny",exclude);
+            dev.doughbay.fabric.Tuning.setText("items.liquidate","");
+            f.mc.player.getInventory().setItem(0,new ItemStack(Items.GOLDEN_APPLE));
+            Position owned=(Position)get(f.c,"trackedPosition");
+            var list=f.c.getClass().getDeclaredMethod("listPurchasedStackInHand",Minecraft.class,long.class,String.class);
+            list.setAccessible(true);list.invoke(f.c,f.mc,f.now,"offline owned stock fixture");
+            assertTrue(f.p.writes.stream().noneMatch(w->w.position()!=null&&w.position().status().isClosed()),"An item restriction cannot erase an owned purchase");
+            assertEquals(12345L,get(f.c,"committedSpend"),"Unsold owned goods cannot release the spending commitment");
+            assertEquals(owned,get(f.c,"trackedPosition"));
+            assertEquals(1,f.mc.player.getInventory().getItem(0).getCount());
+            assertEquals(AutomatedExecutionDriver.OperationIntent.NONE,f.d.operationIntent(),"Do not list excluded goods");
+            assertEquals(AutomationSessionController.State.PAUSED,f.c.snapshot().state());
+            list.invoke(f.c,f.mc,f.now+1000,"offline repeated recovery");
+            assertEquals(owned,get(f.c,"trackedPosition"));
+            assertEquals(12345L,get(f.c,"committedSpend"));
+            assertTrue(f.p.writes.stream().noneMatch(w->w.position()!=null&&w.position().status().isClosed()));
+        } finally {
+            dev.doughbay.fabric.Tuning.setText("items.allow",allow);dev.doughbay.fabric.Tuning.setText("items.deny",deny);dev.doughbay.fabric.Tuning.setText("items.liquidate",liquidate);
+            field(Minecraft.class,"instance").set(null,previous);
+        }
+    }
+
     private static final class Fixture {
         final AutomatedExecutionDriver d=new AutomatedExecutionDriver();
         final AutomationSessionController c=new AutomationSessionController(d);
