@@ -4279,6 +4279,7 @@ public final class AutomationSessionController {
     private long ownOrdersReadAt;
     private long ownOrdersAttemptAt;
     private boolean deskReadDue;
+    private long fullOwnBookRetryAt;
     private final OrderDeskRecovery deskRecovery = new OrderDeskRecovery();
     private long deskAsideLoggedAt;
 
@@ -5652,8 +5653,12 @@ public final class AutomationSessionController {
             }
             case PLACE -> {
                 if(event.detail()!=null && event.detail().startsWith("The order book is full")) {
-                    ownOrdersReadAt=0;
-                    deskReadDue=true;
+                    // The native page refused creation without sending a bid. Invalidating
+                    // the complete read here replanned the same PLACE immediately: one
+                    // full history book could monopolize the desk indefinitely. Keep the
+                    // evidence and let the ordinary 90-second refresh recheck availability.
+                    fullOwnBookRetryAt=now+90_000;
+                    deskReadDue=false;
                     deskQueue.removeIf(q->q.action()==DeskAction.PLACE);
                     break; // No order was created and no money was charged.
                 }
@@ -5831,7 +5836,8 @@ public final class AutomationSessionController {
         plannedOrderDepth.clear();
         boolean winding = windingDown();
         boolean listOnly = ownOnly();
-        boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding;
+        boolean bidding = dev.doughbay.fabric.Tuning.get("orders.bid") >= 0.5 && !winding
+                && now >= fullOwnBookRetryAt;
         if (bidding && !listOnly) enqueueProbe(now);
         double minimumProfit = Math.max(policy.minimumProfit(), riskConfig.minimumProfit());
         // The desk's own margin floor sits over the global ROI: an order fills
