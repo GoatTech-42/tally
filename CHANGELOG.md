@@ -1,5 +1,13 @@
 # GoNuts changelog
 
+## 2026-10-26 04:08 UTC
+
+- **PR #361: Handle an answered empty Collect control without navigation recovery.** Live native evidence showed the exact system reply `You have no items to collect!` after a matched owned Collect control, while Edit Order remained open and inventory stayed unchanged. The driver ignored this answer, later called it a missing menu and fed navigation/server-failure holds.
+- Recognize that exact reply only for a pending matched Collect control. Retain the aborted/no-transfer outcome without adding a global server failure. Existing bounded duplicate-row rotation remains; an actual stock menu/inventory transfer outranks the reply, and prior partial-stock evidence retains its ordinary hold. Preserve the delivery/credit discrepancy and bound unchanged attempts. Newer complete native evidence of increased deliveries rearms guarded collection. No settings, history, positions, ownership, credits, spending/quantity/capacity limits or guards are reset.
+- Clean full build: **1,716 tests, zero failures/errors, two skipped**. Four native/controller regressions cover the failing-before reply, exact system/operation/stage boundaries, stock-menu precedence and preserved credits with newer-delivery rearming. All 46 native menu/controller tests pass.
+- This repairs false navigation recovery and repeated empty attempts; it does not reconcile historical collection credits or prove old goods sold. No live installation/restart accompanies publication.
+- Client artifact published **2026-10-26T04:08:11Z**. Build `1792987455334`; client SHA256 `10e91cf3a5886367fa487d635125b858e422ed769c642cdd5c7f94c378e72be8`. Public client/source/checksums independently downloaded and verified. Source ZIP SHA256 `d5edb3bed3d41df3921de5073c3dbe1b57a690873f37e23e1df0052e2f87e951`, published 2026-10-26T04:08:13Z. PR361 merge `92a974bc8e031fcb776188cbfa3beead88fec0a6`; tested source `edc9efb7965b8ecccf8064a32375f84747243ad2`. Documentation only; prior separately published client entries remain preserved.
+
 ## 2026-10-26 03:52 UTC
 
 - **PR #359: Prevent discovery probes from starving due order-source reads.** Investigating report #358 reproduced a scheduling defect: with a mostly empty auction book and no due reprice, optional discovery probes could repeatedly take the desk-first turn before an already-due public order-house read. That can delay the order/fill evidence used to find trades.
