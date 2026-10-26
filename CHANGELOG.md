@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 12:00 UTC
+
+- **PR #368: Strict ASCII command text and item-search construction.** At the owner's explicit request, bot command text accepts only ASCII A-Z, a-z, 0-9 and spaces. All punctuation, emoji, private-use font glyphs, formatting codes, other Unicode and controls are refused before queueing/menu closure/dispatch and checked again at actual connection handoff. This is deliberately stricter than Minecraft's rules: underscored recipients, decimal amounts and namespaced command text are refused, never rewritten.
+- Client-provided item display names are checked before constructing auction-search commands, including retries and filtered watches. Decorated/unsupported labels are refused; no stripping or identifier fallback. Plain Cooked Chicken and Block of Iron remain valid. Invalid labels stay inside normal failure handling. The manual panel removes its normal UI slash prefix before validating the outgoing command. Ownership, spending, pacing, safety gates, settings and durable records remain unchanged.
+- Clean full build: **1,731 tests, zero failures/errors, two skipped**. Ten added tests cover exhaustive UTF-16 acceptance/refusal, decorated labels, plain-name construction, missing/malformed labels and no menu close/queue/send on refused commands. Existing Unicode-acceptance tests now assert the requested refusal. The reporter's resource pack was not inspected; the separate B-key report remains undiagnosed. No live installation/restart accompanies publication.
+- Client artifact published **2026-10-26T12:00:09Z**. Build `1793015679829`; client SHA256 `aab489229a73e97980e52f95ac0a514d50b2cbbaecce30235948d5369d85c6c1`. Public client/source/checksums independently downloaded and verified. Source SHA256 `99bd904f218042e323fa80b2205a10c05eaa91116655e63e2ab6f464360ae8d3`, published 2026-10-26T12:00:11Z. PR368 merge `eeb5a8279065bb40a73b8329303302a5109662b5`; tested source `1f3e70c5db337d2acc65b4c442bc02a11e6e99de`. Documentation only; prior separate dated publications remain below.
+
 ## 2026-10-26 10:20 UTC
 
 - **PR #366: Separate audited historical receipts from current native stock exposure.** PR363 physically collected 192 items and preserved the receipt. When that completed row disappeared, the cumulative receipt exceeded the smaller visible cohort. Existing capital/Reserve Stock checks interpreted this as unknown exposure and blocked bids. That safety hold prevented spending; boot/collection alone did not establish recovery.
