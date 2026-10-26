@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 16:26 UTC
+
+- **PR #379: Continue allowed Follow requests after unsupported names are refused.** Investigation of report265 reproduced a current queue defect: 126 of the 500 bundled Follow names are unsupported by the owner's strict ASCII command policy. Passing one to the defensive refusal stopped the whole queue and left later allowed requests unattempted. Known-bot, automatic-counterparty and retry selection now refuse each unsupported name before handoff and continue allowed intent; status reports policy refusals separately from server-confirmed outcomes and names waiting.
+- All three new actual Follows queue regressions fail before and pass after. Existing Follow retry, account isolation, notice and strict transport regressions stay green. Clean production build: **1,746 tests, zero failures/errors, two skipped**. Unsupported names are never stripped, substituted, queued or sent; confirmed history, settings, pacing, menu ownership and safety gates are unchanged. No live installation/restart or real Follow command was performed. Original265 predates the strict-policy release; keep it open because historical cause and affected recovery are not established by this related repair.
+- Client artifact published **2026-10-26T16:26:18Z**. Build `1793031757641`; client SHA256 `c1ca1904e37f34acdc6dd26c1352808a2179cdbd88acf752bd744e0ec1a06b8f`. Source SHA256 `b8056843340ab665b876c5b686e071de0946a325985256bd1f8bd9889bc3e850`, published 2026-10-26T16:26:19Z. Public client/source/checksums independently downloaded and verified. PR379 merge `a096b662f67f2a0b6c1c52fb397b785317a52df6`; tested source `33bc58a5c09e4e262333abcccd70bcd3f69ecf14`. Documentation only; PR377 and all earlier separately published client updates remain dated below.
+
 ## 2026-10-26 16:12 UTC
 
 - **PR #377: Keep dashboard sign-in usable when the browser does not open.** The Swarm panel always displays the public dashboard address and offers **Copy website address**, without requiring pairing. Silent desktop-launcher failures leave a manual route; browser or clipboard exceptions show concise guidance instead of escaping the GUI callback. The panel never treats a returned launch request as proof that a browser opened.
