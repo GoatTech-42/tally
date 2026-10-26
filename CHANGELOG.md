@@ -1,5 +1,12 @@
 # GoNuts changelog
 
+## 2026-10-26 13:26 UTC
+
+- **PR #375: Preserve native auction-row ownership during quantity reconciliation.** Report370 exposed a resize fallback that could take another parked position's exact native row after the repricing pass correctly reserved it. Equal quantities could enter that fallback too, cancelling/reopening the missing record at another price before ordinary sale-budget reconciliation and leaving the real owner without its row.
+- Require a genuine quantity change for resize, refuse any row that exactly matches another open owner's quantity/key/price, and preserve box-content identity on both sides. Unowned bounded quantity correction and normal same-count manual repricing remain available. Existing sale budgets, fees, inventory/ownership checks and safety/spending gates are unchanged. No historical positions, credits or profit are rewritten; no live installation/restart accompanies publication.
+- Clean full build: **1,739 tests, zero failures/errors, two skipped**. Six actual controller/persistence regressions cover original sale price/profit and owner retention in either order, different-size exact ownership, no invented sale without earnings, valid resize/manual reprice and box identity. Four fail on the previous source; all six pass with the repair. Report370 remains open pending affected adoption/native-audit verification; this is not a claim that its whole incident or historical ledger has recovered.
+- Client artifact published **2026-10-26T13:26:12Z**. Build `1793020911015`; client SHA256 `cc411b54818004a285fa82452c96df662ab04e0f0fafd175d765fa477841d49d`. Source SHA256 `7f008ca466fd51ca2d1a053dc28e223144f69488608f551e3f45b1e11db9fbe2`, published 2026-10-26T13:26:17Z. Public client/source/checksums independently downloaded and verified. PR375 merge `2f0dc7c4f072a7cb2423d347fdd500bb017277fd`; tested source `c8020528b19721d07f2b792aa214504356e535dc`. Documentation only; previous separate dated client publications remain below.
+
 ## 2026-10-26 12:37 UTC
 
 - **PR #371: Refuse background commands without crashing Minecraft.** A PR368 Follow request with punctuation correctly triggered the strict command policy, but the exception escaped into the client tick and crashed bot A. Background commands now refuse invalid text before touching transport; Follow stops before creating pending state. Existing followed-player notices continue. ASCII letters, digits and spaces remain the only allowed command text; no stripping, substitutions or relaxed guards.
