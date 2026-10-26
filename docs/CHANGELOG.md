@@ -1,5 +1,11 @@
 # GoNuts changelog
 
+## 2026-10-26 20:05 UTC
+
+- **PR #397: Let explicitly confirmed recovery leave an idle auction page.** After the user begins reconciliation, a completed native audit can leave the auction container open. Waiting for gameplay before the next own-listings check then stalled recovery and only asked the user to close the panel. Recovery now closes a recognized auction page with both cursors empty, the driver idle and ordinary authorization satisfied, then waits for the normal inventory boundary. Unrelated containers and screens remain untouched; trading never resumes from this step.
+- The actual authorized controller/native-container regression fails before and passes after. Extended cases retain held cursor items in either menu, unrelated storage, authorization/staff-transfer refusal and the first confirmation requirement. Purchase identity, committed spending, player stop, listing evidence, separate final confirmation and durable ACK are retained. Existing native navigation and recovery regressions pass. Clean production build: **1,782 tests, zero failures/errors, two skipped**. Report392 remains open because its exact recovery stage/outcome is unverified. No game GUI launch or live installation/restart/settings changes.
+- Client artifact published **2026-10-26T20:05:45Z**. Build `1793044873964`; client SHA256 `3c019d3502ec9529f42b183a3c290ffb75472f7ee9462f07d7714c5776d2f938`. Source SHA256 `1f0b6a121adea57b545803c233b9ca3337eb5322270c224356b97a8515ed8f16`, published 2026-10-26T20:05:47Z. Public client/source/checksums independently downloaded and verified. PR397 merge `1667b5657fdbd0457ef7cad451f017f6adaf39c2`; tested source `45b2fb6943b66c2a32752bf57ac2ea4fe651c8b4`. Documentation only; PR395 and every earlier separately dated client publication remain below.
+
 ## 2026-10-26 19:54 UTC
 
 - **PR #395: Remove repeated item-filter parsing from scanning gates.** Buying eligibility checks previously rebuilt unchanged Included/Excluded/liquidation sets, often parsing Included twice, and scanned every token. Parsed sets now follow the exact saved text; exact selections and category suffixes use direct membership checks. Edits take effect immediately, and public item-set callers retain independent mutable copies. Item restrictions, price/quantity checks, ownership, spending/capacity and safety gates remain unchanged.
