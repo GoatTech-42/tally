@@ -6628,9 +6628,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + "then ranks conservative resale opportunities.",
                 x + 9, yy, cardWidth - 18, y + cardHeight - 32, TEXT);
         drawWrapped(graphics,
-                "Required private diagnostics: sanitized actions, decisions, faults and numeric settings "
-                        + "are uploaded for bug diagnosis, with up to 24 hours of history. Independent of Swarm. "
-                        + "No chat, player names, locations or credentials. Upload status is on Report a bug.",
+                "Diagnostics upload retired with the hosted public services: nothing leaves this install. "
+                        + "Local trading, settings, trade history, ownership records and recovery safeguards are unaffected.",
                 x + 9, yy + 5, cardWidth - 18, y + cardHeight - 32, SECONDARY);
 
         int rightWidth = width - cardWidth - gap;
