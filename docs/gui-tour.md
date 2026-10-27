@@ -4,9 +4,9 @@ Press **B** to open GoNuts. Five aligned workspaces organize navigation: **Tradi
 
 A new install opens **Start here**. Reopen it with **Settings → Help & setup**, then **Set up trading** for **Choose limits → Review & Start**. Opening setup or a tutorial never starts trading.
 
-**Trading → Auction** and **Trading → Orders** provide direct controls. **Settings** opens four Simple groups: Order management, Trading style, Action pace and Order batch ceiling. Bundled changes show their exact before/after values and require Apply. **Custom — preserved** keeps unmatched values. Switching views changes no saved settings. **Advanced view** exposes all individual controls in searchable categories. See the [settings handbook](https://gonuts.at/guide/settings.html).
+**Trading → Auction** and **Trading → Orders** provide direct controls. **Settings** opens four Simple groups: Order management, Trading style, Action pace and Order batch ceiling. Bundled changes show their exact before/after values and require Apply. **Custom — preserved** keeps unmatched values. Switching views changes no saved settings. **Advanced view** exposes all individual controls in searchable categories. See the [settings handbook](guide/settings.html).
 
-**Settings → Advanced view → Tutorials** contains the updated optional lessons. **Accounts → Swarm / Hive setup** holds connections; **Safety → Evasion / Staff Watch / Region Map** holds protection controls.
+**Settings → Advanced view → Tutorials** contains the updated optional lessons. **Accounts → Swarm / Hive setup** holds connections; the hosted Swarm and dashboard services are retired, so new installations cannot be linked; **Safety → Evasion / Staff Watch / Region Map** holds protection controls.
 
 The Dashboard shows realized profit, active listings, a profit
 chart, the top opportunities, and recent activity. The ledger always shows real

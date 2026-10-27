@@ -5,8 +5,8 @@ edits it every 30 seconds with a rendered page of the trader's state. The
 buttons under it start, stop, and tune the trader, and only one Discord user,
 the operator, can press them.
 
-There is a captioned walkthrough of the current GoNuts controls on
-[the site](https://gonuts.at/#discord).
+A captioned walkthrough of the controls is bundled in this repository at
+[docs/assets/site/discord-setup.mp4](assets/site/discord-setup.mp4).
 
 ## Setup, step by step
 

@@ -1,5 +1,9 @@
 # Required private diagnostic history
 
+> **Retired:** mandatory diagnostic upload is retired. Installations no longer
+> collect or upload diagnostic evidence, and the hosted receiver is no longer
+> running. This document is kept as the design record.
+
 The mandatory client stream is independent of Swarm sharing, dashboard pairing,
 and public automatic bug filing. Every installation uploads typed, sanitized
 diagnostic evidence to the existing GoNuts VPS. It does not enable trading or
@@ -63,8 +67,9 @@ and future ACKs, settings changes, expired server sessions, build collisions,
 strict sanitization and fixed-destination report headers. The GUI timeout regression
 fails before the closed reason-token repair and passes afterward.
 
-An explicitly enabled live smoke test uses the actual client outbox and request
-builder against the public receiver: restart, old-session upload, zero refusals,
-replay deduplication, new-session upload, status and erase. It never files a public
-issue or uses an account. Run only with `GONUTS_DIAGNOSTICS_LIVE_SMOKE=1`; the normal
-suite skips network smoke tests.
+The explicitly enabled live smoke test against the public receiver
+(`MandatoryDiagnosticsLiveTest`, gated by `GONUTS_DIAGNOSTICS_LIVE_SMOKE`) is removed
+with the retired upload service. The remaining coverage is offline only
+(`DiagnosticOutboxTest`, `MandatoryDiagnosticsTest`, `DiagnosticHistoryTest`,
+`DiagnosticTimeoutReasonTest`): it exercises local retention, queue and timeout
+behavior and does not prove live upload.

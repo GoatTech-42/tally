@@ -27,15 +27,15 @@
     "start": 7
   },
   {
-    "title": "2. Download GoNuts",
-    "subtitle": "Use the public Download button",
+    "title": "2. Download the mod",
+    "subtitle": "From the project's own GitHub releases",
     "bullets": [
-      "Open gonuts.at",
-      "Download for Minecraft 26.2",
+      "Open the project releases page",
+      "No Tally release is published yet",
       "Keep the file as a .jar"
     ],
     "image": "download-page.png",
-    "captionText": "Open gonuts.at and choose Download for Minecraft 26.2. Save the GoNuts jar without extracting it. Normal keyless setup does not need a manual API key.",
+    "captionText": "Open the Tally releases page on GitHub (github.com/GoatTech-42/tally/releases). No Tally release is published yet; when one appears, download the mod jar for Minecraft 26.2 there and save it without extracting. Normal keyless setup does not need a manual API key.",
     "duration": 14,
     "start": 25,
     "captureSha256": "3b92483b09bca5bc05838c16aecd065fb323b6a26886dff8b9aa9b7df35588e5"
@@ -90,7 +90,7 @@
       "Click Review & continue"
     ],
     "image": "quick-start-limits.png",
-    "captionText": "Enter maximum per trade and maximum session spend. Choose your own amounts; these screenshot values are examples, not recommendations. Swarm is optional. Review and continue opens the second step. It does not start trading.",
+    "captionText": "Enter maximum per trade and maximum session spend. Choose your own amounts; these screenshot values are examples, not recommendations. Review and continue opens the second step. It does not start trading.",
     "duration": 19,
     "start": 96,
     "captureSha256": "8265cc9153814503f887018720db1ea6c94124c38acd0d6283c08e09acdaaa2d"
@@ -101,10 +101,10 @@
     "bullets": [
       "Review protections opens Evasion",
       "Review Staff Watch separately",
-      "Swarm and Discord are optional"
+      "Discord is optional"
     ],
     "image": "quick-start-limits.png",
-    "captionText": "Review protections opens Evasion. Read its options and review Staff Watch separately if you use it. Return to setup afterward. Swarm linking and Discord are optional connections. Opening a guide does not start or resume trading.",
+    "captionText": "Review protections opens Evasion. Read its options and review Staff Watch separately if you use it. Return to setup afterward. Discord is an optional connection; the hosted Swarm service is retired. Opening a guide does not start or resume trading.",
     "duration": 18,
     "start": 115,
     "captureSha256": "8265cc9153814503f887018720db1ea6c94124c38acd0d6283c08e09acdaaa2d"
