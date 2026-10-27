@@ -37,20 +37,25 @@ final class MascotCharacters {
             ellipse(c, 128, 214, 59, 9, 0xFFF0AE7C);
             c.fill(105, 224, 115, 234, 0xFFEEB38A);
         } else {
-            // Tally: a dark counter with a swaying five-gate tally crown.
-            int white = 0xFFFFFFFF, edge = 0xFF3A3A3A, body = 0xFF161616, inset = 0xFF050505, feet = 0xFF2A2A2A;
-            ellipse(c, 83, 222, 23, 12, feet);
-            ellipse(c, 173, 222, 23, 12, feet);
-            ellipse(c, 128, 148, 82, 76, edge);
-            ellipse(c, 128, 150, 78, 72, body);
-            ellipse(c, 128, 154, 68, 60, inset);
-            for (int i = 0; i < 4; i++) {
-                int x = 96 + i * 21;
-                c.fill(x - 2, 62, x + 3, 100, white);
+            // Tally: the five-gate tally mark itself - the brand mark, no face.
+            // Counts up one stroke at a time, holds the full gate, then starts over.
+            int ink = 0xFFFFFFFF, shade = 0x38000000;
+            int cycle = still ? 5 : (int) ((clock / 750) % 7);
+            int verticals = Math.min(cycle, 4);
+            for (int i = 0; i < verticals; i++) {
+                int x = 88 + i * 24;
+                c.fill(x - 3 + 2, 84 + 3, x + 4 + 2, 172 + 3, shade);
+                c.fill(x - 3, 84, x + 4, 172, ink);
+                ellipse(c, x + .5, 84, 3.5, 3.5, ink);
+                ellipse(c, x + .5, 172, 3.5, 3.5, ink);
             }
-            for (int i = 0; i <= 12; i++) {
-                double t = i / 12.0;
-                ellipse(c, 90 + t * 76 + sway * t, 98 - t * 40, 2.4, 2.4, white);
+            if (cycle >= 4) {
+                for (int i = 0; i <= 20; i++) {
+                    double t = i / 20.0;
+                    double dx = 78 + t * 100, dy = 178 - t * 100;
+                    ellipse(c, dx + 2, dy + 3, 4, 4, shade);
+                    ellipse(c, dx, dy, 4, 4, ink);
+                }
             }
         }
     }

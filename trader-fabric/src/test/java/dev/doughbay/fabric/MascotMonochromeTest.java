@@ -43,6 +43,24 @@ class MascotMonochromeTest {
     }
 
     @Test
+    void tallyMarkDrawsOnlyAchromaticInk() {
+        for (long clock : new long[]{0, 800, 1600, 2400, 3200, 4800}) {
+            Set<Integer> colors = new HashSet<>();
+            MascotCharacters.draw(new MascotFace.Canvas() {
+                @Override public void fill(int left, int top, int right, int bottom, int color) { colors.add(color); }
+                @Override public void clip(int left, int top, int right, int bottom) { }
+                @Override public void unclip() { }
+            }, Appearance.Character.TALLY, clock, false);
+            assertTrue(!colors.isEmpty(), "tally mark must draw something");
+            for (int color : colors) {
+                int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
+                assertTrue(r == g && g == b,
+                        "tally mark must be achromatic: " + Integer.toHexString(color));
+            }
+        }
+    }
+
+    @Test
     void tallyIsTheDefaultThemeAndMascot(@TempDir Path directory) {
         try {
             Appearance.load(directory);

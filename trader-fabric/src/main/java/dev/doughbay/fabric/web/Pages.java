@@ -19,10 +19,10 @@ final class Pages {
      * else, so this page is too, whatever the browser prefers.
      */
     private static final String STYLE = """
-            :root { --background:#0c121b; --surface:#182230; --inset:#101823; --edge:#2c3b4c; --hover:#243747;
-              --selected:#354034; --text:#f0eee7; --secondary:#b6c2cd; --muted:#8799aa; --gold:#f4cd7a;
-              --teal:#56dccb; --good:#77deb0; --warn:#f3b576; --bad:#ff858c;
-              --deny:#e0553b; --pick:#2f4a6b; --pickedge:#5b9bff; --bar:#5fcf78; --barzero:#2a2d36;
+            :root { --background:#050505; --surface:#111111; --inset:#0a0a0a; --edge:#303030; --hover:#1e1e1e;
+              --selected:#242424; --text:#f2f2f2; --secondary:#bdbdbd; --muted:#8a8a8a; --gold:#ffffff;
+              --teal:#d4d4d4; --good:#e8e8e8; --warn:#a0a0a0; --bad:#6e6e6e;
+              --deny:#7a7a7a; --pick:#161616; --pickedge:#d4d4d4; --bar:#e8e8e8; --barzero:#1a1a1a;
               color-scheme: dark; }
             @font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
             * { box-sizing: border-box; }

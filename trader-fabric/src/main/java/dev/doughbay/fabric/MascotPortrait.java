@@ -16,8 +16,10 @@ public final class MascotPortrait {
         };
         try {
             MascotCharacters.draw(canvas,character,0,true);
-            var mood=MascotAnimation.Mood.valueOf(state.toUpperCase(java.util.Locale.ROOT));
-            MascotFace.draw(canvas,new MascotAnimation().frame(mood,1_000,0,true));
+            if (character != Appearance.Character.TALLY) {
+                var mood=MascotAnimation.Mood.valueOf(state.toUpperCase(java.util.Locale.ROOT));
+                MascotFace.draw(canvas,new MascotAnimation().frame(mood,1_000,0,true));
+            }
         } finally { graphics.dispose(); }
         return image;
     }
