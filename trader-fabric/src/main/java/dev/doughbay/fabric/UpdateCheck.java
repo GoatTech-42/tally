@@ -50,10 +50,10 @@ import java.util.stream.Stream;
  * then takes the client down.
  */
 public final class UpdateCheck {
-    static final String API = "https://api.github.com/repos/cody-raves/GoNuts/releases/latest";
-    static final String PAGE = "https://github.com/cody-raves/GoNuts/releases/latest";
+    static final String API = "https://api.github.com/repos/GoatTech-42/tally/releases/latest";
+    static final String PAGE = "https://github.com/GoatTech-42/tally/releases";
     /** The only place a jar is ever fetched from. */
-    static final String DOWNLOADS = "https://github.com/cody-raves/gonuts/releases/download/";
+    static final String DOWNLOADS = "https://github.com/goattech-42/tally/releases/download/";
     /**
      * The release's checksum file: a few hundred bytes, fetched like any
      * download. GitHub's API allows an address sixty questions an hour, which
@@ -61,7 +61,7 @@ public final class UpdateCheck {
      * file can be read as often as that, and the API is asked only when the
      * file names a jar not yet looked at.
      */
-    static final String SUMS = "https://github.com/cody-raves/GoNuts/releases/latest/download/SHA256SUMS.txt";
+    static final String SUMS = "https://github.com/GoatTech-42/tally/releases/latest/download/SHA256SUMS.txt";
     /** How often the checksum file is read. A fix put up is on a running client's screen within this. */
     private static final long EVERY_MILLIS = 2 * 60_000L;
     /** The API is asked this often whatever the checksum file says, in case that file cannot be read. */
@@ -69,8 +69,8 @@ public final class UpdateCheck {
     private static final long FIRST_MILLIS = 20_000L;
     /** In the world this long before the notice, so it is not lost among the lines a join prints. */
     private static final long SETTLE_MILLIS = 10_000L;
-    /** The mod's jar among the release's files: "GoNuts-0.1.0-mc26.2.jar", not the CLI or the server. */
-    private static final Pattern MOD_JAR = Pattern.compile("(?i)^gonuts-[0-9][^/]*-mc[^/]*\\.jar$");
+    /** The mod's jar among the release's files: "Tally-0.2.0-mc26.2.jar" (an upstream-named "GoNuts-..." jar also matches), not the CLI or the server. */
+    private static final Pattern MOD_JAR = Pattern.compile("(?i)^(gonuts|tally)-[0-9][^/]*-mc[^/]*\\.jar$");
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final boolean WINDOWS = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
 
@@ -97,7 +97,7 @@ public final class UpdateCheck {
             "try { [IO.File]::Delete($tmp) } catch { }",
             "Note ('could not replace ' + $jar + ': ' + $why); exit 2");
 
-    public enum State { OFF, UNCHECKED, CURRENT, NEWER, READY, AHEAD, FAILED }
+    public enum State { OFF, UNCHECKED, CURRENT, NEWER, READY, AHEAD, FAILED, NO_RELEASE }
 
     /** The mod's jar as the release has it. */
     record Release(String sha256, long uploadedAt, String page, String url, long size, String notes) { }
@@ -255,13 +255,15 @@ public final class UpdateCheck {
      */
     private static void look(String own, long built, boolean asked) {
         long now = System.currentTimeMillis();
+        // No release published yet is a fact already known: the API is not asked again until the long wait has passed.
+        if (!asked && status.state() == State.NO_RELEASE && now - lookedAtMillis < FULL_MILLIS) return;
         if (!asked && !lookedAt.isEmpty() && now - lookedAtMillis < FULL_MILLIS) {
             String listed = null;
             try {
                 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
                         .followRedirects(HttpClient.Redirect.NORMAL).build();
                 HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(SUMS))
-                        .timeout(Duration.ofSeconds(20)).header("User-Agent", "GoNuts-update-check")
+                        .timeout(Duration.ofSeconds(20)).header("User-Agent", "Tally-update-check")
                         .GET().build(), HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) listed = listed(response.body());
             } catch (InterruptedException e) {
@@ -329,8 +331,21 @@ public final class UpdateCheck {
             HttpResponse<String> response = http.send(HttpRequest.newBuilder(URI.create(API))
                     .timeout(Duration.ofSeconds(20))
                     .header("Accept", "application/vnd.github+json")
-                    .header("User-Agent", "GoNuts-update-check")
+                    .header("User-Agent", "Tally-update-check")
                     .GET().build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 404) {
+                // Tally has not published a release: that is the answer, not a failure.
+                Status before = status;
+                knownRelease = null;
+                lookedAt = "";
+                lookedAtMillis = now;
+                staged = null;
+                status = new Status(State.NO_RELEASE, now, 0, PAGE, "");
+                if (before.state() != State.NO_RELEASE) {
+                    DoughBayClient.LOGGER.info("Tally update check: no Tally release published yet");
+                }
+                return;
+            }
             if (response.statusCode() != 200) throw new IOException("GitHub answered " + response.statusCode());
             Release release = parse(response.body());
             if (release == null) throw new IOException("the release lists no mod jar");
@@ -422,13 +437,13 @@ public final class UpdateCheck {
             throws IOException, InterruptedException {
         if (!allowedDownload(release.url())) throw new IOException("the release names a download that is not its own");
         Files.createDirectories(directory);
-        Path target = directory.resolve("GoNuts-" + release.sha256().substring(0, 12) + ".jar");
+        Path target = directory.resolve("Tally-" + release.sha256().substring(0, 12) + ".jar");
         if (Files.isRegularFile(target) && release.sha256().equalsIgnoreCase(sha256(target))) return target;
         // Two clients can share this folder: each downloads under its own name.
         Path part = directory.resolve(target.getFileName() + "." + ProcessHandle.current().pid() + ".part");
         try {
             HttpResponse<Path> response = http.send(HttpRequest.newBuilder(URI.create(release.url()))
-                    .timeout(Duration.ofMinutes(10)).header("User-Agent", "GoNuts-update-check").GET().build(),
+                    .timeout(Duration.ofMinutes(10)).header("User-Agent", "Tally-update-check").GET().build(),
                     HttpResponse.BodyHandlers.ofFile(part));
             if (response.statusCode() != 200) throw new IOException("the download answered " + response.statusCode());
             accept(part, release);
@@ -440,7 +455,7 @@ public final class UpdateCheck {
         try (Stream<Path> files = Files.list(directory)) {
             for (Path old : files.toList()) {
                 String name = old.getFileName().toString();
-                if (name.startsWith("GoNuts-") && name.endsWith(".jar") && !old.equals(target)) Files.deleteIfExists(old);
+                if ((name.startsWith("Tally-") || name.startsWith("GoNuts-")) && name.endsWith(".jar") && !old.equals(target)) Files.deleteIfExists(old);
             }
         }
         if (running != null && Files.isRegularFile(running)) {
@@ -525,9 +540,9 @@ public final class UpdateCheck {
             // An update went in since the last run: say so before anything about the next one.
             changedAnnounced = true;
             String open = DoughBayClient.openKeyName();
-            bannerTitle = "GoNuts has something new";
+            bannerTitle = "Tally has something new";
             List<String> lines = new ArrayList<>(headlines(changed, BANNER_CHANGES));
-            lines.add(open.isEmpty() ? "Open GoNuts to see what changed" : "Press " + open + " to see what changed");
+            lines.add(open.isEmpty() ? "Open Tally to see what changed" : "Press " + open + " to see what changed");
             bannerLines = List.copyOf(lines);
             bannerSince = now;
             return;
@@ -544,8 +559,8 @@ public final class UpdateCheck {
     /** Puts the banner up for {@code state}: what there is, and which key shows the rest. */
     private static void raise(State state, long now) {
         String open = DoughBayClient.openKeyName();
-        String more = open.isEmpty() ? "Open GoNuts for details" : "Press " + open + " for details";
-        bannerTitle = state == State.READY ? "GoNuts update downloaded" : "GoNuts update available";
+        String more = open.isEmpty() ? "Open Tally for details" : "Press " + open + " for details";
+        bannerTitle = state == State.READY ? "Tally update downloaded" : "Tally update available";
         List<String> lines = new ArrayList<>();
         if (state == State.READY) lines.add("Installs when you close the game, ready when you reopen it");
         lines.addAll(headlines(news, BANNER_CHANGES));
@@ -647,21 +662,25 @@ public final class UpdateCheck {
     static Alert explain(State state, boolean auto, long uploadedAgoMillis) {
         String when = "It installs when you close the game and is ready when you open it again.";
         if (state == State.READY) {
-            return new Alert("A new GoNuts build is downloaded", List.of(
+            return new Alert("A new Tally build is downloaded", List.of(
                     when,
                     "Nothing changes while the game is running, so there is no need to stop what you are doing."));
         }
+        if (state == State.NO_RELEASE) {
+            return new Alert("No Tally release yet", List.of(
+                    "Tally has not published a release. When one is out, this notice says so here."));
+        }
         if (state != State.NEWER) {
-            return new Alert("GoNuts is up to date", List.of("There is nothing newer to install."));
+            return new Alert("Tally is up to date", List.of("There is nothing newer to install."));
         }
         String out = "It was put up " + age(uploadedAgoMillis) + " ago. You are running an older one.";
         if (auto) {
-            return new Alert("A new GoNuts build is out", List.of(
+            return new Alert("A new Tally build is out", List.of(
                     out,
                     "Auto-update is on and the new build is downloading now. " + when,
                     "If the download does not finish, the download page has the same file."));
         }
-        return new Alert("A new GoNuts build is out", List.of(
+        return new Alert("A new Tally build is out", List.of(
                 out,
                 "Turn on auto-update and it downloads now. " + when + " Every later build then arrives the same way.",
                 "Or do it by hand: close the game, download the jar, and replace the one in your mods folder."));

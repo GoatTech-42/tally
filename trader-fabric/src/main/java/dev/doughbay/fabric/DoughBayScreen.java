@@ -6658,6 +6658,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             case READY -> "a newer one is downloaded, goes in when the game closes";
             case AHEAD -> "newer than the release on GitHub";
             case FAILED -> "could not check: " + update.detail();
+            case NO_RELEASE -> "no Tally release published yet";
         }, update.state() == UpdateCheck.State.NEWER ? WARN
                 : update.state() == UpdateCheck.State.CURRENT || update.state() == UpdateCheck.State.READY
                 ? GOOD : SECONDARY);

@@ -26,14 +26,14 @@ class UpdateCheckTest {
     private static final String MOD = "9c6cd3aea4fc839d6e1e9ef8240a312595c7ba56a08beb4b8cfbdde3db009d72";
     private static final String OTHER = "c70a3c7a0edb2b1e07845d9033cc2a70520df0c76ebcf60e782ce254e23534c9";
     private static final long UPLOADED = Instant.parse("2026-10-11T08:36:36Z").toEpochMilli();
-    private static final String URL = "https://github.com/cody-raves/Gonuts/releases/download/v0.1.0/GoNuts-0.1.0-mc26.2.jar";
+    private static final String URL = "https://github.com/GoatTech-42/tally/releases/download/v0.2.0/Tally-0.2.0-mc26.2.jar";
 
     /** The shape GitHub answers with, cut down to what is read. */
     private static final String RELEASE = """
             {"tag_name":"v0.1.0","html_url":"https://github.com/example/mod/releases/tag/v0.1.0","assets":[
              {"name":"gonuts-cli-0.1.0.jar","digest":"sha256:%s","updated_at":"2026-09-23T14:54:35Z"},
              {"name":"SHA256SUMS.txt","digest":"sha256:%s","updated_at":"2026-10-11T08:36:34Z"},
-             {"name":"GoNuts-0.1.0-mc26.2.jar","digest":"sha256:%s","updated_at":"2026-10-11T08:36:36Z",
+             {"name":"Tally-0.2.0-mc26.2.jar","digest":"sha256:%s","updated_at":"2026-10-11T08:36:36Z",
               "size":21277403,"browser_download_url":"%s"},
              {"name":"gonuts-server-0.1.0.jar","digest":"sha256:%s","updated_at":"2026-09-23T14:54:35Z"}]}
             """.formatted(OTHER, OTHER, MOD.toUpperCase(), URL, OTHER);
@@ -101,12 +101,15 @@ class UpdateCheckTest {
 
     @Test
     void theChecksumFileNamesTheModsJarAndNotTheOthers() {
-        String sums = MOD.toUpperCase() + "  GoNuts-0.1.0-mc26.2.jar\n"
+        String sums = MOD.toUpperCase() + "  Tally-0.2.0-mc26.2.jar\n"
                 + OTHER.toUpperCase() + "  gonuts-cli-0.1.0.jar\r\n"
                 + OTHER.toUpperCase() + "  gonuts-server-0.1.0.jar\n";
         assertEquals(MOD, UpdateCheck.listed(sums));
         // The star some tools put before a name is not part of it.
         assertEquals(MOD, UpdateCheck.listed(MOD + " *GoNuts-0.1.0-mc26.2.jar\n"));
+        // An upstream-named jar still matches, and so does the Tally name, in any case.
+        assertEquals(MOD, UpdateCheck.listed(MOD + "  GoNuts-0.1.0-mc26.2.jar\n"));
+        assertEquals(MOD, UpdateCheck.listed(MOD + "  tally-0.2.0-mc26.2.jar\n"));
         assertNull(UpdateCheck.listed(OTHER + "  gonuts-cli-0.1.0.jar\n"));
         assertNull(UpdateCheck.listed("not a hash  GoNuts-0.1.0-mc26.2.jar\n"));
         assertNull(UpdateCheck.listed("<html>rate limited</html>"));
@@ -129,22 +132,25 @@ class UpdateCheckTest {
         assertTrue(text.contains("Turn on auto-update"));
         assertTrue(text.contains(when));
         assertTrue(text.contains("close the game, download the jar"));
-        assertEquals("GoNuts is up to date", UpdateCheck.explain(UpdateCheck.State.CURRENT, true, 0).title());
+        assertEquals("Tally is up to date", UpdateCheck.explain(UpdateCheck.State.CURRENT, true, 0).title());
+        assertEquals("No Tally release yet", UpdateCheck.explain(UpdateCheck.State.NO_RELEASE, true, 0).title());
     }
 
     @Test
     void aJarIsOnlyEverFetchedFromTheProjectsOwnReleaseDownloads() {
         assertTrue(UpdateCheck.allowedDownload(URL));
-        assertTrue(UpdateCheck.allowedDownload(URL.replace("Gonuts", "GoNuts")));
+        assertTrue(UpdateCheck.allowedDownload(URL.toLowerCase(java.util.Locale.ROOT)));
         assertFalse(UpdateCheck.allowedDownload(null));
         assertFalse(UpdateCheck.allowedDownload(""));
-        assertFalse(UpdateCheck.allowedDownload("http://github.com/cody-raves/Gonuts/releases/download/v0.1.0/x.jar"));
-        assertFalse(UpdateCheck.allowedDownload("https://github.com/someone-else/Gonuts/releases/download/v0.1.0/x.jar"));
-        assertFalse(UpdateCheck.allowedDownload("https://github.com.example.net/cody-raves/gonuts/releases/download/x.jar"));
-        assertFalse(UpdateCheck.allowedDownload("https://example.net/GoNuts-0.1.0-mc26.2.jar"));
+        assertFalse(UpdateCheck.allowedDownload("http://github.com/GoatTech-42/tally/releases/download/v0.2.0/x.jar"));
+        // The upstream project's downloads are not this project's.
+        assertFalse(UpdateCheck.allowedDownload("https://github.com/cody-raves/gonuts/releases/download/v0.1.0/x.jar"));
+        assertFalse(UpdateCheck.allowedDownload("https://github.com/someone-else/tally/releases/download/v0.2.0/x.jar"));
+        assertFalse(UpdateCheck.allowedDownload("https://github.com.example.net/GoatTech-42/tally/releases/download/x.jar"));
+        assertFalse(UpdateCheck.allowedDownload("https://example.net/Tally-0.2.0-mc26.2.jar"));
         assertFalse(UpdateCheck.allowedDownload(
-                "https://github.com/cody-raves/gonuts/releases/download/../../../someone-else/x.jar"));
-        assertFalse(UpdateCheck.allowedDownload("https://github.com/cody-raves/gonuts/releases/download/v0.1.0/x.exe"));
+                "https://github.com/GoatTech-42/tally/releases/download/../../../someone-else/x.jar"));
+        assertFalse(UpdateCheck.allowedDownload("https://github.com/GoatTech-42/tally/releases/download/v0.2.0/x.exe"));
     }
 
     private static Path modJar(Path file, String text) throws IOException {
