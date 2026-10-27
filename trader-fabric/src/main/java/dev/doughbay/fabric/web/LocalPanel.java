@@ -470,7 +470,7 @@ public final class LocalPanel implements AutoCloseable {
                 + "X-Content-Type-Options: nosniff\r\n"
                 + "X-Frame-Options: DENY\r\n"
                 + "Referrer-Policy: no-referrer\r\n"
-                + "Content-Security-Policy: default-src 'self'; connect-src 'self' https://gonuts.at; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self'\r\n"
+                + "Content-Security-Policy: default-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self'\r\n"
                 + extraHeaders
                 + "Connection: close\r\n\r\n";
         out.write(head.getBytes(StandardCharsets.ISO_8859_1));
