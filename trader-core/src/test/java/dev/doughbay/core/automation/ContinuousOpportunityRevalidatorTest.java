@@ -120,6 +120,24 @@ class ContinuousOpportunityRevalidatorTest {
         assertTrue(configuredResult.opportunity().isPresent(), configuredResult.detail());
     }
 
+    @Test
+    void infiniteLiquidityCannotAuthorizeAZeroHoldPurchase() {
+        Opportunity original = opportunity(listing("candidate", 4_000, 2_000), stats(2_000));
+        MarketStats valid = stats(2_100);
+        MarketStats infiniteLiquidity = new MarketStats(valid.itemKey(), valid.bucket(),
+                valid.windowMillis(), valid.sampleCount(), valid.outlierCount(),
+                valid.uniqueSellers(), valid.newestSaleAt(), valid.lowerBound(),
+                valid.quickSalePrice(), valid.weightedMedian(), valid.patientSalePrice(),
+                valid.upperBound(), Double.POSITIVE_INFINITY, valid.robustVolatility(),
+                valid.trend(), valid.confidence(), valid.calculatedAt());
+
+        var result = revalidator.revalidate(original, infiniteLiquidity,
+                List.of(original.listing()), POLICY, FeeConfig.zero(), 2_200, 2_000, true);
+
+        assertTrue(result.opportunity().isEmpty(),
+                "Nonfinite sale rate must not become a zero-hour hold and authorize a purchase");
+    }
+
     private static Opportunity opportunity(Listing listing, MarketStats stats) {
         return new Opportunity(listing, stats, listing.totalPrice(), 9_000,
                 5_000, 125, 0.1, 0.9, 0.9, 10, List.of("test"));
