@@ -179,6 +179,20 @@ public final class DoughBayConfig {
     private final FeeConfig auctionFees;
     private final long startingPaperBalance;
 
+    /**
+     * Where auction data actually comes from. Retired project relays never
+     * receive a saved key, an order sweep or a market query: an install
+     * upgraded from a pre-retirement config falls back to DonutSMP direct,
+     * while an owner-run proxy address passes through untouched.
+     */
+    static String resolveApiBaseUrl(String configured) {
+        if (configured == null || configured.isBlank()
+                || dev.doughbay.api.DonutApiConfig.retiredService(configured)) {
+            return dev.doughbay.api.DonutApiConfig.DEFAULT_BASE_URL;
+        }
+        return configured.strip();
+    }
+
     private DoughBayConfig(Path directory, Set<String> trackedCommodities,
                            boolean autoSelectCommodities, int maxScannedMarkets,
                            long tradingAllocation, RiskConfig riskConfig,
@@ -210,8 +224,7 @@ public final class DoughBayConfig {
         this.tradingAllocation = tradingAllocation;
         this.riskConfig = riskConfig;
         this.apiKey = apiKey;
-        this.apiBaseUrl = apiBaseUrl == null || apiBaseUrl.isBlank()
-                ? dev.doughbay.api.DonutApiConfig.DEFAULT_BASE_URL : apiBaseUrl.strip();
+        this.apiBaseUrl = resolveApiBaseUrl(apiBaseUrl);
         this.collectionEnabled = collectionEnabled;
         this.authorizedExecutionEnabled = authorizedExecutionEnabled;
         this.authorizedServers = List.copyOf(authorizedServers);
@@ -329,7 +342,12 @@ public final class DoughBayConfig {
                     String configured = root.get("apiBaseUrl").asText("").strip();
                     if (!configured.isBlank()) {
                         apiBaseUrl = configured;
-                        DoughBayClient.LOGGER.info("DoughBay: auction data comes from {}", apiBaseUrl);
+                        if (dev.doughbay.api.DonutApiConfig.retiredService(configured)) {
+                            DoughBayClient.LOGGER.warn(
+                                    "DoughBay: the configured auction relay is retired; using DonutSMP directly");
+                        } else {
+                            DoughBayClient.LOGGER.info("DoughBay: auction data comes from {}", apiBaseUrl);
+                        }
                     }
                 }
                 if (root.hasNonNull("databasePath")) {
@@ -967,11 +985,9 @@ public final class DoughBayConfig {
 
     /** A copy that differs only by which auction API it talks to. */
     public DoughBayConfig withApiBaseUrl(String url) {
-        String u = url == null || url.isBlank()
-                ? dev.doughbay.api.DonutApiConfig.DEFAULT_BASE_URL : url.strip();
         return new DoughBayConfig(directory, trackedCommodities, autoSelectCommodities,
                 maxScannedMarkets, tradingAllocation, riskConfig,
-                apiKey, u, collectionEnabled, authorizedExecutionEnabled, authorizedServers,
+                apiKey, url, collectionEnabled, authorizedExecutionEnabled, authorizedServers,
                 notificationServers, preflightEnabled, preflightServers,
                 continuousAutomationEnabled, continuousAutomationServers,
                 continuousMaxPurchasePrice, continuousMaxSessionSpend,
@@ -1002,9 +1018,7 @@ public final class DoughBayConfig {
         } else {
             root = mapper.createObjectNode();
         }
-        String u = url == null || url.isBlank()
-                ? dev.doughbay.api.DonutApiConfig.DEFAULT_BASE_URL : url.strip();
-        root.put("apiBaseUrl", u);
+        root.put("apiBaseUrl", resolveApiBaseUrl(url));
         Files.writeString(cfg, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root));
     }
 
