@@ -71,6 +71,9 @@ public final class ContinuousOpportunityRevalidator {
                 || !finitePositive(latestStats.weightedMedian())) {
             return Result.rejected("Latest completed-sale valuation is unusable");
         }
+        if (!finitePositive(latestStats.salesPerHour())) {
+            return Result.rejected("Latest completed-sale liquidity is unusable");
+        }
         if (latestStats.sampleCount() < baseRisk.minimumSamples()) {
             return Result.rejected("Latest completed-sale sample count is below the base risk gate");
         }
