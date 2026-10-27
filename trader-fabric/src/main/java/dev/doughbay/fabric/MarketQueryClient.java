@@ -134,8 +134,23 @@ public final class MarketQueryClient {
     public MarketQueryClient(String apiBaseUrl, boolean useServer) {
         String base = apiBaseUrl == null ? "" : apiBaseUrl.strip();
         while (base.endsWith("/")) base = base.substring(0, base.length() - 1);
+        if (dev.doughbay.api.DonutApiConfig.retiredService(base)) {
+            // A retired relay answers no market routes; search the local database instead.
+            base = "";
+            useServer = false;
+        }
         this.baseUrl = base;
         this.useServer = useServer;
+    }
+
+    /** The query origin after retired-service filtering; empty means local only. */
+    String baseUrl() {
+        return baseUrl;
+    }
+
+    /** Whether server routes are read after retired-service filtering. */
+    boolean useServer() {
+        return useServer;
     }
 
     private boolean blocked() {

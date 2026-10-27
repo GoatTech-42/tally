@@ -59,8 +59,15 @@ public final class FeedUploader {
     private volatile long dropped;
 
     public FeedUploader(String baseUrl, String token) {
-        this.baseUrl = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
+        String base = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
+        // A retired relay never receives an order sweep or the key sent as its token.
+        this.baseUrl = dev.doughbay.api.DonutApiConfig.retiredService(base) ? "" : base;
         this.token = token == null ? "" : token;
+    }
+
+    /** The upload destination after retired-service filtering; empty means local only. */
+    String baseUrl() {
+        return baseUrl;
     }
 
     private static boolean enabled() {
