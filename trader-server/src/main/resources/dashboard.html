@@ -23,9 +23,6 @@
   /* header, as the mod draws it */
   .hdr { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   .hdr img.logo { height: 34px; width: auto; image-rendering: pixelated; }
-  .hdr .mascot { width: 40px; height: 34px; background: url(/assets/mascot_idle.png) no-repeat 0 0 / 40px auto; animation: idle 4.5s steps(16) infinite; image-rendering: pixelated; }
-  .hdr .mascot.watch { background-image: url(/assets/mascot_watch.png); animation: idle 1.8s steps(16) infinite; }
-  @keyframes idle { to { background-position: 0 -550px; } }
   .hdr .tag { color: var(--secondary); margin-top: 9px; }
   .hdr .right { margin-left: auto; text-align: right; color: var(--muted); font-size: 12px; margin-top: 4px; }
   .hdr .right b { color: var(--gold); font-weight: 500; }
@@ -110,7 +107,6 @@
 <div class="frame">
   <div class="hdr">
     <img class="logo" src="/assets/logo.png" alt="tally">
-    <div class="mascot" id="mascot"></div>
     <div class="tag">auction analysis + verified execution</div>
     <div class="right"><div id="updated">updated never</div><div class="acct" id="acct">no key</div></div>
   </div>
@@ -273,7 +269,6 @@
       $("live").textContent = (polling ? "LIVE MARKET DATA — OK · " : "SERVING STORED DATA — ") + h.markets + " markets" + (polling ? " · sales poll " + h.lastSalesPollSecondsAgo + "s ago · " + (h.donutRequestsLastMinute ?? 0) + "/" + (h.donutBudgetPerMinute ?? "?") + " requests this minute" : "") + (h.lastError ? " · " + h.lastError : "");
       $("updated").textContent = "up " + Math.round(h.uptimeSeconds / 60) + " min";
       $("acct").textContent = key ? "key " + key.slice(0, 8) + "…" : "no key";
-      $("mascot").classList.toggle("watch", polling);
     } catch (e) { $("live").className = "live warn"; $("live").textContent = "DATA SERVER UNREACHABLE"; }
   }
 
