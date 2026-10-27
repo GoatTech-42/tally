@@ -15,10 +15,13 @@ final class DashboardWebsiteAccess {
         this.clipboard = clipboard;
     }
 
-    String address() { return DashboardProtocol.PAGE.toASCIIString(); }
+    private static boolean retired() { return !ProjectStatus.publicServicesEnabled(); }
+
+    String address() { return retired() ? "" : DashboardProtocol.PAGE.toASCIIString(); }
     String message() { return message; }
 
     void open() {
+        if (retired()) { message = ProjectStatus.RETIRED; return; }
         try {
             launcher.accept(DashboardProtocol.PAGE);
             message = "No browser? Copy this address.";
@@ -28,6 +31,7 @@ final class DashboardWebsiteAccess {
     }
 
     void copy() {
+        if (retired()) { message = ProjectStatus.RETIRED; return; }
         try {
             clipboard.accept(address());
             message = "Address copied. Paste in your browser.";

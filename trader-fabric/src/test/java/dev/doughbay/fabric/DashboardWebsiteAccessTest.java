@@ -6,38 +6,27 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DashboardWebsiteAccessTest {
-    @Test void silentLauncherDoesNotClaimSuccessAndManualCopyStillWorks() {
+    // The hosted dashboard was retired with the public services. The access
+    // helper must never launch or copy the dead address, and must say why.
+    @Test void retiredServiceNeverLaunchesTheDeadDashboardAddress() {
+        List<String> launched = new ArrayList<>();
+        DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> launched.add(uri.toASCIIString()), value -> {});
+        access.open();
+        assertEquals(List.of(), launched, "retired dashboard must not be opened");
+        assertEquals(ProjectStatus.RETIRED, access.message());
+    }
+
+    @Test void retiredServiceNeverCopiesTheDeadDashboardAddress() {
         List<String> copied = new ArrayList<>();
         DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> {}, copied::add);
-        access.open();
-        assertEquals("No browser? Copy this address.", access.message());
         access.copy();
-        assertEquals(List.of("https://gonuts.at/dashboard/"), copied);
+        assertEquals(List.of(), copied, "retired dashboard address must not be copied");
+        assertEquals(ProjectStatus.RETIRED, access.message());
     }
 
-    @Test void missingDesktopLauncherCannotEscapeTheGuiCallback() {
-        List<String> copied = new ArrayList<>();
-        DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> {
-            throw new IllegalStateException("desktop unavailable");
-        }, copied::add);
-        assertDoesNotThrow(access::open);
-        assertEquals("Browser unavailable. Copy this address.", access.message());
-        access.copy();
-        assertEquals(access.address(), copied.getFirst());
-    }
-
-    @Test void copyingNeverOpensBrowserOrRequiresPairing() {
-        DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> fail("unexpected launch"), value -> {});
-        access.copy();
-        assertEquals("Address copied. Paste in your browser.", access.message());
-    }
-
-    @Test void unavailableClipboardLeavesPublicAddressForManualEntry() {
-        DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> {}, value -> {
-            throw new IllegalStateException("clipboard unavailable");
-        });
-        assertDoesNotThrow(access::copy);
-        assertEquals("Copy failed. Type the address above.", access.message());
-        assertEquals("https://gonuts.at/dashboard/", access.address());
+    @Test void retiredServiceOffersNoAddressToType() {
+        DashboardWebsiteAccess access = new DashboardWebsiteAccess(uri -> {}, value -> {});
+        assertTrue(access.address().isEmpty(),
+                "there is no dashboard address to show once the service is retired");
     }
 }
