@@ -15,6 +15,8 @@ public final class ReconnectFlow {
  public final ReconnectSchedule schedule;
  private Phase phase = Phase.IDLE;
  private String sessionAddress;
+ /** Set when automatic retry was stopped for a permanent enforcement notice; cleared only by a real connection or manual connect. */
+ private boolean retryLatched;
  public ReconnectFlow(Client client, ReconnectSchedule schedule) { this.client=client; this.schedule=schedule; }
  public Phase phase() { return phase; }
  private String destination(String configured, String fallback) {
@@ -41,6 +43,7 @@ public final class ReconnectFlow {
  }
  /** Records manual attempts, including connections that never reach a world. */
  public void connectionStarted(String address, boolean enabled) {
+  retryLatched=false;
   cancel();
   if (enabled && address!=null && !address.isBlank()) {
    sessionAddress=address;
@@ -63,7 +66,7 @@ public final class ReconnectFlow {
  public void tick(boolean enabled) { tick(enabled,""); }
  private void retry(String configured) { retry(configured,false); }
  private void retry(String configured, boolean failedAttempt) {
-  if (!client.automaticRetryAllowed()) { cancel(); return; }
+  if (retryLatched || !client.automaticRetryAllowed()) { retryLatched=true; cancel(); return; }
   String address=failedAttempt ? client.failedJoinDestination(sessionAddress) : destination(configured,sessionAddress);
   if (address==null || address.isBlank()) { cancel(); return; }
   sessionAddress=address;
@@ -81,7 +84,7 @@ public final class ReconnectFlow {
   if (!enabled) { cancel(); return; }
   switch (phase) {
    case IDLE -> {
-    if (client.connected() && client.multiplayer()) sessionAddress=client.currentAddress();
+    if (client.connected() && client.multiplayer()) { retryLatched=false; sessionAddress=client.currentAddress(); }
     else if (client.disconnectedScreen() && sessionAddress!=null) retry(configured);
     else if (!client.connected()) sessionAddress=null;
    }
@@ -100,6 +103,7 @@ public final class ReconnectFlow {
    }
    case ATTEMPTING -> {
     if (client.connected() && client.multiplayer()) {
+     retryLatched=false;
      sessionAddress=client.currentAddress();
      phase=Phase.IDLE;
     } else if (client.disconnectedScreen()) retry(configured,true);
