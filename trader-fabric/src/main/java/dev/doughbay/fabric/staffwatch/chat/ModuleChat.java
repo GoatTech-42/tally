@@ -12,13 +12,6 @@ import net.minecraft.network.chat.MutableComponent;
 @Environment(EnvType.CLIENT)
 public final class ModuleChat {
    private static final String HEADER = "Staff Watch";
-   private static final int DARK_GREY = 5592405;
-   private static final int GREY = 11184810;
-   private static final int WHITE = 16777215;
-   private static final int DANGER = 16733525;
-   private static final int GOOD = 5635925;
-   private static final int WARN = 16755200;
-   private static final int VALUE = 5636095;
 
    private ModuleChat() {
    }

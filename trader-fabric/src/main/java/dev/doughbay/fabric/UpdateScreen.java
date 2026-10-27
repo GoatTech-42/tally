@@ -48,7 +48,7 @@ public final class UpdateScreen extends GoNutsScreen {
     private String shown = "";
 
     UpdateScreen(Screen parent, Mode mode) {
-        super(Component.literal("GoNuts update"));
+        super(Component.literal("Tally update"));
         this.parent = parent;
         this.mode = mode;
     }
@@ -72,7 +72,7 @@ public final class UpdateScreen extends GoNutsScreen {
     }
 
     private String title() {
-        if (!aboutAnUpdate()) return "What's new in GoNuts";
+        if (!aboutAnUpdate()) return "What's new in Tally";
         return alert().title() + (mode == Mode.SAMPLE ? "  (preview)" : "");
     }
 
