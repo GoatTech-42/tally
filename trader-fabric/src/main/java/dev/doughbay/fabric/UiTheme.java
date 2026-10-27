@@ -7,17 +7,17 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 final class UiTheme {
     static int GOLD = 0xFFF4CD7A;
     static int TEAL = 0xFF56DCCB;
-    static final int TEXT = 0xFFF0EEE7;
-    static final int SECONDARY = 0xFFB6C2CD;
-    static final int MUTED = 0xFF8799AA;
+    static final int TEXT = 0xFFF2F2F2;
+    static final int SECONDARY = 0xFFBDBDBD;
+    static final int MUTED = 0xFF8A8A8A;
     static int BACKGROUND = 0xFA0C121B;
     static int SURFACE = 0xF2182230;
     static int INSET = 0xF0101823;
     static int EDGE = 0xFF2C3B4C;
     static int HOVER = 0xFF243747;
-    static final int GOOD = 0xFF77DEB0;
-    static final int WARN = 0xFFF3B576;
-    static final int BAD = 0xFFFF858C;
+    static final int GOOD = 0xFFE8E8E8;
+    static final int WARN = 0xFFA0A0A0;
+    static final int BAD = 0xFF6E6E6E;
 
     private UiTheme() { }
 
@@ -27,6 +27,7 @@ final class UiTheme {
             case MIDNIGHT -> { GOLD=0xFFC1A7FF; TEAL=0xFF88CAFF; BACKGROUND=0xFA111020; SURFACE=0xF2222039; INSET=0xF0171629; EDGE=0xFF45405F; HOVER=0xFF393253; }
             case MINT -> { GOLD=0xFF9FE5BE; TEAL=0xFF7FE0DF; BACKGROUND=0xFA0C1917; SURFACE=0xF2182C28; INSET=0xF010211E; EDGE=0xFF325349; HOVER=0xFF29483F; }
             case ROSE -> { GOLD=0xFFFFB4CC; TEAL=0xFFFFD3AE; BACKGROUND=0xFA1C101A; SURFACE=0xF230202E; INSET=0xF0251522; EDGE=0xFF583A50; HOVER=0xFF493046; }
+            case TALLY -> { GOLD=0xFFFFFFFF; TEAL=0xFFD4D4D4; BACKGROUND=0xFA050505; SURFACE=0xF2111111; INSET=0xF00A0A0A; EDGE=0xFF303030; HOVER=0xFF1E1E1E; }
         }
     }
     static boolean reducedMotion() { return Tuning.get("hud.reduced_motion") >= 0.5; }

@@ -8,12 +8,12 @@ import java.nio.file.StandardCopyOption;
 
 /** Local presentation preferences; changing these cannot change automation settings. */
 public final class Appearance {
-    public enum Theme { CLASSIC, MIDNIGHT, MINT, ROSE }
-    public enum Character { ORIGINAL, MOCHI, SPROUT }
+    public enum Theme { CLASSIC, MIDNIGHT, MINT, ROSE, TALLY }
+    public enum Character { ORIGINAL, MOCHI, SPROUT, TALLY }
     private static Appearance current = new Appearance();
     private static Path file;
-    private volatile Theme theme = Theme.CLASSIC;
-    private volatile Character mascot = Character.ORIGINAL;
+    private volatile Theme theme = Theme.TALLY;
+    private volatile Character mascot = Character.TALLY;
 
     private Appearance() { }
     public static Theme theme() { return current.theme; }
@@ -27,8 +27,8 @@ public final class Appearance {
                 if (loaded != null) current = loaded;
             }
         } catch (Exception ignored) { current = new Appearance(); }
-        if (current.theme == null) current.theme = Theme.CLASSIC;
-        if (current.mascot == null) current.mascot = Character.ORIGINAL;
+        if (current.theme == null) current.theme = Theme.TALLY;
+        if (current.mascot == null) current.mascot = Character.TALLY;
         UiTheme.apply(current.theme);
     }
 

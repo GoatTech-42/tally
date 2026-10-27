@@ -8,10 +8,10 @@ final class MascotFace {
         void unclip();
     }
 
-    private static final int EYE = 0xFF4FF1E3;
-    private static final int DARK = 0xFF091923;
-    private static final int LIGHT = 0xFFDAFFF9;
-    private static final int GOLD = 0xFFFFD36C;
+    private static final int EYE = 0xFFFFFFFF;
+    private static final int DARK = 0xFF0D0D0D;
+    private static final int LIGHT = 0xFFFFFFFF;
+    private static final int GOLD = 0xFFE8E8E8;
 
     private MascotFace() { }
 

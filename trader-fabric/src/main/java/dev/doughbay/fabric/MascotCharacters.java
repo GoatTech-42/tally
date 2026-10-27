@@ -23,7 +23,7 @@ final class MascotCharacters {
                 ellipse(c, 128 + side * 68, 181, 9, 4, 0xFFBD88B8);
                 c.fill(128 + side * 82 - 10, 174, 128 + side * 82 + 10, 176, 0xFFE0CFEB);
             }
-        } else {
+        } else if (character == Appearance.Character.SPROUT) {
             // A forest creature, with a living sprout and a terracotta pot.
             c.fill(124, 54, 132, 104, 0xFF68B78B);
             ellipse(c, 107 + sway, 60, 30, 16, 0xFF88D997);
@@ -36,6 +36,22 @@ final class MascotCharacters {
             c.fill(82, 225, 174, 237, 0xFFAA644F);
             ellipse(c, 128, 214, 59, 9, 0xFFF0AE7C);
             c.fill(105, 224, 115, 234, 0xFFEEB38A);
+        } else {
+            // Tally: a dark counter with a swaying five-gate tally crown.
+            int white = 0xFFFFFFFF, edge = 0xFF3A3A3A, body = 0xFF161616, inset = 0xFF050505, feet = 0xFF2A2A2A;
+            ellipse(c, 83, 222, 23, 12, feet);
+            ellipse(c, 173, 222, 23, 12, feet);
+            ellipse(c, 128, 148, 82, 76, edge);
+            ellipse(c, 128, 150, 78, 72, body);
+            ellipse(c, 128, 154, 68, 60, inset);
+            for (int i = 0; i < 4; i++) {
+                int x = 96 + i * 21;
+                c.fill(x - 2, 62, x + 3, 100, white);
+            }
+            for (int i = 0; i <= 12; i++) {
+                double t = i / 12.0;
+                ellipse(c, 90 + t * 76 + sway * t, 98 - t * 40, 2.4, 2.4, white);
+            }
         }
     }
 

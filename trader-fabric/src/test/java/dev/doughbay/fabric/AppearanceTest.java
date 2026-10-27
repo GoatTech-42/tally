@@ -11,11 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AppearanceTest {
     @Test
-    void aChoiceIsKeptAndTheOldLookIsTheDefault(@TempDir Path directory) throws Exception {
+    void aChoiceIsKeptAndTheTallyLookIsTheDefault(@TempDir Path directory) throws Exception {
         try {
             Appearance.load(directory);
-            assertEquals(Appearance.Theme.CLASSIC, Appearance.theme());
-            assertEquals(Appearance.Character.ORIGINAL, Appearance.mascot());
+            assertEquals(Appearance.Theme.TALLY, Appearance.theme());
+            assertEquals(Appearance.Character.TALLY, Appearance.mascot());
             int classicGold = UiTheme.GOLD;
 
             Appearance.choose(Appearance.Theme.MINT, Appearance.Character.SPROUT);
@@ -32,7 +32,7 @@ class AppearanceTest {
             // A file that is not ours leaves the old look, and nothing breaks.
             Files.writeString(directory.resolve("appearance.json"), "not json at all {");
             Appearance.load(directory);
-            assertEquals(Appearance.Theme.CLASSIC, Appearance.theme());
+            assertEquals(Appearance.Theme.TALLY, Appearance.theme());
             assertEquals(classicGold, UiTheme.GOLD);
         } finally {
             UiTheme.apply(Appearance.Theme.CLASSIC);
