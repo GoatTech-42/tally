@@ -14,14 +14,14 @@ public final class RegionMapImage {
         Graphics2D g = image.createGraphics();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(new Color(12, 18, 27)); g.fillRect(0, 0, 1200, 870);
-            g.setColor(new Color(44, 59, 76)); g.drawRoundRect(12, 12, 1175, 845, 18, 18);
+            g.setColor(new Color(14, 14, 14)); g.fillRect(0, 0, 1200, 870);
+            g.setColor(new Color(48, 48, 48)); g.drawRoundRect(12, 12, 1175, 845, 18, 18);
             g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 30));
-            g.setColor(new Color(244, 205, 122)); g.drawString("GoNuts  /  Region Map", 32, 60);
-            g.setColor(new Color(240, 238, 231)); g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 24));
+            g.setColor(new Color(255, 255, 255)); g.drawString("Tally  /  Region Map", 32, 60);
+            g.setColor(new Color(240, 240, 240)); g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 24));
             g.drawString("This client · " + snapshot.server(), 32, 102);
             g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 19));
-            g.setColor(new Color(182, 194, 205)); g.drawString("X ******   Y ******   Z ******", 32, 137);
+            g.setColor(new Color(180, 180, 180)); g.drawString("X ******   Y ******   Z ******", 32, 137);
             g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18));
             g.drawString(snapshot.status(), 32, 166);
             int cell = 64, left = 36, top = 192;
@@ -32,7 +32,7 @@ public final class RegionMapImage {
                     g.setColor(new Color(color, true));
                     g.fillRect(left + col * cell, top + row * cell, cell - 1, cell - 1);
                     if (area >= 0) {
-                        g.setColor(new Color(16, 24, 35));
+                        g.setColor(new Color(16, 16, 16));
                         String label = Integer.toString(area);
                         g.drawString(label, left + col * cell + (cell - g.getFontMetrics().stringWidth(label)) / 2,
                                 top + row * cell + (cell + g.getFontMetrics().getAscent()) / 2 - 3);
@@ -43,11 +43,11 @@ public final class RegionMapImage {
             for (int i = 0; i < names.length; i++) {
                 int y = top + 28 + i * 40;
                 g.setColor(new Color(RegionMapData.colorByName(names[i]), true)); g.fillRect(660, y - 16, 16, 16);
-                g.setColor(new Color(182, 194, 205)); g.drawString(names[i], 690, y);
+                g.setColor(new Color(180, 180, 180)); g.drawString(names[i], 690, y);
             }
-            g.setColor(new Color(240, 238, 231)); g.fillRect(660, 524, 16, 16);
+            g.setColor(new Color(240, 240, 240)); g.fillRect(660, 524, 16, 16);
             g.drawString("Your server area", 690, 540);
-            g.setColor(new Color(135, 153, 170));
+            g.setColor(new Color(140, 140, 140));
             g.drawString("Coordinates always hidden in web and Discord images.", 36, 805);
             g.drawString("Exact position is not plotted. Map applies to the DonutSMP Overworld.", 36, 833);
         } finally { g.dispose(); }

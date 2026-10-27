@@ -25,17 +25,17 @@ public final class StatsImage {
      * without every coordinate in here having to change.
      */
     private static final double SCALE = 2.0;
-    private static final Color BG = new Color(16, 17, 22);
-    private static final Color PANEL = new Color(26, 28, 36);
-    private static final Color LINE = new Color(48, 52, 66);
-    private static final Color TEXT = new Color(226, 228, 235);
-    private static final Color DIM = new Color(140, 146, 165);
-    private static final Color GOLD = new Color(245, 197, 66);
-    private static final Color GREEN = new Color(92, 214, 132);
-    private static final Color RED = new Color(235, 96, 96);
-    private static final Color BLUE = new Color(96, 156, 245);
-    private static final Color SLOT_ON = new Color(92, 214, 132);
-    private static final Color SLOT_OFF = new Color(40, 44, 56);
+    private static final Color BG = new Color(16, 16, 16);
+    private static final Color PANEL = new Color(26, 26, 26);
+    private static final Color LINE = new Color(48, 48, 48);
+    private static final Color TEXT = new Color(235, 235, 235);
+    private static final Color DIM = new Color(140, 140, 140);
+    private static final Color GOLD = new Color(255, 255, 255);
+    private static final Color GREEN = new Color(200, 200, 200);
+    private static final Color RED = new Color(255, 255, 255);
+    private static final Color BLUE = new Color(160, 160, 160);
+    private static final Color SLOT_ON = new Color(200, 200, 200);
+    private static final Color SLOT_OFF = new Color(40, 40, 40);
 
     /**
      * One page: headline pairs, optional grid, table with per-column
@@ -257,8 +257,8 @@ public final class StatsImage {
         } else {
             g.setFont(title);
             g.setColor(GOLD);
-            g.drawString("GoNuts", brand, y);
-            brand += g.getFontMetrics().stringWidth("GoNuts ");
+            g.drawString("Tally", brand, y);
+            brand += g.getFontMetrics().stringWidth("Tally ");
         }
         java.awt.image.BufferedImage robot = page.mascotFace().isBlank() ? null
                 : Branding.mascot(page.mascotFace());
@@ -350,7 +350,7 @@ public final class StatsImage {
             for (int i = 0; i < page.gridTotal(); i++) {
                 int cx = 28 + (i % 30) * 14;
                 int cy = y + (i / 30) * 14;
-                g.setColor(page.gridUsed()<0?new Color(77,69,42):i < page.gridUsed() ? SLOT_ON : SLOT_OFF);
+                g.setColor(page.gridUsed()<0?new Color(56, 56, 56):i < page.gridUsed() ? SLOT_ON : SLOT_OFF);
                 g.fillRoundRect(cx, cy, 11, 11, 3, 3);
             }
             y += 14 * ((page.gridTotal() + 29) / 30) + 8;
@@ -404,7 +404,7 @@ public final class StatsImage {
             int i = 0;
             for (String[] row : page.rows()) {
                 if (i % 2 == 1) {
-                    g.setColor(new Color(32, 35, 45));
+                    g.setColor(new Color(32, 32, 32));
                     g.fillRect(24, y + 2, WIDTH - 48, 24);
                 }
                 if (faceGutter > 0 && i < page.rowFaces().size()) {
