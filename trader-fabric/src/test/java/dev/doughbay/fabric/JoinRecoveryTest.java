@@ -31,7 +31,7 @@ class JoinRecoveryTest {
     @Test void onlyExplicitBansAreTreatedAsPermanentEnforcement() {
         assertTrue(JoinRecovery.permanentEnforcement("You are banned from this server"));
         assertTrue(JoinRecovery.permanentEnforcement("Visit the Ban Appeal page"));
-        for (String transient_ : new String[] {"Invalid session", "Already connected", "Not whitelisted", "Connection timed out", "", null})
+        for (String transient_ : new String[] {"You have been unbanned", "You are not banned", "No longer banned", "Invalid session", "Already connected", "Not whitelisted", "Connection timed out", "", null})
             assertFalse(JoinRecovery.permanentEnforcement(transient_), String.valueOf(transient_));
     }
 }
