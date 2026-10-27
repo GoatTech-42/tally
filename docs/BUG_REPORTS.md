@@ -1,5 +1,10 @@
 # Bug reports and VPS handoff
 
+> **Retired:** the hosted bug receiver at gonuts.at is no longer running.
+> In-game report entry points report the service as retired and do not prepare
+> or send reports. To file a bug, open a GitHub issue manually (GitHub sign-in
+> required). This document is kept as the transport record.
+
 The client sends reviewed reports directly to **https://gonuts.at/v1/bugs**
 without an API token, signup, Discord membership or GitHub account. Market-feed
 credentials and custom market URLs do not affect reporting. Neither the report
