@@ -43,6 +43,18 @@ class MascotMonochromeTest {
     }
 
     @Test
+    void moneyReelBranchIsExercisedAndAchromatic() {
+        // money=1 suppresses the eyes entirely, so only the $-reels draw; an
+        // empty recording here would mean the reel branch silently vanished.
+        Set<Integer> colors = colorsDrawn(new MascotAnimation.Pose(0, 0, 1, 1, 0, 0, 0, 1, 1, 0.3, 0.7, -1));
+        assertTrue(colors.size() >= 3, "reel branch must draw the $ marks: " + colors);
+        for (int color : colors) {
+            int r = (color >> 16) & 0xFF, g = (color >> 8) & 0xFF, b = color & 0xFF;
+            assertTrue(r == g && g == b, "reel ink must be achromatic: " + Integer.toHexString(color));
+        }
+    }
+
+    @Test
     void tallyMarkDrawsOnlyAchromaticInk() {
         for (long clock : new long[]{0, 800, 1600, 2400, 3200, 4800}) {
             Set<Integer> colors = new HashSet<>();

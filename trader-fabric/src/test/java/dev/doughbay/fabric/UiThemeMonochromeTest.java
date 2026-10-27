@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tally house style: the palette is provably achromatic (R == G == B for every
  * theme color) and keeps WCAG-measurable contrast tiers on a dark background.
  * Status is carried by brightness steps plus words/signs, never by hue.
+ * Legacy themes stay selectable for parity, but the shared text/status
+ * constants are intentionally achromatic everywhere - legacy choices keep
+ * their surfaces, not their original text/status hues.
  */
 class UiThemeMonochromeTest {
 
@@ -62,6 +65,11 @@ class UiThemeMonochromeTest {
         assertAchromatic("BAD", UiTheme.BAD);
     }
 
+    /**
+     * Computed panel-palette contrast only (WCAG formula on the raw RGB
+     * constants). Panels composite at 98% alpha over a live game scene, so
+     * this is not a composited on-screen accessibility proof.
+     */
     @Test
     void tallyThemeKeepsReadableContrastTiers() {
         UiTheme.apply(Appearance.Theme.TALLY);

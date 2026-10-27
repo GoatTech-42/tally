@@ -303,19 +303,19 @@ final class Pages {
     private static final String HEAD = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
             + "<meta name=\"gonuts-panel\" content=\"v2\">"
             + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-            + "<title>GoNuts panel</title><style>" + STYLE + "</style></head><body><main>";
+            + "<title>tally panel</title><style>" + STYLE + "</style></head><body><main>";
 
     static String login(String message) {
         String note = message == null || message.isBlank() ? ""
                 : "<p class=\"bad\" role=\"alert\">" + escape(message) + "</p>";
         return HEAD + "<div class=\"door panel\"><h1 class=\"title\">Web panel</h1><div class=\"body\">"
-                + "<img src=\"/logo.png\" alt=\"GoNuts\">" + note
+                + "<img src=\"/logo.png\" alt=\"tally\">" + note
                 + "<form method=\"post\" action=\"/login\">"
                 + "<label class=\"label\" for=\"code\">PIN</label>"
                 + "<input id=\"code\" name=\"code\" type=\"password\" inputmode=\"numeric\" autocomplete=\"off\" "
                 + "maxlength=\"12\" autofocus required>"
                 + "<button class=\"pick\" type=\"submit\">Open the panel</button></form>"
-                + "<p>Set the PIN in GoNuts: Trading → Trade → Tools → Web panel.</p>"
+                + "<p>Set the PIN in tally: Trading → Trade → Tools → Web panel.</p>"
                 + "</div></div></main></body></html>";
     }
 
@@ -334,8 +334,8 @@ final class Pages {
      * searched, ticked and changed and not only looked at.
      */
     static final String APP = HEAD
-            + "<section class=\"panel\" role=\"note\"><strong>PUBLIC SUPPORT HAS ENDED</strong><p>After seven weeks, GoNuts is no longer publicly maintained or supported by its original developer. Fork the source to add features, change behavior or fix bugs. Swarm, hosted sign-in, reporting and diagnostic uploads are retired.</p><a href=\"https://github.com/cody-raves/Gonuts\" target=\"_blank\" rel=\"noopener noreferrer\">Source code and forks</a></section>"
-            + "<header class=\"panel\"><img src=\"/logo.png\" alt=\"GoNuts\">"
+            + "<section class=\"panel\" role=\"note\"><strong>TALLY IS A MAINTAINED FORK</strong><p>Tally continues GoNuts, which ended public support after seven weeks. Swarm, hosted sign-in, reporting and diagnostic uploads stay retired; this build runs standalone. Original credits and license are unchanged.</p><a href=\"https://github.com/cody-raves/Gonuts\" target=\"_blank\" rel=\"noopener noreferrer\">Original source (cody-raves/Gonuts)</a></section>"
+            + "<header class=\"panel\"><img src=\"/logo.png\" alt=\"tally\">"
             + "<span id=\"state\">...</span><span class=\"gap\"></span><span id=\"clock\"></span>"
             + "<form class=\"out\" method=\"post\" action=\"/logout\"><button type=\"submit\">Lock</button></form></header>"
             + "<label class=\"mobile-account\" for=\"mobile-account\"><span class=\"label\">Account</span><select id=\"mobile-account\" aria-label=\"View account\"></select></label>"

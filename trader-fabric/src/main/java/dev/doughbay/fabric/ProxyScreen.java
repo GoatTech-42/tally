@@ -12,7 +12,7 @@ public final class ProxyScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Done"),b->onClose()).bounds(width/2-50,height-26,100,20).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0xFA0C121B);g.text(font,"GONUTS · PROXIES",15,15,UiTheme.GOLD);
+        g.fill(0,0,width,height,UiTheme.BACKGROUND);g.text(font,"TALLY · PROXIES",15,15,UiTheme.GOLD);
         panel.render(g,font);super.extractRenderState(g,mx,my,delta);
     }
     @Override public void onClose(){minecraft.gui.setScreen(parent);}

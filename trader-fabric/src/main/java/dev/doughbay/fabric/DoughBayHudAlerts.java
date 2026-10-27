@@ -734,7 +734,7 @@ final class DoughBayHudAlerts {
         UiTheme.panel(graphics, x, y, width, height, UiTheme.BACKGROUND);
         int tx = x + (showMascot ? 76 : 12);
         if (showMascot) Mascot.draw(graphics, preview ? previewFace : Mascot.faceFor(session, evasion), x + 10, y + 2, 52);
-        graphics.text(font, preview ? "GONUTS / DEMO" : "GONUTS", tx, y + 12, UiTheme.GOLD, false);
+        graphics.text(font, preview ? "TALLY / DEMO" : "TALLY", tx, y + 12, UiTheme.GOLD, false);
         String state = preview ? "PREVIEW / SAMPLE DATA" : shortState(session);
         UiTheme.rounded(graphics, tx, y + 27, font.width(state) + 14, 17, 4, UiTheme.SURFACE);
         graphics.text(font, state, tx + 7, y + 31, accent, false);

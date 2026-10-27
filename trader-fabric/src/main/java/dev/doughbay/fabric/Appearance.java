@@ -6,7 +6,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Local presentation preferences; changing these cannot change automation settings. */
+/** Local presentation preferences; changing these cannot change automation settings.
+ * Legacy themes and characters stay selectable for parity; the shared text and
+ * status colors are achromatic in every theme by design. */
+
 public final class Appearance {
     public enum Theme { CLASSIC, MIDNIGHT, MINT, ROSE, TALLY }
     public enum Character { ORIGINAL, MOCHI, SPROUT, TALLY }
