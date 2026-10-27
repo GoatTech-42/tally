@@ -729,7 +729,7 @@ final class DoughBayHudAlerts {
         int y = (corner == 2 || corner == 3) ? graphics.guiHeight() - margin - height : margin;
         y = Math.max(margin, y);
         int accent = session.state() == AutomationSessionController.State.PAUSED ? UiTheme.WARN
-                : orderMode ? 0xFF80BEFF : UiTheme.TEAL;
+                : orderMode ? UiTheme.GOLD : UiTheme.TEAL;
         occupied.add(new HudLayout.Rect(x, y, width, height));
         UiTheme.panel(graphics, x, y, width, height, UiTheme.BACKGROUND);
         int tx = x + (showMascot ? 76 : 12);

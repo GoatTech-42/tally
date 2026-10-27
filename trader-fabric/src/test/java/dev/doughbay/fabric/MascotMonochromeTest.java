@@ -68,6 +68,7 @@ class MascotMonochromeTest {
             assertEquals(Appearance.Character.TALLY, Appearance.mascot());
         } finally {
             Appearance.load(directory);
+            UiTheme.apply(Appearance.Theme.CLASSIC);
         }
     }
 }
