@@ -20,11 +20,11 @@ import java.util.Locale;
  */
 final class Charts {
 
-    // Categorical slots 1-3, dark-surface steps. Validated all-pairs against
-    // the panel surface: worst normal-vision ΔE 20.9, worst CVD ΔE 9.4.
+    // Categorical slots 1-3: achromatic brightness steps on the dark surface.
+    // Series are told apart by luminance and by the legend labels, never hue.
     static final int SERIES_BLUE = 0xFFE8E8E8;
     static final int SERIES_ORANGE = 0xFF909090;
-    static final int SERIES_AQUA = 0xFF484848;
+    static final int SERIES_AQUA = 0xFF707070;
 
     // Chart chrome, dark mode.
     static final int GRID = 0xFF2C2C2C;
@@ -192,7 +192,7 @@ final class Charts {
                 plotLeft + (plotWidth - font.width(middleLabel)) / 2, timeY, MUTED_INK);
         g.text(font, endLabel, plotRight - font.width(endLabel) + 1, timeY, MUTED_INK);
 
-        // Reference levels are deliberately drawn before the blue series and
+        // Reference levels are deliberately drawn before the main series and
         // carry no in-plot labels.  Their dashed shape and the separate legend
         // identify them without obscuring actual completed-sale movement.
         for (int i = 0; i < safeRefs.length; i++) {

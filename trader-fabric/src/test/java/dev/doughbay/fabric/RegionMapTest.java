@@ -50,4 +50,19 @@ class RegionMapTest {
             assertTrue(java.util.stream.IntStream.range(0,81).map(i -> RegionMapData.cell(i%9,i/9)).anyMatch(id -> RegionMapData.name(id).endsWith(family)));
         assertFalse(java.util.stream.IntStream.range(0,81).map(i -> RegionMapData.cell(i%9,i/9)).anyMatch(id -> RegionMapData.name(id).endsWith("Europe")));
     }
+
+    @Test void regionPaletteIsAchromaticBrightnessSteps() {
+        int previous = -1;
+        for (int c : RegionMapData.regionTypeColors()) {
+            int r = (c >>> 16) & 0xFF, g = (c >>> 8) & 0xFF, b = c & 0xFF;
+            assertEquals(r, g, "region palette carries no hue");
+            assertEquals(g, b, "region palette carries no hue");
+            assertTrue(r > previous, "region types stay separated as brightness steps");
+            previous = r;
+        }
+        for (var family : new String[]{"NA West", "NA East", "Oceania", "Asia", "EU West", "EU Central"}) {
+            int c = RegionMapData.colorByName(family);
+            assertEquals((c >>> 16) & 0xFF, c & 0xFF, "legend swatch carries no hue");
+        }
+    }
 }

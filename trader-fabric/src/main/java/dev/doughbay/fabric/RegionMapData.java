@@ -9,7 +9,7 @@ public final class RegionMapData {
    private static final double REGION_SIZE = 50000.0;
    private static final double MAP_OFFSET = 225000.0;
    private static final String[] REGION_TYPE_NAMES = new String[]{"EU Central", "EU West", "NA East", "NA West", "Asia", "Oceania"};
-   private static final int[] REGION_TYPE_COLORS = new int[]{-10236257, -10246656, -1397425, -4559313, -12401931, -16545540};
+   private static final int[] REGION_TYPE_COLORS = new int[]{0xFF606060, 0xFF767676, 0xFF8C8C8C, 0xFFA2A2A2, 0xFFB8B8B8, 0xFFCECECE};
    private static final Map<Integer, RegionMapData.RegionInfo> REGION_MAP = buildRegionMap();
 
    private RegionMapData() {

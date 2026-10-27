@@ -783,7 +783,7 @@ final class DoughBayHudAlerts {
             if (lastOpenCount >= 0 && open.size() > lastOpenCount && newest != lastNewestListingId) {
                 var newestView = open.get(open.size() - 1);
                 net.minecraft.world.item.ItemStack stack = ItemIcons.stackFor(newestView.itemKey(), newestView.quantity());
-                // The cell that just turned green, which is the last filled one
+                // The cell that just lit up, which is the last filled one
                 // - not a position in the ledger's own list. The grid fills
                 // from the server's count, so aiming at the ledger's index sent
                 // the icon to a cell somewhere in the middle of the block while

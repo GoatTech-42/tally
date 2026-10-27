@@ -8360,7 +8360,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     boolean hover = mouseX >= cx && mouseX < cx + FLIP_CELL && mouseY >= cy && mouseY < cy + FLIP_CELL;
                     boolean picked = e.bare().equals(chosen);
                     graphics.fill(cx, cy, cx + FLIP_CELL - 1, cy + FLIP_CELL - 1, picked ? 0xFF242424 : hover ? CARD : CARD_DARK);
-                    // Gold round the one in the bar; green round those already on the list.
+                    // Brightest ring round the one in the bar; a dimmer ring round those already on the list.
                     if (picked) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOLD);
                     else if (OwnPrices.of(e.bare()) != null) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOOD);
                     graphics.item(e.stack(), cx + 2, cy + 2);

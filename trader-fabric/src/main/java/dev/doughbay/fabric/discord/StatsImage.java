@@ -32,7 +32,10 @@ public final class StatsImage {
     private static final Color DIM = new Color(140, 140, 140);
     private static final Color GOLD = new Color(255, 255, 255);
     private static final Color GREEN = new Color(200, 200, 200);
+    // Attention (bad state, alert): brightest, with the state word beside it.
     private static final Color RED = new Color(255, 255, 255);
+    // Negative money: dimmer than positive; the minus sign carries the direction.
+    private static final Color NEG = new Color(140, 140, 140);
     private static final Color BLUE = new Color(160, 160, 160);
     private static final Color SLOT_ON = new Color(200, 200, 200);
     private static final Color SLOT_OFF = new Color(40, 40, 40);
@@ -143,7 +146,7 @@ public final class StatsImage {
             int bx = lx + i * (barW + gap);
             boolean newest = i == v.length - 1;
             if (bh > 0) {
-                g.setColor(v[i] < 0 ? RED : (newest ? GOLD : GREEN));
+                g.setColor(v[i] < 0 ? NEG : (newest ? GOLD : GREEN));
                 g.fillRoundRect(bx, base - bh, barW, bh, 3, 3);
             } else {
                 g.setColor(SLOT_OFF);
@@ -454,7 +457,7 @@ public final class StatsImage {
 
     private static Color cellColor(String cell) {
         if (cell.startsWith("+")) return GREEN;
-        if (cell.startsWith("-") && cell.length() > 1 && Character.isDigit(cell.charAt(1))) return RED;
+        if (cell.startsWith("-") && cell.length() > 1 && Character.isDigit(cell.charAt(1))) return NEG;
         return TEXT;
     }
 

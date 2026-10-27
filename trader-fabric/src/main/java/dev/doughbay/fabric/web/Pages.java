@@ -271,7 +271,7 @@ final class Pages {
               .mobile-nav { display:grid; gap:4px; padding:8px 10px; }
               .mobile-nav select { width:100%; font-size:16px; min-height:44px; background:var(--inset); }
               #pic.has-report #readable-report { display:block; }
-              #pic.has-report #image-view { display:block; }
+              #pic.has-report #image-view { display:none; }
               #pic.has-report #readable-report { margin-top:16px; }
               nav button, nav a { flex:1 1 130px; white-space:normal; overflow-wrap:anywhere; }
               button { white-space:normal; overflow-wrap:anywhere; }
@@ -417,7 +417,7 @@ final class Pages {
               if(Number.isInteger(report.slotsTotal)&&report.slotsTotal>0&&report.slotsTotal<=1800&&report.slotsUsed>=0){
                 const total=report.slotsTotal,used=Math.min(total,report.slotsUsed),overview=el('section','slot-overview'),grid=el('div','slot-grid');
                 const summary=used+' / '+total+' auction slots occupied';grid.setAttribute('role','img');grid.setAttribute('aria-label',summary);
-                overview.append(el('p','',summary),el('p','money-footnote','Green: occupied · dark: free'));
+                overview.append(el('p','',summary),el('p','money-footnote','Light: occupied · dark: free'));
                 for(let i=0;i<total;i++){const slot=el('i',i<used?'occupied':'');slot.setAttribute('aria-hidden','true');grid.append(slot);}
                 overview.append(grid);box.append(overview);
               }
