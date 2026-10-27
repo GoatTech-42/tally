@@ -14169,6 +14169,15 @@ public final class AutomationSessionController {
             recentActions.addLast(new Action(System.currentTimeMillis(), next.name(), note));
             while (recentActions.size() > 40) recentActions.pollFirst();
         }
+        if (next == State.STOPPED) {
+            // Planned order-house work belongs to the session that planned it:
+            // nothing queued may execute after that session ends. The desk
+            // re-plans from live evidence when a new session starts one.
+            deskStep = null;
+            deskQueue.clear();
+            deskReadDue = false;
+            ordersReadWatchdog.reset();
+        }
         state = next;
         detail = message == null ? "" : message;
         stateChangedAtMillis = System.currentTimeMillis();
