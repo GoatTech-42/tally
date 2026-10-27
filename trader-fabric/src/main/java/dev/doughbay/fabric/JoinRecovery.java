@@ -5,6 +5,10 @@ import java.util.Locale;
 
 /** Ordinary failed-join routing through the same regional doors as restart recovery. */
 public final class JoinRecovery {
+    private static final java.util.regex.Pattern BANNED = java.util.regex.Pattern.compile("(?<![a-z])banned\\b");
+    private static final java.util.regex.Pattern NOT_BANNED = java.util.regex.Pattern.compile(
+            "\\b(not|no longer|never|isn't|aren't|wasn't)\\s+(been\\s+)?banned\\b");
+
     private JoinRecovery() { }
 
     public static boolean networkFailure(String reason) {
@@ -19,6 +23,14 @@ public final class JoinRecovery {
                 || text.contains("connection reset") || text.contains("no route to host")
                 || text.contains("network is unreachable") || text.contains("unknown host")
                 || text.contains("unknownhostexception") || text.contains("unresolved address");
+    }
+
+    /** An explicit ban notice cannot be cured by retrying; whitelist, session and duplicate-login screens can be transient. */
+    public static boolean permanentEnforcement(String reason) {
+        String text = reason == null ? "" : reason.toLowerCase(Locale.ROOT);
+        if (text.contains("ban appeal")) return true;
+        // "unbanned" and a plain negation are not enforcement notices.
+        return BANNED.matcher(text).find() && !NOT_BANNED.matcher(text).find();
     }
 
     public static String next(String attempted, String configuredRegions, String reason) {

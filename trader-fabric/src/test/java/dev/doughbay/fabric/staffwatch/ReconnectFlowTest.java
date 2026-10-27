@@ -5,6 +5,7 @@ class ReconnectFlowTest {
   boolean multiplayer=true,connected=true,connecting=false,disconnected=false,countdown=false;int disconnects,shows,connects;String destination;
   java.util.function.UnaryOperator<String> failedJoin=address->address;
   public String failedJoinDestination(String attempted){return failedJoin.apply(attempted);}
+  boolean retryAllowed=true;public boolean automaticRetryAllowed(){return retryAllowed;}
   Runnable retryScheduled=()->{};
   public void automaticRetryScheduled(){retryScheduled.run();}
   public boolean multiplayer(){return multiplayer;}public boolean connected(){return connected;}public boolean connecting(){return connecting;}public boolean disconnectedScreen(){return disconnected;}public boolean countdownScreen(){return countdown;}public String currentAddress(){return "current.example:25566";}
@@ -56,6 +57,8 @@ class ReconnectFlowTest {
   assertFalse(recovery.pending());
  }
  @Test void failedAttemptsKeepRetryingEveryTwoMinutes(){client.connected=false;client.connecting=true;flow.connectionStarted("failed.example",true);for(int i=0;i<4;i++){client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertEquals(i,client.connects);now.addAndGet(120000000000L);flow.tick(true);assertEquals(i+1,client.connects);assertEquals("failed.example",client.destination);}}
+ @Test void permanentEnforcementStopsAutomaticRetryButManualConnectStillStartsPhase(){client.connected=false;client.connecting=true;flow.connectionStarted("failed.example",true);client.connecting=false;client.disconnected=true;client.retryAllowed=false;flow.tick(true);assertFalse(timer.active());assertEquals(ReconnectFlow.Phase.IDLE,flow.phase());assertEquals(0,client.shows);now.addAndGet(900000000000L);flow.tick(true);assertEquals(0,client.connects);flow.connectionStarted("failed.example",true);assertEquals(ReconnectFlow.Phase.ATTEMPTING,flow.phase());}
+ @Test void ordinaryDisconnectedScreenWithAllowedRetryStillSchedules(){flow.tick(true);client.connected=false;client.disconnected=true;client.retryAllowed=true;flow.tick(true);assertTrue(timer.active());}
  @Test void staffDelaySurvivesDisconnectAndThenFailuresUseTwoMinutes(){start("");long delay=timer.remainingMillis();offline();assertEquals(delay,timer.remainingMillis());now.addAndGet(delay*1000000L);flow.tick(true);assertEquals(1,client.connects);client.connecting=false;client.disconnected=true;flow.tick(true);assertEquals(120000,timer.remainingMillis());assertNull(timer.watcher());}
  @Test void manualDisconnectDoesNotRejoin(){flow.tick(true);client.connected=false;client.disconnected=false;flow.tick(true);now.set(900000000000L);flow.tick(true);assertEquals(0,client.connects);assertFalse(timer.active());}
  @Test void cancellingRetryPreventsRearmingOnSameErrorScreen(){flow.tick(true);client.connected=false;client.disconnected=true;flow.tick(true);flow.cancel();client.disconnected=true;now.set(900000000000L);flow.tick(true);assertFalse(timer.active());assertEquals(0,client.connects);}
