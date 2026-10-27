@@ -21,6 +21,12 @@ public final class JoinRecovery {
                 || text.contains("unknownhostexception") || text.contains("unresolved address");
     }
 
+    /** An explicit ban notice cannot be cured by retrying; whitelist, session and duplicate-login screens can be transient. */
+    public static boolean permanentEnforcement(String reason) {
+        String text = reason == null ? "" : reason.toLowerCase(Locale.ROOT);
+        return text.contains("banned") || text.contains("ban appeal");
+    }
+
     public static String next(String attempted, String configuredRegions, String reason) {
         if (!dev.doughbay.fabric.staffwatch.DonutServer.matches(attempted) || !networkFailure(reason)) return attempted;
         var regions = RestartPlan.hops(configuredRegions, attempted);

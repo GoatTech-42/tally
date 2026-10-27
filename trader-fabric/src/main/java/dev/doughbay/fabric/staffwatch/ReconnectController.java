@@ -42,6 +42,10 @@ public final class ReconnectController {
    String reason=screen instanceof DisconnectedScreen ? screen.getNarrationMessage().getString() : "";
    return dev.doughbay.fabric.JoinRecovery.next(attempted,dev.doughbay.fabric.Tuning.text("restart.hop_addresses"),reason);
   }
+  public boolean automaticRetryAllowed(){
+   var screen=mc().gui.screen();
+   return !(screen instanceof DisconnectedScreen)||!dev.doughbay.fabric.JoinRecovery.permanentEnforcement(screen.getNarrationMessage().getString());
+  }
   public void automaticRetryScheduled(){
    tradingResume.automaticRetryScheduled(System.currentTimeMillis());
   }

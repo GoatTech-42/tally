@@ -28,4 +28,10 @@ class JoinRecoveryTest {
     @Test void onePermittedRegionalDoorDoesNotInventAnother() {
         assertEquals("east.donutsmp.net", JoinRecovery.next("east.donutsmp.net", "east.donutsmp.net", "Timed out"));
     }
+    @Test void onlyExplicitBansAreTreatedAsPermanentEnforcement() {
+        assertTrue(JoinRecovery.permanentEnforcement("You are banned from this server"));
+        assertTrue(JoinRecovery.permanentEnforcement("Visit the Ban Appeal page"));
+        for (String transient_ : new String[] {"Invalid session", "Already connected", "Not whitelisted", "Connection timed out", "", null})
+            assertFalse(JoinRecovery.permanentEnforcement(transient_), String.valueOf(transient_));
+    }
 }

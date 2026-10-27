@@ -7,6 +7,8 @@ public final class ReconnectFlow {
   void disconnect(String watcher); void showCountdown(); void connect(String address);
   default void automaticRetryScheduled() { }
   default String failedJoinDestination(String attempted) { return attempted; }
+  /** False when the visible disconnect is a permanent enforcement notice; automatic retry then stops. */
+  default boolean automaticRetryAllowed() { return true; }
  }
  public enum Phase { IDLE, DISCONNECTING, WAITING, ATTEMPTING }
  private final Client client;
@@ -61,6 +63,7 @@ public final class ReconnectFlow {
  public void tick(boolean enabled) { tick(enabled,""); }
  private void retry(String configured) { retry(configured,false); }
  private void retry(String configured, boolean failedAttempt) {
+  if (!client.automaticRetryAllowed()) { cancel(); return; }
   String address=failedAttempt ? client.failedJoinDestination(sessionAddress) : destination(configured,sessionAddress);
   if (address==null || address.isBlank()) { cancel(); return; }
   sessionAddress=address;
