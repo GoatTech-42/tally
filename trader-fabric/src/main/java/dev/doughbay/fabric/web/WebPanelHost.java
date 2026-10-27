@@ -51,6 +51,7 @@ public final class WebPanelHost {
     private boolean sharedHost;
     private long nextRetry;
     private String problem = "";
+    private boolean bindFailed;
 
     private WebPanelHost(Logger log, Path configDir, LocalPanel.Backend backend) {
         this.log = log;
@@ -160,6 +161,7 @@ public final class WebPanelHost {
         releaseLease();
         sharedHost = false;
         problem = "";
+        bindFailed = false;
         if (!config.enabled() || !config.pinSet()) return;
         Config c = config;
         try {
@@ -173,6 +175,7 @@ public final class WebPanelHost {
                     c.lan() ? "this computer and its home network" : "this computer only");
         } catch (Exception e) {
             releaseLease();
+            bindFailed = true;
             problem = "port " + c.port() + " could not be opened (" + e.getMessage() + ")";
             log.warn("DoughBay web panel: {}", problem);
         }
@@ -197,7 +200,8 @@ public final class WebPanelHost {
     /** A remaining hive client can take over when the host closes. */
     public synchronized void tick() {
         long now = System.currentTimeMillis();
-        if (!sharedHost || now < nextRetry) return;
+        // A shared host waits for the other client to close; a failed takeover retries the bind.
+        if ((!sharedHost && !bindFailed) || now < nextRetry) return;
         nextRetry = now + 5000;
         config = load(file);
         apply();
@@ -206,6 +210,7 @@ public final class WebPanelHost {
     public synchronized void close() {
         if (panel != null) { panel.close(); panel = null; }
         sharedHost = false;
+        bindFailed = false;
         releaseLease();
     }
 
