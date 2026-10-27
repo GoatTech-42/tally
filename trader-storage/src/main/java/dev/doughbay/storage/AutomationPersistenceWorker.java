@@ -204,7 +204,11 @@ public final class AutomationPersistenceWorker implements AutomationPersistenceP
                         cancelled = List.copyOf(
                                 positions.findRecentlyCancelled("REAL", find.since()));
                     } catch (java.sql.SQLException e) {
-                        cancelled = List.of();
+                        // A failed read is not an empty answer: keep the last
+                        // snapshot so a transient error cannot masquerade as
+                        // "nothing was cancelled".
+                        LOGGER.log(System.Logger.Level.WARNING,
+                                "Cancelled-position snapshot query failed; keeping the previous snapshot", e);
                     }
                     continue;
                 }
