@@ -256,7 +256,10 @@ public class DonutApiClient {
         JsonNode root = executeRaw(request);
         JsonNode result = root.get("result");
         if (result == null || !result.isObject()) {
-            throw new ApiException("Response has no result object");
+            recordFailure(lastStatusCode.get(),
+                    "Invalid API response: no result object",
+                    ConnectionState.DEGRADED);
+            throw new ApiException(lastError);
         }
         return result;
     }

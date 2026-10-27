@@ -16,7 +16,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -347,6 +352,103 @@ class DonutApiClientTest {
             if (failure != null) throw new AssertionError(failure);
             return bytes.toString(StandardCharsets.UTF_8);
         }
+    }
+
+    @Test
+    void malformedObjectResponseIsCountedAsATransportFailure() {
+        FakeSender sender = new FakeSender().respond(200, "{\"status\":200,\"result\":[]}");
+        TestRuntime runtime = new TestRuntime(sender, RetryPolicy.defaults());
+
+        ApiException failure = assertThrows(ApiException.class,
+                () -> runtime.client.fetchPlayerStats("Steve"));
+
+        assertEquals(1, sender.requests.size());
+        DonutApiClient.ApiHealth health = runtime.client.health();
+        assertEquals(1, health.totalErrors());
+        assertEquals(1, health.consecutiveFailures());
+        assertEquals(200, health.lastStatusCode());
+        assertEquals(DonutApiClient.ConnectionState.DEGRADED, health.state());
+        assertFalse(health.lastError().isEmpty());
+        assertFalse(failure.toString().contains(SECRET));
+    }
+
+    @Test
+    void malformedJsonBodyOnSuccessIsTerminalAndRedacted() {
+        FakeSender sender = new FakeSender()
+                .respond(200, "not json, contains " + SECRET)
+                .respond(200, TRANSACTION_PAGE);
+        TestRuntime runtime = new TestRuntime(sender, RetryPolicy.defaults());
+
+        ApiException failure = assertThrows(ApiException.class,
+                () -> runtime.client.fetchTransactions(1));
+
+        assertEquals(1, sender.requests.size());
+        assertTrue(runtime.sleeps.isEmpty());
+        assertTrue(runtime.client.health().lastError().startsWith("Invalid API response"));
+        assertFalse(failure.toString().contains(SECRET));
+        assertFalse(runtime.client.health().lastError().contains(SECRET));
+        assertEquals(DonutApiClient.ConnectionState.DEGRADED,
+                runtime.client.health().state());
+    }
+
+    @Test
+    void retryAfterHttpDateIsHonored() throws Exception {
+        FakeSender sender = new FakeSender();
+        TestRuntime runtime = new TestRuntime(sender,
+                new RetryPolicy(2, Duration.ofMillis(100), Duration.ofMillis(400)));
+        String httpDate = DateTimeFormatter.RFC_1123_DATE_TIME.format(
+                ZonedDateTime.ofInstant(Instant.ofEpochMilli(runtime.wall.get() + 2_000),
+                        ZoneOffset.UTC));
+        sender.respond(429, "{}", Map.of("Retry-After", List.of(httpDate)));
+        sender.respond(200, TRANSACTION_PAGE);
+
+        assertEquals(1, runtime.client.fetchTransactions(1).records().size());
+
+        assertEquals(List.of(2_000L), runtime.sleeps);
+    }
+
+    @Test
+    void absurdRetryAfterIsCappedAtSixtySeconds() {
+        FakeSender sender = new FakeSender()
+                .respond(429, "{}", Map.of("Retry-After", List.of("99999")));
+        TestRuntime runtime = new TestRuntime(sender,
+                new RetryPolicy(1, Duration.ofMillis(100), Duration.ofMillis(100)));
+
+        assertThrows(ApiException.class, () -> runtime.client.fetchTransactions(1));
+
+        assertEquals(60_000, runtime.client.health().cooldownRemainingMillis());
+    }
+
+    @Test
+    void httpTimeoutRetriesThenSucceeds() throws Exception {
+        FakeSender sender = new FakeSender()
+                .fail(new HttpTimeoutException("slow"))
+                .respond(200, TRANSACTION_PAGE);
+        TestRuntime runtime = new TestRuntime(sender,
+                new RetryPolicy(3, Duration.ofMillis(100), Duration.ofMillis(400)));
+
+        assertEquals(1, runtime.client.fetchTransactions(1).records().size());
+
+        assertEquals(2, sender.requests.size());
+        assertEquals(List.of(100L), runtime.sleeps);
+    }
+
+    @Test
+    void finalFailureCooldownGatesTheNextCall() throws Exception {
+        FakeSender sender = new FakeSender()
+                .respond(429, "{}", Map.of("Retry-After", List.of("2")));
+        TestRuntime runtime = new TestRuntime(sender,
+                new RetryPolicy(1, Duration.ofMillis(100), Duration.ofMillis(100)));
+
+        assertThrows(ApiException.class, () -> runtime.client.fetchTransactions(1));
+        assertEquals(1, sender.requests.size());
+        assertTrue(runtime.sleeps.isEmpty());
+
+        sender.respond(200, TRANSACTION_PAGE);
+        assertEquals(1, runtime.client.fetchTransactions(1).records().size());
+
+        assertEquals(2, sender.requests.size());
+        assertEquals(List.of(2_000L), runtime.sleeps);
     }
 
     // Balance parsing. Observed live: DonutSMP returns money="" for a zero
