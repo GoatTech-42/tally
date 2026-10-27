@@ -18,7 +18,7 @@ final class CapitalCharts {
    int start=-radius,previous=0;
    for(int dx=-radius;dx<=radius+1;dx++){
     int color=0;double dist=dx*dx+dy*dy;
-    if(dx<=radius && dist<=radius*radius && dist>=radius*radius*.30){int at=slice(snapshot,Math.atan2(dy,dx));color=at<0?0xFF52697D:CapitalBreakdown.COLORS[at];}
+    if(dx<=radius && dist<=radius*radius && dist>=radius*radius*.30){int at=slice(snapshot,Math.atan2(dy,dx));color=at<0?0xFF565656:CapitalBreakdown.COLORS[at];}
     if(dx==-radius){previous=color;start=dx;}else if(color!=previous){if(previous!=0)g.fill(cx+start,cy+dy,cx+dx,cy+dy+1,previous);start=dx;previous=color;}
    }
   }
@@ -26,7 +26,7 @@ final class CapitalCharts {
   double before=0;
   for(int i=0;i<6;i++){
    Long value=snapshot.value(i);double fraction=value==null||total<=0?0:value/total;
-   if(fraction>.035){double angle=(before+fraction/2)*Math.PI*2-Math.PI/2;String number=Integer.toString(i+1);int px=cx+(int)(Math.cos(angle)*radius*.78),py=cy+(int)(Math.sin(angle)*radius*.78);g.text(font,number,px-font.width(number)/2,py-4,0xFF111820);}before+=fraction;
+   if(fraction>.035){double angle=(before+fraction/2)*Math.PI*2-Math.PI/2;String number=Integer.toString(i+1);int px=cx+(int)(Math.cos(angle)*radius*.78),py=cy+(int)(Math.sin(angle)*radius*.78);g.text(font,number,px-font.width(number)/2,py-4,0xFF0A0A0A);}before+=fraction;
    int lx=x+2*radius+22,ly=y+22+i*16;
    String label=(i+1)+" "+CapitalBreakdown.LABELS.get(i)+": "+(value==null?"unknown":SettingsAnalyzer.money(value));
    g.fill(lx,ly+1,lx+5,ly+7,CapitalBreakdown.COLORS[i]);g.text(font,UiTheme.fit(font,label,w-(lx-x)-12),lx+9,ly,category==i?UiTheme.GOLD:UiTheme.TEXT);
@@ -37,7 +37,7 @@ final class CapitalCharts {
   int plotTop=Math.max(cy+radius+22,y+130),plotBottom=Math.min(bottom-43,plotTop+Math.max(60,(bottom-plotTop-60)));
   g.text(font,"SAMPLED HISTORY: "+CapitalBreakdown.LABELS.get(category)+" / "+rangeLabel(),x,plotTop-13,UiTheme.GOLD);
   if(plotBottom<=plotTop+20)return;
-  g.fill(x,plotTop,x+w,plotBottom,0xFF101820);g.fill(x,plotBottom-1,x+w,plotBottom,Charts.AXIS);
+  g.fill(x,plotTop,x+w,plotBottom,0xFF0A0A0A);g.fill(x,plotBottom-1,x+w,plotBottom,Charts.AXIS);
   long end=snapshot.at(),start=end-span;var points=report.capitalHistory().stream().filter(p->p.at()>=start&&p.at()<=end).toList();
   double max=points.stream().map(p->p.value(category)).filter(Objects::nonNull).mapToDouble(Long::doubleValue).max().orElse(0);
   g.text(font,UiTheme.fit(font,"Top "+SettingsAnalyzer.money(max)+"; snapshots only, gaps stay blank",w),x,plotBottom+3,UiTheme.MUTED);
@@ -56,6 +56,6 @@ final class CapitalCharts {
  }
  private static void tooltip(Charts.Pending tip,int mx,int my,int index,CapitalBreakdown.Snapshot snapshot){
   Long value=snapshot.value(index);long at=snapshot.at(),source=index==0?snapshot.bankAt():index<3?snapshot.ordersAt():snapshot.stockAt();
-  tip.x=mx;tip.y=my;tip.rows=List.of(new Charts.TooltipRow(CapitalBreakdown.COLORS[index],CapitalBreakdown.LABELS.get(index),value==null?"unknown":SettingsAnalyzer.money(value)),new Charts.TooltipRow(0xFF9EB6C9,"Snapshot",java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))),new Charts.TooltipRow(0xFF9EB6C9,"Source read",source<=0?"unknown":java.time.Instant.ofEpochMilli(source).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))));
+  tip.x=mx;tip.y=my;tip.rows=List.of(new Charts.TooltipRow(CapitalBreakdown.COLORS[index],CapitalBreakdown.LABELS.get(index),value==null?"unknown":SettingsAnalyzer.money(value)),new Charts.TooltipRow(0xFFBDBDBD,"Snapshot",java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))),new Charts.TooltipRow(0xFFBDBDBD,"Source read",source<=0?"unknown":java.time.Instant.ofEpochMilli(source).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))));
  }
 }

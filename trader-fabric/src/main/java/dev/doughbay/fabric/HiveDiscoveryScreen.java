@@ -17,7 +17,7 @@ final class HiveDiscoveryScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Don't ask again"),b->{HiveDiscovery.dismissAll();onClose();}).bounds(x+(w+6)/2,y+28,(w-6)/2,22).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt) {
-        g.fill(0,0,width,height,0xF0050910); int w=Math.min(480,width-24),x=(width-w)/2,y=24;
+        g.fill(0,0,width,height,0xF0050505); int w=Math.min(480,width-24),x=(width-w)/2,y=24;
         for(var line:font.split(getTitle(),w)){g.text(font,line,x,y,UiTheme.GOLD);y+=14;}
         y+=14;int top=y;
         String text="Another running GoNuts account was detected on this computer. Would you like to review linking them into a hive?\n\nNothing has been linked or changed. Use an existing hive instead of creating a separate one. If both accounts already made separate hives, Review combining hives preserves their original ledgers and per-account settings. The import runs at startup after BOTH instances are closed. Review the requirements before confirming.\n\nThis notice appears once per newly detected account when you open GoNuts, never over a trade. Hive is local sharing; the community Swarm is separate.";

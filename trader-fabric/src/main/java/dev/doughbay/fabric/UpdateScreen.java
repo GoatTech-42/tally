@@ -224,7 +224,7 @@ public final class UpdateScreen extends GoNutsScreen {
         // The download can finish, or auto-update be switched on, while this is open.
         String shape = state() + ":" + autoOn();
         if (!shape.equals(shown)) rebuildWidgets();
-        graphics.fill(0, 0, this.width, this.height, 0xB0050910);
+        graphics.fill(0, 0, this.width, this.height, 0xB0050505);
         int width = panelWidth();
         int height = panelHeight();
         int left = (this.width - width) / 2;

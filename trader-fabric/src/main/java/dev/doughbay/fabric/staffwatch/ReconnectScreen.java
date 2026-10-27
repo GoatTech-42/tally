@@ -17,13 +17,13 @@ public final class ReconnectScreen extends dev.doughbay.fabric.GoNutsScreen {
  public void tick(){super.tick();updateReconnectButton();}
  public void onClose(){ReconnectController.INSTANCE.cancel();minecraft.gui.setScreen(new JoinMultiplayerScreen(new TitleScreen()));}
  public void extractRenderState(GuiGraphicsExtractor g,int x,int y,float dt){super.extractRenderState(g,x,y,dt);var schedule=ReconnectController.INSTANCE.schedule;
-  g.centeredText(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFCC66);
+  g.centeredText(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
   g.centeredText(font,Component.literal(schedule.watcher()==null?"Automatic retry every 2 minutes":"Watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
-  g.centeredText(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBBC8D8);
+  g.centeredText(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBDBDBD);
   if(schedule.watcher()==null&&!ReconnectController.INSTANCE.disconnectReason().isBlank()){
    int lineY=height/2-27,n=0;
    for(var line:font.split(Component.literal("Reason: "+ReconnectController.INSTANCE.disconnectReason()),Math.max(120,width-40))){
-    if(n++==3)break;g.text(font,line,(width-font.width(line))/2,lineY,0xFFBBC8D8);lineY+=font.lineHeight+2;
+    if(n++==3)break;g.text(font,line,(width-font.width(line))/2,lineY,0xFFBDBDBD);lineY+=font.lineHeight+2;
    }
   }
   long seconds=(schedule.remainingMillis()+999)/1000;

@@ -47,7 +47,7 @@ final class RegionMapPanel {
                 if (cell >= 5) g.fill(px, py, px + 1, py + cell, UiTheme.EDGE);
                 if (area >= 0 && cell >= 16) {
                     String label = Integer.toString(area);
-                    g.text(font, label, px + (cell - font.width(label)) / 2, py + (cell - 8) / 2, 0xFF101823);
+                    g.text(font, label, px + (cell - font.width(label)) / 2, py + (cell - 8) / 2, 0xFF0A0A0A);
                 }
             }
         }

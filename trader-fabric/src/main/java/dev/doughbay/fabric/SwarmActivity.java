@@ -15,8 +15,8 @@ public final class SwarmActivity {
         return 20 + 28 * (receiving ? 1 - phase : phase);
     }
     static void draw(MascotFace.Canvas canvas, long now, boolean still) {
-        wave(canvas, sentAt, now, false, still, 0xFFFFD36C);
-        wave(canvas, receivedAt, now, true, still, 0xFF4FF1E3);
+        wave(canvas, sentAt, now, false, still, 0xFFFFFFFF);
+        wave(canvas, receivedAt, now, true, still, 0xFF8A8A8A);
     }
     private static void wave(MascotFace.Canvas c, long event, long now, boolean receiving, boolean still, int color) {
         double r = radius(event, now, receiving, still);

@@ -52,7 +52,7 @@ final class TutorialScreen extends GoNutsScreen {
             .bounds(x+(w+6)/2,height-28,(w-6)/2,20).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0xF0050910);int x=left(),w=bodyWidth();
+        g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
         g.text(font,UiTheme.fit(font,course==null?"TUTORIALS · CHOOSE A GUIDE":course.title()+" · "+(step+1)+" / "+course.steps().size(),w),x,18,UiTheme.GOLD);
         if(course==null){
             maxScroll=Math.max(0,62+((Tutorials.COURSES.size()+1)/2)*28-(height-40));

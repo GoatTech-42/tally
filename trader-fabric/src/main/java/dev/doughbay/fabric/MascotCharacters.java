@@ -40,8 +40,8 @@ final class MascotCharacters {
             // Tally: the five-gate tally mark itself - the brand mark, no face.
             // Counts up one stroke at a time, holds the full gate, then starts over.
             int ink = 0xFFFFFFFF, shade = 0x38000000;
-            int cycle = still ? 5 : (int) ((clock / 750) % 7);
-            int verticals = Math.min(cycle, 4);
+            int cycle = still ? 5 : (int) ((clock / 750) % 6);
+            int verticals = Math.min(cycle + 1, 4);
             for (int i = 0; i < verticals; i++) {
                 int x = 88 + i * 24;
                 c.fill(x - 3 + 2, 84 + 3, x + 4 + 2, 172 + 3, shade);

@@ -49,7 +49,7 @@ final class HiveCombineScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal(queued||joined?"Back to Hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
-        g.fill(0,0,width,height,0xF0050910);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
+        g.fill(0,0,width,height,0xF0050505);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
         g.text(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
         int top=40,end=Math.max(40,height-120);g.enableScissor(x,top,x+w,end);y=top-scroll;
         if(joined){

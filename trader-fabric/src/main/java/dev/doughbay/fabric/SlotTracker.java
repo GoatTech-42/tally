@@ -23,10 +23,10 @@ final class SlotTracker {
         return (slots() + columns() - 1) / columns();
     }
 
-    private static final int FILLED = 0xFF5FCF78;
-    private static final int FILLED_EDGE = 0xFF2E7A40;
-    private static final int ALLOWED = 0xFF3C4050;
-    private static final int BEYOND_CAP = 0xFF1C1E26;
+    private static final int FILLED = 0xFFD8D8D8;
+    private static final int FILLED_EDGE = 0xFF6E6E6E;
+    private static final int ALLOWED = 0xFF3C3C3C;
+    private static final int BEYOND_CAP = 0xFF1C1C1C;
 
     private SlotTracker() {
     }

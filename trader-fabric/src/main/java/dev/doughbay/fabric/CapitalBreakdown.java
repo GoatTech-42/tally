@@ -4,7 +4,7 @@ import java.util.*;
 /** Cost-basis buckets are distinct; asking prices are never booked assets or profit. */
 public final class CapitalBreakdown {
  public static final List<String> LABELS=List.of("Available bank","Unfilled order funds","Order stock awaiting collection","Collected / unlisted stock","Auction stock at cost","Unreconciled stock at cost");
- public static final int[] COLORS={0xFF3987E5,0xFFD95926,0xFF199E70,0xFFFFD966,0xFFC08CFF,0xFF9EB6C9};
+ public static final int[] COLORS={0xFFF0F0F0,0xFFD0D0D0,0xFFB0B0B0,0xFF909090,0xFF707070,0xFF545454};
  public record Orders(long at,int rows,Long reserved,Long awaitingCollection,String note){}
  public record Stock(long at,long unlisted,long listed,long asking,long unresolved,long unattributed){}
  public record Snapshot(long at,Long bank,Long orders,Long awaitingCollection,Long unlisted,Long listed,Long unresolved,

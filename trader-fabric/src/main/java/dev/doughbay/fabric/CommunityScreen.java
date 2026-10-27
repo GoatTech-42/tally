@@ -15,7 +15,7 @@ public final class CommunityScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0xF0050910);panel.render(g,font);super.extractRenderState(g,mx,my,delta);
+        g.fill(0,0,width,height,0xF0050505);panel.render(g,font);super.extractRenderState(g,mx,my,delta);
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){
         return panel.scroll(mx,my,dy)||super.mouseScrolled(mx,my,dx,dy);

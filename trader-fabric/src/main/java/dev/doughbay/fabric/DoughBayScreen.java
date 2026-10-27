@@ -144,11 +144,11 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     private static final int SHADOW = 0x90000000;
-    private static final int TABLE_HEADER = 0xFF101A27;
-    private static final int ROW_EVEN = 0xF2131D2A;
-    private static final int ROW_ODD = 0xF2182432;
-    private static final int TRACK = 0xFF292D39;
-    private static final int RANGE = 0xFF315B93;
+    private static final int TABLE_HEADER = 0xFF101010;
+    private static final int ROW_EVEN = 0xF2121212;
+    private static final int ROW_ODD = 0xF2181818;
+    private static final int TRACK = 0xFF292929;
+    private static final int RANGE = 0xFF8A8A8A;
 
     /** Matches the limit DoughBayConfig will accept when persisting. */
     private static final int API_KEY_MAX_INPUT = 512;
@@ -573,7 +573,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private boolean payrollOnline;
     private String payrollMessage = "";
     private int[] payrollFieldX = new int[0];
-    private static final int RANK_BLUE = 0xFF4D9BFF;
+    private static final int RANK_BLUE = 0xFFFFFFFF;
     /** Settings tab: the key being rebound, waiting for the next key press. */
     private KeyMapping rebindingKey;
     private int maxScroll;
@@ -1015,7 +1015,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         UiLayout ui = layout();
         pendingTooltip.clear();
 
-        graphics.fill(0, 0, this.width, this.height, 0x66050910);
+        graphics.fill(0, 0, this.width, this.height, 0x66050505);
         UiTheme.panel(graphics, ui.left(), ui.top(), ui.width(), ui.height(), PANEL);
         if (ui.sidebar() > 0) renderSidebar(graphics, ui);
         renderHeader(graphics, current, ui);
@@ -1249,7 +1249,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         var stats = performanceStats(snapshot, PerformanceStatsSnapshot.Mode.REAL);
         var session = AUTOMATION_SESSION.snapshot();
         boolean spacious = w >= 530;
-        UiTheme.panel(g, x, top, w, 96, 0xFF172B35);
+        UiTheme.panel(g, x, top, w, 96, 0xFF111111);
         g.text(this.font, snapshot.demo() ? "YOUR DEMO TRADING DESK" : "YOUR TRADING DESK", x + 16, top + 13, UiTheme.TEAL);
         scaledText(g, "A little less watching.", x + 16, top + 30, spacious ? 1.6f : 1.2f, TEXT);
         g.text(this.font, "A clearer view of every trade.", x + 16, top + 51, SECONDARY);
@@ -2163,7 +2163,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             boolean chosen = row.itemId().equals(boardSelected);
             boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
             if (chosen || hover) {
-                graphics.fill(innerX - 2, yy, innerX + innerWidth + 2, yy + rowHeight, chosen ? 0xFF2F4A6B : ROW_HOVER);
+                graphics.fill(innerX - 2, yy, innerX + innerWidth + 2, yy + rowHeight, chosen ? 0xFF242424 : ROW_HOVER);
             }
             int textY = yy + 2;
             boolean any = row.sales() > 0;
@@ -2827,7 +2827,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = Math.min(mouseX + 12, ui.innerRight() - width);
         int y = mouseY + 12;
         if (y + height > ui.bottom() - 4) y = mouseY - height - 6;
-        graphics.fill(x, y, x + width, y + height, 0xF80B0C10);
+        graphics.fill(x, y, x + width, y + height, 0xF80B0B0B);
         graphics.outline(x, y, width, height, PANEL_EDGE);
         int yy = y + 5;
         for (int i = 0; i < lines.size(); i++) {
@@ -2898,7 +2898,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         for (int h = 0; h < 24; h++) {
             int bh = hourly[h] == 0 ? 1 : Math.max(2, Math.round(hourly[h] * (float) height / max));
             int bx = x + h * barWidth;
-            int color = hourly[h] == 0 ? 0xFF2A2D36 : h == currentHour ? GOLD : 0xFF5FCF78;
+            int color = hourly[h] == 0 ? 0xFF2A2A2A : h == currentHour ? GOLD : 0xFFD8D8D8;
             graphics.fill(bx, y + height - bh, bx + Math.max(1, barWidth - 1), y + height, color);
         }
     }
@@ -3476,7 +3476,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         boolean hover = mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + rowHeight;
         boolean editing = key.equals(selectedSetting);
         if (hover) hoveredSetting = key;
-        if (hover || editing) graphics.fill(x - 3, y - 1, x + width + 3, y + rowHeight - 1, editing ? 0xFF2A3140 : ROW_HOVER);
+        if (hover || editing) graphics.fill(x - 3, y - 1, x + width + 3, y + rowHeight - 1, editing ? 0xFF2A2A2A : ROW_HOVER);
         // Rows sit in two columns, so a hit box needs its x range too.
         settingRowBounds.add(new int[] {y, y + rowHeight, index, x - 3, x + width + 3});
         String shownValue = truncate(value, Math.max(40, width / 2));
@@ -3541,7 +3541,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = Math.min(mouseX + 12, ui.innerRight() - width);
         int y = mouseY + 12;
         if (y + height > ui.bottom() - 4) y = mouseY - height - 6;
-        graphics.fill(x, y, x + width, y + height, 0xF80B0C10);
+        graphics.fill(x, y, x + width, y + height, 0xF80B0B0B);
         graphics.outline(x, y, width, height, PANEL_EDGE);
         int yy = y + 5;
         wrappedIndex = 0;
@@ -3590,8 +3590,8 @@ public final class DoughBayScreen extends GoNutsScreen {
             int cell = c[2];
             boolean mod = i < open.size();
             boolean yours = !mod && i < used;
-            int fill = mod ? 0xFF5FCF78 : yours ? 0xFF6FA8DC : i < cap ? 0xFF1C1E26 : 0xFF14151A;
-            int edge = mod ? 0xFF2E7A40 : yours ? 0xFF2F5C8A : 0xFF3C4050;
+            int fill = mod ? 0xFFD8D8D8 : yours ? 0xFF909090 : i < cap ? 0xFF1C1C1C : 0xFF141414;
+            int edge = mod ? 0xFF6E6E6E : yours ? 0xFF4C4C4C : 0xFF3C3C3C;
             graphics.fill(cx, cy, cx + cell, cy + cell, i == hovered ? 0xFFFFFFFF : edge);
             graphics.fill(cx + 1, cy + 1, cx + cell - 1, cy + cell - 1, fill);
             if (mod) {
@@ -3662,8 +3662,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int h = lines.size() * 11 + 10;
         int tx = Math.min(mouseX + 12, this.width - w - 4);
         int ty = Math.min(mouseY - 4, this.height - h - 4);
-        graphics.fill(tx - 1, ty - 1, tx + w + 1, ty + h + 1, 0xFF3C4050);
-        graphics.fill(tx, ty, tx + w, ty + h, 0xF8101117);
+        graphics.fill(tx - 1, ty - 1, tx + w + 1, ty + h + 1, 0xFF3C3C3C);
+        graphics.fill(tx, ty, tx + w, ty + h, 0xF8101010);
         if (stack != null) graphics.item(stack, tx + 5, ty + (h - 16) / 2);
         int ly = ty + 5;
         for (int i = 0; i < lines.size(); i++) {
@@ -3880,8 +3880,8 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void renderMilestoneBadge(GuiGraphicsExtractor graphics,
                                       PerformanceStatsSnapshot.Milestone milestone,
                                       int x, int y, int width, int height) {
-        int edge = milestone.unlocked() ? 0xFF5B6C3E : PANEL_EDGE;
-        graphics.fill(x, y, x + width, y + height, milestone.unlocked() ? 0xE8161D16 : CARD);
+        int edge = milestone.unlocked() ? 0xFFE8E8E8 : PANEL_EDGE;
+        graphics.fill(x, y, x + width, y + height, milestone.unlocked() ? 0xE81A1A1A : CARD);
         graphics.outline(x, y, width, height, edge);
         String marker = milestone.unlocked() ? "✓ " : "◇ ";
         graphics.text(this.font, truncate(marker + milestone.title(), width - 10),
@@ -7758,9 +7758,9 @@ public final class DoughBayScreen extends GoNutsScreen {
                 boolean ticked = itemsSelected.contains(e.id());
                 boolean isTracked = trackedSet.contains(e.bare());
                 graphics.fill(cx, cy, cx + cell - 1, cy + cell - 1,
-                        ticked ? 0xFF2F4A6B : hover ? CARD : CARD_DARK);
+                        ticked ? 0xFF242424 : hover ? CARD : CARD_DARK);
                 if (listMatches(denySet, e.bare())) {
-                    graphics.outline(cx, cy, cell - 1, cell - 1, 0xFFE0553B);
+                    graphics.outline(cx, cy, cell - 1, cell - 1, 0xFF6E6E6E);
                 } else if (listMatches(allowSet, e.bare())) {
                     graphics.outline(cx, cy, cell - 1, cell - 1, GOOD);
                 } else if (isTracked) {
@@ -7772,12 +7772,12 @@ public final class DoughBayScreen extends GoNutsScreen {
                 if (isTracked) graphics.fill(cx + cell - 6, cy + 1, cx + cell - 2, cy + 3, GOLD);
                 var priority=ItemPriorities.level(e.id());
                 if(priority!=ItemPriorities.Level.STANDARD){
-                    graphics.fill(cx+cell-9,cy+cell-10,cx+cell-1,cy+cell-1,0xDD10151D);
+                    graphics.fill(cx+cell-9,cy+cell-10,cx+cell-1,cy+cell-1,0xDD0F0F0F);
                     graphics.text(font,priority==ItemPriorities.Level.HIGH?"H":"L",cx+cell-8,cy+cell-10,priority==ItemPriorities.Level.HIGH?GOLD:SECONDARY);
                 }
                 // A ticked item gets a bright frame over any list colour, so the
                 // selection reads even on an item already excluded or included.
-                if (ticked) graphics.outline(cx, cy, cell - 1, cell - 1, 0xFF5B9BFF);
+                if (ticked) graphics.outline(cx, cy, cell - 1, cell - 1, 0xFFFFFFFF);
                 if (hover) itemsHoveredId = e.id();
             }
         }
@@ -8308,7 +8308,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
             boolean chosen = e.itemId().equals(flipSelected);
             if (hover || chosen) {
-                graphics.fill(innerX - 3, yy - 1, innerX + innerWidth + 3, yy + rowHeight - 1, chosen ? 0xFF2A3140 : ROW_HOVER);
+                graphics.fill(innerX - 3, yy - 1, innerX + innerWidth + 3, yy + rowHeight - 1, chosen ? 0xFF2A2A2A : ROW_HOVER);
             }
             flipRowBounds.add(new int[] {yy, yy + rowHeight, innerX, innerX + innerWidth});
             flipRowItems.add(e.itemId());
@@ -8359,7 +8359,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     int cy = gridTop + r * FLIP_CELL;
                     boolean hover = mouseX >= cx && mouseX < cx + FLIP_CELL && mouseY >= cy && mouseY < cy + FLIP_CELL;
                     boolean picked = e.bare().equals(chosen);
-                    graphics.fill(cx, cy, cx + FLIP_CELL - 1, cy + FLIP_CELL - 1, picked ? 0xFF2F4A6B : hover ? CARD : CARD_DARK);
+                    graphics.fill(cx, cy, cx + FLIP_CELL - 1, cy + FLIP_CELL - 1, picked ? 0xFF242424 : hover ? CARD : CARD_DARK);
                     // Gold round the one in the bar; green round those already on the list.
                     if (picked) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOLD);
                     else if (OwnPrices.of(e.bare()) != null) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOOD);
@@ -8731,7 +8731,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         for (var r : rules) {
             boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
             boolean selected = r.ruleId() == selectedRule;
-            if (hover || selected) graphics.fill(innerX - 3, yy - 1, innerX + innerWidth + 3, yy + rowHeight - 1, selected ? 0xFF2A3140 : ROW_HOVER);
+            if (hover || selected) graphics.fill(innerX - 3, yy - 1, innerX + innerWidth + 3, yy + rowHeight - 1, selected ? 0xFF2A2A2A : ROW_HOVER);
             payrollRowBounds.add(new long[] {yy, yy + rowHeight, r.ruleId()});
             String status = r.paused() ? "paused" : "active";
             int statusColor = r.paused() ? WARN : GOOD;

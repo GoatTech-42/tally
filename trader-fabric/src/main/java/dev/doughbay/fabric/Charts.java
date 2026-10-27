@@ -22,16 +22,16 @@ final class Charts {
 
     // Categorical slots 1-3, dark-surface steps. Validated all-pairs against
     // the panel surface: worst normal-vision ΔE 20.9, worst CVD ΔE 9.4.
-    static final int SERIES_BLUE = 0xFF3987E5;
-    static final int SERIES_ORANGE = 0xFFD95926;
-    static final int SERIES_AQUA = 0xFF199E70;
+    static final int SERIES_BLUE = 0xFFE8E8E8;
+    static final int SERIES_ORANGE = 0xFF909090;
+    static final int SERIES_AQUA = 0xFF484848;
 
     // Chart chrome, dark mode.
-    static final int GRID = 0xFF2C2C2A;
-    static final int AXIS = 0xFF383835;
-    static final int SPARK_BASELINE = 0x88383835;
-    static final int MUTED_INK = 0xFF898781;
-    static final int SECONDARY_INK = 0xFFC3C2B7;
+    static final int GRID = 0xFF2C2C2C;
+    static final int AXIS = 0xFF383838;
+    static final int SPARK_BASELINE = 0x88383838;
+    static final int MUTED_INK = 0xFF898989;
+    static final int SECONDARY_INK = 0xFFC3C3C3;
 
     private Charts() {
     }
@@ -82,7 +82,7 @@ final class Charts {
         if (ty < screenTop + 4) ty = pending.y + 10;
         if (ty + height > screenBottom - 4) ty = screenBottom - height - 4;
 
-        g.fill(tx, ty, tx + width, ty + height, 0xF0121218);
+        g.fill(tx, ty, tx + width, ty + height, 0xF00A0A0A);
         g.fill(tx, ty, tx + width, ty + 1, AXIS);
         g.fill(tx, ty + height - 1, tx + width, ty + height, AXIS);
         g.fill(tx, ty, tx + 1, ty + height, AXIS);

@@ -33,7 +33,7 @@ public final class DashboardScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050910);
+        int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050505);
         var view=HostedDashboardClient.INSTANCE.view();boolean idle=!view.busy();
         link.active=idle&&!view.linked()&&System.currentTimeMillis()>=view.retryAt();code.active=name.active=idle&&!view.linked();retry.active=unlink.active=idle&&view.linked();
         g.text(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);

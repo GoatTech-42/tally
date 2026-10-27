@@ -30,11 +30,11 @@ public final class RegionMapData {
    }
    public static int color(int regionId) {
       for (RegionInfo info : REGION_MAP.values()) if (info.regionId == regionId) return regionColor(info.regionType);
-      return 0xFF293747;
+      return 0xFF242424;
    }
    public static int colorByName(String family) {
       for (int i=0; i<REGION_TYPE_NAMES.length; i++) if (REGION_TYPE_NAMES[i].equals(family)) return regionColor(i);
-      return 0xFF293747;
+      return 0xFF242424;
    }
 
    public static String command(int regionId) {

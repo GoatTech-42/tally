@@ -32,17 +32,17 @@ import java.util.function.Consumer;
 final class DoughBayHudAlerts {
 
     enum Type {
-        OPPORTUNITY(0xFFFFD966, 0xFFB88B21),
-        SALE(0xFF55E69A, 0xFF168D5A),
+        OPPORTUNITY(0xFFE8E8E8, 0xFF6E6E6E),
+        SALE(0xFFE8E8E8, 0xFF6E6E6E),
         // The other half of the ledger. Sales had an alert from the start and
         // listings had nothing, so the screen showed slots emptying and never
         // showed them filling - which is the same lopsidedness that let the
         // count drift, in a form you could watch.
-        LISTING(0xFF6FB8FF, 0xFF2A6FB8),
-        ORDER(0xFFC08CFF, 0xFF6D3FB8),
-        INFO(0xFF9EB6C9, 0xFF52697D),
-        WARNING(0xFFFFA45B, 0xFFB85F23),
-        ERROR(0xFFFF6F70, 0xFFB6343E);
+        LISTING(0xFFE8E8E8, 0xFF6E6E6E),
+        ORDER(0xFFE8E8E8, 0xFF6E6E6E),
+        INFO(0xFFBDBDBD, 0xFF565656),
+        WARNING(0xFFA8A8A8, 0xFF565656),
+        ERROR(0xFFFFFFFF, 0xFF8A8A8A);
 
         final int accent;
         final int edge;
@@ -586,7 +586,7 @@ final class DoughBayHudAlerts {
         PlayerIntel.Nearby first = people.get(0);
         String header = first.name().toUpperCase(java.util.Locale.ROOT) + "  " + first.distance() + "M";
         if (people.size() > 1) header = header + "  +" + (people.size() - 1);
-        graphics.text(font, fit(font, header, width - 14), x + 7, y + 4, 0xFFB9A7FF, true);
+        graphics.text(font, fit(font, header, width - 14), x + 7, y + 4, 0xFFE8E8E8, true);
 
         int row = y + 16;
         for (PlayerIntel.Nearby p : people) {
@@ -606,24 +606,24 @@ final class DoughBayHudAlerts {
                 // a missing skin is not worth a gap in the panel
             }
             if (p != first) {
-                graphics.text(font, fit(font, p.name(), 84), x + 27, row, 0xFFE8E8EC, true);
+                graphics.text(font, fit(font, p.name(), 84), x + 27, row, 0xFFE8E8E8, true);
                 graphics.text(font, p.distance() + "m", x + width - 7 - font.width(p.distance() + "m"),
-                        row, 0xFF898A92, true);
+                        row, 0xFF898989, true);
             } else {
                 // The header already named them; this line says how they look.
                 String health = p.health() >= 0
                         ? String.format(java.util.Locale.ROOT, "%.0f hearts", p.health() / 2f) : "";
-                graphics.text(font, health, x + 27, row, 0xFF898A92, true);
+                graphics.text(font, health, x + 27, row, 0xFF898989, true);
             }
 
             // The profile line, or a note that it has not come back yet.
             PlayerIntel.Profile profile = p.profile();
             String line = profile == null ? "reading profile" : profile.killLine();
             if (profile != null && line.isEmpty()) line = "no kills recorded";
-            int colour = 0xFF898A92;
+            int colour = 0xFF898989;
             if (profile != null && !line.isEmpty()) {
                 // Somebody who wins far more than they lose is the one to mind.
-                colour = profile.ratio() >= 3 ? 0xFFE86A6A : profile.ratio() >= 1 ? 0xFFFFD966 : 0xFF74E48B;
+                colour = profile.ratio() >= 3 ? 0xFFFFFFFF : profile.ratio() >= 1 ? 0xFFA0A0A0 : 0xFF898989;
                 line = "K/D " + line;
             }
             graphics.text(font, fit(font, line, width - 34), x + 27, row + 10, colour, true);
@@ -632,7 +632,7 @@ final class DoughBayHudAlerts {
             // all is worth saying out loud: an unarmoured player reads as a
             // broken panel otherwise, and unarmoured is the useful fact.
             if (p.gear().isEmpty()) {
-                graphics.text(font, "unarmoured, empty handed", x + 7, row + 21, 0xFF74E48B, true);
+                graphics.text(font, "unarmoured, empty handed", x + 7, row + 21, 0xFFBDBDBD, true);
                 row += rowHeight;
                 continue;
             }
@@ -653,7 +653,7 @@ final class DoughBayHudAlerts {
             if (worst <= 100) {
                 String wear = worst + "%";
                 graphics.text(font, wear, x + width - 7 - font.width(wear), row + 23,
-                        worst < 25 ? 0xFFE86A6A : 0xFF898A92, true);
+                        worst < 25 ? 0xFFE8E8E8 : 0xFF898989, true);
             }
             row += rowHeight;
         }
@@ -817,7 +817,7 @@ final class DoughBayHudAlerts {
             for (int index : litCells.keySet()) {
                 int cx = gx + grid.left(index);
                 int cy = gy + grid.top(index);
-                graphics.fill(cx - 1, cy - 1, gx + grid.right(index) + 1, cy + cell + 1, 0xFFB8FFC8);
+                graphics.fill(cx - 1, cy - 1, gx + grid.right(index) + 1, cy + cell + 1, 0xFFB8B8B8);
             }
         }
         if (preview || UiTheme.reducedMotion() || !showGrid || Tuning.get("hud.flights") < 0.5) {

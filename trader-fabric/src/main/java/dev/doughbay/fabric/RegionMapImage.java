@@ -28,7 +28,7 @@ public final class RegionMapImage {
             for (int row = 0; row < RegionMapData.GRID; row++) {
                 for (int col = 0; col < RegionMapData.GRID; col++) {
                     int area = RegionMapData.cell(col, row);
-                    int color = area >= 0 && area == snapshot.area() ? 0xFFF0EEE7 : RegionMapData.color(area);
+                    int color = area >= 0 && area == snapshot.area() ? 0xFFF2F2F2 : RegionMapData.color(area);
                     g.setColor(new Color(color, true));
                     g.fillRect(left + col * cell, top + row * cell, cell - 1, cell - 1);
                     if (area >= 0) {

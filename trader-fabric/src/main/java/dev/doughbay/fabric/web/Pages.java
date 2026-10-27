@@ -26,6 +26,9 @@ final class Pages {
               color-scheme: dark; }
             @font-face { font-family:"GoNuts Pixel"; src:url(/font.ttf) format("truetype"); font-display:swap; }
             * { box-sizing: border-box; }
+            a { color:var(--secondary); text-decoration-color:var(--edge); }
+            a:hover { color:var(--text); }
+            .fine { color:var(--muted); font-size:12px; margin:0 0 10px; }
             body { margin:0; background:var(--background); color:var(--text);
               font: 15px/1.55 system-ui, "Segoe UI", sans-serif; }
             main { width:100%; max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
@@ -334,7 +337,7 @@ final class Pages {
      * searched, ticked and changed and not only looked at.
      */
     static final String APP = HEAD
-            + "<section class=\"panel\" role=\"note\"><strong>TALLY IS A MAINTAINED FORK</strong><p>Tally continues GoNuts, which ended public support after seven weeks. Swarm, hosted sign-in, reporting and diagnostic uploads stay retired; this build runs standalone. Original credits and license are unchanged.</p><a href=\"https://github.com/cody-raves/Gonuts\" target=\"_blank\" rel=\"noopener noreferrer\">Original source (cody-raves/Gonuts)</a></section>"
+            + "<p class=\"fine\">Tally is a maintained fork of <a href=\"https://github.com/cody-raves/Gonuts\" target=\"_blank\" rel=\"noopener noreferrer\">GoNuts</a> (retired upstream). Swarm, hosted sign-in, reporting and diagnostic uploads stay retired; this build runs standalone.</p>"
             + "<header class=\"panel\"><img src=\"/logo.png\" alt=\"tally\">"
             + "<span id=\"state\">...</span><span class=\"gap\"></span><span id=\"clock\"></span>"
             + "<form class=\"out\" method=\"post\" action=\"/logout\"><button type=\"submit\">Lock</button></form></header>"

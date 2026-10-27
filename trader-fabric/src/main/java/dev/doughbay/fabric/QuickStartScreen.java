@@ -54,7 +54,7 @@ final class QuickStartScreen extends GoNutsScreen {
             .bounds(x+(w+6)/2,height-27,(w-6)/2,20).build());
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
-        g.fill(0,0,width,height,0xF0050910);int x=left(),w=bodyWidth();
+        g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
         g.text(font,review?"2 / 2 · REVIEW & START":"1 / 2 · CHOOSE YOUR LIMITS",x,18,UiTheme.GOLD);
         int top=review?46:164,bottom=height-68,y=top-scroll;
         if(!review){
