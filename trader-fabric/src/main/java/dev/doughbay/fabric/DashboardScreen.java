@@ -23,6 +23,13 @@ public final class DashboardScreen extends GoNutsScreen {
     @Override protected void init(){
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int x=left()+12,w=panelWidth()-24;
+        if (!ProjectStatus.publicServicesEnabled()) {
+            // The hosted dashboard and pairing went away with the public
+            // services; show why instead of controls that can only fail.
+            addRenderableWidget(CockpitButton.builder(Component.literal("Swarm info (retired service)"),b->minecraft.gui.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
+            return;
+        }
         addRenderableWidget(CockpitButton.builder(Component.literal("Open dashboard website"),b->Util.getPlatform().openUri(DashboardProtocol.PAGE)).bounds(x,websiteY(),w,18).build());
         code=new EditBox(font,x,codeY(),w,18,Component.literal("Pairing code"));code.setMaxLength(16);code.setValue(codeDraft);code.setHint(Component.literal("K7PQ-M3ZD"));code.setResponder(v->codeDraft=v);addRenderableWidget(code);
         name=new EditBox(font,x,nameY(),w,18,Component.literal("Client label"));name.setMaxLength(48);name.setValue(nameDraft);name.setResponder(v->nameDraft=v);addRenderableWidget(name);
@@ -37,6 +44,14 @@ public final class DashboardScreen extends GoNutsScreen {
         var view=HostedDashboardClient.INSTANCE.view();boolean idle=!view.busy();
         link.active=idle&&!view.linked()&&System.currentTimeMillis()>=view.retryAt();code.active=name.active=idle&&!view.linked();retry.active=unlink.active=idle&&view.linked();
         g.text(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);
+        if (!ProjectStatus.publicServicesEnabled()) {
+            int ry=compact()?19:30;
+            for(var line:font.split(Component.literal(ProjectStatus.RETIRED),w)){g.text(font,line,x,ry,UiTheme.SECONDARY);ry+=12;}
+            ry+=6;
+            for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. Local trading, your Hive and your own settings still work."),w)){g.text(font,line,x,ry,UiTheme.MUTED);ry+=12;}
+            super.extractRenderState(g,mx,my,delta);
+            return;
+        }
         g.text(font,UiTheme.fit(font,"Sign in on gonuts.at, choose Link client, then enter its code.",w),x,compact()?19:30,UiTheme.SECONDARY);
         g.text(font,"Pairing code (expires after five minutes)",x,codeY()-12,UiTheme.TEXT);
         g.text(font,"Client label (shown on your dashboard)",x,nameY()-12,UiTheme.TEXT);
