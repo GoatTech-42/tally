@@ -34,7 +34,7 @@ final class QuickStartScreen extends GoNutsScreen {
             tradeField.setMaxLength(16);tradeField.setValue(trade);tradeField.setResponder(v->{trade=v;message="";});addRenderableWidget(tradeField);
             sessionField=new EditBox(font,x+fw+10,90,fw,22,Component.literal("Maximum session spend"));
             sessionField.setMaxLength(16);sessionField.setValue(session);sessionField.setResponder(v->{session=v;message="";});addRenderableWidget(sessionField);
-            addRenderableWidget(CockpitButton.builder(Component.literal("Optional: join Swarm"),b->parent.openSetupTarget("swarm",this))
+            addRenderableWidget(CockpitButton.builder(Component.literal("Project status: retired services"),b->parent.openSetupTarget("swarm",this))
                 .bounds(x,126,(w-6)/2,22).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Review protections"),b->parent.openSetupTarget("evasion",this))
                 .bounds(x+(w+6)/2,126,(w-6)/2,22).build());
@@ -68,7 +68,7 @@ final class QuickStartScreen extends GoNutsScreen {
             String hold=parent.quickStartHold();primary.active=hold==null;
             if(hold!=null)y=paragraph(g,hold,x,y,w,UiTheme.BAD);
         }
-        y=paragraph(g,"Swarm is optional: fresh shared completed-sale history can warm a new database and reduce repeated reading when enough evidence is available. Solo mode gathers its own data. No profit or immediate purchase is guaranteed.",x,y,w,UiTheme.TEXT);
+        y=paragraph(g,"Swarm and the other hosted services are retired with the upstream project: shared sale history and remote control are unavailable. Solo mode gathers its own data. No profit or immediate purchase is guaranteed.",x,y,w,UiTheme.TEXT);
         var guard=DoughBayClient.evasionGuard();
         y=paragraph(g,"Evasion: "+(guard!=null&&guard.enabled()?"enabled":"off")+". Staff Watch spectator detection is not proof that staff are watching you. Review protection options if you are unsure.",x,y,w,UiTheme.MUTED);
         var warm=DoughBayClient.automationSessionController().warmUp();
