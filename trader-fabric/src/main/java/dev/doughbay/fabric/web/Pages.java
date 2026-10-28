@@ -1121,7 +1121,7 @@ final class Pages {
               const checkDraft=draftFeedback(row,box);
               const saved = j => { if (j) { if(view==='evasion')openEvasion();else openSettings(); } };
               if (row.locked) {
-                box.appendChild(el('p', 'range', 'This one is set on the GoNuts screen in game, not from a browser.'));
+                box.appendChild(el('p', 'range', 'This one is set on the Tally screen in game, not from a browser.'));
                 return box;
               }
               if (row.list) {
