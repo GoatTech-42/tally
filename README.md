@@ -31,7 +31,7 @@ remain available, with public support ended.
 
 ## Retired hosted services
 
-Nothing is uploaded anywhere: the retired Swarm, hosted dashboard, bug receiver and
+No diagnostics or reports are uploaded to the retired hosted services: the retired Swarm, hosted dashboard, bug receiver and
 diagnostic upload services are walled off, and a saved config that still names the
 retired host is normalized to the direct DonutSMP API instead. Everything Tally does
 runs locally, against your own self-hosted hive server if you run one, or through the
