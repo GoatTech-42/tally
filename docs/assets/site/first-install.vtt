@@ -12,12 +12,16 @@ Fabric API mod, and Java 25. The written guide
 links the official Fabric instructions. Use the Fabric setup for
 your own launcher.
 
-00:00:25.000 --> 00:00:34.772
-Open gonuts.at and choose Download for Minecraft 26.2. Save the
-GoNuts jar without extracting it. Normal
+00:00:25.000 --> 00:00:30.310
+Open the Tally releases page on GitHub
+(github.com/GoatTech-42/tally/releases). No Tally release is
 
-00:00:34.772 --> 00:00:39.000
-keyless setup does not need a manual API key.
+00:00:30.310 --> 00:00:35.567
+published yet; when one appears, download the mod jar for
+Minecraft 26.2 there and save it without
+
+00:00:35.567 --> 00:00:39.000
+extracting. Normal keyless setup does not need a manual API key.
 
 00:00:39.000 --> 00:00:48.171
 Close Minecraft. Open the game folder for the installation you
@@ -45,27 +49,24 @@ Settings, then Help and setup. Choose Set up
 00:01:28.889 --> 00:01:36.000
 trading. Do not search for a separate START HERE navigation tab.
 
-00:01:36.000 --> 00:01:44.855
+00:01:36.000 --> 00:01:45.640
 Enter maximum per trade and maximum session spend. Choose your
 own amounts; these screenshot values are
 
-00:01:44.855 --> 00:01:53.796
-examples, not recommendations. Swarm is optional. Review and
-continue opens the second step. It does not
+00:01:45.640 --> 00:01:55.000
+examples, not recommendations. Review and continue opens the
+second step. It does not start trading.
 
-00:01:53.796 --> 00:01:55.000
-start trading.
-
-00:01:55.000 --> 00:02:03.442
+00:01:55.000 --> 00:02:02.756
 Review protections opens Evasion. Read its options and review
 Staff Watch separately if you use it. Return
 
-00:02:03.442 --> 00:02:11.805
-to setup afterward. Swarm linking and Discord are optional
-connections. Opening a guide does not start or
+00:02:02.756 --> 00:02:10.585
+to setup afterward. Discord is an optional connection; the
+hosted Swarm service is retired. Opening a guide
 
-00:02:11.805 --> 00:02:13.000
-resume trading.
+00:02:10.585 --> 00:02:13.000
+does not start or resume trading.
 
 00:02:13.000 --> 00:02:23.286
 On Review and Start, check your limits and readiness. This

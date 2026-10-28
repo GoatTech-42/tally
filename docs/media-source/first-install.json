@@ -38,7 +38,7 @@
     "captionText": "Open the Tally releases page on GitHub (github.com/GoatTech-42/tally/releases). No Tally release is published yet; when one appears, download the mod jar for Minecraft 26.2 there and save it without extracting. Normal keyless setup does not need a manual API key.",
     "duration": 14,
     "start": 25,
-    "captureSha256": "3b92483b09bca5bc05838c16aecd065fb323b6a26886dff8b9aa9b7df35588e5"
+    "captureSha256": "f636914a9d4a1751bbd494e74d9e6e22fd657d1c7bcd7d8438b8966fce75a0c2"
   },
   {
     "title": "3. Put both mods in the right folder",
