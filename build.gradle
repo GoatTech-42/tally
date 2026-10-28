@@ -26,7 +26,7 @@ subprojects {
 
     test {
         // 2 GiB build box: bound the test JVM so daemon + worker stay under RAM.
-        maxHeapSize = '768m'
+        maxHeapSize = '512m'
         useJUnitPlatform()
         // Lets the panel preview find the client jar for real item textures.
         systemProperty 'doughbay.clientJar', System.getProperty('doughbay.clientJar', '')

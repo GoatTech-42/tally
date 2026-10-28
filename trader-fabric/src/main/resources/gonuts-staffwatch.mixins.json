@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "dev.doughbay.fabric.staffwatch.mixin",
-  "compatibilityLevel": "JAVA_25",
+  "compatibilityLevel": "JAVA_21",
   "client": [
     "ConnectionMixin",
     "WindowMixin",
