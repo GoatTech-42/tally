@@ -52,7 +52,13 @@ final class SharedLedgerPositionIdTest {
 
     private static void closeAndAwait(AutomationPersistenceWorker worker) throws Exception {
         worker.close();
-        long deadline = System.nanoTime() + 5_000_000_000L;
+        // Close is async by design: the daemon drains every queued checkpoint
+        // against the shared ledger before it reports CLOSED. Production's own
+        // close contract tolerates a single contended SQLite op up to
+        // busy_timeout=30000 (Database) plus a 500ms*attempt lock-retry chain,
+        // so on a loaded host a full drain legitimately takes tens of seconds.
+        // The budget must cover that contract; 5s only covered an idle host.
+        long deadline = System.nanoTime() + 45_000_000_000L;
         while (worker.status().loadState() != dev.doughbay.storage.AutomationPersistencePort.LoadState.CLOSED
                 && System.nanoTime() < deadline) Thread.sleep(10);
         assertEquals(dev.doughbay.storage.AutomationPersistencePort.LoadState.CLOSED,
