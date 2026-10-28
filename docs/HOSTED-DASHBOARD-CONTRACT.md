@@ -1,5 +1,10 @@
 # GoNuts hosted dashboard: integration contract for the mod (protocol 1)
 
+> **Retired:** the hosted dashboard is no longer running and the mod never
+> shipped dashboard support. Installations do not contact the retired
+> service. This document is kept as the design record.
+
+
 Date: 2026-10-15. Receiver side implemented, deployed in test phase, and verified with a stand-in client; the
 real mod has **no** dashboard support yet, so everything under "What the mod must do" is a client change.
 No secrets in this file. Copy it into the mod repository's `docs/` when the client work starts.

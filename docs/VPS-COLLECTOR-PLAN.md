@@ -1,5 +1,10 @@
 # GoNuts VPS collector — build plan
 
+> **Retired:** the hosted GoNuts API this collector uploaded to is no longer
+> running, and this plan was never executed for Tally. Installations do not
+> contact the retired service. This document is kept as the design record.
+
+
 Hand this to the agents on the VPS. It describes one machine's job: run a
 read-only Minecraft client on the secondary account that walks the auction and
 order pages continuously and uploads what it sees to the GoNuts API.
