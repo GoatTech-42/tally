@@ -912,6 +912,13 @@ public class DoughBayClient implements ClientModInitializer {
         net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
     }
 
+    /** Opens the mod's screen on the local web panel's settings card; the panel stays off and PIN/LAN choices stay with the owner. */
+    public static void openWebPanelSettings() {
+        DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
+        screen.selectWebPanel();
+        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
+    }
+
     /** Opens the mod's screen, with the update notice in front of it when there is one to answer. */
     private static void openPanel(net.minecraft.client.Minecraft client) {
         DoughBayScreen main = new DoughBayScreen(watcher,
