@@ -2,10 +2,10 @@ package dev.doughbay.fabric;
 
 /** Public infrastructure was retired. This is a release policy, not a user setting. */
 public final class ProjectStatus {
-    public static final String NOTICE = "After seven weeks of development, GoNuts is no longer publicly maintained or supported. "
-            + "The source and existing releases remain available. Fork the repository to make changes or maintain your own version.";
+    public static final String NOTICE = "GoNuts, the project Tally continues, ended public maintenance and support after seven weeks of development. "
+            + "Its source and existing releases remain available. Tally is a community-maintained fork of it.";
     public static final String RETIRED = "Public services retired; local trading remains available";
-    public static final String SOURCE = "https://github.com/cody-raves/Gonuts";
+    public static final String SOURCE = "https://github.com/GoatTech-42/tally";
     public static final String PAGES = "https://cody-raves.github.io/Gonuts/";
     private ProjectStatus() {}
     public static boolean publicServicesEnabled() { return false; }
