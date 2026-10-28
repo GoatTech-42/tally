@@ -2,8 +2,8 @@
 
 ## Build
 
-The Minecraft 26.2 build needs **JDK 25**. The headless modules target Java 21
-and `trader-fabric` targets Java 25. From the repo root:
+The Minecraft 1.21.11 build needs **JDK 21**. The headless modules and
+`trader-fabric` both target Java 21. (The 26.x line lives on its own branch and needs JDK 25.) From the repo root:
 
 ```bash
 ./gradlew build

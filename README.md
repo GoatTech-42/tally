@@ -7,7 +7,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-brightgreen)
 ![Mod](https://img.shields.io/badge/mod-Fabric-orange)
-![Java](https://img.shields.io/badge/Java-25-red)
+![Java](https://img.shields.io/badge/Java-21-red)
 ![Execution](https://img.shields.io/badge/live%20execution-off%20by%20default-lightgrey)
 
 </div>

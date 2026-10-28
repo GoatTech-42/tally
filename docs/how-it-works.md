@@ -150,7 +150,7 @@ trader-paper    paper-trading engine (simulated bankroll, leak-free)
 trader-engine   shared collection and analysis orchestration
 trader-cli      collect / scan / paper commands, fat-jar build
 trader-server   self-hostable data server (one key feeds many clients)
-trader-fabric   Minecraft 26.2 UI and automated execution driver
+trader-fabric   Minecraft 1.21.11 UI and automated execution driver
 ```
 
 Live execution is isolated behind a five-method `ExecutionDriver` contract, so
