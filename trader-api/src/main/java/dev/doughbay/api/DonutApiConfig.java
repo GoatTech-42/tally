@@ -18,7 +18,9 @@ public record DonutApiConfig(
     public static boolean retiredService(String baseUrl) {
         if(baseUrl==null)return false;
         try {
-            String host=URI.create(baseUrl).getHost();
+            // Saved addresses can arrive padded; padding must not smuggle a
+            // retired relay past this check until some later reload strips it.
+            String host=URI.create(baseUrl.strip()).getHost();
             if(host==null)return false;
             host=host.toLowerCase(java.util.Locale.ROOT);
             return host.equals("gonuts.at")||host.endsWith(".gonuts.at")||host.equals("147.189.172.152");

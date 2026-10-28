@@ -35,6 +35,29 @@ final class RetiredServiceDefaultsTest {
     }
 
     @Test
+    void spacePaddedRetiredAddressesResolveToDonutSmpDirectImmediately() {
+        // A padded saved source must not slip through as an "owner proxy"
+        // until the next reload strips it: the fallback applies at once.
+        for (String retired : new String[] {
+                " https://gonuts.at ", "\thttps://api.gonuts.at\n", " http://147.189.172.152:8790 "}) {
+            assertEquals(DONUT, DoughBayConfig.resolveApiBaseUrl(retired), retired);
+        }
+    }
+
+    @Test
+    void spacePaddedOwnerProxiesAreStrippedAndKept() {
+        assertEquals("http://localhost:8123",
+                DoughBayConfig.resolveApiBaseUrl(" http://localhost:8123 "));
+        assertEquals("https://gonuts.at.example.invalid",
+                DoughBayConfig.resolveApiBaseUrl(" https://gonuts.at.example.invalid "));
+    }
+
+    @Test
+    void feedUploaderDropsAPaddedRetiredDestination() {
+        assertEquals("", new FeedUploader(" https://gonuts.at ", "key").baseUrl());
+    }
+
+    @Test
     void missingAndBlankAddressesResolveToDonutSmpDirect() {
         assertEquals(DONUT, DoughBayConfig.resolveApiBaseUrl(null));
         assertEquals(DONUT, DoughBayConfig.resolveApiBaseUrl("  "));
