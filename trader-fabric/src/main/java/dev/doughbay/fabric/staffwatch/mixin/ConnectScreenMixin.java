@@ -11,6 +11,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ConnectScreenMixin {
  @Inject(method="startConnecting",at=@At("RETURN"))
  private static void started(Screen parent,Minecraft mc,ServerAddress address,ServerData server,boolean quickPlay,TransferState transfer,CallbackInfo ci){
-  if(mc.screen instanceof ConnectScreen)ReconnectController.INSTANCE.connectionStarted(server);
+  if(mc.gui.screen() instanceof ConnectScreen)ReconnectController.INSTANCE.connectionStarted(server);
  }
 }

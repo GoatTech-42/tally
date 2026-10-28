@@ -17,7 +17,7 @@ abstract class SidebarNameMixin {
             method = "displayScoreboardSidebar",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/GuiGraphics;text("
+                    target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text("
                             + "Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V"),
             index = 1,
             require = 0)

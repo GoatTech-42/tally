@@ -1,7 +1,7 @@
 package dev.doughbay.fabric.mixin;
 
 import dev.doughbay.fabric.QuietScreen;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.dialog.DialogScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class ContainerScreenMixin {
 
     @Inject(method = "extractRenderStateWithTooltipAndSubtitles", at = @At("HEAD"), cancellable = true)
-    private void doughbay$skipWhileWorking(GuiGraphics graphics, int mouseX, int mouseY,
+    private void doughbay$skipWhileWorking(GuiGraphicsExtractor graphics, int mouseX, int mouseY,
                                            float partialTick, CallbackInfo callbackInfo) {
         Object screen = this;
         boolean botsWork;

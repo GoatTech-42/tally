@@ -1,7 +1,7 @@
 package dev.doughbay.fabric.mixin;
 
 import dev.doughbay.fabric.NameMask;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * is on, and only on the way to the screen; the string the mod holds is not
  * changed.
  */
-@Mixin(GuiGraphics.class)
+@Mixin(GuiGraphicsExtractor.class)
 abstract class GuiTextNameMixin {
 
     // Not required, as with the name tag and the sidebar: an overload that
