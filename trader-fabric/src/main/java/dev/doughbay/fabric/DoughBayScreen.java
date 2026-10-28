@@ -6628,7 +6628,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + "then ranks conservative resale opportunities.",
                 x + 9, yy, cardWidth - 18, y + cardHeight - 32, TEXT);
         drawWrapped(graphics,
-                "Diagnostics upload retired with the hosted public services: nothing leaves this install. "
+                "Diagnostics upload retired with the hosted public services: no diagnostics leave this install. "
                         + "Local trading, settings, trade history, ownership records and recovery safeguards are unaffected.",
                 x + 9, yy + 5, cardWidth - 18, y + cardHeight - 32, SECONDARY);
 
