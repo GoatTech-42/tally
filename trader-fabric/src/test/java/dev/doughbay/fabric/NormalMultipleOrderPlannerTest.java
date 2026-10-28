@@ -16,8 +16,6 @@ class NormalMultipleOrderPlannerTest {
     static final String ITEM="minecraft:stone";
     @BeforeAll static void bootstrap() {
         net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();
-        net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(net.minecraft.data.registries.VanillaRegistries.createLookup())
-                .forEach(net.minecraft.core.component.DataComponentInitializers.PendingComponents::apply);
     }
     @Test void normalModeCanPlaceSecondOrderAtOurPriceButNotThirdOrWhileOutbid() throws Exception {
         String before=SettingsCode.exportPreset(Map.of(),Map.of());boolean keyless=KeylessFeed.active();

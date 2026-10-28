@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OrderOfferSafetyTest {
     @TempDir Path directory;
-    @BeforeAll static void bootstrap(){net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.build(net.minecraft.data.registries.VanillaRegistries.createLookup()).forEach(net.minecraft.core.component.DataComponentInitializers.PendingComponents::apply);}
+    @BeforeAll static void bootstrap(){net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();}
     @ParameterizedTest @ValueSource(booleans={false,true})
     void safeActualOfferIsNotRejectedBecauseTheUnusedCeilingIsHigher(boolean sizeBySale) throws Exception {
         var queue=plan(2300,sizeBySale);

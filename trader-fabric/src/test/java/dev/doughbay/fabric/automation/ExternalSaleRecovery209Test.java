@@ -26,9 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class ExternalSaleRecovery209Test {
     @org.junit.jupiter.api.BeforeAll static void bootstrap() {
         SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
-        net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
-            .build(net.minecraft.data.registries.VanillaRegistries.createLookup())
-            .forEach(net.minecraft.core.component.DataComponentInitializers.PendingComponents::apply);
     }
     @Test void absentItemNeedsThreeFreshAuditsThenDurableConfirmationAndStaysStopped() throws Exception {
         var f=new Fixture();
@@ -226,9 +223,9 @@ class ExternalSaleRecovery209Test {
         void acknowledge(){status=new Status(LoadState.READY,new AutomationSessionRecovery(true,"CONTINUOUS","PAUSED",7,12345,100,200,"offline durable receipt","",AutomationUncertainExposure.none(),List.of()),2,2,"durable");}
     }
     private static class AlivePlayer extends LocalPlayer {
-        private AlivePlayer(){super(null,null,null,null,null,null,false,null);}
+        private AlivePlayer(){super(null,null,null,null,null,null,false);}
         @Override public boolean isAlive(){return true;}
-        @Override public void sendSystemMessage(net.minecraft.network.chat.Component c){}
+        @Override public void displayClientMessage(net.minecraft.network.chat.Component c, boolean actionBar){}
     }
     private static Field field(Class<?> c,String n)throws Exception{var f=c.getDeclaredField(n);f.setAccessible(true);return f;}
     private static Object get(Object o,String n)throws Exception{return field(o.getClass(),n).get(o);}

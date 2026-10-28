@@ -96,9 +96,6 @@ class NormalOrderPageCollectionTest {
 
     @org.junit.jupiter.api.BeforeAll static void bootstrap(){
         SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
-        net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
-                .build(net.minecraft.data.registries.VanillaRegistries.createLookup())
-                .forEach(net.minecraft.core.component.DataComponentInitializers.PendingComponents::apply);
     }
     @Test void normalModeMustNotFinishAFullFirstPageThatHasANextPage() throws Exception {
         double mode=Tuning.get("orders.max_per_market"), trip=Tuning.get("orders.one_trip");
@@ -380,7 +377,7 @@ class NormalOrderPageCollectionTest {
 
     @Test void realRedPaneOrderBeforeDisabledTailIsStillAnOrder() throws Exception {
         var f=fixture(false);fillDisabledRedTail(f,1,"");
-        var order=new ItemStack(Items.STAINED_GLASS_PANE.red());
+        var order=new ItemStack(Items.RED_STAINED_GLASS_PANE);
         order.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
         order.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("192 requested"),Component.literal("$100 each"),Component.literal("64/192 delivered"))));
         f.screen.getMenu().slots.get(0).set(order);read(f);settle(f);read(f);
@@ -420,11 +417,11 @@ class NormalOrderPageCollectionTest {
 
     private static void fillBaseRankPage(Fixture f,int realOrders) {
         for(int i=realOrders;i<18;i++) {
-            var tile=new ItemStack(Items.STAINED_GLASS_PANE.gray());
+            var tile=new ItemStack(Items.GRAY_STAINED_GLASS_PANE);
             tile.set(DataComponents.CUSTOM_NAME,Component.literal("New Order"));f.screen.getMenu().slots.get(i).set(tile);
         }
         for(int i=18;i<45;i++) {
-            var tile=new ItemStack(Items.STAINED_GLASS_PANE.red());
+            var tile=new ItemStack(Items.RED_STAINED_GLASS_PANE);
             tile.set(DataComponents.CUSTOM_NAME,Component.literal("Max Orders"));
             tile.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Buy Donut+ for even more order slots"))));
             f.screen.getMenu().slots.get(i).set(tile);
@@ -871,8 +868,8 @@ class NormalOrderPageCollectionTest {
     @SuppressWarnings({"unchecked","rawtypes"})private static void setOperation(AutomatedExecutionDriver driver,String name)throws Exception{Field operation=field(AutomatedExecutionDriver.class,"operation");operation.set(driver,Enum.valueOf((Class)operation.getType(),name));}
     private static <T>T allocate(Class<T> type)throws Exception{return type.cast(((Unsafe)field(Unsafe.class,"theUnsafe").get(null)).allocateInstance(type));}
     private static class QuietPlayer extends LocalPlayer {
-        private QuietPlayer(){super(null,null,null,null,null,null,false,null);}
-        @Override public void sendSystemMessage(Component message){}
+        private QuietPlayer(){super(null,null,null,null,null,null,false);}
+        @Override public void displayClientMessage(Component message, boolean actionBar){}
         @Override public net.minecraft.server.permissions.PermissionSet permissions(){return net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS;}
         @Override public void closeContainer(){}
     }

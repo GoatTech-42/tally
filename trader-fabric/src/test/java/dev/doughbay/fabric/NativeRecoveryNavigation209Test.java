@@ -26,9 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class NativeRecoveryNavigation209Test {
     @BeforeAll static void bootstrap(){
         SharedConstants.tryDetectVersion();Bootstrap.bootStrap();
-        net.minecraft.core.registries.BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
-            .build(net.minecraft.data.registries.VanillaRegistries.createLookup())
-            .forEach(net.minecraft.core.component.DataComponentInitializers.PendingComponents::apply);
     }
     @Test void auctionChestThenExplicitVacantOwnPageCompletesReadOnly() throws Exception {
         var f=new Fixture();f.read();
@@ -74,7 +71,7 @@ class NativeRecoveryNavigation209Test {
         void page(String title,boolean vacant)throws Exception{
             var contents=new SimpleContainer(54);
             if(vacant)for(int i=0;i<45;i++){
-                var pane=new ItemStack(Items.STAINED_GLASS_PANE.gray());pane.set(DataComponents.CUSTOM_NAME,Component.literal("List"));
+                var pane=new ItemStack(Items.GRAY_STAINED_GLASS_PANE);pane.set(DataComponents.CUSTOM_NAME,Component.literal("List"));
                 pane.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("Click to sell an item"))));contents.setItem(i,pane);
             }
             var menu=new ChestMenu(MenuType.GENERIC_9x6,vacant?6:5,mc.player.getInventory(),contents,6);mc.player.containerMenu=menu;
@@ -86,8 +83,8 @@ class NativeRecoveryNavigation209Test {
         List<Integer> clicks(){return ((Clicks)mc.gameMode).slots;}
     }
     private static class QuietPlayer extends LocalPlayer {
-        private QuietPlayer(){super(null,null,null,null,null,null,false,null);}
-        @Override public void sendSystemMessage(Component c){}
+        private QuietPlayer(){super(null,null,null,null,null,null,false);}
+        @Override public void displayClientMessage(Component c, boolean actionBar){}
         @Override public com.mojang.authlib.GameProfile getGameProfile(){return new com.mojang.authlib.GameProfile(new java.util.UUID(0,1),"OfflineFixture");}
         @Override public net.minecraft.server.permissions.PermissionSet permissions(){return net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS;}
         @Override public void closeContainer(){}
