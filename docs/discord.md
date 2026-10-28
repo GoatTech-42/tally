@@ -6,7 +6,10 @@ buttons under it start, stop, and tune the trader, and only one Discord user,
 the operator, can press them.
 
 A captioned walkthrough of the controls is bundled in this repository at
-[docs/assets/site/discord-setup.mp4](assets/site/discord-setup.mp4).
+[docs/assets/site/discord-setup.mp4](assets/site/discord-setup.mp4). It was recorded on the
+upstream GoNuts interface before the Tally retheme: the control flow is unchanged, but
+the branding and colors in the video differ from the current client. The text below is
+the current guide.
 
 ## Setup, step by step
 
