@@ -296,6 +296,22 @@ if (project.hasProperty('websiteSmoke')) {
 }
 tasks.named('jar') { exclude '**/WebsiteGuiSmoke*.class' }
 
+// Isolated first-open/About/QuickStart qualification; never joins a server or ships in releases.
+if (project.hasProperty('qualSurfaceSmoke')) {
+    sourceSets.main.java.srcDir 'src/websiteSmoke/java'
+    tasks.processResources.doLast {
+        def file = destinationDir.toPath().resolve('fabric.mod.json').toFile()
+        def metadata = new groovy.json.JsonSlurper().parse(file)
+        metadata.entrypoints.client.add('dev.doughbay.fabric.QualSurfaceSmoke')
+        file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(metadata))
+    }
+    loom.runs.client {
+        runDir = System.getenv('LOCALAPPDATA') + '/GoNuts/qual-surface-preview'
+        programArgs '--width', '1280', '--height', '900'
+    }
+}
+tasks.named('jar') { exclude '**/QualSurfaceSmoke*.class' }
+
 // Isolated item-loadout GUI regression; never joins a server or ships in releases.
 if (project.hasProperty('itemLoadoutsSmoke')) {
     sourceSets.main.java.srcDir 'src/itemLoadoutsSmoke/java'
