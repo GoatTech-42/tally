@@ -3,7 +3,7 @@ package dev.doughbay.fabric.mixin;
 import dev.doughbay.fabric.OrbitCamera;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.extract.LevelExtractor;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * the method changes, every other entity takes the same path it always did,
  * and the moment the orbit stands down the rule is back exactly as written.
  */
-@Mixin(LevelExtractor.class)
+@Mixin(LevelRenderer.class)
 abstract class LevelExtractorMixin {
 
     /**

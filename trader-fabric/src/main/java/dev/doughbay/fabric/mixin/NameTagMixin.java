@@ -21,11 +21,11 @@ abstract class NameTagMixin {
     // The overload every renderer ends in: it is the one that reads the name.
     // Not required: if an update moves this the name simply shows again,
     // which is a thing you can see, rather than the client failing to start.
-    @Inject(method = "extractNameTags(Lnet/minecraft/world/entity/Entity;"
-            + "Lnet/minecraft/client/renderer/entity/state/EntityRenderState;FDD)V",
+    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Entity;"
+            + "Lnet/minecraft/client/renderer/entity/state/EntityRenderState;F)V",
             at = @At("TAIL"), require = 0)
     private void doughbay$hideOwnName(Entity entity, EntityRenderState state, float partialTick,
-                                      double nameRange, double scoreRange, CallbackInfo callbackInfo) {
+                                      CallbackInfo callbackInfo) {
         if (state.nameTag == null || !NameMask.on()) return;
         Minecraft client = Minecraft.getInstance();
         if (client != null && entity == client.player) state.nameTag = NameMask.mask(state.nameTag);

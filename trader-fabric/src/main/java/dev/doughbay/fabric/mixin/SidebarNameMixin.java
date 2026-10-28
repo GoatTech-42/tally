@@ -1,14 +1,14 @@
 package dev.doughbay.fabric.mixin;
 
 import dev.doughbay.fabric.NameMask;
-import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 /** Scrambles the player's own name in the sidebar scoreboard as it is drawn; the scoreboard's data is untouched. */
-@Mixin(Hud.class)
+@Mixin(Gui.class)
 abstract class SidebarNameMixin {
 
     // Not required, for the same reason as the name tag: a moved call shows
@@ -17,7 +17,7 @@ abstract class SidebarNameMixin {
             method = "displayScoreboardSidebar",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text("
+                    target = "Lnet/minecraft/client/gui/GuiGraphics;drawString("
                             + "Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;IIIZ)V"),
             index = 1,
             require = 0)

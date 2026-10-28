@@ -1,7 +1,7 @@
 package dev.doughbay.fabric.mixin;
 
 import dev.doughbay.fabric.NameMask;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -13,27 +13,27 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
  * is on, and only on the way to the screen; the string the mod holds is not
  * changed.
  */
-@Mixin(GuiGraphicsExtractor.class)
+@Mixin(GuiGraphics.class)
 abstract class GuiTextNameMixin {
 
     // Not required, as with the name tag and the sidebar: an overload that
     // has moved shows the name again rather than stopping the client.
     @ModifyVariable(
-            method = "text(Lnet/minecraft/client/gui/Font;Ljava/lang/String;IIIZ)V",
+            method = "drawString(Lnet/minecraft/client/gui/Font;Ljava/lang/String;IIIZ)V",
             at = @At("HEAD"), argsOnly = true, require = 0)
     private String doughbay$hideOwnNameShadowed(String text) {
         return NameMask.mask(text);
     }
 
     @ModifyVariable(
-            method = "text(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V",
+            method = "drawString(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V",
             at = @At("HEAD"), argsOnly = true, require = 0)
     private String doughbay$hideOwnName(String text) {
         return NameMask.mask(text);
     }
 
     @ModifyVariable(
-            method = "centeredText(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V",
+            method = "drawCenteredString(Lnet/minecraft/client/gui/Font;Ljava/lang/String;III)V",
             at = @At("HEAD"), argsOnly = true, require = 0)
     private String doughbay$hideOwnNameCentered(String text) {
         return NameMask.mask(text);
