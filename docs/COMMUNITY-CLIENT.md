@@ -3,7 +3,8 @@
 > **Retired:** the hosted Swarm service is no longer running. Opt-in, dashboard
 > linking and community guidance described here are unavailable, and
 > installations do not contact the retired service. Local trading, market
-> history and your own scans are unaffected. This document is kept as the
+> history and your own scans are unaffected, as is the local web panel (PIN
+> sign-in, optional access from other devices on the same network). This document is kept as the
 > design record.
 
 Opt-in is per installation. Open Swarm, the local Dashboard tab, or the hosted per-client Swarm control. Linking a bot to the Discord-authenticated dashboard is Swarm opt-in; no second enable step is required. Unlinked installations do not receive guidance. Existing linked installations join automatically on this public build. Linking consents to contributing public market/follow/payment observations and consuming discovery hints. Native live quotes, inventory, own orders and trading guards remain authoritative. Unlinking stops contributions and guidance; HTTP activity is separate from accepted observations and avoided scans. Credentials and the durable current retry batch live under the installation game directory, `gonuts-community`, with owner-only permissions. No secrets go through the shared hive; controls and nonsecret status use the existing private local IPC.

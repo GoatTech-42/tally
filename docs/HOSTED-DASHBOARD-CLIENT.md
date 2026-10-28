@@ -3,7 +3,10 @@
 > **Retired:** the hosted dashboard at gonuts.at is no longer running. Discord
 > sign-in, pairing codes and client linking described here are unavailable, and
 > no dashboard credentials are issued or accepted. The local web panel and its
-> PIN authentication are unaffected. This document is kept as the protocol record.
+> PIN authentication are unaffected: set a PIN under Settings to open the
+> dashboard from this computer, or turn on "Phones on your Wi-Fi" there to
+> open it from another device on the same network. It never answers the
+> public internet. This document is kept as the protocol record.
 
 Public release integration: Discord sign-in and per-installation pairing, owner-authorized expiring controls, Swarm participation through dashboard linking, and passive per-client mascot activity. Legacy clients without optional fields remain supported.
 
