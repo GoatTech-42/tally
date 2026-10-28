@@ -8,9 +8,9 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.*;
@@ -76,7 +76,7 @@ class NativeRecoveryNavigation209Test {
             }
             var menu=new ChestMenu(MenuType.GENERIC_9x6,vacant?6:5,mc.player.getInventory(),contents,6);mc.player.containerMenu=menu;
             screen=allocate(ContainerScreen.class);field(AbstractContainerScreen.class,"menu").set(screen,menu);
-            field(Screen.class,"title").set(screen,Component.literal(title));field(Gui.class,"screen").set(mc.gui,screen);
+            field(Screen.class,"title").set(screen,Component.literal(title));field(net.minecraft.client.Minecraft.class,"screen").set(mc, screen);
             set(d,"stableTicks",20);
         }
         void read()throws Exception{var m=d.getClass().getDeclaredMethod("tickAuditPage",Minecraft.class,AbstractContainerScreen.class);m.setAccessible(true);m.invoke(d,mc,screen);}

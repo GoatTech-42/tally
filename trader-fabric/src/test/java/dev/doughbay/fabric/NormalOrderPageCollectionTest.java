@@ -10,9 +10,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.Bootstrap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.Inventory;
@@ -32,7 +32,7 @@ class NormalOrderPageCollectionTest {
         var f=fixture(false);setOperation(f.driver,"NONE");
         var menu=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
         field(Player.class,"inventoryMenu").set(f.client.player,menu);f.client.player.containerMenu=menu;
-        field(Gui.class,"screen").set(f.client.gui,null);
+        field(net.minecraft.client.Minecraft.class,"screen").set(f.client, null);
         var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
         long now=System.currentTimeMillis();field(type,"serverListedSlots").setInt(c,6);
         field(type,"serverListedAt").setLong(c,now-601_000);
@@ -54,7 +54,7 @@ class NormalOrderPageCollectionTest {
         setOperation(f.driver,"NONE");scan.invoke(c,f.client,null,now);
         assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"An open container is not a safe inventory boundary");
         var menu=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
-        field(Player.class,"inventoryMenu").set(f.client.player,menu);f.client.player.containerMenu=menu;field(Gui.class,"screen").set(f.client.gui,null);
+        field(Player.class,"inventoryMenu").set(f.client.player,menu);f.client.player.containerMenu=menu;field(net.minecraft.client.Minecraft.class,"screen").set(f.client, null);
         field(type,"serverListedSlots").setInt(c,6);field(type,"serverListedAt").setLong(c,now);
         scan.invoke(c,f.client,null,now);
         assertEquals(0,field(type,"lastMissingCountAuditAttemptAt").getLong(c),"Fresh native occupancy must not cause an extra audit");
@@ -71,7 +71,7 @@ class NormalOrderPageCollectionTest {
             var f=fixture(false);setOperation(f.driver,"NONE");
             var inventory=new net.minecraft.world.inventory.InventoryMenu(f.client.player.getInventory(),true,f.client.player);
             field(Player.class,"inventoryMenu").set(f.client.player,inventory);f.client.player.containerMenu=inventory;
-            field(Gui.class,"screen").set(f.client.gui,null);
+            field(net.minecraft.client.Minecraft.class,"screen").set(f.client, null);
             var c=new dev.doughbay.fabric.automation.AutomationSessionController(f.driver);var type=c.getClass();
             long now=1_000_000;
             field(type,"ordersScheduleSeeded").setBoolean(c,true);
@@ -576,7 +576,7 @@ class NormalOrderPageCollectionTest {
         var menu=new ChestMenu(MenuType.GENERIC_9x6,f.client.player.containerMenu.containerId+1,f.client.player.getInventory(),contents,6);
         var screen=allocate(ContainerScreen.class);field(AbstractContainerScreen.class,"menu").set(screen,menu);
         field(Screen.class,"title").set(screen,Component.literal(title));f.client.player.containerMenu=menu;
-        field(Gui.class,"screen").set(f.client.gui,screen);return new Fixture(f.driver,f.client,screen);
+        field(net.minecraft.client.Minecraft.class,"screen").set(f.client, screen);return new Fixture(f.driver,f.client,screen);
     }
     private static void advance(Fixture f)throws Exception{
         f.client.player.tickCount+=100;field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,100);
@@ -701,7 +701,7 @@ class NormalOrderPageCollectionTest {
                     "A zero-click menu timeout must inspect the other matching owned row before terminating");
             assertEquals(1,field(AutomatedExecutionDriver.class,"ownMatchOrdinal").getInt(f.driver));
             assertEquals(0,AutomatedExecutionDriver.inventoryCount(f.client,"minecraft:stone"));
-            field(Gui.class,"screen").set(f.client.gui,book);f.client.player.containerMenu=book.getMenu();
+            field(net.minecraft.client.Minecraft.class,"screen").set(f.client, book);f.client.player.containerMenu=book.getMenu();
             field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,1);
             field(AutomatedExecutionDriver.class,"ownOrdersArrivalNoted").setBoolean(f.driver,true);
             f=new Fixture(f.driver,f.client,book);advance(f);settle(f);advance(f);
@@ -740,7 +740,7 @@ class NormalOrderPageCollectionTest {
             f=collectionMenu(f,"Orders -> Collect Items",54);advance(f);
             assertEquals(54,f.screen.getMenu().slots.get(0).getItem().getCount(),"Physical unfinished tail must stay on the server");
             assertEquals(0,field(AutomatedExecutionDriver.class,"ownMatchOrdinal").getInt(f.driver));
-            field(Gui.class,"screen").set(f.client.gui,book);f.client.player.containerMenu=book.getMenu();
+            field(net.minecraft.client.Minecraft.class,"screen").set(f.client, book);f.client.player.containerMenu=book.getMenu();
             field(AutomatedExecutionDriver.class,"ownStage").setInt(f.driver,1);
             field(AutomatedExecutionDriver.class,"ownOrdersArrivalNoted").setBoolean(f.driver,true);
             f=new Fixture(f.driver,f.client,book);advance(f);settle(f);advance(f);
@@ -818,7 +818,7 @@ class NormalOrderPageCollectionTest {
         var stack=new ItemStack(Items.DIAMOND);
         stack.set(DataComponents.LORE,new ItemLore(List.of(Component.literal("192 requested"),Component.literal("$200 each"),Component.literal("64/192 delivered"))));
         menu.slots.get(0).set(stack);f.client.player.containerMenu=menu;
-        field(Gui.class,"screen").set(f.client.gui,next.screen);
+        field(net.minecraft.client.Minecraft.class,"screen").set(f.client, next.screen);
         // The native page has arrived after the driver's human-step settle interval.
         field(AutomatedExecutionDriver.class,"ticksInPhase").setInt(f.driver,100);
         field(AutomatedExecutionDriver.class,"ownSettleUntilTick").setInt(f.driver,0);

@@ -43,7 +43,7 @@ class RecoveryAuction392Test {
             var contents=new net.minecraft.world.SimpleContainer(54);var menu=new net.minecraft.world.inventory.ChestMenu(net.minecraft.world.inventory.MenuType.GENERIC_9x6,5,f.mc.player.getInventory(),contents,6);f.mc.player.containerMenu=menu;
             var screen=allocate(net.minecraft.client.gui.screens.inventory.ContainerScreen.class);
             field(net.minecraft.client.gui.screens.inventory.AbstractContainerScreen.class,"menu").set(screen,menu);
-            field(net.minecraft.client.gui.screens.Screen.class,"title").set(screen,net.minecraft.network.chat.Component.literal(title));field(net.minecraft.client.gui.Gui.class,"screen").set(f.mc.gui,screen);
+            field(net.minecraft.client.gui.screens.Screen.class,"title").set(screen,net.minecraft.network.chat.Component.literal(title));field(net.minecraft.client.Minecraft.class,"screen").set(f.mc, screen);
             if(cursor)menu.setCarried(new ItemStack(Items.DIAMOND));
             if(inventoryCursor)f.mc.player.inventoryMenu.setCarried(new ItemStack(Items.DIAMOND));
             if(!authorized)set(f.c,"staffTransferHold",true);
@@ -108,7 +108,7 @@ class RecoveryAuction392Test {
     private static class AlivePlayer extends LocalPlayer {
         private AlivePlayer(){super(null,null,null,null,null,null,false);}
         int closed;
-        @Override public void closeContainer(){closed++;containerMenu=inventoryMenu;try{field(net.minecraft.client.gui.Gui.class,"screen").set(Minecraft.getInstance().gui,null);}catch(Exception e){throw new RuntimeException(e);}}
+        @Override public void closeContainer(){closed++;containerMenu=inventoryMenu;try{field(net.minecraft.client.Minecraft.class,"screen").set(Minecraft.getInstance(), null);}catch(Exception e){throw new RuntimeException(e);}}
         @Override public boolean isAlive(){return true;}
         @Override public void displayClientMessage(net.minecraft.network.chat.Component c, boolean actionBar){}
     }
