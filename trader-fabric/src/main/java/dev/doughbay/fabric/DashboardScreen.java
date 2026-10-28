@@ -26,7 +26,7 @@ public final class DashboardScreen extends GoNutsScreen {
         if (!ProjectStatus.publicServicesEnabled()) {
             // The hosted dashboard and pairing went away with the public
             // services; show why instead of controls that can only fail.
-            addRenderableWidget(CockpitButton.builder(Component.literal("Swarm info (retired service)"),b->minecraft.gui.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("Open web panel settings"),b->DoughBayClient.openWebPanelSettings()).bounds(x,height-48,w,18).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
             return;
         }
@@ -46,7 +46,7 @@ public final class DashboardScreen extends GoNutsScreen {
             int ry=compact()?19:30;
             for(var line:font.split(Component.literal(ProjectStatus.RETIRED),w)){if(ry>=height-56)break;g.text(font,line,x,ry,UiTheme.SECONDARY);ry+=12;}
             ry+=6;
-            for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. Local trading, your Hive and your own settings still work."),w)){if(ry>=height-56)break;g.text(font,line,x,ry,UiTheme.MUTED);ry+=12;}
+            for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. A local web panel is built in instead: the same controls in a browser on your own network, protected by a PIN you choose, and off until you turn it on. Set a PIN there to switch it on."),w)){if(ry>=height-56)break;g.text(font,line,x,ry,UiTheme.MUTED);ry+=12;}
             super.extractRenderState(g,mx,my,delta);
             return;
         }

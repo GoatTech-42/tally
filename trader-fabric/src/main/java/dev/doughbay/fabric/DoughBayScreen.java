@@ -400,6 +400,8 @@ public final class DoughBayScreen extends GoNutsScreen {
     public void selectRegionMap(){ tab=Tab.REGION_MAP; }
     public void selectProxies(){ tab=Tab.PROXIES; }
     public void selectHive(){ tab=Tab.HIVE; }
+    /** Lands on the local web panel's settings card (Automation tab, WEB mode). */
+    public void selectWebPanel(){ tab=Tab.AUTOMATION; automationMode=AutomationMode.WEB; }
     public void selectEvasion(){ tab=Tab.EVASION; }
     private Opportunity selected;
     /**
