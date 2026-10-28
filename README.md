@@ -5,7 +5,7 @@
 ### Trade the DonutSMP auction house on autopilot
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-brightgreen)
 ![Mod](https://img.shields.io/badge/mod-Fabric-orange)
 ![Java](https://img.shields.io/badge/Java-25-red)
 ![Execution](https://img.shields.io/badge/live%20execution-off%20by%20default-lightgrey)
@@ -88,7 +88,7 @@ tab.
 
 ## Quick start
 
-Requires **JDK 25** (Minecraft 26.2). From the repo root:
+Requires **JDK 21** (Minecraft 1.21.11). The 26.x line needs JDK 25 and lives on its own branch. From the repo root:
 
 ```bash
 ./gradlew build
