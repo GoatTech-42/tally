@@ -640,13 +640,13 @@ public final class UpdateCheck {
         double in = UiTheme.reducedMotion() ? 1 : UiMotion.visibility(age, BANNER_MILLIS, 350, 350);
         int y = (int) Math.round(-height + (height + BANNER_TOP) * in);
         UiTheme.panel(graphics, x, y, width, height, UiTheme.SURFACE);
-        graphics.centeredText(font, UiTheme.fit(font, title, width - 16), x + width / 2, y + 7, UiTheme.GOLD);
+        graphics.drawCenteredString(font, UiTheme.fit(font, title, width - 16), x + width / 2, y + 7, UiTheme.GOLD);
         int yy = y + 21;
         for (String line : lines) {
             if (line.startsWith(CHANGE)) {
-                graphics.text(font, UiTheme.fit(font, line, width - 24), x + 12, yy, UiTheme.SECONDARY);
+                graphics.drawString(font, UiTheme.fit(font, line, width - 24), x + 12, yy, UiTheme.SECONDARY);
             } else {
-                graphics.centeredText(font, UiTheme.fit(font, line, width - 16), x + width / 2, yy, UiTheme.TEXT);
+                graphics.drawCenteredString(font, UiTheme.fit(font, line, width - 16), x + width / 2, yy, UiTheme.TEXT);
             }
             yy += 11;
         }

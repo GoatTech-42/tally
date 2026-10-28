@@ -15,18 +15,18 @@ public final class ReconnectScreen extends dev.doughbay.fabric.GoNutsScreen {
   reconnect.setMessage(Component.literal(ReconnectController.INSTANCE.schedule.watcher()!=null&&!reconnect.active?"Waiting for staff cooldown":"Reconnect now"));
  }
  public void tick(){super.tick();updateReconnectButton();}
- public void onClose(){ReconnectController.INSTANCE.cancel();minecraft.gui.setScreen(new JoinMultiplayerScreen(new TitleScreen()));}
+ public void onClose(){ReconnectController.INSTANCE.cancel();minecraft.setScreen(new JoinMultiplayerScreen(new TitleScreen()));}
  public void extractRenderState(GuiGraphics g,int x,int y,float dt){super.extractRenderState(g,x,y,dt);var schedule=ReconnectController.INSTANCE.schedule;
-  g.centeredText(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
-  g.centeredText(font,Component.literal(schedule.watcher()==null?"Automatic retry every 2 minutes":"Watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
-  g.centeredText(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBDBDBD);
+  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
+  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Automatic retry every 2 minutes":"Watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
+  g.drawCenteredString(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBDBDBD);
   if(schedule.watcher()==null&&!ReconnectController.INSTANCE.disconnectReason().isBlank()){
    int lineY=height/2-27,n=0;
    for(var line:font.split(Component.literal("Reason: "+ReconnectController.INSTANCE.disconnectReason()),Math.max(120,width-40))){
-    if(n++==3)break;g.text(font,line,(width-font.width(line))/2,lineY,0xFFBDBDBD);lineY+=font.lineHeight+2;
+    if(n++==3)break;g.drawString(font,line,(width-font.width(line))/2,lineY,0xFFBDBDBD);lineY+=font.lineHeight+2;
    }
   }
   long seconds=(schedule.remainingMillis()+999)/1000;
-  g.centeredText(font,Component.literal(String.format("Reconnecting in %d:%02d",seconds/60,seconds%60)),width/2,height/2+18,0xFFFFFFFF);
+  g.drawCenteredString(font,Component.literal(String.format("Reconnecting in %d:%02d",seconds/60,seconds%60)),width/2,height/2+18,0xFFFFFFFF);
  }
 }

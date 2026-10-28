@@ -47,18 +47,18 @@ final class AppearancePanel {
         int top=this.y;scroll=Math.min(scroll,maxScroll());int y=top-scroll;
         widgetOffsets.forEach((widget,offset)->{int wy=top+offset-scroll;widget.setY(wy);widget.visible=wy>=top&&wy+widget.getHeight()<=bottom;});
         g.enableScissor(x,top,x+width,bottom);
-        g.text(font,"MAKE IT YOURS",x+6,y+8,UiTheme.GOLD);
-        g.text(font,UiTheme.fit(font,"Pick a theme and a character. Changes save immediately.",width-12),x+6,y+22,UiTheme.SECONDARY);
+        g.drawString(font,"MAKE IT YOURS",x+6,y+8,UiTheme.GOLD);
+        g.drawString(font,UiTheme.fit(font,"Pick a theme and a character. Changes save immediately.",width-12),x+6,y+22,UiTheme.SECONDARY);
         int card=(width-16)/3;
         int artSize=artSize();
         int i=0;
         for(var character:Appearance.Character.values()) {
             int left=x+i++*(card+8);
             UiTheme.panel(g,left,y+72,card,artSize+70,UiTheme.SURFACE);
-            g.centeredText(font,label(character.name()),left+card/2,y+82,UiTheme.GOLD);
+            g.drawCenteredString(font,label(character.name()),left+card/2,y+82,UiTheme.GOLD);
             Mascot.drawCharacter(g,preview,left+(card-artSize)/2,y+96,artSize,character);
         }
-        g.text(font,UiTheme.fit(font,"Animations follow activity; this preview never starts the bot.",width-12),x+6,y+181+artSize,UiTheme.MUTED);
+        g.drawString(font,UiTheme.fit(font,"Animations follow activity; this preview never starts the bot.",width-12),x+6,y+181+artSize,UiTheme.MUTED);
         g.disableScissor();
     }
 

@@ -50,7 +50,7 @@ final class HiveCombineScreen extends GoNutsScreen {
     }
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
-        g.text(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
+        g.drawString(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
         int top=40,end=Math.max(40,height-120);g.enableScissor(x,top,x+w,end);y=top-scroll;
         if(joined){
             y=card(g,y,x,w,"ACCOUNT LINKED / NEXT STEP",message,UiTheme.GOOD);
@@ -65,10 +65,10 @@ final class HiveCombineScreen extends GoNutsScreen {
     }
     private int card(GuiGraphics g,int y,int x,int w,String heading,String body,int color){
         var lines=font.split(Component.literal(body),w-24);int h=30+lines.size()*13;UiTheme.panel(g,x,y,w,h,UiTheme.INSET);
-        g.text(font,UiTheme.fit(font,heading,w-24),x+12,y+9,color);int py=y+25;for(var line:lines){g.text(font,line,x+12,py,UiTheme.TEXT);py+=13;}return y+h+9;
+        g.drawString(font,UiTheme.fit(font,heading,w-24),x+12,y+9,color);int py=y+25;for(var line:lines){g.drawString(font,line,x+12,py,UiTheme.TEXT);py+=13;}return y+h+9;
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*26)));return true;}
-    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

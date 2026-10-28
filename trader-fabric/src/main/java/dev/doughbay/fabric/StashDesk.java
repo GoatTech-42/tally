@@ -585,7 +585,7 @@ public final class StashDesk {
             say(client, "The off hand is holding something else");
             return false;
         }
-        client.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(client.player));
+        client.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(client.player));
         pending.clear();
         var pickup = net.minecraft.world.inventory.ContainerInput.PICKUP;
         pending.add(new Click(source, 0, pickup));               // pick the chest up
@@ -1224,7 +1224,7 @@ public final class StashDesk {
     private static void say(Minecraft client, String text) {
         DoughBayClient.LOGGER.info("DoughBay stash: {}", text);
         if (client.player != null) {
-            client.player.sendSystemMessage(Component.literal("[GoNuts] " + text));
+            client.player.displayClientMessage(Component.literal("[GoNuts] " + text), false);
         }
     }
 }

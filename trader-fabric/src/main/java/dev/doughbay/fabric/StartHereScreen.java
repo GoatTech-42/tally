@@ -26,7 +26,7 @@ final class StartHereScreen extends GoNutsScreen {
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int y = top();
         var setup = button("1  SET UP TRADING - START HERE", row(0),
-                b -> minecraft.gui.setScreen(new QuickStartScreen(parent, this)));
+                b -> minecraft.setScreen(new QuickStartScreen(parent, this)));
         ((CockpitButton)setup).primary();
         setInitialFocus(setup);
         button("2  Open Trade - status, Start, Stop and recovery", row(1),
@@ -40,7 +40,7 @@ final class StartHereScreen extends GoNutsScreen {
         int half = (bodyWidth() - 6) / 2;
         int footer = Math.min(height - 31, y + 234);
         addRenderableWidget(CockpitButton.builder(Component.literal("More tutorials"),
-                b -> minecraft.gui.setScreen(new TutorialScreen(parent, this, false)))
+                b -> minecraft.setScreen(new TutorialScreen(parent, this, false)))
                 .bounds(left(), footer, half, 23).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Back to GoNuts"), b -> onClose())
                 .bounds(left() + half + 6, footer, half, 23).build());
@@ -48,16 +48,16 @@ final class StartHereScreen extends GoNutsScreen {
     @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int x = left(), y = top(), w = bodyWidth();
-        g.text(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);
-        g.text(font, UiTheme.fit(font, "Join DonutSMP, choose your limits, then review and Start. No code needed.", w), x, y + 23, UiTheme.TEXT);
-        g.text(font, UiTheme.fit(font, "Reopen this page: B > Settings > Help & setup.", w), x, y + 42, UiTheme.MUTED);
+        g.drawString(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);
+        g.drawString(font, UiTheme.fit(font, "Join DonutSMP, choose your limits, then review and Start. No code needed.", w), x, y + 23, UiTheme.TEXT);
+        g.drawString(font, UiTheme.fit(font, "Reopen this page: B > Settings > Help & setup.", w), x, y + 42, UiTheme.MUTED);
         int lineY = row(3) + 32;
         for (var line : font.split(Component.literal(message.isBlank()
                 ? "Trading is called Trade. If it is paused or blocked, open Trade to see why."
-                : message), w)) { g.text(font, line, x, lineY, UiTheme.TEXT); lineY += 12; }
+                : message), w)) { g.drawString(font, line, x, lineY, UiTheme.TEXT); lineY += 12; }
         super.extractRenderState(g, mx, my, dt);
     }
-    @Override public void onClose() { parent.endTutorialNavigation(); minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { parent.endTutorialNavigation(); minecraft.setScreen(parent); }
     @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); super.removed(); }
     @Override public boolean isPauseScreen() { return false; }
 }

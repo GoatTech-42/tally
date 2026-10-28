@@ -34,7 +34,7 @@ final class SwarmPanel {
         return false;
     }
     private int paragraph(GuiGraphics g,Font font,String text,int y,int color){
-        for(var line:font.split(Component.literal(text),Math.max(40,width-16))){g.text(font,line,x+8,y,color);y+=12;}
+        for(var line:font.split(Component.literal(text),Math.max(40,width-16))){g.drawString(font,line,x+8,y,color);y+=12;}
         return y+8;
     }
     void render(GuiGraphics g,Font font){

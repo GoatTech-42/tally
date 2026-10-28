@@ -36,33 +36,33 @@ public final class DashboardScreen extends GoNutsScreen {
         link=CockpitButton.builder(Component.literal("Link with code"),b->{HostedDashboardClient.INSTANCE.pair(codeDraft,nameDraft);codeDraft="";code.setValue("");}).bounds(x,linkY(),w,18).build();addRenderableWidget(link);
         retry=CockpitButton.builder(Component.literal("Reconnect"),b->HostedDashboardClient.INSTANCE.reconnect()).bounds(x,controlsY(),w/2-3,18).build();addRenderableWidget(retry);
         unlink=CockpitButton.builder(Component.literal("Unlink locally"),b->HostedDashboardClient.INSTANCE.unlink()).bounds(x+w/2+3,controlsY(),w/2-3,18).build();addRenderableWidget(unlink);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Swarm API"),b->minecraft.gui.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("Swarm API"),b->minecraft.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050505);
-        g.text(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);
+        g.drawString(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);
         if (!ProjectStatus.publicServicesEnabled()) {
             int ry=compact()?19:30;
-            for(var line:font.split(Component.literal(ProjectStatus.RETIRED),w)){if(ry>=height-56)break;g.text(font,line,x,ry,UiTheme.SECONDARY);ry+=12;}
+            for(var line:font.split(Component.literal(ProjectStatus.RETIRED),w)){if(ry>=height-56)break;g.drawString(font,line,x,ry,UiTheme.SECONDARY);ry+=12;}
             ry+=6;
-            for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. A local web panel is built in instead: the same controls in a browser on your own network, protected by a PIN you choose, and off until you turn it on. Set a PIN there to switch it on."),w)){if(ry>=height-56)break;g.text(font,line,x,ry,UiTheme.MUTED);ry+=12;}
+            for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. A local web panel is built in instead: the same controls in a browser on your own network, protected by a PIN you choose, and off until you turn it on. Set a PIN there to switch it on."),w)){if(ry>=height-56)break;g.drawString(font,line,x,ry,UiTheme.MUTED);ry+=12;}
             super.extractRenderState(g,mx,my,delta);
             return;
         }
         var view=HostedDashboardClient.INSTANCE.view();boolean idle=!view.busy();
         link.active=idle&&!view.linked()&&System.currentTimeMillis()>=view.retryAt();code.active=name.active=idle&&!view.linked();retry.active=unlink.active=idle&&view.linked();
-        g.text(font,UiTheme.fit(font,"Sign in on gonuts.at, choose Link client, then enter its code.",w),x,compact()?19:30,UiTheme.SECONDARY);
-        g.text(font,"Pairing code (expires after five minutes)",x,codeY()-12,UiTheme.TEXT);
-        g.text(font,"Client label (shown on your dashboard)",x,nameY()-12,UiTheme.TEXT);
+        g.drawString(font,UiTheme.fit(font,"Sign in on gonuts.at, choose Link client, then enter its code.",w),x,compact()?19:30,UiTheme.SECONDARY);
+        g.drawString(font,"Pairing code (expires after five minutes)",x,codeY()-12,UiTheme.TEXT);
+        g.drawString(font,"Client label (shown on your dashboard)",x,nameY()-12,UiTheme.TEXT);
         int y=compact()?194:230;
-        if(view.linked()){g.text(font,UiTheme.fit(font,"Linked as: "+view.name(),w),x,y,UiTheme.TEXT);y+=17;}
-        for(var line:font.split(Component.literal(view.status()),w)){if(y>=height-(compact()?56:76))break;g.text(font,line,x,y,view.online()?UiTheme.GOOD:UiTheme.SECONDARY);y+=12;}
-        g.text(font,UiTheme.fit(font,"Linking joins Swarm: share public market data and receive discovery hints.",w),x,height-68,UiTheme.MUTED);
-        if(!compact())g.text(font,UiTheme.fit(font,"Local unlink disconnects it; remove the entry on the website too.",w),x,height-54,UiTheme.MUTED);
+        if(view.linked()){g.drawString(font,UiTheme.fit(font,"Linked as: "+view.name(),w),x,y,UiTheme.TEXT);y+=17;}
+        for(var line:font.split(Component.literal(view.status()),w)){if(y>=height-(compact()?56:76))break;g.drawString(font,line,x,y,view.online()?UiTheme.GOOD:UiTheme.SECONDARY);y+=12;}
+        g.drawString(font,UiTheme.fit(font,"Linking joins Swarm: share public market data and receive discovery hints.",w),x,height-68,UiTheme.MUTED);
+        if(!compact())g.drawString(font,UiTheme.fit(font,"Local unlink disconnects it; remove the entry on the website too.",w),x,height-54,UiTheme.MUTED);
         super.extractRenderState(g,mx,my,delta);
     }
-    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

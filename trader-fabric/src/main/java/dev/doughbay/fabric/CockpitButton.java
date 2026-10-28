@@ -44,7 +44,7 @@ final class CockpitButton extends Button {
         if (selected) g.fill(x, y + 3, x + 2, y + h - 3, UiTheme.GOLD);
         String label = UiTheme.fit(font, getMessage().getString(), w - 12);
         int tx = navigation ? x + 8 : x + (w - font.width(label)) / 2;
-        g.text(font, label, tx, y + (h - font.lineHeight) / 2,
+        g.drawString(font, label, tx, y + (h - font.lineHeight) / 2,
                 !active ? UiTheme.MUTED : primary ? UiTheme.BACKGROUND : selected ? UiTheme.GOLD : UiTheme.TEXT, false);
         if (isHovered() && font.width(getMessage()) > w - 12) {
             g.setTooltipForNextFrame(font, getMessage(), mouseX, mouseY);

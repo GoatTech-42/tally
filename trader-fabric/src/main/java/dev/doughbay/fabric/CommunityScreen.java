@@ -20,6 +20,6 @@ public final class CommunityScreen extends GoNutsScreen {
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){
         return panel.scroll(mx,my,dy)||super.mouseScrolled(mx,my,dx,dy);
     }
-    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public boolean isPauseScreen(){return false;}
 }

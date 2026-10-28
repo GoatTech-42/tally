@@ -4064,7 +4064,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private static void tellPlayer(Minecraft client, String message) {
         if (client != null && client.player != null) {
-            client.player.sendSystemMessage(Component.literal("[GoNuts] " + message));
+            client.player.displayClientMessage(Component.literal("[GoNuts] " + message), false);
         }
     }
 
@@ -6760,7 +6760,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
         }
-        client.gui.setScreen(null);
+        client.setScreen(null);
     }
 
     private static void closeAuctionScreen(Minecraft client) {
@@ -6769,7 +6769,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (open instanceof AbstractContainerScreen<?>) {
             client.player.closeContainer();
         } else if (open instanceof DialogScreen<?>) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
         }
     }
 
@@ -7738,7 +7738,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (client == null || client.player == null || message == null) return;
         String shown = chatLine(message);
         if (shown == null) return;
-        client.player.sendSystemMessage(Component.literal("[GoNuts] " + shown));
+        client.player.displayClientMessage(Component.literal("[GoNuts] " + shown), false);
     }
 
     private static final String[] ROUTINE_ABORTS = {

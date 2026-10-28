@@ -47,9 +47,9 @@ public final class StaffWatchAlert {
         int y = dev.doughbay.fabric.staffwatch.gui.HudRenderer.getInstance().alertTop(g.guiHeight());
         UiTheme.panel(g, x, y, width, 65, UiTheme.BACKGROUND);
         g.fill(x + 9, y + 1, x + width - 9, y + 3, UiTheme.BAD);
-        g.centeredText(font, "STAFF WATCH ALERT", g.guiWidth() / 2, y + 10, UiTheme.BAD);
-        g.centeredText(font, UiTheme.fit(font, watcher, width - 24), g.guiWidth() / 2, y + 25, UiTheme.TEXT);
-        g.centeredText(font, "Possible watcher detected", g.guiWidth() / 2, y + 39, UiTheme.SECONDARY);
+        g.drawCenteredString(font, "STAFF WATCH ALERT", g.guiWidth() / 2, y + 10, UiTheme.BAD);
+        g.drawCenteredString(font, UiTheme.fit(font, watcher, width - 24), g.guiWidth() / 2, y + 25, UiTheme.TEXT);
+        g.drawCenteredString(font, "Possible watcher detected", g.guiWidth() / 2, y + 39, UiTheme.SECONDARY);
         double remaining = 1.0 - (System.nanoTime() - shownAt) / (double) DISPLAY_NANOS;
         g.fill(x + 12, y + 57, x + width - 12, y + 59, UiTheme.EDGE);
         g.fill(x + 12, y + 57, x + 12 + (int) ((width - 24) * remaining), y + 59, UiTheme.BAD);

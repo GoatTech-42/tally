@@ -56,13 +56,13 @@ final class ProxyPanel {
     }
     void render(GuiGraphics g,Font font) {
         var settings=ProxyAccess.settings();var active=settings.selected();
-        g.text(font,UiTheme.fit(font,settings.blocked()?"Routing blocked: fix settings or explicitly disable":settings.state().enabled()?"Active: "+active.name():"Direct connection (proxy disabled)",w-150),x+145,y+6,UiTheme.GOLD);
-        g.text(font,"Profile name",x,y+33,UiTheme.TEXT);g.text(font,"Host",x,y+71,UiTheme.TEXT);g.text(font,"Port",x+w-80,y+71,UiTheme.TEXT);
-        g.text(font,"Username (blank keeps saved)",x,y+109,UiTheme.TEXT);g.text(font,"Password (blank keeps saved)",x+(w-10)/2+10,y+109,UiTheme.TEXT);
+        g.drawString(font,UiTheme.fit(font,settings.blocked()?"Routing blocked: fix settings or explicitly disable":settings.state().enabled()?"Active: "+active.name():"Direct connection (proxy disabled)",w-150),x+145,y+6,UiTheme.GOLD);
+        g.drawString(font,"Profile name",x,y+33,UiTheme.TEXT);g.drawString(font,"Host",x,y+71,UiTheme.TEXT);g.drawString(font,"Port",x+w-80,y+71,UiTheme.TEXT);
+        g.drawString(font,"Username (blank keeps saved)",x,y+109,UiTheme.TEXT);g.drawString(font,"Password (blank keeps saved)",x+(w-10)/2+10,y+109,UiTheme.TEXT);
         String note="Changes apply on the next connection. Each hive client has its own profiles.";
-        g.text(font,UiTheme.fit(font,note,w),x,y+214,UiTheme.SECONDARY);
-        g.text(font,UiTheme.fit(font,"SOCKS5 supports username/password. SOCKS4 supports username only.",w),x,y+229,UiTheme.MUTED);
-        g.text(font,UiTheme.fit(font,"Credentials are stored locally with file access restricted to this user.",w),x,y+244,UiTheme.MUTED);
-        if(!message.isEmpty())try{g.text(font,UiTheme.fit(font,new com.fasterxml.jackson.databind.ObjectMapper().readTree(message).path("note").asText(),w),x,y+264,UiTheme.SECONDARY);}catch(Exception ignored){}
+        g.drawString(font,UiTheme.fit(font,note,w),x,y+214,UiTheme.SECONDARY);
+        g.drawString(font,UiTheme.fit(font,"SOCKS5 supports username/password. SOCKS4 supports username only.",w),x,y+229,UiTheme.MUTED);
+        g.drawString(font,UiTheme.fit(font,"Credentials are stored locally with file access restricted to this user.",w),x,y+244,UiTheme.MUTED);
+        if(!message.isEmpty())try{g.drawString(font,UiTheme.fit(font,new com.fasterxml.jackson.databind.ObjectMapper().readTree(message).path("note").asText(),w),x,y+264,UiTheme.SECONDARY);}catch(Exception ignored){}
     }
 }

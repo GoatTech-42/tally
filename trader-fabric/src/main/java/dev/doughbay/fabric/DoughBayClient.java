@@ -903,20 +903,20 @@ public class DoughBayClient implements ClientModInitializer {
     public static void openStaffWatch() {
         DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
         screen.selectStaffWatch();
-        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
+        net.minecraft.client.Minecraft.getInstance().setScreen(screen);
     }
 
     public static void openHiveSetup() {
         DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
         screen.selectHive();
-        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
+        net.minecraft.client.Minecraft.getInstance().setScreen(screen);
     }
 
     /** Opens the mod's screen on the local web panel's settings card; the panel stays off and PIN/LAN choices stay with the owner. */
     public static void openWebPanelSettings() {
         DoughBayScreen screen = new DoughBayScreen(watcher, LEDGER_STATS != null ? LEDGER_STATS : PerformanceStatsProvider.previewOnly());
         screen.selectWebPanel();
-        net.minecraft.client.Minecraft.getInstance().gui.setScreen(screen);
+        net.minecraft.client.Minecraft.getInstance().setScreen(screen);
     }
 
     /** Opens the mod's screen, with the update notice in front of it when there is one to answer. */
@@ -928,7 +928,7 @@ public class DoughBayClient implements ClientModInitializer {
         UpdateCheck.Notice notice = UpdateCheck.takeNotice();
         net.minecraft.client.gui.screens.Screen entry=TutorialProgress.takeInitialOffer()?new StartHereScreen(main):main;
         if (HiveDiscovery.takeOffer()!=null) entry=new HiveDiscoveryScreen(entry);
-        client.gui.setScreen(PublicSupportNoticeScreen.firstOpen(switch (notice) {
+        client.setScreen(PublicSupportNoticeScreen.firstOpen(switch (notice) {
             case NONE -> entry;
             case REAL -> new UpdateScreen(entry, UpdateScreen.Mode.UPDATE);
             case CHANGED -> new UpdateScreen(entry, UpdateScreen.Mode.CHANGED);
@@ -1028,7 +1028,7 @@ public class DoughBayClient implements ClientModInitializer {
                     // the audit matters more than telling anyone about it
                 }
                 if (client.player != null) {
-                    client.player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[GoNuts] " + message));
+                    client.player.displayClientMessage(net.minecraft.network.chat.Component.literal("[GoNuts] " + message), false);
                 }
                 if (!heldAtDeath.isEmpty()) {
                     LOGGER.warn("DoughBay: the session was holding {} when it died", heldAtDeath);
@@ -1055,7 +1055,7 @@ public class DoughBayClient implements ClientModInitializer {
         deathScreenSince = 0;
         try {
             client.player.respawn();
-            client.gui.setScreen(null);
+            client.setScreen(null);
             respawnedAt = System.currentTimeMillis();
             LOGGER.info("DoughBay: respawned; checking what the death cost");
         } catch (RuntimeException e) {

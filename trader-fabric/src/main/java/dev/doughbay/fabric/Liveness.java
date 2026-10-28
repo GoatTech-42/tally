@@ -105,7 +105,7 @@ final class Liveness {
             return true;
         }
         if (open instanceof DialogScreen<?>) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             return true;
         }
         return false;

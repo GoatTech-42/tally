@@ -27,16 +27,16 @@ final class ItemPriorityScreen extends GoNutsScreen {
     }
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);int x=left(),y=top(),w=bodyWidth();
-        g.text(font,"ITEM PRIORITY",x,y,UiTheme.GOLD);
+        g.drawString(font,"ITEM PRIORITY",x,y,UiTheme.GOLD);
         var counts=new EnumMap<ItemPriorities.Level,Integer>(ItemPriorities.Level.class);
         for(String item:selected)counts.merge(ItemPriorities.level(item),1,Integer::sum);
         String summary=selected.isEmpty()?"Tick item icons in Items before choosing a priority.":selected.size()+" selected · High "+counts.getOrDefault(ItemPriorities.Level.HIGH,0)+" · Standard "+counts.getOrDefault(ItemPriorities.Level.STANDARD,0)+" · Low "+counts.getOrDefault(ItemPriorities.Level.LOW,0);
-        g.text(font,UiTheme.fit(font,summary,w),x,y+18,UiTheme.TEXT);
+        g.drawString(font,UiTheme.fit(font,summary,w),x,y+18,UiTheme.TEXT);
         int line=y+33;
-        for(var text:font.split(Component.literal("New trades only. Limits and safety checks still apply."),w)){g.text(font,text,x,line,UiTheme.SECONDARY);line+=10;}
+        for(var text:font.split(Component.literal("New trades only. Limits and safety checks still apply."),w)){g.drawString(font,text,x,line,UiTheme.SECONDARY);line+=10;}
         super.extractRenderState(g,mx,my,dt);
     }
-    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+    @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

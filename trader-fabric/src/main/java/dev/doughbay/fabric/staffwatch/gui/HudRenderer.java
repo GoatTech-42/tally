@@ -664,7 +664,7 @@ public final class HudRenderer {
 
             float countTop = head.t() + (float)Math.floor((head.b() - head.t() - t.textPx()) * 0.5F);
 
-            HudChrome.text(
+            HudChrome.drawString(
 
                dl,
 

@@ -437,8 +437,8 @@ final class DoughBayHudAlerts {
         int ty = y + pad;
         for (String[] r : rows) {
             graphics.fill(x + pad - 2, ty - 2, x + pad + keyW + 3, ty + font.lineHeight + 1, UiTheme.SURFACE);
-            graphics.text(font, r[0], x + pad, ty, UiTheme.GOLD, false);
-            graphics.text(font, fit(font, r[1], boxW - keyW - pad * 2 - 10),
+            graphics.drawString(font, r[0], x + pad, ty, UiTheme.GOLD, false);
+            graphics.drawString(font, fit(font, r[1], boxW - keyW - pad * 2 - 10),
                     x + pad + keyW + 10, ty, UiTheme.SECONDARY, false);
             ty += line;
         }
@@ -548,7 +548,7 @@ final class DoughBayHudAlerts {
             pose.pushMatrix();
             pose.translate(px, py);
             pose.scale(scale);
-            graphics.item(f.stack(), 0, 0);
+            graphics.renderItem(f.stack(), 0, 0);
             pose.popMatrix();
         }
     }
@@ -586,7 +586,7 @@ final class DoughBayHudAlerts {
         PlayerIntel.Nearby first = people.get(0);
         String header = first.name().toUpperCase(java.util.Locale.ROOT) + "  " + first.distance() + "M";
         if (people.size() > 1) header = header + "  +" + (people.size() - 1);
-        graphics.text(font, fit(font, header, width - 14), x + 7, y + 4, 0xFFE8E8E8, true);
+        graphics.drawString(font, fit(font, header, width - 14), x + 7, y + 4, 0xFFE8E8E8, true);
 
         int row = y + 16;
         for (PlayerIntel.Nearby p : people) {
@@ -606,14 +606,14 @@ final class DoughBayHudAlerts {
                 // a missing skin is not worth a gap in the panel
             }
             if (p != first) {
-                graphics.text(font, fit(font, p.name(), 84), x + 27, row, 0xFFE8E8E8, true);
-                graphics.text(font, p.distance() + "m", x + width - 7 - font.width(p.distance() + "m"),
+                graphics.drawString(font, fit(font, p.name(), 84), x + 27, row, 0xFFE8E8E8, true);
+                graphics.drawString(font, p.distance() + "m", x + width - 7 - font.width(p.distance() + "m"),
                         row, 0xFF898989, true);
             } else {
                 // The header already named them; this line says how they look.
                 String health = p.health() >= 0
                         ? String.format(java.util.Locale.ROOT, "%.0f hearts", p.health() / 2f) : "";
-                graphics.text(font, health, x + 27, row, 0xFF898989, true);
+                graphics.drawString(font, health, x + 27, row, 0xFF898989, true);
             }
 
             // The profile line, or a note that it has not come back yet.
@@ -626,13 +626,13 @@ final class DoughBayHudAlerts {
                 colour = profile.ratio() >= 3 ? 0xFFFFFFFF : profile.ratio() >= 1 ? 0xFFA0A0A0 : 0xFF898989;
                 line = "K/D " + line;
             }
-            graphics.text(font, fit(font, line, width - 34), x + 27, row + 10, colour, true);
+            graphics.drawString(font, fit(font, line, width - 34), x + 27, row + 10, colour, true);
 
             // Their gear as icons, worst wear written beside it. Nothing at
             // all is worth saying out loud: an unarmoured player reads as a
             // broken panel otherwise, and unarmoured is the useful fact.
             if (p.gear().isEmpty()) {
-                graphics.text(font, "unarmoured, empty handed", x + 7, row + 21, 0xFFBDBDBD, true);
+                graphics.drawString(font, "unarmoured, empty handed", x + 7, row + 21, 0xFFBDBDBD, true);
                 row += rowHeight;
                 continue;
             }
@@ -641,7 +641,7 @@ final class DoughBayHudAlerts {
             for (PlayerIntel.Gear g : p.gear()) {
                 if (icon > x + width - 20) break;
                 try {
-                    graphics.item(g.stack(), icon, row + 19);
+                    graphics.renderItem(g.stack(), icon, row + 19);
                 } catch (Throwable ignored) {
                     // an item that will not draw still counts for the wear
                 }
@@ -652,7 +652,7 @@ final class DoughBayHudAlerts {
             }
             if (worst <= 100) {
                 String wear = worst + "%";
-                graphics.text(font, wear, x + width - 7 - font.width(wear), row + 23,
+                graphics.drawString(font, wear, x + width - 7 - font.width(wear), row + 23,
                         worst < 25 ? 0xFFE8E8E8 : 0xFF898989, true);
             }
             row += rowHeight;
@@ -734,34 +734,34 @@ final class DoughBayHudAlerts {
         UiTheme.panel(graphics, x, y, width, height, UiTheme.BACKGROUND);
         int tx = x + (showMascot ? 76 : 12);
         if (showMascot) Mascot.draw(graphics, preview ? previewFace : Mascot.faceFor(session, evasion), x + 10, y + 2, 52);
-        graphics.text(font, preview ? "TALLY / DEMO" : "TALLY", tx, y + 12, UiTheme.GOLD, false);
+        graphics.drawString(font, preview ? "TALLY / DEMO" : "TALLY", tx, y + 12, UiTheme.GOLD, false);
         String state = preview ? "PREVIEW / SAMPLE DATA" : shortState(session);
         UiTheme.rounded(graphics, tx, y + 27, font.width(state) + 14, 17, 4, UiTheme.SURFACE);
-        graphics.text(font, state, tx + 7, y + 31, accent, false);
+        graphics.drawString(font, state, tx + 7, y + 31, accent, false);
         if (Tuning.get("hud.clock") >= 0.5) {
             String clock = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
-            graphics.text(font, clock, x + width - 12 - font.width(clock), y + 12, UiTheme.MUTED, false);
+            graphics.drawString(font, clock, x + width - 12 - font.width(clock), y + 12, UiTheme.MUTED, false);
         }
         int half = (width - 32) / 2;
         UiTheme.rounded(graphics, x + 10, y + 54, half, 28, 4, UiTheme.SURFACE);
         UiTheme.rounded(graphics, x + 18 + half, y + 54, half, 28, 4, UiTheme.SURFACE);
-        graphics.text(font, orderMode ? "ORDER SLOTS" : "AUCTION SLOTS", x + 17, y + 59, UiTheme.MUTED, false);
-        graphics.text(font, (preview ? 35 : orderMode ? bids.size() : used) + " / " + SlotTracker.slots(), x + 17, y + 71, UiTheme.TEXT, false);
-        graphics.text(font, orderMode ? "COMMITTED" : "LISTED AT COST", x + half + 25, y + 59, UiTheme.MUTED, false);
-        graphics.text(font, money(preview ? 540_000 : orderMode ? held : out), x + half + 25, y + 71, UiTheme.TEXT, false);
+        graphics.drawString(font, orderMode ? "ORDER SLOTS" : "AUCTION SLOTS", x + 17, y + 59, UiTheme.MUTED, false);
+        graphics.drawString(font, (preview ? 35 : orderMode ? bids.size() : used) + " / " + SlotTracker.slots(), x + 17, y + 71, UiTheme.TEXT, false);
+        graphics.drawString(font, orderMode ? "COMMITTED" : "LISTED AT COST", x + half + 25, y + 59, UiTheme.MUTED, false);
+        graphics.drawString(font, money(preview ? 540_000 : orderMode ? held : out), x + half + 25, y + 71, UiTheme.TEXT, false);
         int cursor = y + 91;
         if (!action.isBlank()) {
-            graphics.text(font, "NOW", x + 12, cursor, accent, false);
+            graphics.drawString(font, "NOW", x + 12, cursor, accent, false);
             cursor += 14;
             for (var line : actionLines) {
-                graphics.text(font, line, x + 12, cursor, UiTheme.TEXT, false);
+                graphics.drawString(font, line, x + 12, cursor, UiTheme.TEXT, false);
                 cursor += lineHeight;
             }
             cursor += 4;
         }
         if (!details.isEmpty()) {
             for (var line : detailLines) {
-                graphics.text(font, line, x + 12, cursor, UiTheme.SECONDARY, false);
+                graphics.drawString(font, line, x + 12, cursor, UiTheme.SECONDARY, false);
                 cursor += lineHeight;
             }
             cursor += 7;
@@ -769,7 +769,7 @@ final class DoughBayHudAlerts {
         int gridTop = cursor + 13;
         if (showGrid) {
             graphics.fill(x + 12, cursor - 2, x + width - 12, cursor - 1, UiTheme.EDGE);
-            graphics.text(font, "CAPACITY", x + 12, cursor + 2, UiTheme.MUTED, false);
+            graphics.drawString(font, "CAPACITY", x + 12, cursor + 2, UiTheme.MUTED, false);
             SlotTracker.drawGrid(graphics, x + 12, gridTop, grid,
                     preview ? 35 : orderMode ? bids.size() : used, orderMode ? (int) Tuning.get("orders.bid_slots") : cap,
                     255, accent, UiTheme.EDGE);
@@ -940,7 +940,7 @@ final class DoughBayHudAlerts {
         int accent = withAlpha(alert.type().accent, alpha);
         graphics.fill(x + 2, y + 3, x + width + 2, y + height + 3, withAlpha(0x50000000, alpha));
         graphics.fill(x, y, x + width, y + height, withAlpha(UiTheme.BACKGROUND, alpha));
-        graphics.outline(x, y, width, height, withAlpha(UiTheme.EDGE, alpha));
+        graphics.renderOutline(x, y, width, height, withAlpha(UiTheme.EDGE, alpha));
         graphics.fill(x + 1, y + 1, x + 3, y + height - 1, accent);
         int textX = x + 12;
         int textWidth = Math.max(1, width - 24);
@@ -948,7 +948,7 @@ final class DoughBayHudAlerts {
         if (icon != null) {
             // Reserve the slot throughout the fade so the copy never jumps sideways.
             graphics.fill(x + 9, y + 10, x + 31, y + 32, withAlpha(UiTheme.SURFACE, alpha));
-            if (alpha > 180) graphics.item(icon, x + 12, y + 13);
+            if (alpha > 180) graphics.renderItem(icon, x + 12, y + 13);
             textX += 28;
             textWidth = Math.max(1, textWidth - 28);
         }

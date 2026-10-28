@@ -45,21 +45,21 @@ final class QuickStartScreen extends GoNutsScreen {
             if(invalid!=null){message=invalid;return;}
             if(!review){review=true;scroll=0;message="";rebuildWidgets();return;}
             var result=parent.startQuickTrading(perTrade,perSession);message=result.detail();
-            if(result.ok()){parent.endTutorialNavigation();minecraft.gui.setScreen(null);}
+            if(result.ok()){parent.endTutorialNavigation();minecraft.setScreen(null);}
         }).bounds(x,height-55,w,23).build();addRenderableWidget(primary);
         addRenderableWidget(CockpitButton.builder(Component.literal(review?"Back to limits":home instanceof StartHereScreen?"Back to Start here":"Back to GoNuts"),b->{
             if(review){review=false;scroll=0;message="";rebuildWidgets();}else onClose();
         }).bounds(x,height-27,(w-6)/2,20).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Optional tutorials"),b->minecraft.gui.setScreen(new TutorialScreen(parent,this,false)))
+        addRenderableWidget(CockpitButton.builder(Component.literal("Optional tutorials"),b->minecraft.setScreen(new TutorialScreen(parent,this,false)))
             .bounds(x+(w+6)/2,height-27,(w-6)/2,20).build());
     }
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
-        g.text(font,review?"2 / 2 · REVIEW & START":"1 / 2 · CHOOSE YOUR LIMITS",x,18,UiTheme.GOLD);
+        g.drawString(font,review?"2 / 2 · REVIEW & START":"1 / 2 · CHOOSE YOUR LIMITS",x,18,UiTheme.GOLD);
         int top=review?46:164,bottom=height-68,y=top-scroll;
         if(!review){
-            g.text(font,"Maximum per trade",x,74,UiTheme.TEXT);g.text(font,"Maximum session spend",x+(w+10)/2,74,UiTheme.TEXT);
-            g.text(font,UiTheme.fit(font,"Set your caps, review, then Start. Example: 500k or 5m. No API key is needed in keyless mode.",w),x,44,UiTheme.TEXT);
+            g.drawString(font,"Maximum per trade",x,74,UiTheme.TEXT);g.drawString(font,"Maximum session spend",x+(w+10)/2,74,UiTheme.TEXT);
+            g.drawString(font,UiTheme.fit(font,"Set your caps, review, then Start. Example: 500k or 5m. No API key is needed in keyless mode.",w),x,44,UiTheme.TEXT);
         }
         g.enableScissor(x,top,x+w,bottom);
         if(review){
@@ -77,10 +77,10 @@ final class QuickStartScreen extends GoNutsScreen {
         maxScroll=Math.max(0,y+scroll-bottom);g.disableScissor();super.extractRenderState(g,mx,my,dt);
     }
     private int paragraph(GuiGraphics g,String text,int x,int y,int w,int color){
-        for(var line:font.split(Component.literal(text),w)){g.text(font,line,x,y,color);y+=13;}return y+10;
+        for(var line:font.split(Component.literal(text),w)){g.drawString(font,line,x,y,color);y+=13;}return y+10;
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*28)));return true;}
-    @Override public void onClose(){parent.endTutorialNavigation();minecraft.gui.setScreen(home);}
+    @Override public void onClose(){parent.endTutorialNavigation();minecraft.setScreen(home);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

@@ -21,15 +21,15 @@ final class PublicSupportNoticeScreen extends GoNutsScreen {
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);
         int w=Math.max(100,Math.min(640,width-32)),x=(width-w)/2,y=24;
-        for(var line:font.split(Component.literal("UPSTREAM SUPPORT HAS ENDED"),w)){g.text(font,line,x,y,UiTheme.GOLD);y+=15;}
+        for(var line:font.split(Component.literal("UPSTREAM SUPPORT HAS ENDED"),w)){g.drawString(font,line,x,y,UiTheme.GOLD);y+=15;}
         y+=14;
         String text=ProjectStatus.NOTICE+"\n\nSwarm, hosted Discord sign-in, the remote dashboard, bug reports and diagnostic uploads are retired. "
                 +"There is no public support or automatic patch worker.\n\nLocal trading, your settings, trade history, ownership records and recovery safeguards remain. "
                 +"Existing upstream issues are not claimed fixed. Tally continues the project as a community-maintained fork.";
-        for(var line:font.split(Component.literal(text),w)){g.text(font,line,x,y,UiTheme.TEXT);y+=12;}
+        for(var line:font.split(Component.literal(text),w)){g.drawString(font,line,x,y,UiTheme.TEXT);y+=12;}
         super.extractRenderState(g,mx,my,delta);
     }
-    @Override public void onClose(){minecraft.gui.setScreen(next);}
+    @Override public void onClose(){minecraft.setScreen(next);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

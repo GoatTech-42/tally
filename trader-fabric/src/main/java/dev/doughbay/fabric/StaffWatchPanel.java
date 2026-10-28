@@ -81,7 +81,7 @@ final class StaffWatchPanel {
    text(g,font,at+" • "+dev.doughbay.fabric.staffwatch.util.NameFilter.apply(event.name())+" • "+StaffWatchReport.label(event.event())+" • "+event.observer(),x+10,rowY,UiTheme.TEXT);rowY+=22;
   }
   g.disableScissor();
-  if(maxScroll>0)g.text(font,"Scroll for more",x+w-82,bottom-9,UiTheme.MUTED);
+  if(maxScroll>0)g.drawString(font,"Scroll for more",x+w-82,bottom-9,UiTheme.MUTED);
  }
- private void text(GuiGraphics g,Font font,String text,int x,int y,int color){g.text(font,UiTheme.fit(font,text,w-20),x,y,color);}
+ private void text(GuiGraphics g,Font font,String text,int x,int y,int color){g.drawString(font,UiTheme.fit(font,text,w-20),x,y,color);}
 }

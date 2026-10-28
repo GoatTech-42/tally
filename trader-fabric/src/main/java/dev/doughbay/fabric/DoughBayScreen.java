@@ -655,7 +655,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         int columns = ui.navColumns();
         if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof StartHereScreen?"Back to Start here":tutorialReturn instanceof QuickStartScreen?"Return to setup":"Return to tutorial"),b->{
-            var guide=tutorialReturn;tutorialReturn=null;Minecraft.getInstance().gui.setScreen(guide);
+            var guide=tutorialReturn;tutorialReturn=null;Minecraft.getInstance().setScreen(guide);
         }).bounds(ui.innerRight()-158,ui.contentTop()-(tab==Tab.ORDERS?52:26),158,20).build());
         int gap = 4;
         int buttonWidth = ui.sidebar() > 0 ? ui.sidebar() - 20
@@ -677,18 +677,18 @@ public final class DoughBayScreen extends GoNutsScreen {
             int y = ui.sidebar() > 0 ? ui.top() + 64 + i * 21 + groupSpace
                     : ui.tabY() + 24 + (i / columns) * 22;
             Button button = CockpitButton.builder(Component.literal(value.label), ignored -> {
-                if(value==Tab.SETTINGS){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this));return;}
+                if(value==Tab.SETTINGS){Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this));return;}
                 if(value==Tab.START_HERE){
-                    Minecraft.getInstance().gui.setScreen(new StartHereScreen(this));return;
+                    Minecraft.getInstance().setScreen(new StartHereScreen(this));return;
                 }
                 if(value==Tab.AUTOMATION&&showLiveTradingSetup()){
-                    Minecraft.getInstance().gui.setScreen(new QuickStartScreen(this));return;
+                    Minecraft.getInstance().setScreen(new QuickStartScreen(this));return;
                 }
                 if(value==Tab.TUTORIALS){
-                    Minecraft.getInstance().gui.setScreen(tutorialReturn!=null?tutorialReturn:new TutorialScreen(this,false));return;
+                    Minecraft.getInstance().setScreen(tutorialReturn!=null?tutorialReturn:new TutorialScreen(this,false));return;
                 }
                 if(value==Tab.SWARM&&ui.bottom()-ui.contentTop()<128){
-                    Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
+                    Minecraft.getInstance().setScreen(new CommunityScreen(this));return;
                 }
                 tab = value;
                 if (value == Tab.STATS && !statsModeInitialized) {
@@ -755,7 +755,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             if (aboutRight >= 190) {
                 // The notes of the last few builds, for anyone who missed them going past.
                 addRenderableWidget(CockpitButton.builder(Component.literal("What's new"), b ->
-                        Minecraft.getInstance().gui.setScreen(new UpdateScreen(this, UpdateScreen.Mode.HISTORY)))
+                        Minecraft.getInstance().setScreen(new UpdateScreen(this, UpdateScreen.Mode.HISTORY)))
                         .bounds(aboutX - 78, ui.contentTop() + 10, 78, 16).build());
             }
         }
@@ -921,7 +921,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         switch (session.state()) {
             case STOPPED -> {
                 label = showLiveTradingSetup()?"Set up trading":"▶ Start";
-                action = showLiveTradingSetup()?()->Minecraft.getInstance().gui.setScreen(new QuickStartScreen(this))
+                action = showLiveTradingSetup()?()->Minecraft.getInstance().setScreen(new QuickStartScreen(this))
                         :()->handleSessionStart(AutomationSessionController.RunMode.CONTINUOUS);
             }
             case PAUSED -> {
@@ -1059,7 +1059,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         if(tutorialReturn!=null){
             int y=ui.contentTop()-(tab==Tab.ORDERS?53:27);
-            graphics.text(font,truncate(tutorialReturn instanceof QuickStartScreen?"Setup · review, then return":"Tutorial page · review the controls, then continue",Math.max(0,ui.innerWidth()-164)),ui.innerLeft(),y+7,GOLD);
+            graphics.drawString(font,truncate(tutorialReturn instanceof QuickStartScreen?"Setup · review, then return":"Tutorial page · review the controls, then continue",Math.max(0,ui.innerWidth()-164)),ui.innerLeft(),y+7,GOLD);
         }
 
         // Widgets are extracted after the cards they sit on. Gui render states
@@ -1075,14 +1075,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         int top = ui.top();
         if (ui.sidebar() == 0) {
             Mascot.drawLogo(graphics, x, top + 7, 18);
-            graphics.text(this.font, tab.label, x + 60, top + 12, TEXT);
+            graphics.drawString(this.font, tab.label, x + 60, top + 12, TEXT);
         } else {
             scaledText(graphics, tab.label, x, top + 11, 1.35f, TEXT);
         }
         String age = snapshot.updatedAt() == 0 ? "Waiting for feed"
                 : "Updated " + relativeAge(System.currentTimeMillis() - snapshot.updatedAt());
         if (ui.innerWidth() > 360) {
-            graphics.text(this.font, age, ui.innerRight() - this.font.width(age), top + 12, MUTED);
+            graphics.drawString(this.font, age, ui.innerRight() - this.font.width(age), top + 12, MUTED);
         }
         FeedTruth feedTruth = FeedTruth.of(snapshot, System.currentTimeMillis());
         int statusColor = switch (feedTruth) {
@@ -1104,7 +1104,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         };
         int statusRoom = Math.max(30, ui.innerWidth() - 158);
         graphics.fill(x, top + 34, x + 4, top + 38, statusColor);
-        graphics.text(this.font, truncate(status, statusRoom), x + 9, top + 32, statusColor);
+        graphics.drawString(this.font, truncate(status, statusRoom), x + 9, top + 32, statusColor);
         if (ui.sidebar() > 0) renderAccount(graphics, snapshot, ui, top + 53);
         graphics.fill(x, ui.contentTop() - 4, ui.innerRight(), ui.contentTop() - 3, PANEL_EDGE);
     }
@@ -1114,10 +1114,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.fill(x + 1, ui.top() + 1, x + ui.sidebar(), ui.bottom() - 1, CARD_DARK);
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
         Mascot.drawLogo(graphics, x + 13, ui.top() + 12, 24);
-        graphics.text(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
-        graphics.text(this.font, "OPERATIONS", x + 14, ui.top() + 236, MUTED);
-        graphics.text(this.font, "WORKSPACE", x + 14, ui.top() + 378, MUTED);
-        graphics.text(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
+        graphics.drawString(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
+        graphics.drawString(this.font, "OPERATIONS", x + 14, ui.top() + 236, MUTED);
+        graphics.drawString(this.font, "WORKSPACE", x + 14, ui.top() + 378, MUTED);
+        graphics.drawString(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
     /**
@@ -1161,9 +1161,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (faceX < ui.innerLeft() + 200) return;   // no room; the header wins
 
         drawPlayerFace(graphics, faceX, y, faceSize);
-        graphics.text(this.font, name, nameX, y, SECONDARY);
-        if (!badge.isEmpty()) graphics.text(this.font, badge, nameX + nameWidth + 2, y, badgeColor);
-        graphics.text(this.font, money, moneyX, y, balance < 0 ? MUTED : GOOD);
+        graphics.drawString(this.font, name, nameX, y, SECONDARY);
+        if (!badge.isEmpty()) graphics.drawString(this.font, badge, nameX + nameWidth + 2, y, badgeColor);
+        graphics.drawString(this.font, money, moneyX, y, balance < 0 ? MUTED : GOOD);
     }
 
     /**
@@ -1190,12 +1190,12 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     void openAdvancedSettings(SettingsSection section){
         tab=Tab.SETTINGS;settingsSection=section;selectedSetting=null;settingsSearch="";settingsScroll=0;
-        Minecraft.getInstance().gui.setScreen(this);
+        Minecraft.getInstance().setScreen(this);
     }
     private void navigate(Tab destination) {
-        if(destination==Tab.SETTINGS){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this));return;}
+        if(destination==Tab.SETTINGS){Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this));return;}
         if(destination==Tab.SWARM&&layout().bottom()-layout().contentTop()<128){
-            Minecraft.getInstance().gui.setScreen(new CommunityScreen(this));return;
+            Minecraft.getInstance().setScreen(new CommunityScreen(this));return;
         }
         tab = destination;
         selected = null;
@@ -1210,9 +1210,9 @@ public final class DoughBayScreen extends GoNutsScreen {
     void openSetupTarget(String target,QuickStartScreen setup){openGuidedTarget(target,setup);}
     void openBeginnerTarget(String target,StartHereScreen help){openGuidedTarget(target,help);}
     private void openGuidedTarget(String target,net.minecraft.client.gui.screens.Screen guide){
-        if(target.equals("bugs")){Minecraft.getInstance().gui.setScreen(new BugReportScreen(guide));return;}
+        if(target.equals("bugs")){Minecraft.getInstance().setScreen(new BugReportScreen(guide));return;}
         tutorialReturn=guide;selectedSetting=null;settingsSearch="";settingsScroll=0;
-        if(target.equals("settings")){Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this,guide));return;}
+        if(target.equals("settings")){Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this,guide));return;}
         Tab destination=switch(target){
             case "evasion" -> Tab.EVASION;
             case "staff" -> Tab.STAFF_WATCH;
@@ -1228,7 +1228,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if(target.equals("orders")){settingsSection=SettingsSection.ORDERS;ordersSettingsMode=true;}
         if(target.equals("updates")){settingsSection=SettingsSection.GENERAL;settingsSearch="update.";}
         tab=destination;
-        Minecraft.getInstance().gui.setScreen(this);
+        Minecraft.getInstance().setScreen(this);
     }
     void endTutorialNavigation(){tutorialReturn=null;}
 
@@ -1264,9 +1264,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         var session = AUTOMATION_SESSION.snapshot();
         boolean spacious = w >= 530;
         UiTheme.panel(g, x, top, w, 96, 0xFF111111);
-        g.text(this.font, snapshot.demo() ? "YOUR DEMO TRADING DESK" : "YOUR TRADING DESK", x + 16, top + 13, UiTheme.TEAL);
+        g.drawString(this.font, snapshot.demo() ? "YOUR DEMO TRADING DESK" : "YOUR TRADING DESK", x + 16, top + 13, UiTheme.TEAL);
         scaledText(g, "A little less watching.", x + 16, top + 30, spacious ? 1.6f : 1.2f, TEXT);
-        g.text(this.font, "A clearer view of every trade.", x + 16, top + 51, SECONDARY);
+        g.drawString(this.font, "A clearer view of every trade.", x + 16, top + 51, SECONDARY);
         if (w >= 420) {
             Mascot.draw(g, Mascot.faceFor(session, DoughBayClient.evasionGuard()), x + w - 118, top + 3, 96);
         }
@@ -1297,32 +1297,32 @@ public final class DoughBayScreen extends GoNutsScreen {
         int rightWidth = spacious ? w - leftWidth - 10 : w;
         int chartY = below - shift;
         UiTheme.panel(g, x, chartY, leftWidth, 137, CARD);
-        g.text(this.font, "Profit over time", x + 13, chartY + 12, TEXT);
-        g.text(this.font, "REALIZED / ALL TIME", x + 13, chartY + 28, MUTED);
+        g.drawString(this.font, "Profit over time", x + 13, chartY + 12, TEXT);
+        g.drawString(this.font, "REALIZED / ALL TIME", x + 13, chartY + 28, MUTED);
         var points = stats.profitHistory().stream().map(p -> new Charts.Point(p.atMillis(), p.cumulativeProfit())).toList();
         if (points.size() >= 2) {
             for (int row = 0; row < 3; row++) g.fill(x + 13, chartY + 51 + row * 30, x + leftWidth - 13, chartY + 52 + row * 30, PANEL_EDGE);
             Charts.sparkline(g, x + 13, chartY + 45, leftWidth - 26, 64, points, Charts.SERIES_BLUE);
-            g.text(this.font, "First recorded trade", x + 13, chartY + 118, MUTED);
-            g.text(this.font, "Now", x + leftWidth - 32, chartY + 118, MUTED);
+            g.drawString(this.font, "First recorded trade", x + 13, chartY + 118, MUTED);
+            g.drawString(this.font, "Now", x + leftWidth - 32, chartY + 118, MUTED);
         } else drawWrapped(g, "Your realized profit history will appear after completed sales are recorded.",
                 x + 13, chartY + 58, leftWidth - 26, chartY + 123, MUTED);
         int activityY = chartY + 147;
         UiTheme.panel(g, x, activityY, leftWidth, 83, CARD);
-        g.text(this.font, "Latest activity", x + 13, activityY + 12, TEXT);
+        g.drawString(this.font, "Latest activity", x + 13, activityY + 12, TEXT);
         var activity = DoughBayClient.recentActivity();
         if (activity.isEmpty()) {
-            g.text(this.font, "All quiet for now", x + 13, activityY + 34, SECONDARY);
-            g.text(this.font, "Sales, orders and alerts will show here.", x + 13, activityY + 51, MUTED);
+            g.drawString(this.font, "All quiet for now", x + 13, activityY + 34, SECONDARY);
+            g.drawString(this.font, "Sales, orders and alerts will show here.", x + 13, activityY + 51, MUTED);
         } else {
             var event = activity.getFirst();
-            g.text(this.font, truncate(event.title(), leftWidth - 26), x + 13, activityY + 32, event.type().accent);
+            g.drawString(this.font, truncate(event.title(), leftWidth - 26), x + 13, activityY + 32, event.type().accent);
             drawWrapped(g, event.lineOne(), x + 13, activityY + 48, leftWidth - 26, activityY + 75, SECONDARY);
         }
         int signalsY = spacious ? chartY : activityY + 94;
         UiTheme.panel(g, rightX, signalsY, rightWidth, 230, CARD_DARK);
-        g.text(this.font, "On the radar", rightX + 13, signalsY + 12, TEXT);
-        g.text(this.font, "Top opportunities to review", rightX + 13, signalsY + 27, MUTED);
+        g.drawString(this.font, "On the radar", rightX + 13, signalsY + 12, TEXT);
+        g.drawString(this.font, "Top opportunities to review", rightX + 13, signalsY + 27, MUTED);
         var opportunities = snapshot.opportunities();
         if (opportunities.isEmpty()) drawWrapped(g, "No signals pass the filters yet. Your copilot is watching for the next opening.",
                 rightX + 13, signalsY + 60, rightWidth - 26, signalsY + 170, SECONDARY);
@@ -1331,27 +1331,27 @@ public final class DoughBayScreen extends GoNutsScreen {
             int sy = signalsY + 48 + i * 58;
             UiTheme.rounded(g, rightX + 8, sy, rightWidth - 16, 51, 5, CARD);
             drawItemIcon(g, opportunity.listing().itemId(), rightX + 15, sy + 7, 20);
-            g.text(this.font, truncate(titleCase(shortName(opportunity.listing().itemId())), rightWidth - 57), rightX + 39, sy + 10, TEXT);
-            g.text(this.font, signedMoney(Math.round(opportunity.expectedNetProfit())) + " est. profit", rightX + 15, sy + 31, GOOD);
+            g.drawString(this.font, truncate(titleCase(shortName(opportunity.listing().itemId())), rightWidth - 57), rightX + 39, sy + 10, TEXT);
+            g.drawString(this.font, signedMoney(Math.round(opportunity.expectedNetProfit())) + " est. profit", rightX + 15, sy + 31, GOOD);
             overviewSignals.add(new SignalHit(rightX + 8, sy, rightWidth - 16, 51, opportunity));
         }
         g.disableScissor();
-        if (maxPageScrollPixels > 0) g.text(this.font, "Scroll to explore", ui.innerRight() - 90, ui.bottom() - 9, MUTED);
+        if (maxPageScrollPixels > 0) g.drawString(this.font, "Scroll to explore", ui.innerRight() - 90, ui.bottom() - 9, MUTED);
     }
 
     private void overviewMetric(GuiGraphics g, int x, int y, int w,
                                 String label, String value, String note, int color) {
         UiTheme.panel(g, x, y, w, 53, CARD);
-        g.text(this.font, truncate(label, w - 20), x + 10, y + 8, MUTED);
+        g.drawString(this.font, truncate(label, w - 20), x + 10, y + 8, MUTED);
         scaledText(g, truncate(value, (int) ((w - 20) / 1.35)), x + 10, y + 22, 1.35f, color);
-        g.text(this.font, truncate(note, w - 20), x + 10, y + 40, SECONDARY);
+        g.drawString(this.font, truncate(note, w - 20), x + 10, y + 40, SECONDARY);
     }
 
     private void renderActivity(GuiGraphics g, UiLayout ui) {
         resetListGeometry();
         int x = ui.innerLeft(), w = ui.innerWidth(), top = ui.contentTop() + 9;
-        g.text(this.font, "Every event, in one place", x, top, TEXT);
-        g.text(this.font, "Recent alerts stay here after their popups disappear.", x, top + 16, MUTED);
+        g.drawString(this.font, "Every event, in one place", x, top, TEXT);
+        g.drawString(this.font, "Recent alerts stay here after their popups disappear.", x, top + 16, MUTED);
         var events = DoughBayClient.recentActivity();
         int totalHeight = 0;
         for (var e : events) totalHeight += 35 + this.font.split(Component.literal(e.lineOne() + "  " + e.lineTwo() + "  " + e.lineThree()), w - 40).size() * 12;
@@ -1370,11 +1370,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             int h = 28 + lines.size() * 12;
             UiTheme.panel(g, x, y, w, h, CARD);
             g.fill(x + 10, y + 11, x + 14, y + 15, e.type().accent);
-            g.text(this.font, e.title(), x + 22, y + 9, e.type().accent);
+            g.drawString(this.font, e.title(), x + 22, y + 9, e.type().accent);
             String age = relativeAge(System.currentTimeMillis() - e.createdAt());
-            g.text(this.font, age, x + w - 13 - this.font.width(age), y + 9, MUTED);
+            g.drawString(this.font, age, x + w - 13 - this.font.width(age), y + 9, MUTED);
             int ly = y + 25;
-            for (var line : lines) { g.text(this.font, line, x + 20, ly, SECONDARY, false); ly += 12; }
+            for (var line : lines) { g.drawString(this.font, line, x + 20, ly, SECONDARY, false); ly += 12; }
             y += h + 7;
         }
         g.disableScissor();
@@ -1384,8 +1384,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                                      UiLayout ui, int mouseX, int mouseY) {
         List<Opportunity> rows = snapshot.opportunities();
         int x = ui.innerLeft(), w = ui.innerWidth(), top = ui.contentTop() + 8;
-        graphics.text(this.font, "A shortlist worth a closer look", x, top, TEXT);
-        graphics.text(this.font, rows.size() + " signals / ranked by the engine", x, top + 15, MUTED);
+        graphics.drawString(this.font, "A shortlist worth a closer look", x, top, TEXT);
+        graphics.drawString(this.font, rows.size() + " signals / ranked by the engine", x, top + 15, MUTED);
         if (rows.isEmpty()) {
             renderEmptyState(graphics, x, top + 38, w, "Nothing clears your filters yet",
                     "Your copilot is waiting for a worthwhile opportunity.",
@@ -1409,7 +1409,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         graphics.disableScissor();
         drawScrollBar(graphics, ui.innerRight(), listTop, bottom, rows.size());
-        graphics.text(this.font, "Select a signal for price history and the full breakdown", x, ui.bottom() - 17, MUTED);
+        graphics.drawString(this.font, "Select a signal for price history and the full breakdown", x, ui.bottom() - 17, MUTED);
     }
 
     private void opportunityCard(GuiGraphics g, Opportunity o, MarketWatcher.Snapshot snapshot,
@@ -1418,19 +1418,19 @@ public final class DoughBayScreen extends GoNutsScreen {
         UiTheme.rounded(g, x + 10, y + 10, 29, 29, 5, CARD_DARK);
         drawItemIcon(g, o.listing().itemId(), x + 16, y + 10, 29);
         String name = titleCase(shortName(o.listing().itemId())) + " x" + o.listing().itemCount();
-        g.text(this.font, truncate(name, Math.max(60, w - 158)), x + 48, y + 12, TEXT);
-        g.text(this.font, percent(o.confidence() * 100) + " confidence  /  " + holdTime(o.estimatedHoldHours()) + " est. hold",
+        g.drawString(this.font, truncate(name, Math.max(60, w - 158)), x + 48, y + 12, TEXT);
+        g.drawString(this.font, percent(o.confidence() * 100) + " confidence  /  " + holdTime(o.estimatedHoldHours()) + " est. hold",
                 x + 48, y + 27, MUTED);
         String gain = signedMoney(Math.round(o.expectedNetProfit()));
-        g.text(this.font, gain, x + w - 13 - this.font.width(gain), y + 12, GOOD);
+        g.drawString(this.font, gain, x + w - 13 - this.font.width(gain), y + 12, GOOD);
         String roi = percent(o.expectedRoiPercent()) + " ROI";
-        g.text(this.font, roi, x + w - 13 - this.font.width(roi), y + 27, UiTheme.TEAL);
+        g.drawString(this.font, roi, x + w - 13 - this.font.width(roi), y + 27, UiTheme.TEAL);
         int col = (w - 28) / 3;
-        g.text(this.font, "BUY  " + money(o.buyPrice()), x + 14, y + h - 17, SECONDARY);
-        g.text(this.font, "TARGET  " + money(o.recommendedSellPrice()), x + 14 + col, y + h - 17, SECONDARY);
+        g.drawString(this.font, "BUY  " + money(o.buyPrice()), x + 14, y + h - 17, SECONDARY);
+        g.drawString(this.font, "TARGET  " + money(o.recommendedSellPrice()), x + 14 + col, y + h - 17, SECONDARY);
         if (w >= 500) Charts.sparkline(g, x + 14 + col * 2, y + h - 23, col - 12, 17,
                 snapshot.historyFor(o.listing().itemKey()), Charts.SERIES_BLUE);
-        else g.text(this.font, "View details >", x + 14 + col * 2, y + h - 17, GOLD);
+        else g.drawString(this.font, "View details >", x + 14 + col * 2, y + h - 17, GOLD);
     }
 
     // ------------------------------------------------------------------- detail
@@ -1443,7 +1443,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int titleRoom = ui.innerWidth() - 74;
         String title = titleCase(shortName(opportunity.listing().itemId()))
                 + "  x" + opportunity.listing().itemCount();
-        graphics.text(this.font, truncate(title.toUpperCase(Locale.ROOT), titleRoom),
+        graphics.drawString(this.font, truncate(title.toUpperCase(Locale.ROOT), titleRoom),
                 ui.innerLeft(), titleY, GOLD);
 
         int footerTop = ui.bottom() - DETAIL_FOOTER_HEIGHT;
@@ -1625,7 +1625,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 8;
         int innerWidth = width - 16;
         if (stats == null) {
-            graphics.text(this.font, truncate("No completed-sale statistics", innerWidth),
+            graphics.drawString(this.font, truncate("No completed-sale statistics", innerWidth),
                     innerX, yy, MUTED);
             return;
         }
@@ -1652,7 +1652,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                                    Opportunity opportunity, int x, int y, int width, int height,
                                    int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
-        graphics.text(this.font, "UNIT PRICE — LAST 12H", x + 8, y + 7, GOLD);
+        graphics.drawString(this.font, "UNIT PRICE — LAST 12H", x + 8, y + 7, GOLD);
 
         List<Charts.Point> history = snapshot.historyFor(opportunity.listing().itemKey());
         MarketWatcher.VolumeWindow volume =
@@ -1704,7 +1704,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     private int legendItem(GuiGraphics graphics, int x, int y, int color, String label) {
         graphics.fill(x, y + 4, x + 7, y + 5, color);
-        graphics.text(this.font, label, x + 10, y, MUTED);
+        graphics.drawString(this.font, label, x + 10, y, MUTED);
         return x + 10 + this.font.width(label);
     }
 
@@ -1720,7 +1720,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         double hi = Math.max(Math.max(stats.upperBound(), stats.patientSalePrice()),
                 opportunity.recommendedSellPrice());
         if (!Double.isFinite(lo) || !Double.isFinite(hi) || hi <= lo) {
-            graphics.text(this.font, "Price band unavailable", x + 8, y + 12, MUTED);
+            graphics.drawString(this.font, "Price band unavailable", x + 8, y + 12, MUTED);
             return;
         }
 
@@ -1728,20 +1728,20 @@ public final class DoughBayScreen extends GoNutsScreen {
         String quick = "quick " + money(stats.quickSalePrice());
         String median = "median " + money(stats.weightedMedian());
         String patient = "patient " + money(stats.patientSalePrice());
-        graphics.text(this.font, buy, x + 8, y + 6, GOOD);
+        graphics.drawString(this.font, buy, x + 8, y + 6, GOOD);
 
         int patientXLabel = x + width - 8 - this.font.width(patient);
         int medianXLabel = patientXLabel - 12 - this.font.width(median);
         int quickXLabel = medianXLabel - 12 - this.font.width(quick);
         if (quickXLabel > x + 8 + this.font.width(buy) + 8) {
-            graphics.text(this.font, quick, quickXLabel, y + 6, Charts.SERIES_AQUA);
-            graphics.text(this.font, median, medianXLabel, y + 6, Charts.SERIES_ORANGE);
-            graphics.text(this.font, patient, patientXLabel, y + 6, Charts.SERIES_BLUE);
+            graphics.drawString(this.font, quick, quickXLabel, y + 6, Charts.SERIES_AQUA);
+            graphics.drawString(this.font, median, medianXLabel, y + 6, Charts.SERIES_ORANGE);
+            graphics.drawString(this.font, patient, patientXLabel, y + 6, Charts.SERIES_BLUE);
         } else {
             String rangeText = quick + "  •  " + median;
             int rangeRoom = Math.max(20, width - 24 - this.font.width(buy));
             String fitted = this.font.plainSubstrByWidth(rangeText, rangeRoom, true);
-            graphics.text(this.font, fitted,
+            graphics.drawString(this.font, fitted,
                     x + width - 8 - this.font.width(fitted), y + 6, SECONDARY);
         }
 
@@ -1893,7 +1893,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int textX = Math.min(ui.innerRight() - 10, ui.innerLeft() + actionWidth);
         int room = ui.innerRight() - textX;
         if (room >= this.font.width("status")) {
-            graphics.text(this.font, truncate(statusText, room), textX, ui.bottom() - 21, color);
+            graphics.drawString(this.font, truncate(statusText, room), textX, ui.bottom() - 21, color);
         }
     }
 
@@ -2013,7 +2013,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         int paintedRows = Math.min(visibleRows, rows.size() - firstVisibleIndex);
         int tableBottom = rowsTop + Math.max(0, paintedRows) * listRowHeight;
-        graphics.outline(tableX, headerY, tableWidth,
+        graphics.renderOutline(tableX, headerY, tableWidth,
                 headerHeight + Math.max(0, paintedRows) * listRowHeight, PANEL_EDGE);
         listTop = rowsTop;
         listBottom = tableBottom;
@@ -2025,7 +2025,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 + (marketSortDescending ? " (high to low)" : " (low to high)")
                 + (maxScroll > 0 ? "  •  drag the bar or scroll" : "")
                 + "  •  click a column to re-sort";
-        graphics.text(this.font, truncate(footer, tableWidth), tableX + 2, footerY, MUTED);
+        graphics.drawString(this.font, truncate(footer, tableWidth), tableX + 2, footerY, MUTED);
     }
 
     // -------------------------------------------------------------------- stats
@@ -2094,7 +2094,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int right = ui.innerRight();
         int top = ui.contentTop() + 7;
         int contentBottom = ui.bottom() - 10;
-        graphics.text(this.font, truncate("ITEMS  ·  what each item has earned", Math.max(40, width - 330)), x, top, GOLD);
+        graphics.drawString(this.font, truncate("ITEMS  ·  what each item has earned", Math.max(40, width - 330)), x, top, GOLD);
 
         int sellers = 0;
         for (ItemBoard.Row row : board.rows()) if (row.sales() > 0) sellers++;
@@ -2161,7 +2161,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             int left = innerX + col[i];
             int cellRight = i + 1 < col.length ? innerX + col[i + 1] : innerX + innerWidth;
             boolean hover = sorts[i] != null && mouseX >= left && mouseX < cellRight && mouseY >= yy - 2 && mouseY < yy + 10;
-            graphics.text(this.font, truncate(text, cellRight - left - 2), left, yy, active ? GOLD : hover ? TEXT : MUTED);
+            graphics.drawString(this.font, truncate(text, cellRight - left - 2), left, yy, active ? GOLD : hover ? TEXT : MUTED);
             if (sorts[i] != null) boardHeads.add(new int[] {left, cellRight, yy - 2, yy + 10, sorts[i].ordinal()});
         }
         yy += 13;
@@ -2211,7 +2211,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         default -> text = "";
                     }
                 }
-                graphics.text(this.font, truncate(text, cellWidth), innerX + col[c], textY, color);
+                graphics.drawString(this.font, truncate(text, cellWidth), innerX + col[c], textY, color);
             }
             boardRowIds.add(row.itemId());
             yy += rowHeight;
@@ -2220,7 +2220,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         boardRowsGeometry = new int[] {rowsTop, rowHeight, shown, innerX, innerX + innerWidth};
         if (boardMaxScroll > 0) {
             String at = (boardScroll + 1) + "-" + (boardScroll + shown) + " of " + rows.size() + "  ·  scroll for more";
-            graphics.text(this.font, at, x + width - 9 - this.font.width(at), y + 7, MUTED);
+            graphics.drawString(this.font, at, x + width - 9 - this.font.width(at), y + 7, MUTED);
         }
     }
 
@@ -2240,7 +2240,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             activityStrip(graphics, hourly, innerX, y + 30, innerWidth, stripHeight, System.currentTimeMillis());
             int barWidth = Math.max(1, innerWidth / 24);
             for (int h = 0; h < 24; h += 6) {
-                graphics.text(this.font, String.valueOf(h), innerX + h * barWidth, y + 32 + stripHeight, MUTED);
+                graphics.drawString(this.font, String.valueOf(h), innerX + h * barWidth, y + 32 + stripHeight, MUTED);
             }
             int yy = y + 46 + stripHeight;
             int best = -1;
@@ -2349,10 +2349,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         long profitLastHour = profitNow - (sawEarlier ? profitAtHourStart : 0);
 
-        graphics.text(this.font, "STATS  ·  real ledger, this database", x, top, GOLD);
+        graphics.drawString(this.font, "STATS  ·  real ledger, this database", x, top, GOLD);
         String stamp = stats.hasHistory() ? stats.status() : stats.status();
         // Clear of the Items button, which has the corner.
-        graphics.text(this.font, truncate(stamp, width / 2), right - 80 - this.font.width(truncate(stamp, width / 2)),
+        graphics.drawString(this.font, truncate(stamp, width / 2), right - 80 - this.font.width(truncate(stamp, width / 2)),
                 top, MUTED);
 
         int cardsTop = top + 16;
@@ -2423,14 +2423,14 @@ public final class DoughBayScreen extends GoNutsScreen {
             renderMoney(graphics, ui, intel, mouseX, mouseY);
             return;
         }
-        graphics.text(this.font, s.fromFollows() ? "RIVALS  ·  the players you follow, last 24 h"
+        graphics.drawString(this.font, s.fromFollows() ? "RIVALS  ·  the players you follow, last 24 h"
                 : "RIVALS  ·  flippers seen in the sales feed, last 24 h", x, top, GOLD);
         String stamp = s.refreshedAt() > 0 ? "updated " + relativeAge(now - s.refreshedAt()) : s.status();
         if (selectedRival == null) {
             // Clear of the buttons, which have the corner. With the known-bots
             // button there the stamp only fits on a wide screen.
             if (width < KNOWN_BOTS_MIN_WIDTH || width >= 760) {
-                graphics.text(this.font, truncate(stamp, width / 2),
+                graphics.drawString(this.font, truncate(stamp, width / 2),
                         right - rivalsCorner(width) - this.font.width(truncate(stamp, width / 2)), top, MUTED);
             }
         }
@@ -2447,7 +2447,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         Follows followQueue = DoughBayClient.follows();
         if (followQueue != null) {
-            graphics.text(this.font, truncate((Tuning.get("follow.enabled") < 0.5 ? "Recording off. " : "")
+            graphics.drawString(this.font, truncate((Tuning.get("follow.enabled") < 0.5 ? "Recording off. " : "")
                     + followQueue.status(), width), x, top + 16, MUTED);
         }
         int cardsTop = top + (followQueue == null ? 16 : 30);
@@ -2533,7 +2533,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (selectedMoney != null) {
             MoneyFlows.Account chosen = m.account(selectedMoney);
             if (chosen != null) {
-                graphics.text(this.font, truncate("MONEY  ·  click a name to open that player", width - 200), x, top, GOLD);
+                graphics.drawString(this.font, truncate("MONEY  ·  click a name to open that player", width - 200), x, top, GOLD);
                 renderMoneyDetail(graphics, m, chosen, x, top + 16, width, contentBottom, now, mouseX, mouseY);
                 return;
             }
@@ -2541,10 +2541,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         String stamp = m.builtAt() > 0 ? "updated " + relativeAge(now - m.builtAt()) : "waiting for the first read";
         int stampWidth = this.font.width(stamp);
-        graphics.text(this.font, truncate("MONEY  ·  payments seen through the players you follow, last 24 h",
+        graphics.drawString(this.font, truncate("MONEY  ·  payments seen through the players you follow, last 24 h",
                 width - 70 - stampWidth - 8), x, top, GOLD);
         if (width >= 480 && (width < KNOWN_BOTS_MIN_WIDTH || width >= 760)) {
-            graphics.text(this.font, stamp, right - rivalsCorner(width) - stampWidth, top, MUTED);
+            graphics.drawString(this.font, stamp, right - rivalsCorner(width) - stampWidth, top, MUTED);
         }
 
         int cardsTop = top + 16;
@@ -2602,7 +2602,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 innerWidth * 55 / 100, innerWidth * 62 / 100, innerWidth * 71 / 100, innerWidth * 83 / 100};
         String[] heads = {"NAME", "IN", "FROM", "OUT", "TO", "TRADES", "PRIVACY", "PATTERN"};
         for (int i = 0; i < heads.length; i++) {
-            graphics.text(this.font, heads[i], innerX + col[i], yy, MUTED);
+            graphics.drawString(this.font, heads[i], innerX + col[i], yy, MUTED);
         }
         yy += 12;
         int rowHeight = 13;
@@ -2615,17 +2615,17 @@ public final class DoughBayScreen extends GoNutsScreen {
             }
             int textY = yy + 3;
             boolean open = a.privacy() == MoneyFlows.Privacy.OPEN;
-            graphics.text(this.font, truncate(a.name(), col[1] - 6), innerX + col[0], textY, TEXT);
-            graphics.text(this.font, a.in() > 0 ? cash(a.in()) : "-", innerX + col[1], textY, a.in() > 0 ? GOOD : MUTED);
-            graphics.text(this.font, a.payers() > 0 ? grouped(a.payers()) : "-", innerX + col[2], textY, SECONDARY);
-            graphics.text(this.font, a.out() > 0 ? cash(a.out()) : "-", innerX + col[3], textY, a.out() > 0 ? TEXT : MUTED);
-            graphics.text(this.font, a.payees() > 0 ? grouped(a.payees()) : "-", innerX + col[4], textY, SECONDARY);
+            graphics.drawString(this.font, truncate(a.name(), col[1] - 6), innerX + col[0], textY, TEXT);
+            graphics.drawString(this.font, a.in() > 0 ? cash(a.in()) : "-", innerX + col[1], textY, a.in() > 0 ? GOOD : MUTED);
+            graphics.drawString(this.font, a.payers() > 0 ? grouped(a.payers()) : "-", innerX + col[2], textY, SECONDARY);
+            graphics.drawString(this.font, a.out() > 0 ? cash(a.out()) : "-", innerX + col[3], textY, a.out() > 0 ? TEXT : MUTED);
+            graphics.drawString(this.font, a.payees() > 0 ? grouped(a.payees()) : "-", innerX + col[4], textY, SECONDARY);
             // Only an open player's trades reach us; for anyone else none seen says nothing.
-            graphics.text(this.font, !open ? "?" : a.trades() == 0 ? "none" : grouped(a.trades()),
+            graphics.drawString(this.font, !open ? "?" : a.trades() == 0 ? "none" : grouped(a.trades()),
                     innerX + col[5], textY, open && a.trades() == 0 ? WARN : open ? SECONDARY : MUTED);
-            graphics.text(this.font, truncate(a.privacy().label, col[7] - col[6] - 4), innerX + col[6], textY,
+            graphics.drawString(this.font, truncate(a.privacy().label, col[7] - col[6] - 4), innerX + col[6], textY,
                     privacyColor(a.privacy()));
-            graphics.text(this.font, truncate(a.shape().label, innerWidth - col[7]), innerX + col[7], textY,
+            graphics.drawString(this.font, truncate(a.shape().label, innerWidth - col[7]), innerX + col[7], textY,
                     shapeColor(a.shape()));
             moneyRowNames.add(a.name());
             yy += rowHeight;
@@ -2730,14 +2730,14 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void moneyList(GuiGraphics graphics, MoneyFlows.Snapshot m, String title,
                            List<MoneyFlows.Edge> edges, boolean payers, int x, int y, int width, int bottom,
                            long now, int mouseX, int mouseY) {
-        graphics.text(this.font, title + "  ·  " + edges.size() + " player(s)", x, y, GOLD);
+        graphics.drawString(this.font, title + "  ·  " + edges.size() + " player(s)", x, y, GOLD);
         int yy = y + 13;
         int[] col = {0, width * 40 / 100, width * 58 / 100, width * 68 / 100, width * 86 / 100};
         String[] heads = {"NAME", "TOTAL", "TIMES", "LARGEST", "LAST"};
-        for (int i = 0; i < heads.length; i++) graphics.text(this.font, heads[i], x + col[i], yy, MUTED);
+        for (int i = 0; i < heads.length; i++) graphics.drawString(this.font, heads[i], x + col[i], yy, MUTED);
         yy += 12;
         if (edges.isEmpty()) {
-            graphics.text(this.font, "nobody seen", x, yy, MUTED);
+            graphics.drawString(this.font, "nobody seen", x, yy, MUTED);
             return;
         }
         for (MoneyFlows.Edge e : edges) {
@@ -2747,12 +2747,12 @@ public final class DoughBayScreen extends GoNutsScreen {
                 graphics.fill(x - 2, yy - 1, x + width + 2, yy + 11, ROW_HOVER);
             }
             MoneyFlows.Account account = m.account(other);
-            graphics.text(this.font, truncate(other, col[1] - 6), x + col[0], yy + 1,
+            graphics.drawString(this.font, truncate(other, col[1] - 6), x + col[0], yy + 1,
                     account != null && account.privacy() == MoneyFlows.Privacy.HIDDEN ? WARN : TEXT);
-            graphics.text(this.font, cash(e.total()), x + col[1], yy + 1, payers ? GOOD : TEXT);
-            graphics.text(this.font, grouped(e.count()), x + col[2], yy + 1, SECONDARY);
-            graphics.text(this.font, cash(e.largest()), x + col[3], yy + 1, SECONDARY);
-            graphics.text(this.font, truncate(relativeAge(now - e.lastAt()), width - col[4]), x + col[4], yy + 1, MUTED);
+            graphics.drawString(this.font, cash(e.total()), x + col[1], yy + 1, payers ? GOOD : TEXT);
+            graphics.drawString(this.font, grouped(e.count()), x + col[2], yy + 1, SECONDARY);
+            graphics.drawString(this.font, cash(e.largest()), x + col[3], yy + 1, SECONDARY);
+            graphics.drawString(this.font, truncate(relativeAge(now - e.lastAt()), width - col[4]), x + col[4], yy + 1, MUTED);
             moneyLinkBounds.add(new int[] {x, yy - 1, x + width, yy + 11});
             moneyLinkNames.add(other);
             yy += 12;
@@ -2842,10 +2842,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         int y = mouseY + 12;
         if (y + height > ui.bottom() - 4) y = mouseY - height - 6;
         graphics.fill(x, y, x + width, y + height, 0xF80B0B0B);
-        graphics.outline(x, y, width, height, PANEL_EDGE);
+        graphics.renderOutline(x, y, width, height, PANEL_EDGE);
         int yy = y + 5;
         for (int i = 0; i < lines.size(); i++) {
-            graphics.text(this.font, truncate(lines.get(i), width - 14), x + 7, yy, colors.get(i));
+            graphics.drawString(this.font, truncate(lines.get(i), width - 14), x + 7, yy, colors.get(i));
             yy += 11;
         }
     }
@@ -2869,7 +2869,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 ? new String[] {"NAME", "LISTED", "ITEMS", "SHARED", "ASKED", "SEEN", "STATUS", "BOT", "24H"}
                 : new String[] {"NAME", "SALES", "ITEMS", "SHARED", "REVENUE", "SEEN", "STATUS", "BOT", "24H"};
         for (int i = 0; i < heads.length; i++) {
-            graphics.text(this.font, heads[i], innerX + col[i], yy, MUTED);
+            graphics.drawString(this.font, heads[i], innerX + col[i], yy, MUTED);
         }
         yy += 12;
         int rowHeight = 20;
@@ -2886,15 +2886,15 @@ public final class DoughBayScreen extends GoNutsScreen {
             int textY = yy + 6;
             String status = r.status(now);
             int statusColor = status.equals("active") ? WARN : status.equals("quiet") ? SECONDARY : MUTED;
-            graphics.text(this.font, truncate(r.name(), col[1] - 6), innerX + col[0], textY, TEXT);
-            graphics.text(this.font, grouped(r.sales()), innerX + col[1], textY, TEXT);
-            graphics.text(this.font, grouped(r.items()), innerX + col[2], textY, SECONDARY);
-            graphics.text(this.font, grouped(r.overlap()), innerX + col[3], textY, r.overlap() > 0 ? GOOD : MUTED);
-            graphics.text(this.font, money(r.revenue()), innerX + col[4], textY, SECONDARY);
-            graphics.text(this.font, r.lastSeenAt() > 0 ? relativeAge(now - r.lastSeenAt()) : "never",
+            graphics.drawString(this.font, truncate(r.name(), col[1] - 6), innerX + col[0], textY, TEXT);
+            graphics.drawString(this.font, grouped(r.sales()), innerX + col[1], textY, TEXT);
+            graphics.drawString(this.font, grouped(r.items()), innerX + col[2], textY, SECONDARY);
+            graphics.drawString(this.font, grouped(r.overlap()), innerX + col[3], textY, r.overlap() > 0 ? GOOD : MUTED);
+            graphics.drawString(this.font, money(r.revenue()), innerX + col[4], textY, SECONDARY);
+            graphics.drawString(this.font, r.lastSeenAt() > 0 ? relativeAge(now - r.lastSeenAt()) : "never",
                     innerX + col[5], textY, SECONDARY);
-            graphics.text(this.font, status, innerX + col[6], textY, statusColor);
-            graphics.text(this.font, r.botScore() + "%", innerX + col[7], textY, r.botScore() >= 60 ? WARN : SECONDARY);
+            graphics.drawString(this.font, status, innerX + col[6], textY, statusColor);
+            graphics.drawString(this.font, r.botScore() + "%", innerX + col[7], textY, r.botScore() >= 60 ? WARN : SECONDARY);
             activityStrip(graphics, r.hourly(), innerX + col[8], yy + 3, innerWidth - col[8], rowHeight - 6, now);
             yy += rowHeight;
             shown++;
@@ -2962,14 +2962,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         int stripX = innerX + leftWidth + 14;
         int stripWidth = innerWidth - leftWidth - 14;
         if (stripWidth >= 48) {
-            graphics.text(this.font, truncate(rivalsFromFollows
+            graphics.drawString(this.font, truncate(rivalsFromFollows
                             ? "ACTIVITY BY HOUR  ·  listings and orders per hour of day, gold = now"
                             : "ACTIVITY BY HOUR  ·  sales per hour of day, gold = now", stripWidth),
                     stripX, y + 27, MUTED);
             activityStrip(graphics, r.hourly(), stripX, y + 40, stripWidth, 44, now);
             int barWidth = Math.max(1, stripWidth / 24);
             for (int h = 0; h < 24; h += 6) {
-                graphics.text(this.font, String.valueOf(h), stripX + h * barWidth, y + 86, MUTED);
+                graphics.drawString(this.font, String.valueOf(h), stripX + h * barWidth, y + 86, MUTED);
             }
         }
 
@@ -3017,7 +3017,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         String[] heads = rivalsFromFollows
                 ? new String[] {"ITEM", "ORDERS AT (EA)", "ASKS (EA)", "SEEN SOLD (EA)", "ASK / ORDER", "LISTED"}
                 : new String[] {"ITEM", "BOUGHT", "LISTED", "SOLD", "MARGIN", "TURNAROUND"};
-        for (int i = 0; i < heads.length; i++) graphics.text(this.font, heads[i], innerX + col[i], tableY, MUTED);
+        for (int i = 0; i < heads.length; i++) graphics.drawString(this.font, heads[i], innerX + col[i], tableY, MUTED);
         tableY += 12;
         if (r.flips().isEmpty()) {
             drawWrapped(graphics, rivalsFromFollows
@@ -3028,31 +3028,31 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         for (RivalIntel.Flip f : r.flips()) {
             if (tableY + 11 > bottom - 8) break;
-            graphics.text(this.font, truncate(titleCase(shortName(f.itemKey())) + " x" + f.count(), col[1] - 6),
+            graphics.drawString(this.font, truncate(titleCase(shortName(f.itemKey())) + " x" + f.count(), col[1] - 6),
                     innerX + col[0], tableY, TEXT);
             if (rivalsFromFollows) {
                 // Per item, so a lot of 16 and a lot of 64 read against each
                 // other, and no percentage: neither price is a trade.
                 int each = Math.max(1, f.count());
                 long real = rivalSnapshot.realPrice(f.itemKey(), f.count());
-                graphics.text(this.font, money(f.buyPrice() / each), innerX + col[1], tableY, SECONDARY);
-                graphics.text(this.font, money(f.listPrice() / each), innerX + col[2], tableY, SECONDARY);
-                graphics.text(this.font, real > 0 ? money(real / each) : "-", innerX + col[3], tableY,
+                graphics.drawString(this.font, money(f.buyPrice() / each), innerX + col[1], tableY, SECONDARY);
+                graphics.drawString(this.font, money(f.listPrice() / each), innerX + col[2], tableY, SECONDARY);
+                graphics.drawString(this.font, real > 0 ? money(real / each) : "-", innerX + col[3], tableY,
                         real > 0 ? GOOD : MUTED);
-                graphics.text(this.font, askOverOrder(f.buyPrice(), f.listPrice()), innerX + col[4], tableY, SECONDARY);
-                graphics.text(this.font, f.listedAt() > 0 ? relativeAge(now - f.listedAt()) : "-",
+                graphics.drawString(this.font, askOverOrder(f.buyPrice(), f.listPrice()), innerX + col[4], tableY, SECONDARY);
+                graphics.drawString(this.font, f.listedAt() > 0 ? relativeAge(now - f.listedAt()) : "-",
                         innerX + col[5], tableY, MUTED);
                 tableY += 11;
                 continue;
             }
-            graphics.text(this.font, money(f.buyPrice()), innerX + col[1], tableY, SECONDARY);
-            graphics.text(this.font, money(f.listPrice()), innerX + col[2], tableY, SECONDARY);
-            graphics.text(this.font, f.soldPrice() > 0 ? money(f.soldPrice())
+            graphics.drawString(this.font, money(f.buyPrice()), innerX + col[1], tableY, SECONDARY);
+            graphics.drawString(this.font, money(f.listPrice()), innerX + col[2], tableY, SECONDARY);
+            graphics.drawString(this.font, f.soldPrice() > 0 ? money(f.soldPrice())
                             : rivalsFromFollows ? "not shown" : "still up", innerX + col[3], tableY,
                     f.soldPrice() > 0 ? TEXT : MUTED);
-            graphics.text(this.font, signedMoney(f.margin()) + String.format(Locale.ROOT, " (%.0f%%)", f.marginPercent()),
+            graphics.drawString(this.font, signedMoney(f.margin()) + String.format(Locale.ROOT, " (%.0f%%)", f.marginPercent()),
                     innerX + col[4], tableY, f.margin() >= 0 ? GOOD : BAD);
-            graphics.text(this.font, f.soldAt() > 0 && f.boughtAt() > 0
+            graphics.drawString(this.font, f.soldAt() > 0 && f.boughtAt() > 0
                     ? relativeAge(f.soldAt() - f.boughtAt()).replace(" ago", "") : "-", innerX + col[5], tableY, SECONDARY);
             tableY += 11;
         }
@@ -3120,7 +3120,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 addRenderableWidget(CockpitButton.builder(Component.literal(settingsSection.label+(settingsCategoriesExpanded?" — close categories":" — choose category")),b->{
                     settingsCategoriesExpanded=!settingsCategoriesExpanded;rebuildWidgets();
                 }).bounds(ui.innerLeft(),controlsTop+2,Math.max(90,ui.innerWidth()-110),20).build());
-                addRenderableWidget(CockpitButton.builder(Component.literal("Simple view"),b->Minecraft.getInstance().gui.setScreen(new SimpleSettingsScreen(this))).bounds(ui.innerRight()-104,controlsTop+2,104,20).build());
+                addRenderableWidget(CockpitButton.builder(Component.literal("Simple view"),b->Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this))).bounds(ui.innerRight()-104,controlsTop+2,104,20).build());
                 navTop+=24;
             }
             if(!compact||settingsCategoriesExpanded){
@@ -3193,7 +3193,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             addRenderableWidget(CockpitButton.builder(Component.literal(ui.innerWidth()<470?"Import code":"Import from clipboard"),
                     ignored -> importSettingsCode()).bounds(bx + w1 + 6, by, w2, 20).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Saved presets"),
-                    ignored -> Minecraft.getInstance().gui.setScreen(new PresetsScreen(this)))
+                    ignored -> Minecraft.getInstance().setScreen(new PresetsScreen(this)))
                     .bounds(bx + w1 + w2 + 12, by, Math.min(116,ui.innerWidth()-w1-w2-12), 20).build());
             return;
         }
@@ -3311,13 +3311,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         String hint = selectedSetting == null
                 ? "click a row to edit  ·  presets on the right"
                 : "type a value, then Apply";
-        if(tab==Tab.EVASION) graphics.text(this.font, truncate("Evasion", Math.max(0, width - searchW - 12 - 244)),
+        if(tab==Tab.EVASION) graphics.drawString(this.font, truncate("Evasion", Math.max(0, width - searchW - 12 - 244)),
                 x + searchW + 8, top, GOLD);
 
         int listTopY = top + 16;
         if(tab!=Tab.EVASION){
             int descriptionY=ui.contentTop()+24+(tab==Tab.SETTINGS?settingsNavigationHeight(ui):0)+(width<270?24:0);
-            graphics.text(this.font,truncate(settingsSection.description,width),x,descriptionY,MUTED);
+            graphics.drawString(this.font,truncate(settingsSection.description,width),x,descriptionY,MUTED);
             listTopY=descriptionY+15;
         }
         int listBottomY;
@@ -3326,7 +3326,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             listBottomY = ui.bottom() - 32;
             if (!settingsMessage.isBlank()) {
                 listBottomY -= 12;
-                graphics.text(this.font, truncate(settingsMessage, width), x, ui.bottom() - 40, GOOD);
+                graphics.drawString(this.font, truncate(settingsMessage, width), x, ui.bottom() - 40, GOOD);
             }
         } else {
             listBottomY = ui.bottom() - 58;
@@ -3352,10 +3352,10 @@ public final class DoughBayScreen extends GoNutsScreen {
             int h=expanded?27+lines.size()*11:22;
             if(feedbackY+h>listTopY&&feedbackY<listBottomY){
                 graphics.fill(x,Math.max(listTopY,feedbackY),right,Math.min(listBottomY,feedbackY+h),CARD);
-                if(feedbackY>=listTopY&&feedbackY+14<=listBottomY)graphics.text(this.font,truncate((selectedSetting==null?"":"Draft: ")+notice.title(),width-16),x+8,feedbackY+5,notice.level().equals("warning")?WARN:GOOD);
+                if(feedbackY>=listTopY&&feedbackY+14<=listBottomY)graphics.drawString(this.font,truncate((selectedSetting==null?"":"Draft: ")+notice.title(),width-16),x+8,feedbackY+5,notice.level().equals("warning")?WARN:GOOD);
                 int fy=feedbackY+20;
                 if(mouseX>=x&&mouseX<right&&mouseY>=Math.max(listTopY,feedbackY)&&mouseY<Math.min(listBottomY,feedbackY+h)&&selectedSetting==null)hoveredSetting=notice.keys().getFirst();
-                if(expanded)for(var line:lines){if(fy>=listTopY&&fy+10<=listBottomY)graphics.text(this.font,line,x+8,fy,SECONDARY);fy+=11;}
+                if(expanded)for(var line:lines){if(fy>=listTopY&&fy+10<=listBottomY)graphics.drawString(this.font,line,x+8,fy,SECONDARY);fy+=11;}
             }
             feedbackY+=h+6;
         }
@@ -3393,7 +3393,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 int visibleTop = Math.max(cy, listTopY);
                 int visibleBottom = Math.min(cy + cardHeight, listBottomY);
                 graphics.fill(cx, visibleTop, cx + colWidth, visibleBottom, CARD);
-                graphics.outline(cx, visibleTop, colWidth, visibleBottom - visibleTop, PANEL_EDGE);
+                graphics.renderOutline(cx, visibleTop, colWidth, visibleBottom - visibleTop, PANEL_EDGE);
                 if (cy >= listTopY && cy + 21 <= listBottomY) {
                     sectionTitle(graphics, group.toUpperCase(Locale.ROOT), cx, cy, colWidth);
                 }
@@ -3444,7 +3444,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             colY[col] = cy + cardHeight + gap;
         }
         if (index == 0 && !settingsSearch.isBlank()) {
-            graphics.text(this.font, "No settings match \"" + settingsSearch.strip() + "\"",
+            graphics.drawString(this.font, "No settings match \"" + settingsSearch.strip() + "\"",
                     x, listTopY + 4, MUTED);
         }
         int contentBottom = Math.max(colY[0], colY[1]) - gap + settingsScroll;
@@ -3472,10 +3472,10 @@ public final class DoughBayScreen extends GoNutsScreen {
                 details = setting.description() + ".  Range " + setting.format(setting.min()) + " to "
                         + setting.format(setting.max()) + ", default " + setting.format(setting.defaultValue()) + ".";
             }
-            graphics.text(this.font, truncate("Editing: " + label, width), x + 2, barY, GOLD);
-            graphics.text(this.font, truncate(details, width), x + 2, barY + 11, SECONDARY);
+            graphics.drawString(this.font, truncate("Editing: " + label, width), x + 2, barY, GOLD);
+            graphics.drawString(this.font, truncate(details, width), x + 2, barY + 11, SECONDARY);
             if (!settingsMessage.isBlank()) {
-                graphics.text(this.font, truncate(settingsMessage, width / 2),
+                graphics.drawString(this.font, truncate(settingsMessage, width / 2),
                         right - this.font.width(truncate(settingsMessage, width / 2)), barY, WARN);
             }
         }
@@ -3495,9 +3495,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         settingRowBounds.add(new int[] {y, y + rowHeight, index, x - 3, x + width + 3});
         String shownValue = truncate(value, Math.max(40, width / 2));
         int valueX = x + width - this.font.width(shownValue);
-        graphics.text(this.font, truncate(label, valueX - x - 8), x, y + 2, TEXT);
-        graphics.text(this.font, shownValue, valueX, y + 2, isDefault ? SECONDARY : GOLD);
-        graphics.text(this.font,truncate(description==null?"":description,Math.max(0,width-4)),x,y+15,MUTED);
+        graphics.drawString(this.font, truncate(label, valueX - x - 8), x, y + 2, TEXT);
+        graphics.drawString(this.font, shownValue, valueX, y + 2, isDefault ? SECONDARY : GOLD);
+        graphics.drawString(this.font,truncate(description==null?"":description,Math.max(0,width-4)),x,y+15,MUTED);
         return y + rowHeight;
     }
 
@@ -3556,14 +3556,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         int y = mouseY + 12;
         if (y + height > ui.bottom() - 4) y = mouseY - height - 6;
         graphics.fill(x, y, x + width, y + height, 0xF80B0B0B);
-        graphics.outline(x, y, width, height, PANEL_EDGE);
+        graphics.renderOutline(x, y, width, height, PANEL_EDGE);
         int yy = y + 5;
         wrappedIndex = 0;
         for (int i = 0; i < lines.size(); i++) {
             if (lines.get(i) == null) {
-                graphics.text(this.font, wrappedTooltipLines.get(wrappedIndex++), x + 7, yy, colors.get(i));
+                graphics.drawString(this.font, wrappedTooltipLines.get(wrappedIndex++), x + 7, yy, colors.get(i));
             } else {
-                graphics.text(this.font, truncate(lines.get(i), width - 14), x + 7, yy, colors.get(i));
+                graphics.drawString(this.font, truncate(lines.get(i), width - 14), x + 7, yy, colors.get(i));
             }
             yy += 11;
         }
@@ -3612,21 +3612,21 @@ public final class DoughBayScreen extends GoNutsScreen {
                 var listing = open.get(i);
                 net.minecraft.world.item.ItemStack stack = stackFor(listing.itemKey(), listing.quantity());
                 if (stack != null && cell >= 16) {
-                    graphics.item(stack, cx + (cell - 16) / 2, cy + (cell - 16) / 2);
+                    graphics.renderItem(stack, cx + (cell - 16) / 2, cy + (cell - 16) / 2);
                 }
             }
         }
         int[] last = slotBoardCell(x, y, width, SlotTracker.slots() - 1);
         int legendY = last[1] + last[2] + 8;
         if (legendY + 10 <= y + height - 6) {
-            graphics.text(this.font, truncate("green: GoNuts listing  ·  blue: up but unmatched  ·  hover a slot for the item",
+            graphics.drawString(this.font, truncate("green: GoNuts listing  ·  blue: up but unmatched  ·  hover a slot for the item",
                     width - 18), x + 9, legendY, MUTED);
         }
         int ageY = legendY + 12;
         if (!open.isEmpty() && ageY + 10 <= y + height - 6) {
             long oldest = Long.MAX_VALUE;
             for (var l : open) oldest = Math.min(oldest, l.listedAt());
-            graphics.text(this.font, truncate("oldest listing " + relativeAge(Math.max(0, now - oldest))
+            graphics.drawString(this.font, truncate("oldest listing " + relativeAge(Math.max(0, now - oldest))
                     + "  ·  reprice after 10 min unsold", width - 18), x + 9, ageY, SECONDARY);
         }
     }
@@ -3678,10 +3678,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         int ty = Math.min(mouseY - 4, this.height - h - 4);
         graphics.fill(tx - 1, ty - 1, tx + w + 1, ty + h + 1, 0xFF3C3C3C);
         graphics.fill(tx, ty, tx + w, ty + h, 0xF8101010);
-        if (stack != null) graphics.item(stack, tx + 5, ty + (h - 16) / 2);
+        if (stack != null) graphics.renderItem(stack, tx + 5, ty + (h - 16) / 2);
         int ly = ty + 5;
         for (int i = 0; i < lines.size(); i++) {
-            graphics.text(this.font, lines.get(i), tx + 7 + iconWidth, ly, i == 0 ? TEXT : SECONDARY);
+            graphics.drawString(this.font, lines.get(i), tx + 7 + iconWidth, ly, i == 0 ? TEXT : SECONDARY);
             ly += 11;
         }
     }
@@ -3738,12 +3738,12 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void headlineCard(GuiGraphics graphics, int x, int y, int width, int height,
                               String label, String value, String note, int valueColor) {
         card(graphics, x, y, width, height, CARD);
-        graphics.text(this.font, truncate(label, width - 14), x + 7, y + 6, MUTED);
+        graphics.drawString(this.font, truncate(label, width - 14), x + 7, y + 6, MUTED);
         float valueScale = width >= 170 ? 1.35f : 1.15f;
         scaledText(graphics, truncate(value, Math.round((width - 14) / valueScale)),
                 x + 7, y + 19, valueScale, valueColor);
         if (height >= 52) {
-            graphics.text(this.font, truncate(note, width - 14), x + 7, y + height - 13, SECONDARY);
+            graphics.drawString(this.font, truncate(note, width - 14), x + 7, y + height - 13, SECONDARY);
         }
     }
 
@@ -3764,7 +3764,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int available = height - 31;
         int firstHeight = Math.max(56, available / 2);
         String pnl = "REALIZED P/L  " + signedMoney(stats.realizedProfit());
-        graphics.text(this.font, pnl, innerX + 3, chartTop, stats.realizedProfit() >= 0 ? GOOD : BAD);
+        graphics.drawString(this.font, pnl, innerX + 3, chartTop, stats.realizedProfit() >= 0 ? GOOD : BAD);
         int lineY = chartTop + 10;
         Charts.line(graphics, this.font, innerX, lineY, innerWidth,
                 Math.max(45, firstHeight - 11), profit, Charts.SERIES_AQUA,
@@ -3774,7 +3774,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         int secondTitleY = lineY + Math.max(45, firstHeight - 11) + 3;
         if (secondTitleY + 43 < y + height) {
-            graphics.text(this.font, "CAPITAL DEPLOYED  " + money(stats.totalInvested()),
+            graphics.drawString(this.font, "CAPITAL DEPLOYED  " + money(stats.totalInvested()),
                     innerX + 3, secondTitleY, Charts.SERIES_ORANGE);
             int secondChartY = secondTitleY + 10;
             Charts.line(graphics, this.font, innerX, secondChartY, innerWidth,
@@ -3794,41 +3794,41 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 25;
         if (!ranked.isEmpty()) {
             var top = ranked.getFirst();
-            graphics.text(this.font, "★ MOST PROFITABLE", x + 8, yy, GOLD);
+            graphics.drawString(this.font, "★ MOST PROFITABLE", x + 8, yy, GOLD);
             yy += 11;
-            graphics.text(this.font, truncate(top.displayName(), width - 92), x + 8, yy, TEXT);
+            graphics.drawString(this.font, truncate(top.displayName(), width - 92), x + 8, yy, TEXT);
             String amount = signedMoney(top.realizedProfit());
-            graphics.text(this.font, amount, x + width - 8 - this.font.width(amount), yy, GOOD);
+            graphics.drawString(this.font, amount, x + width - 8 - this.font.width(amount), yy, GOOD);
             yy += 14;
         }
         if (mostSold != null) {
-            graphics.text(this.font, "◆ MOST SOLD", x + 8, yy, Charts.SERIES_AQUA);
+            graphics.drawString(this.font, "◆ MOST SOLD", x + 8, yy, Charts.SERIES_AQUA);
             yy += 11;
             String units = grouped(mostSold.unitsSold()) + " units";
-            graphics.text(this.font, truncate(mostSold.displayName(), width - 85), x + 8, yy, TEXT);
-            graphics.text(this.font, units, x + width - 8 - this.font.width(units), yy, GOOD);
+            graphics.drawString(this.font, truncate(mostSold.displayName(), width - 85), x + 8, yy, TEXT);
+            graphics.drawString(this.font, units, x + width - 8 - this.font.width(units), yy, GOOD);
             yy += 15;
         }
 
         graphics.fill(x + 7, yy, x + width - 7, yy + 1, CARD_DARK);
         yy += 5;
-        graphics.text(this.font, "EXACT MARKET", x + 8, yy, MUTED);
+        graphics.drawString(this.font, "EXACT MARKET", x + 8, yy, MUTED);
         String header = "SALES     P/L";
-        graphics.text(this.font, header, x + width - 8 - this.font.width(header), yy, MUTED);
+        graphics.drawString(this.font, header, x + width - 8 - this.font.width(header), yy, MUTED);
         yy += 11;
         int limit = Math.min(4, ranked.size());
         for (int i = 0; i < limit && yy <= y + height - 21; i++) {
             var item = ranked.get(i);
             String rank = (i + 1) + "  " + item.displayName();
-            graphics.text(this.font, truncate(rank, width - 112), x + 8, yy, SECONDARY);
+            graphics.drawString(this.font, truncate(rank, width - 112), x + 8, yy, SECONDARY);
             String values = item.completedSales() + "   " + signedMoney(item.realizedProfit());
-            graphics.text(this.font, values, x + width - 8 - this.font.width(values), yy,
+            graphics.drawString(this.font, values, x + width - 8 - this.font.width(values), yy,
                     item.realizedProfit() >= 0 ? GOOD : BAD);
             yy += 11;
         }
         if (height >= 174) {
             String note = "Fingerprint + stack size stay separate";
-            graphics.text(this.font, truncate(note, width - 16), x + 8, y + height - 13, MUTED);
+            graphics.drawString(this.font, truncate(note, width - 16), x + 8, y + height - 13, MUTED);
         }
     }
 
@@ -3896,12 +3896,12 @@ public final class DoughBayScreen extends GoNutsScreen {
                                       int x, int y, int width, int height) {
         int edge = milestone.unlocked() ? 0xFFE8E8E8 : PANEL_EDGE;
         graphics.fill(x, y, x + width, y + height, milestone.unlocked() ? 0xE81A1A1A : CARD);
-        graphics.outline(x, y, width, height, edge);
+        graphics.renderOutline(x, y, width, height, edge);
         String marker = milestone.unlocked() ? "✓ " : "◇ ";
-        graphics.text(this.font, truncate(marker + milestone.title(), width - 10),
+        graphics.drawString(this.font, truncate(marker + milestone.title(), width - 10),
                 x + 5, y + 4, milestone.unlocked() ? GOOD : SECONDARY);
         String progress = milestoneProgress(milestone);
-        graphics.text(this.font, truncate(progress, width - 10), x + 5, y + 15,
+        graphics.drawString(this.font, truncate(progress, width - 10), x + 5, y + 15,
                 milestone.unlocked() ? GOOD : MUTED);
         int barX = x + 5;
         int barRight = x + width - 5;
@@ -4140,7 +4140,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         sectionTitle(graphics, "TEST BUY / TEST SELL — REAL CLICKS", x, y, width);
         int innerX = x + 9;
         int innerWidth = width - 18;
-        graphics.text(this.font,
+        graphics.drawString(this.font,
                 truncate("Buy: hunts the page ~1 min for a row under the price (add x64 for stacks). Sell: the stack in your hand.", innerWidth),
                 innerX, y + 16, SECONDARY);
         int yy = y + 30 + 70;
@@ -4311,7 +4311,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                             + "Your existing limits stay in place. A recovery confirmation does not start a new trade.\n"
                             + "If a check keeps waiting or the item is not recognized, go Back to Trade"
                             + " and keep the local evidence for your own investigation. Do not reset or remove saved trade records.";
-                    this.minecraft.gui.setScreen(new RecoveryHelpScreen(this, instructions, confirmation, () -> {
+                    this.minecraft.setScreen(new RecoveryHelpScreen(this, instructions, confirmation, () -> {
                     ExecutionResult result;
                     if ("FIRST_CONFIRMATION_REQUIRED".equals(stage)) {
                         result = AUTOMATION_SESSION.beginManualResolution(
@@ -4322,7 +4322,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     }
                     DoughBayClient.LOGGER.info("DoughBay recovery button: {}", result.detail());
                     driverMessage = result.detail();
-                    this.minecraft.gui.setScreen(this);
+                    this.minecraft.setScreen(this);
                     }, () -> policy != null
                             && AUTOMATION_SESSION.snapshot().recoveredExposureCount() == 1
                             && stage.equals(AUTOMATION_SESSION.snapshot().manualResolutionStage())
@@ -4602,11 +4602,11 @@ public final class DoughBayScreen extends GoNutsScreen {
         AutomatedExecutionDriver.OperationIntent intent = DRIVER.operationIntent();
         AutomationSessionController.SessionSnapshot session = AUTOMATION_SESSION.snapshot();
 
-        graphics.text(this.font, "AUTOMATION",
+        graphics.drawString(this.font, "AUTOMATION",
                 geometry.left(), geometry.titleY(), GOLD);
         if (!geometry.compact()) {
             String hint = "Continuous: buys market signals, relists at target, tracks your auction slots";
-            graphics.text(this.font, truncate(hint,
+            graphics.drawString(this.font, truncate(hint,
                             Math.max(80, geometry.modeX() - geometry.left() - 12)),
                     geometry.left() + this.font.width("AUTOMATION") + 12,
                     geometry.titleY(), MUTED);
@@ -4616,7 +4616,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     ? "session " + session.state().name().toLowerCase(Locale.ROOT)
                     : intent == AutomatedExecutionDriver.OperationIntent.NONE
                     ? "driver idle" : "active " + intent.name().toLowerCase(Locale.ROOT);
-            graphics.text(this.font, truncate(intentText, geometry.width()),
+            graphics.drawString(this.font, truncate(intentText, geometry.width()),
                     geometry.left(), geometry.titleY() + 12,
                     session.state() == AutomationSessionController.State.PAUSED ? BAD
                             : session.active() || intent != AutomatedExecutionDriver.OperationIntent.NONE
@@ -4654,7 +4654,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 : "Candidate: expired — choose a fresh listing"
                 : "Candidate: " + titleCase(shortName(current.listing().itemId()))
                 + " x" + current.listing().itemCount() + " at " + money(current.buyPrice());
-        graphics.text(this.font, truncate(candidate, width), x, yy,
+        graphics.drawString(this.font, truncate(candidate, width), x, yy,
                 current == null ? WARN : TEXT);
 
         int statusY = Math.max(geometry.stopY() + 24, yy + 106);
@@ -4666,13 +4666,13 @@ public final class DoughBayScreen extends GoNutsScreen {
                     + ": " + report.detail()
                     : gate == null ? "Preflight ready: one search, exact verification, zero clicks"
                     : "Preflight locked: " + gate;
-            graphics.text(this.font, truncate(line, width), x, statusY,
+            graphics.drawString(this.font, truncate(line, width), x, statusY,
                     report.outcome() == AutomatedExecutionDriver.PreflightOutcome.PASSED
                             ? GOOD : gate == null ? SECONDARY : WARN);
         }
         if (statusY + 12 <= bottom - this.font.lineHeight) {
             String event = DRIVER.inspect().description();
-            graphics.text(this.font, truncate("Last event: " + event, width),
+            graphics.drawString(this.font, truncate("Last event: " + event, width),
                     x, statusY + 12, MUTED);
         }
     }
@@ -4692,33 +4692,33 @@ public final class DoughBayScreen extends GoNutsScreen {
         int textRight = geometry.chooseX() - 12;
         int textWidth = Math.max(70, textRight - (x + 9));
         if (automationCandidate == null) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("No listing selected. Choose a completed-sales-backed opportunity first.",
                             textWidth), x + 9, yy, MUTED);
         } else if (current == null) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("Saved listing expired or changed — commands remain locked.", textWidth),
                     x + 9, yy, WARN);
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate(titleCase(shortName(automationCandidate.listing().itemId()))
                                     + " x" + automationCandidate.listing().itemCount(), textWidth),
                     x + 9, yy + 12, SECONDARY);
         } else {
             String name = titleCase(shortName(current.listing().itemId()))
                     + " x" + current.listing().itemCount();
-            graphics.text(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
+            graphics.drawString(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
             String valuation = "Buy " + money(current.buyPrice())
                     + "  •  completed-sale target " + money(current.recommendedSellPrice())
                     + "  •  " + (current.stats() == null ? 0 : current.stats().sampleCount()) + " completed samples";
-            graphics.text(this.font, truncate(valuation, textWidth), x + 9, yy + 12, GOOD);
+            graphics.drawString(this.font, truncate(valuation, textWidth), x + 9, yy + 12, GOOD);
             String identity = "Seller " + current.listing().sellerName()
                     + "  •  exact listing " + current.listing().listingKey();
-            graphics.text(this.font, truncate(identity, textWidth), x + 9, yy + 24, SECONDARY);
+            graphics.drawString(this.font, truncate(identity, textWidth), x + 9, yy + 24, SECONDARY);
         }
 
         String badge = current == null ? "NOT READY" : "FRESH EXACT";
         int badgeColor = current == null ? WARN : GOOD;
-        graphics.text(this.font, badge,
+        graphics.drawString(this.font, badge,
                 x + width - 9 - this.font.width(badge), y + 7, badgeColor);
     }
 
@@ -4825,7 +4825,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         java.nio.file.Path capture = report.diagnosticsPath() != null
                 ? report.diagnosticsPath() : DRIVER.lastCapturePath();
         if (capture != null && yy <= maxY - 9) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("Evidence: " + capture.getFileName(), innerWidth),
                     innerX, maxY - 9, Charts.SERIES_AQUA);
         }
@@ -5100,8 +5100,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + " Stop any time with Stop, E-stop or B. DonutSMP's rules ban bots, "
                         + "so running this is a ban risk you are choosing to take.",
                 innerX, yy + 4, innerWidth, textBottom, SECONDARY);
-        graphics.text(this.font, "Max per trade", innerX, labelsY, MUTED);
-        graphics.text(this.font, "Max per session", innerX + b[5] + 8, labelsY, MUTED);
+        graphics.drawString(this.font, "Max per trade", innerX, labelsY, MUTED);
+        graphics.drawString(this.font, "Max per session", innerX + b[5] + 8, labelsY, MUTED);
     }
 
     private void handleLiveTradingEnable() {
@@ -5771,7 +5771,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             yy = drawWrapped(graphics, event, innerX, yy, innerWidth,
                     textBottom, preflightEventColor(report, blocker));
             if (yy <= textBottom - 2) {
-                graphics.text(this.font,
+                graphics.drawString(this.font,
                         truncate("Search → stable GUI → exact verify → capture → STOP", innerWidth),
                         innerX, yy + 2, GOOD);
             }
@@ -5801,18 +5801,18 @@ public final class DoughBayScreen extends GoNutsScreen {
         int textWidth = Math.max(80, width - chooseWidth - 30);
         int yy = y + 26;
         if (automationCandidate == null) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("No listing selected. Choose a completed-sales-backed opportunity.",
                             textWidth), x + 9, yy, MUTED);
         } else if (current == null) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("Saved listing expired or changed; every command remains locked.",
                             textWidth), x + 9, yy, WARN);
         } else {
             String name = titleCase(shortName(current.listing().itemId()))
                     + " x" + current.listing().itemCount();
-            graphics.text(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
-            graphics.text(this.font,
+            graphics.drawString(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
+            graphics.drawString(this.font,
                     truncate("Buy " + money(current.buyPrice())
                             + "  •  completed-sale target "
                             + money(current.recommendedSellPrice())
@@ -5820,7 +5820,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     x + 9, yy + 12, GOOD);
         }
         String badge = current == null ? "NOT READY" : "FRESH EXACT";
-        graphics.text(this.font, badge,
+        graphics.drawString(this.font, badge,
                 x + width - 9 - this.font.width(badge), y + 7,
                 current == null ? WARN : GOOD);
     }
@@ -5884,7 +5884,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         java.nio.file.Path capture = report.diagnosticsPath() != null
                 ? report.diagnosticsPath() : DRIVER.lastCapturePath();
         if (capture != null && yy <= maxY - this.font.lineHeight) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("Evidence: " + capture.getFileName(), innerWidth),
                     innerX, maxY - this.font.lineHeight, Charts.SERIES_AQUA);
         }
@@ -6426,7 +6426,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
 
         graphics.fill(x, statusY, ui.innerRight(), ui.bottom() - 8, CARD_DARK);
-        graphics.outline(x, statusY, width, statusHeight - 8, PANEL_EDGE);
+        graphics.renderOutline(x, statusY, width, statusHeight - 8, PANEL_EDGE);
         String headline = snapshot.demo()
                 ? "PREVIEW MODE — add an API key to begin collecting real market history"
                 : snapshot.updatedAt() == 0
@@ -6437,19 +6437,19 @@ public final class DoughBayScreen extends GoNutsScreen {
         int color = snapshot.demo() ? WARN
                 : snapshot.status().startsWith("STOPPED") ? BAD
                 : snapshot.updatedAt() == 0 || !isFresh(snapshot) ? WARN : GOOD;
-        graphics.text(this.font, truncate(headline, width - 16), x + 8, statusY + 7, color);
+        graphics.drawString(this.font, truncate(headline, width - 16), x + 8, statusY + 7, color);
         String controls = "B emergency stop  •  Esc close";
         int controlsWidth = this.font.width(controls);
         if (width >= 680 && controlsWidth < width / 2) {
             String path = watcher == null ? "config/doughbay"
                     : watcher.config().directory().toString();
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     truncate("Config: " + path, width - controlsWidth - 30),
                     x + 8, statusY + 18, MUTED);
-            graphics.text(this.font, controls,
+            graphics.drawString(this.font, controls,
                     ui.innerRight() - 8 - controlsWidth, statusY + 18, SECONDARY);
         } else {
-            graphics.text(this.font, truncate(controls, width - 16),
+            graphics.drawString(this.font, truncate(controls, width - 16),
                     x + 8, statusY + 18, SECONDARY);
         }
     }
@@ -6693,7 +6693,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         };
         for (String line : modelLines) {
             if (modelY > lowerY + cardHeight - 10) break;
-            graphics.text(this.font, truncate(line, cardWidth - 18), x + 9, modelY, SECONDARY);
+            graphics.drawString(this.font, truncate(line, cardWidth - 18), x + 9, modelY, SECONDARY);
             modelY += 12;
         }
 
@@ -6710,7 +6710,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         for (String line : controls) {
             if (controlsY > lowerY + cardHeight - 10) break;
             int color = line.startsWith("Live") ? WARN : SECONDARY;
-            graphics.text(this.font, truncate(line, rightWidth - 18),
+            graphics.drawString(this.font, truncate(line, rightWidth - 18),
                     rightX + 9, controlsY, color);
             controlsY += 12;
         }
@@ -7163,7 +7163,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             boolean rightAligned = i > 0;
             int width = this.font.width(label);
             int x = left + columns[i] - (rightAligned ? width : 0);
-            graphics.text(this.font, label, x, y, active ? TEXT : GOLD);
+            graphics.drawString(this.font, label, x, y, active ? TEXT : GOLD);
             if (sort != null) {
                 // A few pixels of slack: the labels are small targets.
                 marketHeaderHits.add(new HeaderHit(x - 3, x + width + 3, sort));
@@ -7439,7 +7439,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int bottom = ui.bottom() - 10;
         MarketQueryClient client = DoughBayClient.marketQuery();
         if (client == null) {
-            graphics.text(this.font, "Search is unavailable (no API base URL configured).", x, top, MUTED);
+            graphics.drawString(this.font, "Search is unavailable (no API base URL configured).", x, top, MUTED);
             searchRows = List.of();
             return;
         }
@@ -7448,10 +7448,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         drainPendingTrack();
         if (!searchMessage.isBlank()) {
             String note = truncate(searchMessage, width / 2);
-            graphics.text(this.font, note, ui.innerRight() - this.font.width(note), top, GOOD);
+            graphics.drawString(this.font, note, ui.innerRight() - this.font.width(note), top, GOOD);
         }
         if (q.isEmpty()) {
-            graphics.text(this.font,
+            graphics.drawString(this.font,
                     "TOP SELLERS  ·  most sales, last 24 h  ·  right-click a seller to track their items",
                     x, top, SECONDARY);
             top += 14;
@@ -7462,7 +7462,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         grouped(r.sales()) + " sales · " + money(r.revenue()) + " · " + r.items() + " item(s)"));
             }
             if (rows.isEmpty()) {
-                graphics.text(this.font, "Loading the seller board…", x, top + 4, MUTED);
+                graphics.drawString(this.font, "Loading the seller board…", x, top + 4, MUTED);
             }
         } else {
             for (MarketQueryClient.ItemMatch m : client.matchItems(q, 8)) {
@@ -7486,10 +7486,10 @@ public final class DoughBayScreen extends GoNutsScreen {
             if (hot || hover) {
                 graphics.fill(x, ry, x + width, ry + rowHeight, hot ? CARD : CARD_DARK);
             }
-            graphics.text(this.font, row.seller() ? "◆" : "▪", x + 4, ry + 3,
+            graphics.drawString(this.font, row.seller() ? "◆" : "▪", x + 4, ry + 3,
                     row.seller() ? WARN : GOOD);
-            graphics.text(this.font, truncate(row.label(), width - 24), x + 16, ry + 3, TEXT);
-            graphics.text(this.font, truncate(row.sub(), width - 24), x + 16, ry + 12, MUTED);
+            graphics.drawString(this.font, truncate(row.label(), width - 24), x + 16, ry + 3, TEXT);
+            graphics.drawString(this.font, truncate(row.sub(), width - 24), x + 16, ry + 12, MUTED);
         }
     }
 
@@ -7498,15 +7498,15 @@ public final class DoughBayScreen extends GoNutsScreen {
         int width = ui.innerWidth();
         int top = ui.contentTop() + 26;
         MarketQueryClient client = DoughBayClient.marketQuery();
-        graphics.text(this.font, MarketQueryClient.displayName(searchDetailItem), x, top, GOLD);
-        graphics.text(this.font, searchDetailItem, x, top + 11, MUTED);
+        graphics.drawString(this.font, MarketQueryClient.displayName(searchDetailItem), x, top, GOLD);
+        graphics.drawString(this.font, searchDetailItem, x, top + 11, MUTED);
         MarketStats stats = client == null ? null : client.statsFor(searchDetailItem);
         int cardTop = top + 26;
         int cardWidth = Math.min(width, 320);
         int cardHeight = Math.min(150, ui.bottom() - 10 - cardTop);
         renderMarketCard(graphics, stats, x, cardTop, cardWidth, cardHeight);
         if (stats == null && width > cardWidth + 24) {
-            graphics.text(this.font, "No cached market stats for this item yet.",
+            graphics.drawString(this.font, "No cached market stats for this item yet.",
                     x + cardWidth + 12, cardTop + 6, MUTED);
         }
     }
@@ -7515,33 +7515,33 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 26;
-        graphics.text(this.font, searchSellerName, x, top, GOLD);
+        graphics.drawString(this.font, searchSellerName, x, top, GOLD);
         MarketQueryClient.SellerView view = searchSellerView;
         String windowLabel = searchWindowMillis >= 30L * 24 * 3_600_000L ? "30 d"
                 : searchWindowMillis >= 7L * 24 * 3_600_000L ? "7 d" : "24 h";
         if (view == null) {
-            graphics.text(this.font, "Seller lookup is unavailable.", x, top + 14, MUTED);
+            graphics.drawString(this.font, "Seller lookup is unavailable.", x, top + 14, MUTED);
             return;
         }
         if (view.loading()) {
-            graphics.text(this.font, "Loading " + searchSellerName + "…", x, top + 14, SECONDARY);
+            graphics.drawString(this.font, "Loading " + searchSellerName + "…", x, top + 14, SECONDARY);
             return;
         }
         if (view.error() != null) {
-            graphics.text(this.font, truncate("Lookup failed: " + view.error(), width), x, top + 14, WARN);
+            graphics.drawString(this.font, truncate("Lookup failed: " + view.error(), width), x, top + 14, WARN);
             return;
         }
         List<MarketQueryClient.Sale> sales = view.sales();
-        graphics.text(this.font, grouped(sales.size()) + " sales · " + money(view.revenue())
+        graphics.drawString(this.font, grouped(sales.size()) + " sales · " + money(view.revenue())
                 + " revenue · last " + windowLabel, x, top + 12, SECONDARY);
         if (!searchMessage.isBlank()) {
             String note = truncate(searchMessage, width / 2);
-            graphics.text(this.font, note, ui.innerRight() - this.font.width(note), top + 12, GOOD);
+            graphics.drawString(this.font, note, ui.innerRight() - this.font.width(note), top + 12, GOOD);
         }
         int listTop = top + 28;
         int bottom = ui.bottom() - 10;
         if (sales.isEmpty()) {
-            graphics.text(this.font, "No sales in this window.", x, listTop + 4, MUTED);
+            graphics.drawString(this.font, "No sales in this window.", x, listTop + 4, MUTED);
             return;
         }
         int rowHeight = 12;
@@ -7555,8 +7555,8 @@ public final class DoughBayScreen extends GoNutsScreen {
             int ry = listTop + i * rowHeight;
             boolean hover = mouseY >= ry && mouseY < ry + rowHeight;
             if (hover) graphics.fill(x, ry, x + width, ry + rowHeight, CARD_DARK);
-            graphics.text(this.font, relativeAge(now - s.soldAt()), x + 2, ry + 2, MUTED);
-            graphics.text(this.font, truncate(titleCase(shortName(s.itemId())), colCountRight - colItem - 6),
+            graphics.drawString(this.font, relativeAge(now - s.soldAt()), x + 2, ry + 2, MUTED);
+            graphics.drawString(this.font, truncate(titleCase(shortName(s.itemId())), colCountRight - colItem - 6),
                     x + colItem, ry + 2, TEXT);
             cell(graphics, "x" + s.itemCount(), x, colCountRight, ry + 2, SECONDARY, true);
             cell(graphics, money(s.totalPrice()), x, width, ry + 2, GOOD, true);
@@ -7627,7 +7627,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int left = ui.innerLeft();
         int width = ui.innerWidth();
         addRenderableWidget(CockpitButton.builder(Component.literal("Item loadouts"), ignored ->
-                this.minecraft.gui.setScreen(PresetsScreen.itemLoadouts(this)))
+                this.minecraft.setScreen(PresetsScreen.itemLoadouts(this)))
                 .bounds(left+width-110,ui.contentTop()+25,110,18).build());
         int filterW = width >= 560 ? 150 : 118;
         int catW = width >= 560 ? 118 : 92;
@@ -7670,7 +7670,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }).bounds(left + searchW + gap + filterW + gap, y, catW, 18).build());
 
         itemsPriorityButton=CockpitButton.builder(Component.literal("Priority"),ignored->
-                this.minecraft.gui.setScreen(new ItemPriorityScreen(this,itemsSelected)))
+                this.minecraft.setScreen(new ItemPriorityScreen(this,itemsSelected)))
                 .bounds(left,ui.bottom()-44,110,18).build();
         itemsPriorityButton.active=!itemsSelected.isEmpty();addRenderableWidget(itemsPriorityButton);
 
@@ -7739,7 +7739,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         counts += itemsSelected.isEmpty()
                 ? "  ·  tick icons, then use the buttons below  ·  right-click one to flip it"
                 : "  ·  " + itemsSelected.size() + " selected";
-        graphics.text(this.font, UiTheme.fit(this.font,counts,Math.max(1,width-118)), x, ui.contentTop() + 28, SECONDARY);
+        graphics.drawString(this.font, UiTheme.fit(this.font,counts,Math.max(1,width-118)), x, ui.contentTop() + 28, SECONDARY);
 
         int cell = 20;
         int cols = Math.max(1, width / cell);
@@ -7770,24 +7770,24 @@ public final class DoughBayScreen extends GoNutsScreen {
                 graphics.fill(cx, cy, cx + cell - 1, cy + cell - 1,
                         ticked ? 0xFF242424 : hover ? CARD : CARD_DARK);
                 if (listMatches(denySet, e.bare())) {
-                    graphics.outline(cx, cy, cell - 1, cell - 1, 0xFF6E6E6E);
+                    graphics.renderOutline(cx, cy, cell - 1, cell - 1, 0xFF6E6E6E);
                 } else if (listMatches(allowSet, e.bare())) {
-                    graphics.outline(cx, cy, cell - 1, cell - 1, GOOD);
+                    graphics.renderOutline(cx, cy, cell - 1, cell - 1, GOOD);
                 } else if (isTracked) {
-                    graphics.outline(cx, cy, cell - 1, cell - 1, GOLD);
+                    graphics.renderOutline(cx, cy, cell - 1, cell - 1, GOLD);
                 }
-                graphics.item(e.stack(), cx + 2, cy + 2);
+                graphics.renderItem(e.stack(), cx + 2, cy + 2);
                 // A gold corner tick marks a tracked item even when a list colour
                 // or the selection frame already owns its border.
                 if (isTracked) graphics.fill(cx + cell - 6, cy + 1, cx + cell - 2, cy + 3, GOLD);
                 var priority=ItemPriorities.level(e.id());
                 if(priority!=ItemPriorities.Level.STANDARD){
                     graphics.fill(cx+cell-9,cy+cell-10,cx+cell-1,cy+cell-1,0xDD0F0F0F);
-                    graphics.text(font,priority==ItemPriorities.Level.HIGH?"H":"L",cx+cell-8,cy+cell-10,priority==ItemPriorities.Level.HIGH?GOLD:SECONDARY);
+                    graphics.drawString(font,priority==ItemPriorities.Level.HIGH?"H":"L",cx+cell-8,cy+cell-10,priority==ItemPriorities.Level.HIGH?GOLD:SECONDARY);
                 }
                 // A ticked item gets a bright frame over any list colour, so the
                 // selection reads even on an item already excluded or included.
-                if (ticked) graphics.outline(cx, cy, cell - 1, cell - 1, 0xFFFFFFFF);
+                if (ticked) graphics.renderOutline(cx, cy, cell - 1, cell - 1, 0xFFFFFFFF);
                 if (hover) itemsHoveredId = e.id();
             }
         }
@@ -7795,7 +7795,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (maxScroll > 0) {
             String more = (itemsScrollRow < maxScroll ? "▼ " : "") + (itemsScrollRow > 0 ? "▲" : "");
             if (!more.isBlank()) {
-                graphics.text(this.font, more.strip(), x + width - this.font.width(more.strip()), top - 10, MUTED);
+                graphics.drawString(this.font, more.strip(), x + width - this.font.width(more.strip()), top - 10, MUTED);
             }
         }
 
@@ -7803,7 +7803,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         // by which list it is already on.
         String priorityInfo=itemsSelected.size()+" selected · High first · Low fallback";
         if(itemsHoveredId!=null)priorityInfo=MarketQueryClient.displayName(itemsHoveredId)+" · Priority: "+ItemPriorities.level(itemsHoveredId).label();
-        graphics.text(font,UiTheme.fit(font,priorityInfo,Math.max(1,width-116)),x+116,ui.bottom()-39,SECONDARY);
+        graphics.drawString(font,UiTheme.fit(font,priorityInfo,Math.max(1,width-116)),x+116,ui.bottom()-39,SECONDARY);
 
     }
 
@@ -7815,12 +7815,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         int width = ui.innerWidth();
         int top = ui.contentTop() + 7;
         AutomationSessionController.SessionSnapshot s = AUTOMATION_SESSION.snapshot();
-        graphics.text(this.font, "LOGS  ·  what the bot is doing, newest first", x, top, GOLD);
+        graphics.drawString(this.font, "LOGS  ·  what the bot is doing, newest first", x, top, GOLD);
 
         AutomationSessionController.State st = s.state();
         int stColor = st == AutomationSessionController.State.PAUSED ? WARN
                 : st == AutomationSessionController.State.STOPPED ? MUTED : GOOD;
-        graphics.text(this.font, "State: " + st.name(), x, top + 14, stColor);
+        graphics.drawString(this.font, "State: " + st.name(), x, top + 14, stColor);
 
         // The one line that matters when it stops: why, and what to do about it.
         String guidance = AUTOMATION_SESSION.pauseGuidance();
@@ -7832,7 +7832,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int bottom = ui.bottom() - 10;
         List<AutomationLog.Line> lines = AutomationLog.recent();
         if (lines.isEmpty()) {
-            graphics.text(this.font, "No steps captured yet this session.", x, listTop + 4, MUTED);
+            graphics.drawString(this.font, "No steps captured yet this session.", x, listTop + 4, MUTED);
             return;
         }
         int rowH = 11;
@@ -7851,16 +7851,16 @@ public final class DoughBayScreen extends GoNutsScreen {
                     : "PAUSED".equals(ln.state()) || low.contains("pause") ? WARN
                     : low.contains("bought") || low.contains("sold") || low.contains("listed") ? GOOD
                     : SECONDARY;
-            graphics.text(this.font, clockOf(ln.at()), x, ly, MUTED);
+            graphics.drawString(this.font, clockOf(ln.at()), x, ly, MUTED);
             String tag = "[" + ln.state() + "] ";
-            graphics.text(this.font, tag, x + stampW, ly, MUTED);
+            graphics.drawString(this.font, tag, x + stampW, ly, MUTED);
             int mx = x + stampW + this.font.width(tag);
             graphics.text(this.font, truncate(ln.text(), Math.max(20, width - (mx - x))), mx, ly, color);
         }
         if (maxScroll > 0) {
             String more = (logsScroll < maxScroll ? "▼" : "") + (logsScroll > 0 ? " ▲" : "");
             if (!more.isBlank()) {
-                graphics.text(this.font, more.strip(),
+                graphics.drawString(this.font, more.strip(),
                         x + width - this.font.width(more.strip()), top + 14, MUTED);
             }
         }
@@ -7996,7 +7996,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                                   String heading, String lineOne, String lineTwo) {
         int height = 92;
         card(graphics, x, y, width, height, CARD_DARK);
-        graphics.text(this.font, heading, x + 12, y + 12, GOLD);
+        graphics.drawString(this.font, heading, x + 12, y + 12, GOLD);
         int yy = drawWrapped(graphics, lineOne, x + 12, y + 32,
                 width - 24, y + height - 12, TEXT);
         drawWrapped(graphics, lineTwo, x + 12, yy + 3,
@@ -8026,7 +8026,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
         graphics.pose().scale(scale);
-        graphics.text(this.font, text, 0, 0, color);
+        graphics.drawString(this.font, text, 0, 0, color);
         graphics.pose().popMatrix();
     }
 
@@ -8278,12 +8278,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 7;
-        graphics.text(this.font, truncate("FLIPS  ·  order at your price, sell at your price",
+        graphics.drawString(this.font, truncate("FLIPS  ·  order at your price, sell at your price",
                 Math.max(40, width - (flipSelected.isEmpty() ? 160 : 280))), x, top, GOLD);
         List<AutomationSessionController.OwnPriceView> views = AUTOMATION_SESSION.ownPriceViews();
         boolean only = Tuning.get("prices.only") >= 0.5;
         int barY = ui.bottom() - 27;
-        graphics.text(this.font, truncate(FlipsMode.description(), width), x, top+19, only?GOOD:WARN);
+        graphics.drawString(this.font, truncate(FlipsMode.description(), width), x, top+19, only?GOOD:WARN);
         int y = top + 35;
         int rowHeight = 18;
         // The list has what three rows of the picker and its caption leave it.
@@ -8299,17 +8299,17 @@ public final class DoughBayScreen extends GoNutsScreen {
         int c1 = (int) (innerWidth * 0.22), c2 = (int) (innerWidth * 0.38), c3 = (int) (innerWidth * 0.51),
                 c4 = (int) (innerWidth * 0.66), c5 = (int) (innerWidth * 0.78), c6 = (int) (innerWidth * 0.88);
         int hy = y + 27;
-        graphics.text(this.font, "ITEM", innerX, hy, MUTED);
-        graphics.text(this.font, "BUY (EACH)", innerX + c1, hy, MUTED);
-        graphics.text(this.font, "SELL (EACH)", innerX + c2, hy, MUTED);
-        graphics.text(this.font, "ORDER UP", innerX + c3, hy, MUTED);
-        graphics.text(this.font, "BOUGHT", innerX + c4, hy, MUTED);
-        graphics.text(this.font, "PAID EACH", innerX + c5, hy, MUTED);
-        graphics.text(this.font, "HELD", innerX + c6, hy, MUTED);
+        graphics.drawString(this.font, "ITEM", innerX, hy, MUTED);
+        graphics.drawString(this.font, "BUY (EACH)", innerX + c1, hy, MUTED);
+        graphics.drawString(this.font, "SELL (EACH)", innerX + c2, hy, MUTED);
+        graphics.drawString(this.font, "ORDER UP", innerX + c3, hy, MUTED);
+        graphics.drawString(this.font, "BOUGHT", innerX + c4, hy, MUTED);
+        graphics.drawString(this.font, "PAID EACH", innerX + c5, hy, MUTED);
+        graphics.drawString(this.font, "HELD", innerX + c6, hy, MUTED);
         cell(graphics, "MARKET", innerX, innerWidth, hy, MUTED, true);
         int yy = hy + 12;
         if (views.isEmpty()) {
-            graphics.text(this.font, truncate("Nothing here yet. Click an item below, fill in the most to pay for one and the price to sell one at, and press Add.",
+            graphics.drawString(this.font, truncate("Nothing here yet. Click an item below, fill in the most to pay for one and the price to sell one at, and press Add.",
                     innerWidth), innerX, yy + 5, MUTED);
         }
         for (int i = 0; i < shown; i++) {
@@ -8324,17 +8324,17 @@ public final class DoughBayScreen extends GoNutsScreen {
             flipRowItems.add(e.itemId());
             int held = v.listedUnits() + v.inHandUnits();
             ItemEntry pictured = itemByBare(e.itemId());
-            if (pictured != null) graphics.item(pictured.stack(), innerX, yy);
-            graphics.text(this.font, truncate(MarketQueryClient.displayName(e.itemId()), c1 - 26), innerX + 20, yy + 5, TEXT);
-            graphics.text(this.font, truncate((e.top() ? "top" + (e.over() > 0 ? "+" + MoneyInput.compact(e.over()) : "") + ", max " : "")
+            if (pictured != null) graphics.renderItem(pictured.stack(), innerX, yy);
+            graphics.drawString(this.font, truncate(MarketQueryClient.displayName(e.itemId()), c1 - 26), innerX + 20, yy + 5, TEXT);
+            graphics.drawString(this.font, truncate((e.top() ? "top" + (e.over() > 0 ? "+" + MoneyInput.compact(e.over()) : "") + ", max " : "")
                     + money(e.buy()), c2 - c1 - 6), innerX + c1, yy + 5, SECONDARY);
-            graphics.text(this.font, truncate(money(e.sell()) + (e.singles() ? "  x1" : ""), c3 - c2 - 6), innerX + c2, yy + 5, GOLD);
-            graphics.text(this.font, truncate(v.onOrder() > 0 ? grouped(v.onOrder()) + " at " + money(v.orderUnit()) : "none",
+            graphics.drawString(this.font, truncate(money(e.sell()) + (e.singles() ? "  x1" : ""), c3 - c2 - 6), innerX + c2, yy + 5, GOLD);
+            graphics.drawString(this.font, truncate(v.onOrder() > 0 ? grouped(v.onOrder()) + " at " + money(v.orderUnit()) : "none",
                     c4 - c3 - 6), innerX + c3, yy + 5, v.onOrder() > 0 ? TEXT : MUTED);
-            graphics.text(this.font, truncate(grouped(v.bought()) + (e.total() > 0 ? " of " + grouped(e.total()) : ""), c5 - c4 - 6),
+            graphics.drawString(this.font, truncate(grouped(v.bought()) + (e.total() > 0 ? " of " + grouped(e.total()) : ""), c5 - c4 - 6),
                     innerX + c4, yy + 5, SECONDARY);
-            graphics.text(this.font, v.bought() > 0 ? money(v.spent() / (double) v.bought()) : "-", innerX + c5, yy + 5, SECONDARY);
-            graphics.text(this.font, held > 0 ? grouped(held) : "none", innerX + c6, yy + 5, held > 0 ? TEXT : MUTED);
+            graphics.drawString(this.font, v.bought() > 0 ? money(v.spent() / (double) v.bought()) : "-", innerX + c5, yy + 5, SECONDARY);
+            graphics.drawString(this.font, held > 0 ? grouped(held) : "none", innerX + c6, yy + 5, held > 0 ? TEXT : MUTED);
             // What one sells for by our own figures: at or over the price asked, it will sell.
             cell(graphics, v.marketUnit() > 0 ? money(v.marketUnit()) : "?", innerX, innerWidth, yy + 5,
                     v.marketUnit() <= 0 ? MUTED : v.marketUnit() >= e.sell() ? GOOD : WARN, true);
@@ -8371,9 +8371,9 @@ public final class DoughBayScreen extends GoNutsScreen {
                     boolean picked = e.bare().equals(chosen);
                     graphics.fill(cx, cy, cx + FLIP_CELL - 1, cy + FLIP_CELL - 1, picked ? 0xFF242424 : hover ? CARD : CARD_DARK);
                     // Brightest ring round the one in the bar; a dimmer ring round those already on the list.
-                    if (picked) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOLD);
-                    else if (OwnPrices.of(e.bare()) != null) graphics.outline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOOD);
-                    graphics.item(e.stack(), cx + 2, cy + 2);
+                    if (picked) graphics.renderOutline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOLD);
+                    else if (OwnPrices.of(e.bare()) != null) graphics.renderOutline(cx, cy, FLIP_CELL - 1, FLIP_CELL - 1, GOOD);
+                    graphics.renderItem(e.stack(), cx + 2, cy + 2);
                     if (hover) under = e;
                 }
             }
@@ -8381,19 +8381,19 @@ public final class DoughBayScreen extends GoNutsScreen {
                     : matches.isEmpty() ? "No item matches \"" + flipItem.strip() + "\"."
                     : "PICK THE ITEM  ·  " + matches.size() + " match" + (matches.size() == 1 ? "" : "es")
                     + "  ·  type in the item box to search, scroll for more, click one to choose it";
-            graphics.text(this.font, truncate(caption, width), x, captionY, under != null ? TEXT : MUTED);
+            graphics.drawString(this.font, truncate(caption, width), x, captionY, under != null ? TEXT : MUTED);
         }
 
         // The bar: labels above the boxes, what was last said above the labels.
         if (flipFieldX.length == 10) {
             String[] labels = {"item (search)", "most paid", "sell at", "per order", "bidding", "over by", "selling", "total", "budget"};
-            for (int i = 0; i < labels.length; i++) graphics.text(this.font, labels[i], flipFieldX[i] + 1, barY - 10, MUTED);
+            for (int i = 0; i < labels.length; i++) graphics.drawString(this.font, labels[i], flipFieldX[i] + 1, barY - 10, MUTED);
         }
         List<String> problems = OwnPrices.current().problems();
         if (!flipMessage.isBlank()) {
-            graphics.text(this.font, truncate(flipMessage, width), x, barY - 23, flipMessageBad ? BAD : GOOD);
+            graphics.drawString(this.font, truncate(flipMessage, width), x, barY - 23, flipMessageBad ? BAD : GOOD);
         } else if (!problems.isEmpty()) {
-            graphics.text(this.font, truncate("Not understood in the list: " + String.join("; ", problems), width), x, barY - 23, BAD);
+            graphics.drawString(this.font, truncate("Not understood in the list: " + String.join("; ", problems), width), x, barY - 23, BAD);
         }
     }
 
@@ -8604,10 +8604,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         int right = ui.innerRight();
         int top = ui.contentTop() + 7;
         long now = System.currentTimeMillis();
-        graphics.text(this.font, "ORDERS  ·  what buyers are paying right now, beside the auction's asking price", x, top, GOLD);
+        graphics.drawString(this.font, "ORDERS  ·  what buyers are paying right now, beside the auction's asking price", x, top, GOLD);
         String stamp = book == null || book.readAt() == 0 ? "not read yet; the bot reads /orders between trades"
                 : "read " + relativeAge(Math.max(0, now - book.readAt())) + "  ·  " + book.status();
-        graphics.text(this.font, stamp, right - this.font.width(stamp), top, MUTED);
+        graphics.drawString(this.font, stamp, right - this.font.width(stamp), top, MUTED);
         List<OrderBook.Order> orders = book == null ? List.of() : new ArrayList<>(book.orders());
         record Row(OrderBook.Order order, double ask, double spread) {
         }
@@ -8635,12 +8635,12 @@ public final class DoughBayScreen extends GoNutsScreen {
             sectionTitle(graphics, "YOUR BIDS  ·  " + bids.size() + " open  ·  " + money(held) + " held"
                     + (AUTOMATION_SESSION.ownOrdersReadAt() > 0 ? "  ·  read " + relativeAge(Math.max(0, now - AUTOMATION_SESSION.ownOrdersReadAt())) : ""), x, y, width);
             int by = y + 27;
-            if (bids.isEmpty()) graphics.text(this.font, "No bids yet. The desk places them after the next order read.", x + 9, by + 1, MUTED);
+            if (bids.isEmpty()) graphics.drawString(this.font, "No bids yet. The desk places them after the next order read.", x + 9, by + 1, MUTED);
             for (var b : bids) {
                 if (by + rowHeight > y + bidHeight - 4) break;
                 net.minecraft.world.item.ItemStack stack = stackFor(b.itemKey(), 1);
-                if (stack != null) graphics.item(stack, x + 9, by - 3);
-                graphics.text(this.font, truncate(title(b.itemId()), (int) (width * 0.35)), x + 29, by + 2, TEXT);
+                if (stack != null) graphics.renderItem(stack, x + 9, by - 3);
+                graphics.drawString(this.font, truncate(title(b.itemId()), (int) (width * 0.35)), x + 29, by + 2, TEXT);
                 cell(graphics, money(b.unitPrice()) + " each", x + 9, (int) (width * 0.55), by + 2, GOLD, true);
                 cell(graphics, b.delivered() + "/" + b.requested() + " delivered", x + 9, (int) (width * 0.78), by + 2, SECONDARY, true);
                 cell(graphics, b.expiresInMillis() > 0 ? "expires in " + relativeAge(b.expiresInMillis()) : "", x + 9, width - 18, by + 2, MUTED, true);
@@ -8656,7 +8656,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int c1 = (int) (innerWidth * 0.40), c2 = (int) (innerWidth * 0.52), c3 = (int) (innerWidth * 0.64),
                 c4 = (int) (innerWidth * 0.76), c5 = (int) (innerWidth * 0.87), c6 = innerWidth;
         int hy = y + 27;
-        graphics.text(this.font, "ITEM  ·  REQUIRED PARTS", innerX, hy, MUTED);
+        graphics.drawString(this.font, "ITEM  ·  REQUIRED PARTS", innerX, hy, MUTED);
         cell(graphics, "PAYS EACH", innerX, c1, hy, MUTED, true);
         cell(graphics, "WANTS", innerX, c2, hy, MUTED, true);
         cell(graphics, "AUCTION ASK", innerX, c3, hy, MUTED, true);
@@ -8665,15 +8665,15 @@ public final class DoughBayScreen extends GoNutsScreen {
         cell(graphics, "PAGE", innerX, c6, hy, MUTED, true);
         int yy = hy + 12;
         if (rows.isEmpty()) {
-            graphics.text(this.font, "Nothing read yet. With the session running, the bot opens /orders every few minutes and this fills in.", innerX, yy + 1, MUTED);
+            graphics.drawString(this.font, "Nothing read yet. With the session running, the bot opens /orders every few minutes and this fills in.", innerX, yy + 1, MUTED);
         }
         for (Row r : rows) {
             if (yy + rowHeight > y + cardHeight - 4) break;
             OrderBook.Order o = r.order();
             net.minecraft.world.item.ItemStack stack = stackFor(o.itemKey(), 1);
-            if (stack != null) graphics.item(stack, innerX, yy - 3);
+            if (stack != null) graphics.renderItem(stack, innerX, yy - 3);
             String label = title(o.itemId()) + (o.parts().isEmpty() ? "" : "  ·  " + String.join(", ", o.parts()));
-            graphics.text(this.font, truncate(label, c1 - 70), innerX + 20, yy + 2, o.parts().isEmpty() ? TEXT : SECONDARY);
+            graphics.drawString(this.font, truncate(label, c1 - 70), innerX + 20, yy + 2, o.parts().isEmpty() ? TEXT : SECONDARY);
             cell(graphics, money(o.unitPrice()), innerX, c1, yy + 2, GOLD, true);
             cell(graphics, compactCount(o.remaining()), innerX, c2, yy + 2, SECONDARY, true);
             cell(graphics, r.ask() > 0 ? money(r.ask()) : "—", innerX, c3, yy + 2, SECONDARY, true);
@@ -8710,7 +8710,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int width = ui.innerWidth();
         int right = ui.innerRight();
         int top = ui.contentTop() + 7;
-        graphics.text(this.font, "PAYROLL  ·  each name gets a share of the profit since its last payout", x, top, GOLD);
+        graphics.drawString(this.font, "PAYROLL  ·  each name gets a share of the profit since its last payout", x, top, GOLD);
         long now = System.currentTimeMillis();
         List<dev.doughbay.storage.PayrollRepository.Rule> rules = payroll == null ? List.of() : payroll.rules();
         List<dev.doughbay.storage.PayrollRepository.Payment> payments = payroll == null ? List.of() : payroll.payments();
@@ -8726,17 +8726,17 @@ public final class DoughBayScreen extends GoNutsScreen {
         int c1 = (int) (innerWidth * 0.18), c2 = (int) (innerWidth * 0.26), c3 = (int) (innerWidth * 0.46),
                 c4 = (int) (innerWidth * 0.58), c5 = (int) (innerWidth * 0.70), c6 = (int) (innerWidth * 0.82), c7 = innerWidth;
         int hy = y + 27;
-        graphics.text(this.font, "NAME", innerX, hy, MUTED);
-        graphics.text(this.font, "SHARE", innerX + c1, hy, MUTED);
-        graphics.text(this.font, "TRIGGER", innerX + c2, hy, MUTED);
-        graphics.text(this.font, "RESERVE", innerX + c3, hy, MUTED);
-        graphics.text(this.font, "DAILY CAP", innerX + c4, hy, MUTED);
-        graphics.text(this.font, "PAID", innerX + c5, hy, MUTED);
-        graphics.text(this.font, "LAST", innerX + c6, hy, MUTED);
+        graphics.drawString(this.font, "NAME", innerX, hy, MUTED);
+        graphics.drawString(this.font, "SHARE", innerX + c1, hy, MUTED);
+        graphics.drawString(this.font, "TRIGGER", innerX + c2, hy, MUTED);
+        graphics.drawString(this.font, "RESERVE", innerX + c3, hy, MUTED);
+        graphics.drawString(this.font, "DAILY CAP", innerX + c4, hy, MUTED);
+        graphics.drawString(this.font, "PAID", innerX + c5, hy, MUTED);
+        graphics.drawString(this.font, "LAST", innerX + c6, hy, MUTED);
         cell(graphics, "STATUS", innerX, c7, hy, MUTED, true);
         int yy = hy + 12;
         if (rules.isEmpty()) {
-            graphics.text(this.font, "No rules yet. Fill in the bar below and press Add: name, share of profit, trigger, value, reserve, daily cap.", innerX, yy + 1, MUTED);
+            graphics.drawString(this.font, "No rules yet. Fill in the bar below and press Add: name, share of profit, trigger, value, reserve, daily cap.", innerX, yy + 1, MUTED);
         }
         for (var r : rules) {
             boolean hover = mouseX >= innerX && mouseX < innerX + innerWidth && mouseY >= yy && mouseY < yy + rowHeight;
@@ -8745,13 +8745,13 @@ public final class DoughBayScreen extends GoNutsScreen {
             payrollRowBounds.add(new long[] {yy, yy + rowHeight, r.ruleId()});
             String status = r.paused() ? "paused" : "active";
             int statusColor = r.paused() ? WARN : GOOD;
-            graphics.text(this.font, truncate(r.name() + (r.onlyOnline() ? "  (online only)" : ""), c1 - 6), innerX, yy + 2, TEXT);
-            graphics.text(this.font, trimNumber(r.percent()) + "%", innerX + c1, yy + 2, GOLD);
-            graphics.text(this.font, truncate(triggerText(r), c3 - c2 - 6), innerX + c2, yy + 2, SECONDARY);
-            graphics.text(this.font, r.reserve() > 0 ? money(r.reserve()) : "none", innerX + c3, yy + 2, SECONDARY);
-            graphics.text(this.font, r.dailyCap() > 0 ? money(r.dailyCap()) : "none", innerX + c4, yy + 2, SECONDARY);
-            graphics.text(this.font, money(r.totalPaid()), innerX + c5, yy + 2, GOOD);
-            graphics.text(this.font, r.lastPaidAt() > 0 ? relativeAge(Math.max(0, now - r.lastPaidAt())) : "never", innerX + c6, yy + 2, SECONDARY);
+            graphics.drawString(this.font, truncate(r.name() + (r.onlyOnline() ? "  (online only)" : ""), c1 - 6), innerX, yy + 2, TEXT);
+            graphics.drawString(this.font, trimNumber(r.percent()) + "%", innerX + c1, yy + 2, GOLD);
+            graphics.drawString(this.font, truncate(triggerText(r), c3 - c2 - 6), innerX + c2, yy + 2, SECONDARY);
+            graphics.drawString(this.font, r.reserve() > 0 ? money(r.reserve()) : "none", innerX + c3, yy + 2, SECONDARY);
+            graphics.drawString(this.font, r.dailyCap() > 0 ? money(r.dailyCap()) : "none", innerX + c4, yy + 2, SECONDARY);
+            graphics.drawString(this.font, money(r.totalPaid()), innerX + c5, yy + 2, GOOD);
+            graphics.drawString(this.font, r.lastPaidAt() > 0 ? relativeAge(Math.max(0, now - r.lastPaidAt())) : "never", innerX + c6, yy + 2, SECONDARY);
             cell(graphics, status, innerX, c7, yy + 2, statusColor, true);
             yy += rowHeight;
         }
@@ -8765,16 +8765,16 @@ public final class DoughBayScreen extends GoNutsScreen {
             sectionTitle(graphics, "PAYMENTS  ·  written before /pay goes out, settled by the chat receipt", x, y, width);
             yy = y + 27;
             if (shown == 0) {
-                graphics.text(this.font, "No payments yet.", innerX, yy + 1, MUTED);
+                graphics.drawString(this.font, "No payments yet.", innerX, yy + 1, MUTED);
             }
             for (int i = 0; i < shown; i++) {
                 var p = payments.get(i);
                 int color = "PAID".equals(p.status()) ? GOOD : "MANUAL".equals(p.status()) ? SECONDARY : "FAILED".equals(p.status()) ? BAD : WARN;
-                graphics.text(this.font, relativeAge(Math.max(0, now - p.requestedAt())), innerX, yy + 2, MUTED);
-                graphics.text(this.font, truncate(p.name(), c2 - c1 - 6), innerX + c1, yy + 2, TEXT);
-                graphics.text(this.font, money(p.amount()), innerX + c2, yy + 2, GOLD);
-                graphics.text(this.font, p.status(), innerX + c3, yy + 2, color);
-                graphics.text(this.font, truncate(p.note().isBlank() ? "of " + money(p.profit()) + " profit" : p.note(), innerWidth - c4), innerX + c4, yy + 2, SECONDARY);
+                graphics.drawString(this.font, relativeAge(Math.max(0, now - p.requestedAt())), innerX, yy + 2, MUTED);
+                graphics.drawString(this.font, truncate(p.name(), c2 - c1 - 6), innerX + c1, yy + 2, TEXT);
+                graphics.drawString(this.font, money(p.amount()), innerX + c2, yy + 2, GOLD);
+                graphics.drawString(this.font, p.status(), innerX + c3, yy + 2, color);
+                graphics.drawString(this.font, truncate(p.note().isBlank() ? "of " + money(p.profit()) + " profit" : p.note(), innerWidth - c4), innerX + c4, yy + 2, SECONDARY);
                 yy += rowHeight;
             }
         }
@@ -8783,12 +8783,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         int barY = ui.bottom() - 27;
         if (payrollFieldX.length == 6) {
             String[] labels = {"name", "share %", "trigger", "value", "reserve $", "daily cap $"};
-            for (int i = 0; i < labels.length; i++) graphics.text(this.font, labels[i], payrollFieldX[i] + 1, barY - 10, MUTED);
+            for (int i = 0; i < labels.length; i++) graphics.drawString(this.font, labels[i], payrollFieldX[i] + 1, barY - 10, MUTED);
         }
         String live = payroll == null ? "" : payroll.status();
-        if (!payrollMessage.isBlank()) graphics.text(this.font, truncate(payrollMessage, width), x, barY - 34, GOOD);
-        if (!live.isBlank()) graphics.text(this.font, truncate(live, width), x, barY - 23, live.contains("failed") || live.contains("error") ? BAD : SECONDARY);
-        graphics.text(this.font, truncate("Anything not paid out stays in the bot as working capital. Every share is of the profit since that name's last payout.", width),
+        if (!payrollMessage.isBlank()) graphics.drawString(this.font, truncate(payrollMessage, width), x, barY - 34, GOOD);
+        if (!live.isBlank()) graphics.drawString(this.font, truncate(live, width), x, barY - 23, live.contains("failed") || live.contains("error") ? BAD : SECONDARY);
+        graphics.drawString(this.font, truncate("Anything not paid out stays in the bot as working capital. Every share is of the profit since that name's last payout.", width),
                 right - this.font.width(truncate("Anything not paid out stays in the bot as working capital. Every share is of the profit since that name's last payout.", width)), top + 11, MUTED);
     }
 
@@ -8799,7 +8799,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     private void sectionTitle(GuiGraphics graphics, String title,
                               int x, int y, int width) {
-        graphics.text(this.font, truncate(title, width - 16), x + 8, y + 7, GOLD);
+        graphics.drawString(this.font, truncate(title, width - 16), x + 8, y + 7, GOLD);
         graphics.fill(x + 8, y + 19, x + width - 8, y + 20, CARD_DARK);
     }
 
@@ -8807,7 +8807,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                       int y, int color, boolean rightAlign) {
         int x = left + column;
         if (rightAlign) x -= this.font.width(value);
-        graphics.text(this.font, value, x, y, color);
+        graphics.drawString(this.font, value, x, y, color);
     }
 
     private int kvRight(GuiGraphics graphics, int x, int y, int width,
@@ -8828,17 +8828,17 @@ public final class DoughBayScreen extends GoNutsScreen {
             safeValue = truncate(safeValue, valueRoom);
         }
 
-        graphics.text(this.font,
+        graphics.drawString(this.font,
                 this.font.plainSubstrByWidth(label,
                         Math.max(18, width - this.font.width(safeValue) - gap)),
                 x, y, MUTED);
-        graphics.text(this.font, safeValue, x + width - this.font.width(safeValue), y, valueColor);
+        graphics.drawString(this.font, safeValue, x + width - this.font.width(safeValue), y, valueColor);
         return y + 11;
     }
 
     private int statusLine(GuiGraphics graphics, int x, int y, int width,
                            String text, int color) {
-        graphics.text(this.font, this.font.plainSubstrByWidth(text, width), x, y, color);
+        graphics.drawString(this.font, this.font.plainSubstrByWidth(text, width), x, y, color);
         return y + 11;
     }
 
@@ -8847,7 +8847,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (width <= 0 || y > maxY) return y;
         for (FormattedCharSequence line : this.font.split(Component.literal(text), width)) {
             if (y > maxY - this.font.lineHeight) break;
-            graphics.text(this.font, line, x, y, color);
+            graphics.drawString(this.font, line, x, y, color);
             y += 11;
         }
         return y;
@@ -9079,7 +9079,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                              int x, int rowY, int rowHeight) {
         ItemStack stack = itemIcon(itemId);
         if (stack.isEmpty()) return 0;
-        graphics.item(stack, x, rowY + Math.max(0, (rowHeight - 16) / 2));
+        graphics.renderItem(stack, x, rowY + Math.max(0, (rowHeight - 16) / 2));
         return ICON_SLOT_WIDTH;
     }
 

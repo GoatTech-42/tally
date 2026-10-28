@@ -93,8 +93,8 @@ final class Charts {
             // A short stroke, not a filled box: at this density a box is
             // data-weight ink doing a label's job.
             g.fill(tx + 4, ry + 4, tx + 10, ry + 5, row.keyColor());
-            g.text(font, row.value(), tx + 14, ry, 0xFFFFFFFF);
-            g.text(font, row.label(), tx + 14 + font.width(row.value()) + 6, ry, MUTED_INK);
+            g.drawString(font, row.value(), tx + 14, ry, 0xFFFFFFFF);
+            g.drawString(font, row.label(), tx + 14 + font.width(row.value()) + 6, ry, MUTED_INK);
             ry += lineHeight;
         }
     }
@@ -114,7 +114,7 @@ final class Charts {
         if (w < 4 || h < 4) return y + Math.max(0, h) + 4;
         drawFrame(g, x, y, w, h);
         if (points == null || points.size() < 2) {
-            g.text(font, "not enough history to plot", x + 6, y + h / 2 - 4, MUTED_INK);
+            g.drawString(font, "not enough history to plot", x + 6, y + h / 2 - 4, MUTED_INK);
             return y + h + 4;
         }
 
@@ -128,7 +128,7 @@ final class Charts {
             }
         }
         if (visible.size() < 2) {
-            g.text(font, "not enough completed sales in this window",
+            g.drawString(font, "not enough completed sales in this window",
                     x + 6, y + h / 2 - 4, MUTED_INK);
             return y + h + 4;
         }
@@ -177,7 +177,7 @@ final class Charts {
             g.fill(plotLeft, gy, plotRight + 1, gy + 1, GRID);
             String tick = money(tickValue);
             int tickY = clamp(gy - 4, y + 1, y + h - 11);
-            g.text(font, tick, plotLeft - font.width(tick) - 4, tickY, MUTED_INK);
+            g.drawString(font, tick, plotLeft - font.width(tick) - 4, tickY, MUTED_INK);
         }
 
         // Time labels get their own baseline.  The detail chart is a fixed
@@ -187,10 +187,10 @@ final class Charts {
         String startLabel = spanHoursLabel(span);
         String middleLabel = halfSpanLabel(span);
         String endLabel = "now";
-        g.text(font, startLabel, plotLeft, timeY, MUTED_INK);
-        g.text(font, middleLabel,
+        g.drawString(font, startLabel, plotLeft, timeY, MUTED_INK);
+        g.drawString(font, middleLabel,
                 plotLeft + (plotWidth - font.width(middleLabel)) / 2, timeY, MUTED_INK);
-        g.text(font, endLabel, plotRight - font.width(endLabel) + 1, timeY, MUTED_INK);
+        g.drawString(font, endLabel, plotRight - font.width(endLabel) + 1, timeY, MUTED_INK);
 
         // Reference levels are deliberately drawn before the main series and
         // carry no in-plot labels.  Their dashed shape and the separate legend
@@ -303,7 +303,7 @@ final class Charts {
             int gy = plotBottom - (int) Math.round((double) axisValue / max * availableHeight);
             g.fill(plotLeft, gy, plotRight + 1, gy + 1, GRID);
             String label = Integer.toString(axisValue);
-            g.text(font, label, plotRight + 4,
+            g.drawString(font, label, plotRight + 4,
                     clamp(gy - 4, y + 1, y + h - 10), MUTED_INK);
         }
 
@@ -333,7 +333,7 @@ final class Charts {
                         new TooltipRow(color, ago(bucketAgo), count + " sales"));
             }
         }
-        g.text(font, caption, x + 3, y + 2, MUTED_INK);
+        g.drawString(font, caption, x + 3, y + 2, MUTED_INK);
         drawFrame(g, x, y, w, h);
         return y + h + 4;
     }
@@ -398,7 +398,7 @@ final class Charts {
             boolean isMarker = Math.abs(level[0] - markerPrice) < 1e-6;
             g.fill(x + 70, yy, x + 70 + barW, yy + rowHeight - 2,
                     isMarker ? SERIES_AQUA : color);
-            g.text(font, money(level[0]), x, yy, isMarker ? SERIES_AQUA : SECONDARY_INK);
+            g.drawString(font, money(level[0]), x, yy, isMarker ? SERIES_AQUA : SECONDARY_INK);
             yy += rowHeight;
         }
         return yy;

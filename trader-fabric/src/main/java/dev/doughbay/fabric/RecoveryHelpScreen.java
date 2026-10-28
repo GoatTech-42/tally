@@ -40,12 +40,12 @@ final class RecoveryHelpScreen extends GoNutsScreen {
     @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int w = bodyWidth(), x = (width - w) / 2;
-        g.text(font, "GoNuts - Check interrupted trade", x, 14, UiTheme.TEXT);
+        g.drawString(font, "GoNuts - Check interrupted trade", x, 14, UiTheme.TEXT);
         int bottom = height - 60, y = 40 - scroll;
         g.enableScissor(x, 36, x + w, bottom);
         for (String paragraph : instructions.split("\n")) {
             for (var line : font.split(Component.literal(paragraph), w)) {
-                g.text(font, line, x, y, UiTheme.TEXT);
+                g.drawString(font, line, x, y, UiTheme.TEXT);
                 y += 13;
             }
             y += 10;
@@ -54,7 +54,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
         g.disableScissor();
         boolean allowed = stillAllowed.getAsBoolean();
         primary.active = scroll >= maxScroll && allowed;
-        g.text(font, scroll < maxScroll ? "Scroll down to read all steps before confirming."
+        g.drawString(font, scroll < maxScroll ? "Scroll down to read all steps before confirming."
                 : allowed ? "Confirm only what you checked. Your limits stay in place."
                 : "No confirmation available. Follow the steps above, then return to Trade.",
                 x, height - 51, UiTheme.MUTED);
@@ -65,7 +65,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
         scroll = Math.max(0, Math.min(maxScroll, scroll - (int) (dy * 28)));
         return true;
     }
-    @Override public void onClose() { minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { minecraft.setScreen(parent); }
     @Override public void removed() {
         DoughBayClient.automationSessionController().setPanelOpen(false);
         super.removed();

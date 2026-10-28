@@ -28,7 +28,7 @@ final class TutorialScreen extends GoNutsScreen {
             for(int i=0;i<Tutorials.COURSES.size();i++){
                 var item=Tutorials.COURSES.get(i);int col=i%2,row=i/2,bw=(w-8)/2;
                 var button=CockpitButton.builder(Component.literal(item.title()),b->{
-                    if(item.id().equals("setup")){minecraft.gui.setScreen(new QuickStartScreen(parent));return;}
+                    if(item.id().equals("setup")){minecraft.setScreen(new QuickStartScreen(parent));return;}
                     course=item;step=scroll=0;rebuildWidgets();})
                     .bounds(x+col*(bw+8),62+row*28,bw,23).build();
                 libraryButtons.put(button,62+row*28);addRenderableWidget(button);
@@ -53,20 +53,20 @@ final class TutorialScreen extends GoNutsScreen {
     }
     @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
-        g.text(font,UiTheme.fit(font,course==null?"TUTORIALS · CHOOSE A GUIDE":course.title()+" · "+(step+1)+" / "+course.steps().size(),w),x,18,UiTheme.GOLD);
+        g.drawString(font,UiTheme.fit(font,course==null?"TUTORIALS · CHOOSE A GUIDE":course.title()+" · "+(step+1)+" / "+course.steps().size(),w),x,18,UiTheme.GOLD);
         if(course==null){
             maxScroll=Math.max(0,62+((Tutorials.COURSES.size()+1)/2)*28-(height-40));
             libraryButtons.forEach((button,y)->{button.setY(y-scroll);button.visible=button.getY()>=60&&button.getY()+23<=height-40;});
-            g.text(font,UiTheme.fit(font,"Learn at your own pace. Guides open pages; you choose settings and when to trade.",w),x,38,UiTheme.TEXT);
+            g.drawString(font,UiTheme.fit(font,"Learn at your own pace. Guides open pages; you choose settings and when to trade.",w),x,38,UiTheme.TEXT);
         }else{
             var lesson=course.steps().get(step);int top=42,bottom=height-68,y=top-scroll;
             g.enableScissor(x,top,x+w,bottom);
-            for(var line:font.split(Component.literal(lesson.title()),w)){g.text(font,line,x,y,UiTheme.GOLD);y+=14;}
+            for(var line:font.split(Component.literal(lesson.title()),w)){g.drawString(font,line,x,y,UiTheme.GOLD);y+=14;}
             y+=10;
-            for(var line:font.split(Component.literal(lesson.explanation()),w)){g.text(font,line,x,y,UiTheme.TEXT);y+=14;}
+            for(var line:font.split(Component.literal(lesson.explanation()),w)){g.drawString(font,line,x,y,UiTheme.TEXT);y+=14;}
             y+=12;
             for(var line:font.split(Component.literal("Open the page below to review its controls. Use Return to tutorial on that page when you are ready to continue. No setting changes automatically."),w)){
-                g.text(font,line,x,y,UiTheme.MUTED);y+=14;
+                g.drawString(font,line,x,y,UiTheme.MUTED);y+=14;
             }
             maxScroll=Math.max(0,y+scroll-bottom);g.disableScissor();
         }
@@ -75,7 +75,7 @@ final class TutorialScreen extends GoNutsScreen {
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){
         scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*28)));return true;
     }
-    @Override public void onClose(){parent.endTutorialNavigation();minecraft.gui.setScreen(home);}
+    @Override public void onClose(){parent.endTutorialNavigation();minecraft.setScreen(home);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}
     @Override public boolean isPauseScreen(){return false;}
 }

@@ -22,14 +22,14 @@ final class RegionMapPanel {
     void render(GuiGraphics g, Font font, int x, int y, int width, int bottom) {
         var client = Minecraft.getInstance();
         var view = RegionMapReport.snapshot();
-        g.text(font, "REGION MAP", x, y + 3, UiTheme.GOLD);
-        g.text(font, UiTheme.fit(font, "This client · " + view.server(), width), x, y + 22, UiTheme.TEXT);
+        g.drawString(font, "REGION MAP", x, y + 3, UiTheme.GOLD);
+        g.drawString(font, UiTheme.fit(font, "This client · " + view.server(), width), x, y + 22, UiTheme.TEXT);
         String coords = NameMask.on() ? RegionMapReport.coordinates(0, 0, 0, true)
                 : client.player == null || client.getConnection() == null ? "XYZ unavailable"
                 : RegionMapReport.coordinates(client.player.getX(), client.player.getY(), client.player.getZ(), false);
-        g.text(font, UiTheme.fit(font, coords, width), x, y + 39, UiTheme.SECONDARY);
-        g.text(font, UiTheme.fit(font, view.status(), width), x, y + 55, UiTheme.MUTED);
-        g.text(font, UiTheme.fit(font, dev.doughbay.fabric.staffwatch.ManualRegionTransfer.status(), width), x, y+103, UiTheme.SECONDARY);
+        g.drawString(font, UiTheme.fit(font, coords, width), x, y + 39, UiTheme.SECONDARY);
+        g.drawString(font, UiTheme.fit(font, view.status(), width), x, y + 55, UiTheme.MUTED);
+        g.drawString(font, UiTheme.fit(font, dev.doughbay.fabric.staffwatch.ManualRegionTransfer.status(), width), x, y+103, UiTheme.SECONDARY);
         boolean wide = width >= 580;
         int available = Math.min(width - (wide ? 195 : 0), bottom - y - (wide ? 145 : 198));
         int cell = Math.max(1, Math.min(48, available / RegionMapData.GRID));
@@ -47,7 +47,7 @@ final class RegionMapPanel {
                 if (cell >= 5) g.fill(px, py, px + 1, py + cell, UiTheme.EDGE);
                 if (area >= 0 && cell >= 16) {
                     String label = Integer.toString(area);
-                    g.text(font, label, px + (cell - font.width(label)) / 2, py + (cell - 8) / 2, 0xFF0A0A0A);
+                    g.drawString(font, label, px + (cell - font.width(label)) / 2, py + (cell - 8) / 2, 0xFF0A0A0A);
                 }
             }
         }
@@ -57,8 +57,8 @@ final class RegionMapPanel {
             int px = lx + (wide ? 0 : (i % 3) * (width / 3));
             int py = ly + (wide ? i * 20 : (i / 3) * 16);
             g.fill(px, py, px + 7, py + 7, RegionMapData.colorByName(names[i]));
-            g.text(font, names[i], px + 12, py, UiTheme.SECONDARY);
+            g.drawString(font, names[i], px + 12, py, UiTheme.SECONDARY);
         }
-        g.text(font, UiTheme.fit(font, "White = your server area · exact position is not plotted", width), x, bottom - 13, UiTheme.MUTED);
+        g.drawString(font, UiTheme.fit(font, "White = your server area · exact position is not plotted", width), x, bottom - 13, UiTheme.MUTED);
     }
 }

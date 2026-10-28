@@ -198,7 +198,7 @@ public final class UpdateScreen extends GoNutsScreen {
     private void leave() {
         answered = true;
         if (mode == Mode.UPDATE) UpdateCheck.acknowledge();
-        this.minecraft.gui.setScreen(parent);
+        this.minecraft.setScreen(parent);
     }
 
     @Override
@@ -230,7 +230,7 @@ public final class UpdateScreen extends GoNutsScreen {
         int left = (this.width - width) / 2;
         int top = (this.height - height) / 2;
         UiTheme.panel(graphics, left, top, width, height, UiTheme.SURFACE);
-        graphics.text(this.font, UiTheme.fit(this.font, title(), width - 24), left + 12, top + 11, UiTheme.GOLD);
+        graphics.drawString(this.font, UiTheme.fit(this.font, title(), width - 24), left + 12, top + 11, UiTheme.GOLD);
         graphics.fill(left + 12, top + 24, left + width - 12, top + 25, UiTheme.EDGE);
         int y = top + 33;
         int limit = top + height - 36;
@@ -240,7 +240,7 @@ public final class UpdateScreen extends GoNutsScreen {
             y += line.gapAbove();
             // Room for this line and, unless it is the last, for the note that there is more.
             if (y + 11 > limit - (i < lines.size() - 1 ? 11 : 0) && line.gapAbove() >= 0) {
-                graphics.text(this.font, "More on the download page and the About tab.", left + 12, y, UiTheme.MUTED);
+                graphics.drawString(this.font, "More on the download page and the About tab.", left + 12, y, UiTheme.MUTED);
                 break;
             }
             graphics.text(this.font, line.text(), left + 12 + line.indent(), y, line.color());

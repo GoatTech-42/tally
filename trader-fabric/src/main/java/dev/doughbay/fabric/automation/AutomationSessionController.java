@@ -2364,7 +2364,7 @@ public final class AutomationSessionController {
                     client.player.closeContainer();
                 } else if (open instanceof DoughBayScreen
                         && System.currentTimeMillis() - panelActivityAt > Math.max(limit, 5_000)) {
-                    client.gui.setScreen(null);
+                    client.setScreen(null);
                     LOGGER.info("DoughBay automation: closed the idle GoNuts screen to finish a listing");
                 }
             }
@@ -3874,7 +3874,7 @@ public final class AutomationSessionController {
             // The operator watches this state on the mod's own screen, which
             // counts as an open GUI. Close it rather than wait for them to:
             // the auction house is about to be opened regardless.
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to begin buying";
             return;
         }
@@ -4128,7 +4128,7 @@ public final class AutomationSessionController {
             // Escape by hand. Dismiss it the same way. The driver is idle here
             // (checked above), so this is never the buy confirmation, which is
             // handled inside the buy while the driver is busy.
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Dismissed a server dialog that was blocking the bot";
             return true;
         }
@@ -5419,7 +5419,7 @@ public final class AutomationSessionController {
         if (!onOrdersPage) {
             if (closeStrayAuctionPage(client)) return true;
             if (modScreenOpen(client)) {
-                client.gui.setScreen(null);
+                client.setScreen(null);
                 detail = "Closing the GoNuts screen for the bid desk";
                 return true;
             }
@@ -7926,7 +7926,7 @@ public final class AutomationSessionController {
                 if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                     client.player.closeContainer();
                 } else if (open instanceof DoughBayScreen) {
-                    client.gui.setScreen(null);
+                    client.setScreen(null);
                 } else if (open == null && client.player.containerMenu != client.player.inventoryMenu) {
                     client.player.closeContainer();
                 }
@@ -8235,7 +8235,7 @@ public final class AutomationSessionController {
                 client.player.closeContainer();
                 cursorStowClickTick = controllerTick;
             } else if (client.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
-                client.gui.setScreen(null);
+                client.setScreen(null);
             }
             detail = "Waiting for recovered inventory to settle";
             return true;
@@ -9057,7 +9057,7 @@ public final class AutomationSessionController {
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return false;
         if (closeStrayAuctionPage(client)) return true;
         if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to read the order house";
             return true;
         }
@@ -9269,7 +9269,7 @@ public final class AutomationSessionController {
             return true;
         }
         if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to check auction slots";
             return true;
         }
@@ -10216,7 +10216,7 @@ public final class AutomationSessionController {
             return true;
         }
         if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to reprice a listing";
             return true;
         }
@@ -10732,7 +10732,7 @@ public final class AutomationSessionController {
             return;
         }
         if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to begin watching";
             return;
         }
@@ -11262,7 +11262,7 @@ public final class AutomationSessionController {
                     return;
                 }
                 if (open instanceof DoughBayScreen) {
-                    client.gui.setScreen(null);
+                    client.setScreen(null);
                     detail = "Closing the GoNuts screen before preparing the stack";
                     return;
                 }
@@ -12674,7 +12674,7 @@ public final class AutomationSessionController {
         if (authorizationBlocker(client) != null) return;
         if (closeStrayAuctionPage(client)) return;
         if (modScreenOpen(client)) {
-            client.gui.setScreen(null);
+            client.setScreen(null);
             detail = "Closing the GoNuts screen to check your listings for the recovered purchase";
             return;
         }
