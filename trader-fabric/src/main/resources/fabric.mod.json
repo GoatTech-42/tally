@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "id": "doughbay",
   "version": "${version}",
-  "name": "GoNuts",
-  "description": "Auction analysis and verified execution for DonutSMP: collects market data, values items, finds resale opportunities, and can execute exact-match trades.",
+  "name": "Tally",
+  "description": "Auction analysis and verified execution for DonutSMP: collects market data, values items, finds resale opportunities, and can execute exact-match trades. Community-maintained fork of GoNuts.",
   "authors": [
     "cody-raves"
   ],
   "contact": {
-    "sources": "https://github.com/cody-raves/GoNuts"
+    "sources": "https://github.com/GoatTech-42/tally"
   },
   "license": [
     "MIT",
