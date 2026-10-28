@@ -29,7 +29,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -57,7 +57,7 @@ import java.util.regex.Pattern;
  * <p>The market engine only knows the five-method {@link ExecutionDriver}
  * contract. All Minecraft-specific work stays here: commands are sent through
  * the current client connection, open container slots are inspected, and the
- * exact menu slot is activated through {@code handleContainerInput}.
+ * exact menu slot is activated through {@code handleInventoryMouseClick}.
  *
  * <p>Execution is deliberately a tick-driven state machine. A command, the
  * auction results screen, the confirmation screen, and the resulting inventory
@@ -2509,8 +2509,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 return;
             }
             try {
-                client.gameMode.handleContainerInput(container.getMenu().containerId, menuSlot, 0,
-                        ContainerInput.QUICK_MOVE, client.player);
+                client.gameMode.handleInventoryMouseClick(container.getMenu().containerId, menuSlot, 0,
+                        ClickType.QUICK_MOVE, client.player);
             } catch (RuntimeException e) {
                 abort(client, "The stack could not be moved into the deliver page");
                 return;
@@ -6091,8 +6091,8 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (operation == Operation.DRY_RUN || client.gameMode == null || client.player == null) return false;
         if (menuSlot < 0 || menuSlot >= container.getMenu().slots.size()) return false;
         try {
-            client.gameMode.handleContainerInput(container.getMenu().containerId, menuSlot, 0,
-                    ContainerInput.QUICK_MOVE, client.player);
+            client.gameMode.handleInventoryMouseClick(container.getMenu().containerId, menuSlot, 0,
+                    ClickType.QUICK_MOVE, client.player);
             return true;
         } catch (RuntimeException e) {
             FaultTrace.INSTANCE.record(FaultTrace.Stage.DRIVER_CLICK,e,System.currentTimeMillis());
@@ -6151,16 +6151,16 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * the one-a-tick ceiling a suggestion.
      */
     public boolean stashClick(Minecraft client, AbstractContainerScreen<?> container,
-                              int menuSlot, int button, ContainerInput input) {
+                              int menuSlot, int button, ClickType input) {
         return clickSlot(client, container, menuSlot, button, input);
     }
 
     private boolean clickSlot(Minecraft client, AbstractContainerScreen<?> container, int menuSlot) {
-        return clickSlot(client, container, menuSlot, 0, ContainerInput.PICKUP);
+        return clickSlot(client, container, menuSlot, 0, ClickType.PICKUP);
     }
 
     private boolean clickSlot(Minecraft client, AbstractContainerScreen<?> container, int menuSlot,
-                              int button, ContainerInput input) {
+                              int button, ClickType input) {
         clickDeferred = false;
         // Defense in depth: even if a future state-machine change routes a
         // preflight here, read-only mode can never emit container input.
@@ -6212,7 +6212,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         clickGapTicks = rollClickGap();
         try {
             noteClick();
-            client.gameMode.handleContainerInput(
+            client.gameMode.handleInventoryMouseClick(
                     container.getMenu().containerId,
                     menuSlot,
                     button,

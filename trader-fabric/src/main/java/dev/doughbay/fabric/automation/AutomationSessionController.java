@@ -32,7 +32,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
@@ -8185,8 +8185,8 @@ public final class AutomationSessionController {
                 || client.player.containerMenu != client.player.inventoryMenu
                 || client.screen != null || menuId != client.player.containerMenu.containerId) return false;
         try {
-            client.gameMode.handleContainerInput(menuId, menuSlot, button,
-                    ContainerInput.PICKUP, client.player);
+            client.gameMode.handleInventoryMouseClick(menuId, menuSlot, button,
+                    ClickType.PICKUP, client.player);
             singlePeelReadyAt = System.currentTimeMillis() + 350;
             return true;
         } catch (RuntimeException e) {
@@ -8254,7 +8254,7 @@ public final class AutomationSessionController {
             if (!inSlot.isEmpty() && (!ItemStack.isSameItemSameComponents(inSlot, carried)
                     || inSlot.getCount() >= slot.getMaxStackSize(carried))) continue;
             try {
-                client.gameMode.handleContainerInput(menu.containerId, i, 0, ContainerInput.PICKUP, client.player);
+                client.gameMode.handleInventoryMouseClick(menu.containerId, i, 0, ClickType.PICKUP, client.player);
                 cursorStowClickTick = controllerTick;
                 detail = "Returning carried stock to the inventory";
             } catch (RuntimeException e) {
@@ -11333,11 +11333,11 @@ public final class AutomationSessionController {
                 }
                 try {
                     preparedInventoryClose.interactionStarted(client.player);
-                    client.gameMode.handleContainerInput(
+                    client.gameMode.handleInventoryMouseClick(
                             client.player.inventoryMenu.containerId,
                             menuSlot,
                             reserved,
-                            ContainerInput.SWAP,
+                            ClickType.SWAP,
                             client.player);
                 } catch (RuntimeException e) {
                     pauseInternal("Exact-stack swap failed; no listing command was sent");
@@ -12226,9 +12226,9 @@ public final class AutomationSessionController {
         ItemStack occupant = inventory.getItem(reserved).copy();
         reservedClearAttempts++;
         try {
-            client.gameMode.handleContainerInput(
+            client.gameMode.handleInventoryMouseClick(
                     client.player.inventoryMenu.containerId, menuSlot, reserved,
-                    ContainerInput.SWAP, client.player);
+                    ClickType.SWAP, client.player);
         } catch (RuntimeException e) {
             return ReservedSlot.STUCK;
         }

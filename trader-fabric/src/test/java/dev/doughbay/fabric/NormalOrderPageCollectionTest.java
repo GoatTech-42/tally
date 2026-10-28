@@ -879,7 +879,7 @@ class NormalOrderPageCollectionTest {
     private static class RecordingGameMode extends net.minecraft.client.multiplayer.MultiPlayerGameMode{
         List<Integer> slots; boolean moveStacks;
         private RecordingGameMode(){super(null,null);}
-        @Override public void handleContainerInput(int window,int slot,int button,net.minecraft.world.inventory.ContainerInput input,Player player){slots.add(slot);if(moveStacks&&input==net.minecraft.world.inventory.ContainerInput.QUICK_MOVE){
+        @Override public void handleInventoryMouseClick(int window,int slot,int button,net.minecraft.world.inventory.ClickType input,Player player){slots.add(slot);if(moveStacks&&input==net.minecraft.world.inventory.ClickType.QUICK_MOVE){
             var stack=player.containerMenu.slots.get(slot).getItem();var remaining=stack.copy();player.getInventory().add(remaining);player.containerMenu.slots.get(slot).set(remaining);
         }}
     }

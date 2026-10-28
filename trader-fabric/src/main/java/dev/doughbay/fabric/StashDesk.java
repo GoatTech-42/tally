@@ -293,7 +293,7 @@ public final class StashDesk {
     private static Runnable afterClicks;
 
     /** One click: which slot, which button, and which kind. */
-    private record Click(int slot, int button, net.minecraft.world.inventory.ContainerInput input) {
+    private record Click(int slot, int button, net.minecraft.world.inventory.ClickType input) {
     }
 
     /**
@@ -473,7 +473,7 @@ public final class StashDesk {
             return false;
         }
         pending.clear();
-        var pickup = net.minecraft.world.inventory.ContainerInput.PICKUP;
+        var pickup = net.minecraft.world.inventory.ClickType.PICKUP;
         pending.add(new Click(reserve, 0, pickup));   // pick the stack up
         pending.add(new Click(free, 1, pickup));      // right-click drops exactly one
         pending.add(new Click(reserve, 0, pickup));   // put the rest back
@@ -510,7 +510,7 @@ public final class StashDesk {
         var unwanted = toPutAway;
         if (wanted.isEmpty() && unwanted.isEmpty()) return false;
         var inventory = client.player.getInventory();
-        var quickMove = net.minecraft.world.inventory.ContainerInput.QUICK_MOVE;
+        var quickMove = net.minecraft.world.inventory.ClickType.QUICK_MOVE;
         java.util.List<Click> away = new java.util.ArrayList<>();
         java.util.List<Click> back = new java.util.ArrayList<>();
         java.util.List<String> cameBack = new java.util.ArrayList<>();
@@ -587,7 +587,7 @@ public final class StashDesk {
         }
         client.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(client.player));
         pending.clear();
-        var pickup = net.minecraft.world.inventory.ContainerInput.PICKUP;
+        var pickup = net.minecraft.world.inventory.ClickType.PICKUP;
         pending.add(new Click(source, 0, pickup));               // pick the chest up
         pending.add(new Click(OFFHAND_MENU_SLOT, 0, pickup));    // and put it in the off hand
         afterClicks = () -> {

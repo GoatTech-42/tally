@@ -94,7 +94,7 @@ class NativeRecoveryNavigation209Test {
     }
     private static class Clicks extends net.minecraft.client.multiplayer.MultiPlayerGameMode {
         List<Integer> slots;private Clicks(){super(null,null);}
-        @Override public void handleContainerInput(int window,int slot,int button,ContainerInput input,Player player){slots.add(slot);}
+        @Override public void handleInventoryMouseClick(int window,int slot,int button,ClickType input,Player player){slots.add(slot);}
     }
     private static Field field(Class<?> c,String n)throws Exception{var f=c.getDeclaredField(n);f.setAccessible(true);return f;}
     private static void set(Object o,String n,Object v)throws Exception{field(o.getClass(),n).set(o,v);}
