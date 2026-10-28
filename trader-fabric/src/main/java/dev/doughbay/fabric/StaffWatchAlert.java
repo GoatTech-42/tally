@@ -22,7 +22,7 @@ public final class StaffWatchAlert {
                     if (Minecraft.getInstance().screen == null) render(g);
                 });
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) ->
-                ScreenEvents.afterExtract(screen).register((s, g, x, y, delta) -> render(g)));
+                ScreenEvents.afterRender(screen).register((s, g, x, y, delta) -> render(g)));
     }
 
     public static void show(String name, int others) {

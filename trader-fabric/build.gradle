@@ -78,7 +78,8 @@ processResources {
         expand 'version': project.version,
                'minecraft_version': project.minecraft_version,
                'loader_version': project.loader_version,
-               'loader_dependency': project.loader_dependency
+               'loader_dependency': project.loader_dependency,
+               'java_dependency': project.java_dependency
     }
     // When this jar was built, for the update check: a release jar that is
     // not this one is an update only if it was put up after this.
