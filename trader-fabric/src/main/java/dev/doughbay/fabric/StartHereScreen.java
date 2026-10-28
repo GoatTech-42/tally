@@ -12,7 +12,7 @@ final class StartHereScreen extends GoNutsScreen {
     private final DoughBayScreen parent;
     private String message = "";
     StartHereScreen(DoughBayScreen parent) {
-        super(Component.literal("GoNuts - Start here")); this.parent = parent;
+        super(Component.literal("Tally - Start here")); this.parent = parent;
     }
     private int bodyWidth() { return Math.min(600, width - 24); }
     private int left() { return (width - bodyWidth()) / 2; }
@@ -42,13 +42,13 @@ final class StartHereScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("More tutorials"),
                 b -> minecraft.setScreen(new TutorialScreen(parent, this, false)))
                 .bounds(left(), footer, half, 23).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back to GoNuts"), b -> onClose())
+        addRenderableWidget(CockpitButton.builder(Component.literal("Back to Tally"), b -> onClose())
                 .bounds(left() + half + 6, footer, half, 23).build());
     }
     @Override public void render(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int x = left(), y = top(), w = bodyWidth();
-        g.drawString(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);
+        g.drawString(font, "NEW TO TALLY? START HERE", x, y, UiTheme.GOLD);
         g.drawString(font, UiTheme.fit(font, "Join DonutSMP, choose your limits, then review and Start. No code needed.", w), x, y + 23, UiTheme.TEXT);
         g.drawString(font, UiTheme.fit(font, "Reopen this page: B > Settings > Help & setup.", w), x, y + 42, UiTheme.MUTED);
         int lineY = row(3) + 32;

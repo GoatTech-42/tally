@@ -694,10 +694,10 @@ public final class EvasionGuard {
             String message = String.format(java.util.Locale.ROOT,
                     "Evasion: took %.1f damage (%.1f health left); nearby: %s", lastHealth - health, health, who);
             DoughBayClient.LOGGER.warn("DoughBay {}", message);
-            client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             if (onlyFriendsAbout) {
                 DoughBayClient.LOGGER.info(
-                        "DoughBay evasion: the damage came from a friend and nobody else is about; carrying on");
+                        "Tally evasion: the damage came from a friend and nobody else is about; carrying on");
             } else if (Tuning.get("evasion.on_damage") >= 0.5) {
                 if (running) session.pause("Evasion: took damage");
                 closeAnyScreen(client);
@@ -767,7 +767,7 @@ public final class EvasionGuard {
                 String message = String.format(java.util.Locale.ROOT, "Evasion: %s %s %.0f blocks; escaping",
                         hostile.getName().getString(), why, hostileDistance);
                 DoughBayClient.LOGGER.warn("DoughBay {}", message);
-                client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+                client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
                 if (running) session.pause("Evasion: " + hostile.getName().getString() + " " + why + " " + Math.round(hostileDistance) + " blocks");
                 closeAnyScreen(client);
                 triggered = true;
@@ -793,7 +793,7 @@ public final class EvasionGuard {
                     "Evasion: %s is %.0f blocks out and %s; about %.1f s away",
                     threat.name(), threat.distance(), threat.gliding() ? "gliding in" : "closing fast", threat.seconds());
             DoughBayClient.LOGGER.warn("DoughBay {}", message);
-            client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             if (running) session.pause("Evasion: " + threat.name() + " closing fast");
             closeAnyScreen(client);
             triggered = true;
@@ -822,7 +822,7 @@ public final class EvasionGuard {
             note(nearestWarn, warnDistance, "sighted");
             String message = String.format(java.util.Locale.ROOT, "Evasion: %s is %d blocks away", nearestWarn, Math.round(warnDistance));
             DoughBayClient.LOGGER.info("DoughBay {}", message);
-            client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
         }
         if (nearestWarn == null) warnedOf = "";
 
@@ -855,7 +855,7 @@ public final class EvasionGuard {
                         "Evasion: %s within %d blocks (%.0f); session paused",
                         nearest, radiusBlocks(), nearestDistance);
                 DoughBayClient.LOGGER.info("DoughBay {}", message);
-                client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+                client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             }
             return;
         }
@@ -905,7 +905,7 @@ public final class EvasionGuard {
                 ? "Evasion: area clear for a minute; session resumed"
                 : "Evasion: area clear, but resume was refused (" + result.detail() + "); trying again in 15 s";
         DoughBayClient.LOGGER.info("DoughBay {}", message);
-        client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+        client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
     }
 
     /**
@@ -1013,7 +1013,7 @@ public final class EvasionGuard {
         String message = String.format(java.util.Locale.ROOT,
                 "Evasion: under water with %d s of air left; getting out", Math.max(0, air) / 20);
         DoughBayClient.LOGGER.warn("DoughBay {}", message);
-        client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+        client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
         AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
         if (snapshot.state() != AutomationSessionController.State.STOPPED
                 && snapshot.state() != AutomationSessionController.State.PAUSED) {
@@ -1075,7 +1075,7 @@ public final class EvasionGuard {
             String message = "Evasion: " + mobEscapes + " escapes from mobs in ten minutes and there is another ("
                     + nearest + "); staying put for " + MobWatch.IGNORE_MILLIS / 60_000L + " min. A hit still sends it away";
             DoughBayClient.LOGGER.warn("DoughBay {}", message);
-            client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             note(nearest, best, "mobs everywhere; staying put");
             return;
         }
@@ -1084,7 +1084,7 @@ public final class EvasionGuard {
         String message = String.format(java.util.Locale.ROOT, "Evasion: %s within %d blocks (%.0f); escaping",
                 nearest, (int) reach, best);
         DoughBayClient.LOGGER.info("DoughBay {}", message);
-        client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+        client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
         AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
         if (snapshot.state() != AutomationSessionController.State.STOPPED
                 && snapshot.state() != AutomationSessionController.State.PAUSED) {
@@ -1144,7 +1144,7 @@ public final class EvasionGuard {
         witherEscapedAt = now;
         String message = "Evasion: a wither's bar is on the screen (" + bar + "); getting out";
         DoughBayClient.LOGGER.warn("DoughBay {}", message);
-        client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+        client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
         AutomationSessionController.SessionSnapshot snapshot = session.snapshot();
         if (snapshot.state() != AutomationSessionController.State.STOPPED
                 && snapshot.state() != AutomationSessionController.State.PAUSED) {
@@ -1214,7 +1214,7 @@ public final class EvasionGuard {
             String message = "Evasion: " + lastIntruder + " came too close; "
                     + (home.isEmpty() ? "teleporting away" : "going to home '" + home + "'");
             DoughBayClient.LOGGER.info("DoughBay {}", message);
-            client.player.displayClientMessage(Component.literal("[GoNuts]" + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             reportEscape(client, "Escape requested: " + lastIntruder + " came too close",
                     "waiting for teleport", lastIntruder);
             DoughBayClient.executionDriver().sendEscapeWhenClear(client, command);
@@ -1306,13 +1306,13 @@ public final class EvasionGuard {
         wandering = false;
         note(lastIntruder, 0, "left the server");
         try {
-            if (client.player != null) client.player.displayClientMessage(Component.literal("[GoNuts]" + reason), false);
+            if (client.player != null) client.player.displayClientMessage(Component.literal("[Tally]" + reason), false);
             DoughBayClient.LOGGER.info("DoughBay {}", reason);
             away = true;
             leaveWanted = false;
             leftAt = System.currentTimeMillis();
             if (client.getConnection() != null) {
-                client.getConnection().getConnection().disconnect(Component.literal("GoNuts evasion"));
+                client.getConnection().getConnection().disconnect(Component.literal("Tally evasion"));
             }
         } catch (RuntimeException e) {
             away = false;

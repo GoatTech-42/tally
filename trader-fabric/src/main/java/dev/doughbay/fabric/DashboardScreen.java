@@ -10,7 +10,7 @@ import net.minecraft.util.Util;
 /** Explicit pairing and a non-secret status view; relay connection never pauses trading. */
 public final class DashboardScreen extends GoNutsScreen {
     private final Screen parent;private EditBox code,name;
-    private String codeDraft="",nameDraft="GoNuts client";
+    private String codeDraft="",nameDraft="Tally client";
     private net.minecraft.client.gui.components.Button link,unlink,retry;
     public DashboardScreen(Screen parent){super(Component.literal("Hosted Dashboard"));this.parent=parent;}
     private int left(){return (width-Math.min(500,width-24))/2;}private int panelWidth(){return Math.min(500,width-24);}

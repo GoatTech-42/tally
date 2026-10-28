@@ -5,7 +5,7 @@ import net.minecraft.network.chat.Component;
 public final class ProxyScreen extends GoNutsScreen {
     private final Screen parent;
     private final ProxyPanel panel=new ProxyPanel();
-    public ProxyScreen(Screen parent){super(Component.literal("GoNuts proxies"));this.parent=parent;}
+    public ProxyScreen(Screen parent){super(Component.literal("Tally proxies"));this.parent=parent;}
     @Override protected void init(){
         int w=Math.min(620,width-30);
         panel.init(font,(width-w)/2,40,w,this::addRenderableWidget,this::rebuildWidgets);

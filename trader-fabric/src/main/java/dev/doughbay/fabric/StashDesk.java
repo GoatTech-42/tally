@@ -1224,7 +1224,7 @@ public final class StashDesk {
     private static void say(Minecraft client, String text) {
         DoughBayClient.LOGGER.info("DoughBay stash: {}", text);
         if (client.player != null) {
-            client.player.displayClientMessage(Component.literal("[GoNuts] " + text), false);
+            client.player.displayClientMessage(Component.literal("[Tally] " + text), false);
         }
     }
 }

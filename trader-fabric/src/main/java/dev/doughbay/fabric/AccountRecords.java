@@ -49,7 +49,7 @@ final class AccountRecords {
             return own;
         } catch (IOException | RuntimeException e) {
             if (Files.exists(shared.resolve("hive.json")))
-                throw new IllegalStateException("GoNuts could not open this hive account's own records; shared records were not used", e);
+                throw new IllegalStateException("Tally could not open this hive account's own records; shared records were not used", e);
             log.warn("DoughBay could not make a records folder for {}: {}; using the shared one", account, e.toString());
             return shared;
         }

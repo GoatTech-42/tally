@@ -135,7 +135,7 @@ final class RestartRecovery {
         try {
             if (client.screen instanceof ConnectScreen connecting) connecting.onClose();
             if (client.getConnection() != null) {
-                client.getConnection().getConnection().disconnect(Component.literal("GoNuts restart"));
+                client.getConnection().getConnection().disconnect(Component.literal("Tally restart"));
             }
         } catch (RuntimeException e) {
             DoughBayClient.LOGGER.warn("DoughBay restart: could not disconnect: {}", e.toString());

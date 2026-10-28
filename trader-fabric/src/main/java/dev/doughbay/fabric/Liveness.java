@@ -166,7 +166,7 @@ final class Liveness {
         DoughBayClient.LOGGER.warn("DoughBay liveness: {}", message);
         if (client != null && client.player != null) {
             client.player.displayClientMessage(
-                    net.minecraft.network.chat.Component.literal("[GoNuts] " + message), false);
+                    net.minecraft.network.chat.Component.literal("[Tally] " + message), false);
         }
         try {
             StatusWebhook hook = DoughBayClient.webhook();

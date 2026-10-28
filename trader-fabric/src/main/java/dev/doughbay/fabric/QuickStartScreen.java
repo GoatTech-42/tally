@@ -18,7 +18,7 @@ final class QuickStartScreen extends GoNutsScreen {
         this(parent,parent);
     }
     QuickStartScreen(DoughBayScreen parent,Screen home){
-        super(Component.literal("GoNuts quick start"));this.parent=parent;this.home=home;
+        super(Component.literal("Tally quick start"));this.parent=parent;this.home=home;
         var config=DoughBayClient.activeConfig();
         trade=MoneyInput.compact(config==null?5_000_000:config.continuousMaxPurchasePrice());
         session=MoneyInput.compact(config==null?75_000_000:config.continuousMaxSessionSpend());
@@ -47,7 +47,7 @@ final class QuickStartScreen extends GoNutsScreen {
             var result=parent.startQuickTrading(perTrade,perSession);message=result.detail();
             if(result.ok()){parent.endTutorialNavigation();minecraft.setScreen(null);}
         }).bounds(x,height-55,w,23).build();addRenderableWidget(primary);
-        addRenderableWidget(CockpitButton.builder(Component.literal(review?"Back to limits":home instanceof StartHereScreen?"Back to Start here":"Back to GoNuts"),b->{
+        addRenderableWidget(CockpitButton.builder(Component.literal(review?"Back to limits":home instanceof StartHereScreen?"Back to Start here":"Back to Tally"),b->{
             if(review){review=false;scroll=0;message="";rebuildWidgets();}else onClose();
         }).bounds(x,height-27,(w-6)/2,20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Optional tutorials"),b->minecraft.setScreen(new TutorialScreen(parent,this,false)))

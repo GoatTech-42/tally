@@ -254,7 +254,7 @@ public final class DoughBayConfig {
             dir = HiveSetup.resolve(FabricLoader.getInstance().getGameDir(),
                     FabricLoader.getInstance().getConfigDir().resolve("doughbay"),DoughBayClient.account());
         } catch (IOException e) {
-            throw new IllegalStateException("GoNuts hive folder is unavailable. Restore the shared folder before starting; no replacement ledger was created.", e);
+            throw new IllegalStateException("Tally hive folder is unavailable. Restore the shared folder before starting; no replacement ledger was created.", e);
         }
         String key = "";
         boolean collect = true;

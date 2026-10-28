@@ -90,7 +90,7 @@ public final class ReconnectController {
    var before=session.snapshot();
    boolean owned=before.active()||(session.restartRecoveryMayResume()
      && before.detail().startsWith("PAUSED: Staff Watch:"));
-   try{StaffWatchClient.detected(lastWatcher);}catch(RuntimeException e){System.err.println("[GoNuts Staff Watch] Alert observer failed: "+e.getMessage());}
+   try{StaffWatchClient.detected(lastWatcher);}catch(RuntimeException e){System.err.println("[Tally Staff Watch] Alert observer failed: "+e.getMessage());}
    tradingResume.arm(owned&&session.restartRecoveryMayResume(),System.currentTimeMillis());
    lastResumeBlocker="";
    String address=schedule.address();

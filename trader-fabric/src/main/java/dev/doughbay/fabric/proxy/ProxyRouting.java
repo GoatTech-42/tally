@@ -13,7 +13,7 @@ public final class ProxyRouting {
     static ChannelHandler route(InetSocketAddress target, ChannelHandler initializer, ProxySettings settings) {
         if(isLocal(target))return initializer;
         synchronized(settings) {
-            if(settings.blocked())throw new IllegalStateException("GoNuts proxy configuration unavailable; direct connection blocked.");
+            if(settings.blocked())throw new IllegalStateException("Tally proxy configuration unavailable; direct connection blocked.");
             if(!settings.state().enabled())return initializer;
             var profile=settings.selected();
             var address=new InetSocketAddress(profile.host(),profile.port());

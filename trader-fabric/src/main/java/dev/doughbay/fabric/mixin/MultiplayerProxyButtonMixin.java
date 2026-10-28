@@ -11,9 +11,9 @@ abstract class MultiplayerProxyButtonMixin extends Screen {
     protected MultiplayerProxyButtonMixin(Component title){super(title);}
     @Inject(method="init",at=@At("TAIL"))
     private void gonuts$proxies(CallbackInfo ci){
-        addRenderableWidget(Button.builder(Component.literal("GoNuts hive"),b->dev.doughbay.fabric.DoughBayClient.openHiveSetup())
+        addRenderableWidget(Button.builder(Component.literal("Tally hive"),b->dev.doughbay.fabric.DoughBayClient.openHiveSetup())
             .bounds(width-242,6,110,20).build());
-        addRenderableWidget(Button.builder(Component.literal("GoNuts proxies"),b->minecraft.setScreen(new dev.doughbay.fabric.ProxyScreen(this)))
+        addRenderableWidget(Button.builder(Component.literal("Tally proxies"),b->minecraft.setScreen(new dev.doughbay.fabric.ProxyScreen(this)))
             .bounds(width-126,6,120,20).build());
     }
 }

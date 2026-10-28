@@ -15,7 +15,7 @@ final class TutorialScreen extends GoNutsScreen {
         this(parent,parent,firstRun);
     }
     TutorialScreen(DoughBayScreen parent,Screen home,boolean firstRun){
-        super(Component.literal("GoNuts tutorials"));this.parent=parent;this.home=home;
+        super(Component.literal("Tally tutorials"));this.parent=parent;this.home=home;
         if(firstRun)course=Tutorials.COURSES.getFirst();
     }
     private int left(){return Math.max(12,(width-Math.min(680,width-24))/2);}
@@ -45,7 +45,7 @@ final class TutorialScreen extends GoNutsScreen {
                 else{step++;scroll=0;}rebuildWidgets();
             }).bounds(x+2*(bw+6),y,bw,22).build());
         }
-        addRenderableWidget(CockpitButton.builder(Component.literal(course==null?(home instanceof QuickStartScreen?"Back to setup":"Back to GoNuts"):"All tutorials"),b->{
+        addRenderableWidget(CockpitButton.builder(Component.literal(course==null?(home instanceof QuickStartScreen?"Back to setup":"Back to Tally"):"All tutorials"),b->{
             if(course==null)onClose();else{course=null;step=scroll=0;rebuildWidgets();}
         }).bounds(x,height-28,(w-6)/2,20).build());
         if(course!=null)addRenderableWidget(CockpitButton.builder(Component.literal("Skip / return later"),b->onClose())

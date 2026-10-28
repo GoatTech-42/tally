@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 final class HiveDiscoveryScreen extends GoNutsScreen {
     private final Screen parent;
     private int scroll,maxScroll;
-    HiveDiscoveryScreen(Screen parent) { super(Component.literal("Another GoNuts account detected")); this.parent=parent; }
+    HiveDiscoveryScreen(Screen parent) { super(Component.literal("Another Tally account detected")); this.parent=parent; }
     @Override protected void init() {
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int w=Math.min(480,width-24),x=(width-w)/2,y=height-86;
@@ -20,7 +20,7 @@ final class HiveDiscoveryScreen extends GoNutsScreen {
         g.fill(0,0,width,height,0xF0050505); int w=Math.min(480,width-24),x=(width-w)/2,y=24;
         for(var line:font.split(getTitle(),w)){g.drawString(font,line,x,y,UiTheme.GOLD);y+=14;}
         y+=14;int top=y;
-        String text="Another running GoNuts account was detected on this computer. Would you like to review linking them into a hive?\n\nNothing has been linked or changed. Use an existing hive instead of creating a separate one. If both accounts already made separate hives, Review combining hives preserves their original ledgers and per-account settings. The import runs at startup after BOTH instances are closed. Review the requirements before confirming.\n\nThis notice appears once per newly detected account when you open GoNuts, never over a trade. Hive is local sharing; the community Swarm is separate.";
+        String text="Another running Tally account was detected on this computer. Would you like to review linking them into a hive?\n\nNothing has been linked or changed. Use an existing hive instead of creating a separate one. If both accounts already made separate hives, Review combining hives preserves their original ledgers and per-account settings. The import runs at startup after BOTH instances are closed. Review the requirements before confirming.\n\nThis notice appears once per newly detected account when you open Tally, never over a trade. Hive is local sharing; the community Swarm is separate.";
         g.enableScissor(x,top,x+w,Math.max(top,height-94));
         for(var line:font.split(Component.literal(text),w)){g.drawString(font,line,x,y-scroll,UiTheme.TEXT);y+=13;}
         maxScroll=Math.max(0,y-(height-94));

@@ -314,15 +314,15 @@ public final class StatusWebhook {
     private static String who() {
         try {
             String name = net.minecraft.client.Minecraft.getInstance().getUser().getName();
-            return name == null || name.isBlank() ? "DoughBay" : name;
+            return name == null || name.isBlank() ? "Tally" : name;
         } catch (Throwable t) {
-            return "DoughBay";
+            return "Tally";
         }
     }
 
     private static String reportTitle() {
         return HiveSetup.active() || DoughBayClient.hiveAccounts().size() > 1
-                ? "GoNuts Hive — all accounts" : "GoNuts — ledger totals";
+                ? "Tally Hive — all accounts" : "Tally — ledger totals";
     }
 
     private java.util.List<String> reportAccounts() {

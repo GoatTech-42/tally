@@ -758,7 +758,7 @@ public class DoughBayClient implements ClientModInitializer {
     public static synchronized String applyApiKey(String key, String baseUrl) {
         DoughBayConfig existing = activeConfig;
         if (existing == null) {
-            return "DoughBay configuration has not finished loading";
+            return "Tally configuration has not finished loading";
         }
         try {
             if (key != null) DoughBayConfig.saveApiKey(existing.directory(), key);
@@ -822,7 +822,7 @@ public class DoughBayClient implements ClientModInitializer {
                                                          long maxPerSession, String joinedAddress) {
         DoughBayConfig existing = activeConfig;
         if (existing == null) {
-            return "GoNuts configuration has not finished loading";
+            return "Tally configuration has not finished loading";
         }
         if (!enabled) {
             AUTOMATION_SESSION.stop();
@@ -1028,7 +1028,7 @@ public class DoughBayClient implements ClientModInitializer {
                     // the audit matters more than telling anyone about it
                 }
                 if (client.player != null) {
-                    client.player.displayClientMessage(net.minecraft.network.chat.Component.literal("[GoNuts] " + message), false);
+                    client.player.displayClientMessage(net.minecraft.network.chat.Component.literal("[Tally] " + message), false);
                 }
                 if (!heldAtDeath.isEmpty()) {
                     LOGGER.warn("DoughBay: the session was holding {} when it died", heldAtDeath);

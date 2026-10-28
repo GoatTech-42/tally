@@ -13,7 +13,7 @@ public final class InventoryBlockerEvidence {
             +" prior_inventory_blocker_age_ms="+(priorAt<=0||now<priorAt?-1:now-priorAt)+"\n";}
     public String blockerText(){return switch(current){
         case NO_WORLD->"no connected player inventory is available";
-        case GONUTS_PANEL->"close the GoNuts panel to continue";
+        case GONUTS_PANEL->"close the Tally panel to continue";
         case REPORT_SCREEN->"close the bug report screen to continue";
         case PLAYER_SCREEN->"close chat, inventory or the player screen to continue";
         case SERVER_CONTAINER->"a server container is still open";

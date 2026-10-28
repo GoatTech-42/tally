@@ -56,7 +56,7 @@ public final class HiveSetup {
 
     static Membership read(Path file) throws IOException {
         if (!Files.isRegularFile(file) || Files.size(file) > 8192)
-            throw new IOException("Hive setup file is missing or invalid. Restore the shared folder before starting GoNuts.");
+            throw new IOException("Hive setup file is missing or invalid. Restore the shared folder before starting Tally.");
         try {
             Membership m = JSON.readValue(Files.readString(file), Membership.class);
             if ((m.version() != 1 && m.version() != 2) || m.id() == null || m.directory() == null || m.owner() == null
@@ -86,9 +86,9 @@ public final class HiveSetup {
 
     static void requireLocalLedger(Path directory) throws IOException {
         Path config = directory.resolve("config.json");
-        if (!Files.isRegularFile(config)) throw new IOException("Open GoNuts once in the source instance first");
+        if (!Files.isRegularFile(config)) throw new IOException("Open Tally once in the source instance first");
         var root = JSON.readTree(Files.readString(config));
-        if (root == null || !root.isObject()) throw new IOException("Invalid GoNuts configuration");
+        if (root == null || !root.isObject()) throw new IOException("Invalid Tally configuration");
         String db = root.path("databasePath").asText("");
         if (!db.isBlank() && !directory.resolve(db).toAbsolutePath().normalize().equals(directory.resolve("doughbay.db").toAbsolutePath().normalize()))
             throw new IOException("This instance uses a custom database path. Keep its existing setup; the wizard cannot migrate it automatically.");

@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 final class SwarmPanel {
     private int x, top, width, bottom, scroll, contentHeight, extra;
     private static final String INTRO="Find markets sooner with other bots' recent observations and fewer repeated discovery scans. Link for remote control and Swarm.";
-    private String codeDraft = "", nameDraft = "GoNuts client", note = "";
+    private String codeDraft = "", nameDraft = "Tally client", note = "";
     private boolean previousLinked;
     private EditBox code, name;
     private Button link, reconnect, retry, unlink, paste, website, copyWebsite, guide;

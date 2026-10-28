@@ -55,7 +55,7 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
     @Override
     public ExecutionResult list(Position position, long price) {
         String message = String.format(Locale.ROOT,
-                "List %s x%d at %,d. DoughBay cannot list for you — run the sell command yourself.",
+                "List %s x%d at %,d. Tally cannot list for you — run the sell command yourself.",
                 shortName(position.itemKey()), position.quantity(), price);
         lastMessage.set(message);
         copyToClipboard(String.valueOf(price));

@@ -140,7 +140,7 @@ public final class WebPages {
         if(target==null)return answer(false,"Choose one hive account").toString();
         try{
             boolean accepted=dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.hiveAction(target,
-                    form.getOrDefault("action",""),form.getOrDefault("code",""),form.getOrDefault("name","GoNuts client"));
+                    form.getOrDefault("action",""),form.getOrDefault("code",""),form.getOrDefault("name","Tally client"));
             return answer(accepted,accepted?"Request sent to selected account; waiting for its status":"Account unavailable, busy, or request already pending").toString();
         }catch(IllegalArgumentException e){return answer(false,"Check the pairing code and action").toString();}
         catch(Exception e){return answer(false,"Could not send dashboard request").toString();}
@@ -444,7 +444,7 @@ public final class WebPages {
         for (Tuning.ListSetting l : Tuning.LISTS) if (l.key().equals(key)) found = l;
         if (found == null) return answer(false, "There is no such list.").toString();
         if (SECRET.contains(key)) {
-            return answer(false, found.label() + " is set on the GoNuts screen in game, not from here.").toString();
+            return answer(false, found.label() + " is set on the Tally screen in game, not from here.").toString();
         }
         String text = form.getOrDefault("text", "").replaceAll("[\\r\\n\\t]+", " ").strip();
         if (text.length() > 8_000) return answer(false, "That is too long to save.").toString();

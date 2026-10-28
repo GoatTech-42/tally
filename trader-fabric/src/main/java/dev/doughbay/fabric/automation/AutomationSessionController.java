@@ -2528,12 +2528,12 @@ public final class AutomationSessionController {
             // A page of ours, or one the server reopened: it goes first, and
             // the screen opens on the tick after.
             client.player.closeContainer();
-            detail = "Closing the page to open the GoNuts screen";
+            detail = "Closing the page to open the Tally screen";
             return true;
         }
         panelRequestedAt = 0;
         panelGranted = true;
-        detail = "Opening the GoNuts screen";
+        detail = "Opening the Tally screen";
         return true;
     }
 
@@ -3875,7 +3875,7 @@ public final class AutomationSessionController {
             // counts as an open GUI. Close it rather than wait for them to:
             // the auction house is about to be opened regardless.
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to begin buying";
+            detail = "Closing the Tally screen to begin buying";
             return;
         }
         if (!safeInventoryContext(client)) {
@@ -5420,7 +5420,7 @@ public final class AutomationSessionController {
             if (closeStrayAuctionPage(client)) return true;
             if (modScreenOpen(client)) {
                 client.setScreen(null);
-                detail = "Closing the GoNuts screen for the bid desk";
+                detail = "Closing the Tally screen for the bid desk";
                 return true;
             }
             if (!safeInventoryContext(client)) {
@@ -9058,7 +9058,7 @@ public final class AutomationSessionController {
         if (closeStrayAuctionPage(client)) return true;
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to read the order house";
+            detail = "Closing the Tally screen to read the order house";
             return true;
         }
         if (!safeInventoryContext(client)) return false;
@@ -9270,7 +9270,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to check auction slots";
+            detail = "Closing the Tally screen to check auction slots";
             return true;
         }
         if (!safeInventoryContext(client)) {
@@ -10217,7 +10217,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to reprice a listing";
+            detail = "Closing the Tally screen to reprice a listing";
             return true;
         }
         if (!safeInventoryContext(client)) {
@@ -10733,7 +10733,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to begin watching";
+            detail = "Closing the Tally screen to begin watching";
             return;
         }
         if (!safeInventoryContext(client)) {
@@ -11263,7 +11263,7 @@ public final class AutomationSessionController {
                 }
                 if (open instanceof DoughBayScreen) {
                     client.setScreen(null);
-                    detail = "Closing the GoNuts screen before preparing the stack";
+                    detail = "Closing the Tally screen before preparing the stack";
                     return;
                 }
                 if (open == null && client.player.containerMenu != client.player.inventoryMenu) {
@@ -12675,7 +12675,7 @@ public final class AutomationSessionController {
         if (closeStrayAuctionPage(client)) return;
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the GoNuts screen to check your listings for the recovered purchase";
+            detail = "Closing the Tally screen to check your listings for the recovered purchase";
             return;
         }
         if (!safeInventoryContext(client)) return;

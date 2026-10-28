@@ -74,7 +74,7 @@ import java.util.regex.Pattern;
 public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private static final String EXECUTION_DISABLED =
-            "Authorized live execution is disabled. GoNuts is analyzing only.";
+            "Authorized live execution is disabled. Tally is analyzing only.";
     private static final String PREFLIGHT_DISABLED =
             "Read-only automation preflight is disabled.";
 
@@ -621,7 +621,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // emergency stop, so the active operation remains the source of truth.
         if (isActive()) {
             return ExecutionResult.refused(
-                    "DRY RUN REFUSED: another DoughBay operation is already in progress");
+                    "DRY RUN REFUSED: another Tally operation is already in progress");
         }
         if (!preflightEnabled) {
             return refusePreflight(requested, PREFLIGHT_DISABLED);
@@ -844,7 +844,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2205,7 +2205,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Cannot deliver a missing position");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2296,7 +2296,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Item id is not a safe namespaced id");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2631,7 +2631,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3008,7 +3008,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         String invalid = validateExactOpportunity(requested, true);
         if (invalid != null) return ExecutionResult.refused(invalid);
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
 
         Minecraft client = Minecraft.getInstance();
@@ -3087,7 +3087,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("The price ceiling must be positive");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3166,7 +3166,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("No market to watch for");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3252,7 +3252,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("A listing to pull back needs a stack size and price");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3335,7 +3335,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3415,7 +3415,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Item id is not a safe namespaced id");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -4064,7 +4064,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private static void tellPlayer(Minecraft client, String message) {
         if (client != null && client.player != null) {
-            client.player.displayClientMessage(Component.literal("[GoNuts] " + message), false);
+            client.player.displayClientMessage(Component.literal("[Tally] " + message), false);
         }
     }
 
@@ -5137,7 +5137,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("The listing price must be positive");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -5204,7 +5204,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Cannot list a missing position");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another DoughBay execution is already in progress");
+            return ExecutionResult.refused("Another Tally execution is already in progress");
         }
         if (requested.quantity() <= 0 || price <= 0) {
             return ExecutionResult.refused("Position quantity and listing price must be positive");
@@ -6166,7 +6166,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // preflight here, read-only mode can never emit container input.
         if (operation == Operation.DRY_RUN) {
             DoughBayClient.LOGGER.error(
-                    "Blocked an internal attempt to click during a DoughBay dry run");
+                    "Blocked an internal attempt to click during a Tally dry run");
             return false;
         }
         if (client.gameMode == null || client.player == null) {
@@ -6863,7 +6863,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (requireSeller
                 && (requested.listing().sellerName() == null
                 || requested.listing().sellerName().isBlank())) {
-            return "An exact seller name is required so DoughBay cannot guess between listings";
+            return "An exact seller name is required so Tally cannot guess between listings";
         }
         if (requireSeller
                 && !PLAYER_NAME.matcher(requested.listing().sellerName()).matches()) {
@@ -7049,7 +7049,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (server == null || !ServerAllowlist.allows(authorizedServers, server)) {
             return server == null
                     ? "The current server identity is unavailable; execution is locked"
-                    : "Server " + server + " is not in GoNuts's authorizedServers allowlist";
+                    : "Server " + server + " is not in Tally's authorizedServers allowlist";
         }
         return null;
     }
@@ -7062,7 +7062,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (server == null || !ServerAllowlist.allows(preflightServers, server)) {
             return server == null
                     ? "The current server identity is unavailable; preflight is locked"
-                    : "Server " + server + " is not in DoughBay's preflightServers allowlist";
+                    : "Server " + server + " is not in Tally's preflightServers allowlist";
         }
         return null;
     }
@@ -7738,7 +7738,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (client == null || client.player == null || message == null) return;
         String shown = chatLine(message);
         if (shown == null) return;
-        client.player.displayClientMessage(Component.literal("[GoNuts] " + shown), false);
+        client.player.displayClientMessage(Component.literal("[Tally] " + shown), false);
     }
 
     private static final String[] ROUTINE_ABORTS = {

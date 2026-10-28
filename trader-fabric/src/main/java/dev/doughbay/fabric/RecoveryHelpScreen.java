@@ -40,7 +40,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
     @Override public void render(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int w = bodyWidth(), x = (width - w) / 2;
-        g.drawString(font, "GoNuts - Check interrupted trade", x, 14, UiTheme.TEXT);
+        g.drawString(font, "Tally - Check interrupted trade", x, 14, UiTheme.TEXT);
         int bottom = height - 60, y = 40 - scroll;
         g.enableScissor(x, 36, x + w, bottom);
         for (String paragraph : instructions.split("\n")) {

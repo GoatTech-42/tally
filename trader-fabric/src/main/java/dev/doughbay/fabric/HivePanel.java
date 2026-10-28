@@ -57,7 +57,7 @@ final class HivePanel {
     }
     private static Path game(){return FabricLoader.getInstance().getGameDir();}
     private static void requireOffline() throws java.io.IOException {
-        if(Minecraft.getInstance().getConnection()!=null)throw new java.io.IOException("Disconnect first, then open Multiplayer > GoNuts hive. Your current links and trading data are unchanged.");
+        if(Minecraft.getInstance().getConnection()!=null)throw new java.io.IOException("Disconnect first, then open Multiplayer > Tally hive. Your current links and trading data are unchanged.");
     }
     private void failed(Exception e){note=e instanceof java.io.IOException&&e.getMessage()!=null?e.getMessage():"Setup could not finish. Existing data and settings were kept.";if(Minecraft.getInstance().getConnection()==null)FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());}
     boolean scroll(double mx,double my,double delta){if(mx<x||mx>x+w||my<detailTop||my>bottom-30)return false;scroll=Math.max(0,Math.min(maxScroll,scroll-(int)Math.signum(delta)*26));return true;}
@@ -76,7 +76,7 @@ final class HivePanel {
         int top=detailTop,end=bottom-48;if(end<=top)return;
         g.enableScissor(x,top,x+w,end);int row=top-scroll;
         row=detail(g,font,row,"3  FINISH AFTER REVIEW",share?"Each additional account reviews the connection. Hive sharing works on this PC; Swarm is separate.":"New account: choose Join existing hive, then restart only that new instance. Existing members can keep running. Combining two existing histories instead requires closing BOTH instances and starting the requesting instance first.");
-        String guidance=!note.isEmpty()?note:!HiveCombine.startupMessage.isEmpty()?HiveCombine.startupMessage:"Hive missing from the list? On an existing account, disconnect and open Multiplayer > GoNuts hive > Share this hive. Copy its code, then paste it here. Older shared-folder setups need this registration once. Do not delete either folder.";
+        String guidance=!note.isEmpty()?note:!HiveCombine.startupMessage.isEmpty()?HiveCombine.startupMessage:"Hive missing from the list? On an existing account, disconnect and open Multiplayer > Tally hive > Share this hive. Copy its code, then paste it here. Older shared-folder setups need this registration once. Do not delete either folder.";
         row=detail(g,font,row,"SETUP STATUS / HELP",guidance);
         maxScroll=Math.max(0,row+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();
         if(maxScroll>0)g.drawString(font,"Scroll for setup status",x,bottom-43,UiTheme.MUTED);

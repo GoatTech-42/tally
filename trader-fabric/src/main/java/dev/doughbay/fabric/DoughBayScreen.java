@@ -598,7 +598,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * adapter. The provider must never query SQLite from the render thread.
      */
     public DoughBayScreen(MarketWatcher watcher, PerformanceStatsProvider performanceStatsProvider) {
-        super(Component.literal("GoNuts"));
+        super(Component.literal("Tally"));
         this.watcher = watcher;
         this.performanceStatsProvider = Objects.requireNonNull(performanceStatsProvider,
                 "performanceStatsProvider");
@@ -3375,7 +3375,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     if (!settingHidden(l.key(), l.label(), l.description())) rows++;
                 }
             } else if (keys) {
-                if (!settingHidden("key.open", "Open the GoNuts screen", "")) rows++;
+                if (!settingHidden("key.open", "Open the Tally screen", "")) rows++;
                 if (!settingHidden("key.stop", "Emergency stop", "")) rows++;
             } else {
                 for (Tuning.Setting setting : Tuning.SETTINGS) {
@@ -3409,9 +3409,9 @@ public final class DoughBayScreen extends GoNutsScreen {
             } else if (keys) {
                 KeyMapping open = DoughBayClient.keyOpenScreen();
                 KeyMapping stop = DoughBayClient.keyEmergencyStop();
-                if (!settingHidden("key.open", "Open the GoNuts screen", "")) {
+                if (!settingHidden("key.open", "Open the Tally screen", "")) {
                     yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
-                            "key.open", "Open the GoNuts screen", "Click, then press the new key",
+                            "key.open", "Open the Tally screen", "Click, then press the new key",
                             rebindingKey == open ? "press a key…" : keyName(open), open == null || open.isDefault(),
                             index++, mouseX, mouseY);
                 }
@@ -3619,7 +3619,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int[] last = slotBoardCell(x, y, width, SlotTracker.slots() - 1);
         int legendY = last[1] + last[2] + 8;
         if (legendY + 10 <= y + height - 6) {
-            graphics.drawString(this.font, truncate("green: GoNuts listing  ·  blue: up but unmatched  ·  hover a slot for the item",
+            graphics.drawString(this.font, truncate("green: Tally listing  ·  blue: up but unmatched  ·  hover a slot for the item",
                     width - 18), x + 9, legendY, MUTED);
         }
         int ageY = legendY + 12;
@@ -5096,7 +5096,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + "To make them the limits whatever your balance, turn off \"Limits follow your bank\" in Settings."
                 : "It never spends past the two limits below, whatever your balance.";
         drawWrapped(graphics,
-                "Turn it on and GoNuts buys underpriced items and relists them for you. " + limits
+                "Turn it on and Tally buys underpriced items and relists them for you. " + limits
                         + " Stop any time with Stop, E-stop or B. DonutSMP's rules ban bots, "
                         + "so running this is a ban risk you are choosing to take.",
                 innerX, yy + 4, innerWidth, textBottom, SECONDARY);
@@ -5126,7 +5126,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             // First press: arm, never act. A second press inside the window is
             // the deliberate opt-in that actually widens what GoNuts may do.
             setupConfirmUntil = now + 8_000L;
-            setupMessage = "This lets GoNuts buy and relist for you on DonutSMP, up to "
+            setupMessage = "This lets Tally buy and relist for you on DonutSMP, up to "
                     + money(perTrade) + " a trade and " + money(perSession) + " a session. Click again to confirm.";
             setupMessageColor = WARN;
             rebuildWidgets();
@@ -6633,7 +6633,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int lowerY = y + cardHeight + gap;
 
         card(graphics, x, y, cardWidth, cardHeight, CARD);
-        sectionTitle(graphics, "WHAT DOUGHBAY DOES", x, y, cardWidth);
+        sectionTitle(graphics, "WHAT TALLY DOES", x, y, cardWidth);
         int yy = y + 25;
         yy = drawWrapped(graphics,
                 "Collects completed sales and active listings, values exact item/stack markets, "
@@ -6701,7 +6701,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         sectionTitle(graphics, "CONTROLS & SAFETY", rightX, lowerY, rightWidth);
         int controlsY = lowerY + 25;
         String[] controls = {
-                "B  Open GoNuts / emergency stop",
+                "B  Open Tally / emergency stop",
                 "Click  Open a signal or switch tabs",
                 "Wheel  Scroll long market tables",
                 "Esc  Back from detail, then close",

@@ -7,10 +7,10 @@ import java.util.Locale;
 public final class DisconnectAlertSummary {
     private DisconnectAlertSummary() { }
     public static String title(String reason) {
-        if (reason != null && DisconnectRecovery.clickSpam(reason)) return "GoNuts — CLICK-SPAM DISCONNECT";
+        if (reason != null && DisconnectRecovery.clickSpam(reason)) return "Tally — CLICK-SPAM DISCONNECT";
         String text = reason == null ? "" : reason.toLowerCase(Locale.ROOT);
         return text.contains("timed out") || text.contains("timeout")
-                ? "GoNuts — CONNECTION TIMEOUT" : "GoNuts — CONNECTION LOST";
+                ? "Tally — CONNECTION TIMEOUT" : "Tally — CONNECTION LOST";
     }
     public static String explanation(String reason) {
         if (reason != null && DisconnectRecovery.clickSpam(reason)) return "The disconnect reason explicitly reports click spam.";

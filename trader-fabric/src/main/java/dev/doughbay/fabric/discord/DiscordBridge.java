@@ -575,7 +575,7 @@ public final class DiscordBridge {
         // reader sets their scaling to, which made the page unreadable on a
         // big screen; the same file posted as a plain attachment is shown at
         // its own size and grows with the window.
-        StringBuilder head = new StringBuilder("**GoNuts · ").append(p.title()).append("**");
+        StringBuilder head = new StringBuilder("**Tally · ").append(p.title()).append("**");
         String desc = notice.isBlank() || System.currentTimeMillis() - noticeAt > 120_000 ? "" : notice;
         if (!desc.isBlank()) head.append('\n').append(desc);
         if (!p.footer().isBlank()) head.append("\n-# ").append(p.footer());

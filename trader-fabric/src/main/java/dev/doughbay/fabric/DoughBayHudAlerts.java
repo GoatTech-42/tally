@@ -197,7 +197,7 @@ final class DoughBayHudAlerts {
             // Do not include raw message text, parsed fields, or the exception
             // message: observers may attach sensitive context to failures.
             DoughBayClient.LOGGER.warn(
-                    "DoughBay sale observer failed after a validated sale event; HUD alert preserved");
+                    "Tally sale observer failed after a validated sale event; HUD alert preserved");
         }
 
         String item = sale.itemText()

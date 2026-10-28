@@ -144,7 +144,7 @@ public final class Tuning {
             new Setting("tier.large_from_pct", "Tiers", "Large tier starts at",
                     "A buy this share of the bank or more is a large ticket", 1.4, 0.5, 50, Kind.PERCENT),
             new Setting("multi.enabled", "Multi client", "Shared API key",
-                    "Several accounts run DoughBay against one API key and one ledger. The key's allowance is then divided "
+                    "Several accounts run Tally against one API key and one ledger. The key's allowance is then divided "
                     + "between the clients that are running, and each client says whether it trades or only scans (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("multi.scan_only", "Multi client", "This client only scans",
@@ -349,7 +349,7 @@ public final class Tuning {
                     + "stops. Your own inventory is untouched (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("quiet.hide_hotbar", "HUD", "Hide the hotbar",
-                    "Hide the vanilla hotbar and experience bar; DoughBay's own panel still draws (1 on, 0 off)",
+                    "Hide the vanilla hotbar and experience bar; Tally's own panel still draws (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("quiet.hide_chat", "HUD", "Hide the chat",
                     "Stop drawing the chat box. The bot reads chat off the network rather than off the screen, so "
@@ -451,7 +451,7 @@ public final class Tuning {
             new Setting("hud.alerts", "HUD", "Alerts",
                     "Pop-up alerts for sales and events (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("hud.keys", "HUD", "Key legend",
-                    "A small legend showing what each GoNuts key does, using your current bindings, so nobody has to "
+                    "A small legend showing what each Tally key does, using your current bindings, so nobody has to "
                     + "memorise them (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("hud.keys_x", "HUD", "Key legend across",
                     "Where the key legend sits left-to-right, as a percent of the screen: 0 is the left edge, 100 the "
@@ -804,7 +804,7 @@ public final class Tuning {
                     "Weigh candidates by how the number of players online now compares with the population that usually trades (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("panel.hold_idle_sec", "Session", "Hold while the screen is open",
-                    "The bot waits while you have the DoughBay screen open, and carries on this many seconds after your last click or keypress (0 never waits)",
+                    "The bot waits while you have the Tally screen open, and carries on this many seconds after your last click or keypress (0 never waits)",
                     45, 0, 900, Kind.SECONDS),
             new Setting("session.auto_resume", "Session", "Auto-resume a recovered session",
                     "After a restart the session waits at a pause for the Resume button, so a person can confirm the "
@@ -863,7 +863,7 @@ public final class Tuning {
                     "The most stacks one bid may ask for. Each order is sized under this from the market's "
                     + "margin, its daily volume, and how fast our own recent stacks of it sold", 3, 1, 30, Kind.COUNT),
             new Setting("upload.enabled", "Orders", "Send order sweeps home",
-                    "Post every order-house sweep to the DoughBay API so it can serve an order book the public "
+                    "Post every order-house sweep to the Tally API so it can serve an order book the public "
                     + "feed does not have. Needs the API's ingest route (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid_min_confidence", "Orders", "Bid: minimum confidence",
                     "How sure the price has to be before the desk bids on a market. Our own ledger says a lower bar "
