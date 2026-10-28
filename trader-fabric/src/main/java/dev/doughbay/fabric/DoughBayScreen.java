@@ -1082,12 +1082,24 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (ui.innerWidth() > 360) {
             graphics.text(this.font, age, ui.innerRight() - this.font.width(age), top + 12, MUTED);
         }
-        int statusColor = snapshot.demo() ? WARN : snapshot.status().startsWith("STOPPED") ? BAD
-                : snapshot.updatedAt() == 0 || !isFresh(snapshot) ? WARN : GOOD;
-        String status = snapshot.demo() ? "DEMO / invented sample data"
-                : snapshot.status().startsWith("STOPPED") ? "FEED STOPPED"
-                : snapshot.updatedAt() == 0 ? "CONNECTING TO MARKET"
-                : !isFresh(snapshot) ? "STALE / waiting for scan" : "LIVE MARKET FEED";
+        FeedTruth feedTruth = FeedTruth.of(snapshot, System.currentTimeMillis());
+        int statusColor = switch (feedTruth) {
+            case LIVE_API -> GOOD;
+            case STOPPED -> BAD;
+            default -> WARN;
+        };
+        String status = switch (feedTruth) {
+            case DEMO -> "DEMO / invented sample data";
+            case STOPPED -> "FEED STOPPED";
+            case STARTING -> "CONNECTING TO MARKET";
+            case STALE -> "STALE / waiting for scan";
+            case RETRYING -> "RETRYING MARKET SCAN";
+            case COLLECTING -> "COLLECTING MARKET DATA";
+            case LOCAL_HISTORY -> "LOCAL HISTORY / no API key";
+            case DEGRADED -> "FEED DEGRADED / valuations locked";
+            case PARTIAL -> "PARTIAL MARKET SCAN";
+            case LIVE_API -> "LIVE MARKET FEED";
+        };
         int statusRoom = Math.max(30, ui.innerWidth() - 158);
         graphics.fill(x, top + 34, x + 4, top + 38, statusColor);
         graphics.text(this.font, truncate(status, statusRoom), x + 9, top + 32, statusColor);
@@ -5058,9 +5070,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy = kvRight(graphics, innerX, yy, innerWidth, "Donut API key",
                 key ? "saved" : keyless ? "not needed: keyless mode" : "missing: add it under Tools (top right)",
                 key || keyless ? GOOD : BAD);
-        boolean live = !snapshot.demo() && isFresh(snapshot);
+        boolean live = FeedTruth.live(snapshot, System.currentTimeMillis());
         yy = kvRight(graphics, innerX, yy, innerWidth, "Market data",
-                live ? "live" : snapshot.demo() ? "demo (keyless mode is off)" : "loading",
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo (keyless mode is off)", "live"),
                 live ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Live trading", "off", MUTED);
 
@@ -5650,8 +5662,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerWidth = width - 18;
         ExecutionStatus status = DRIVER.inspect();
         yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
-                snapshot.demo() ? "demo preview" : isFresh(snapshot) ? "live" : "stale",
-                snapshot.demo() || !isFresh(snapshot) ? WARN : GOOD);
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Opportunities / markets",
                 snapshot.opportunities().size() + " / " + snapshot.markets().size(), TEXT);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Completed sales",
@@ -5680,8 +5692,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 9;
         int innerWidth = width - 18;
         yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
-                snapshot.demo() ? "demo preview" : isFresh(snapshot) ? "live" : "stale",
-                snapshot.demo() || !isFresh(snapshot) ? WARN : GOOD);
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Opportunities",
                 Integer.toString(snapshot.opportunities().size()), TEXT);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Exact-stack markets",
@@ -5930,8 +5942,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy = kvRight(graphics, innerX, yy, innerWidth, "Current position",
                 "none", MUTED);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
-                snapshot.demo() ? "demo — locked" : isFresh(snapshot) ? "fresh" : "stale",
-                snapshot.demo() || !isFresh(snapshot) ? WARN : GOOD);
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo — locked", "fresh"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         if (config != null) {
             yy = kvRight(graphics, innerX, yy, innerWidth, "Permission / servers",
                     (config.continuousAutomationEnabled() ? "on" : "off") + " / "
@@ -6009,8 +6021,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                 DRIVER.operationIntent().name().toLowerCase(Locale.ROOT),
                 DRIVER.inspect().armed() ? WARN : SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
-                snapshot.demo() ? "demo — locked" : isFresh(snapshot) ? "fresh" : "stale",
-                snapshot.demo() || !isFresh(snapshot) ? WARN : GOOD);
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo — locked", "fresh"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Start gate",
                 config == null || !config.continuousAutomationEnabled()
                         ? "permission off" : "awaiting controller",
@@ -6583,10 +6595,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerWidth = Math.min(width - 18, 310);
         boolean compact = height < 105;
         yy = kvRight(graphics, innerX, yy, innerWidth, "Data feed",
-                snapshot.demo() ? "demo preview"
-                        : snapshot.updatedAt() == 0 ? "starting"
-                        : !isFresh(snapshot) ? "stale" : "live API",
-                snapshot.demo() || snapshot.updatedAt() == 0 || !isFresh(snapshot) ? WARN : GOOD);
+                FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live API"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Execution",
                 DRIVER.modeName(), DRIVER.authorizedExecutionEnabled() ? WARN : GOOD);
         if (!compact) {
@@ -6637,10 +6647,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         sectionTitle(graphics, "CURRENT MODE", rightX, y, rightWidth);
         int modeY = y + 25;
         modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18,
-                "Market feed", snapshot.demo() ? "demo preview"
-                        : snapshot.updatedAt() == 0 ? "starting"
-                        : !isFresh(snapshot) ? "stale" : "live API",
-                snapshot.demo() || snapshot.updatedAt() == 0 || !isFresh(snapshot) ? WARN : GOOD);
+                "Market feed", FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live API"),
+                FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18,
                 "Game actions", DRIVER.authorizedExecutionEnabled()
                         ? "authorized test mode" : "Observe / disabled",
