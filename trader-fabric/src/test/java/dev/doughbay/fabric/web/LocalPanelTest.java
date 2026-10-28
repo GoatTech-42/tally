@@ -62,7 +62,30 @@ class LocalPanelTest {
         }
     }
 
-    private static LocalPanel open(Recorder backend) throws Exception {
+    /** A backend the way the game is in its first seconds: no picture frame cached yet. */
+    private static final class NoFrameYet implements LocalPanel.Backend {
+        volatile byte[] frame;
+
+        @Override
+        public byte[] png() {
+            return frame;
+        }
+
+        @Override
+        public String state() {
+            return "{\"page\":\"Money\",\"notice\":\"\",\"components\":[]}";
+        }
+
+        @Override
+        public void press(String id, String value) {
+        }
+
+        @Override
+        public void text(String id, String text) {
+        }
+    }
+
+    private static LocalPanel open(LocalPanel.Backend backend) throws Exception {
         return LocalPanel.start(0, false, "4827"::equals, backend, NOPLogger.NOP_LOGGER);
     }
 
@@ -219,6 +242,24 @@ class LocalPanelTest {
             // Locking the page ends the session it was opened with.
             assertEquals(303, post(panel, "/logout", "", cookie, false).statusCode());
             assertEquals(401, get(panel, "/state", cookie).statusCode());
+        }
+    }
+
+    @Test
+    void aPictureThatIsNotReadyYetGetsACleanAnswer() throws Exception {
+        // Before the game's first cached frame the backend has no picture:
+        // the first request in those seconds must not break the connection.
+        NoFrameYet backend = new NoFrameYet();
+        try (LocalPanel panel = open(backend)) {
+            String cookie = signIn(panel);
+            HttpResponse<String> early = get(panel, "/panel.png", cookie);
+            assertEquals(503, early.statusCode());
+            assertTrue(early.body().contains("not ready"));
+            // A retry serves the real picture as soon as a frame exists.
+            backend.frame = new byte[] {(byte) 0x89, 'P', 'N', 'G'};
+            HttpResponse<String> later = get(panel, "/panel.png", cookie);
+            assertEquals(200, later.statusCode());
+            assertEquals("image/png", later.headers().firstValue("Content-Type").orElse(""));
         }
     }
 

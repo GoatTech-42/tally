@@ -312,7 +312,16 @@ public final class LocalPanel implements AutoCloseable {
             return;
         }
         if (r.method().equals("GET") && r.path().equals("/panel.png")) {
-            send(out, 200, "image/png", picture(), "");
+            byte[] shot = picture();
+            if (shot == null) {
+                // The game has not drawn its first frame yet; say so instead
+                // of dropping the connection on a null body.
+                send(out, 503, "text/plain; charset=utf-8",
+                        "The picture is not ready yet; the first frame is still being drawn. Try again in a few seconds."
+                                .getBytes(StandardCharsets.UTF_8), "");
+                return;
+            }
+            send(out, 200, "image/png", shot, "");
             return;
         }
         if (r.method().equals("GET") && r.path().equals("/state")) {
@@ -437,7 +446,13 @@ public final class LocalPanel implements AutoCloseable {
     private synchronized byte[] picture() throws Exception {
         long now = System.currentTimeMillis();
         if (png == null || now - pngAt > PNG_FRESH_MILLIS) {
-            png = backend.png();
+            // A frame that does not exist yet is not cached: the next request
+            // asks again, so a retry recovers as soon as one is drawn.
+            byte[] shot = backend.png();
+            if (shot == null) {
+                return null;
+            }
+            png = shot;
             pngAt = now;
         }
         return png;
@@ -461,6 +476,7 @@ public final class LocalPanel implements AutoCloseable {
             case 400 -> "Bad Request";
             case 401 -> "Unauthorized";
             case 403 -> "Forbidden";
+            case 503 -> "Service Unavailable";
             default -> "Not Found";
         };
         String head = "HTTP/1.1 " + status + " " + reason + "\r\n"
