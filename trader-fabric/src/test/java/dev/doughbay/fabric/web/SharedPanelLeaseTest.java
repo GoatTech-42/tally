@@ -49,7 +49,15 @@ class SharedPanelLeaseTest {
             first.close();
             try(var busy=new java.net.ServerSocket()) {
                 busy.setReuseAddress(true);
-                busy.bind(new java.net.InetSocketAddress(java.net.InetAddress.getLoopbackAddress(),port));
+                // A parallel process can grab the just-freed port first; reclaim it like the takeover does.
+                long bindDeadline=System.currentTimeMillis()+15_000;
+                for(;;){
+                    try{busy.bind(new java.net.InetSocketAddress(java.net.InetAddress.getLoopbackAddress(),port));break;}
+                    catch(java.net.BindException inUse){
+                        if(System.currentTimeMillis()>=bindDeadline)throw inUse;
+                        Thread.sleep(25);
+                    }
+                }
                 second.tick();
                 assertFalse(second.running());
             }
