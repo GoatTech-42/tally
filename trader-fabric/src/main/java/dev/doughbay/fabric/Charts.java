@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +63,7 @@ final class Charts {
      * otherwise overflow. Values lead in bright ink; labels follow in muted
      * ink, keyed by a short stroke of the series colour.
      */
-    static void drawTooltip(GuiGraphicsExtractor g, Font font, Pending pending,
+    static void drawTooltip(GuiGraphics g, Font font, Pending pending,
                             int screenLeft, int screenTop, int screenRight, int screenBottom) {
         if (pending == null || pending.rows == null || pending.rows.isEmpty()) return;
 
@@ -106,7 +106,7 @@ final class Charts {
      * @param refs   reference levels drawn as dashed rules, e.g. quick-sale and median
      * @param marker a value highlighted on the y axis, e.g. the buy price; NaN to omit
      */
-    static int line(GuiGraphicsExtractor g, Font font, int x, int y, int w, int h,
+    static int line(GuiGraphics g, Font font, int x, int y, int w, int h,
                     List<Point> points, int color, double[] refs, int[] refColors,
                     String[] refLabels, double marker, int markerColor,
                     long windowEnd, long windowSpan,
@@ -276,7 +276,7 @@ final class Charts {
     }
 
     /** Volume bars: how many sales landed in each time bucket. */
-    static int bars(GuiGraphicsExtractor g, Font font, int x, int y, int w, int h,
+    static int bars(GuiGraphics g, Font font, int x, int y, int w, int h,
                     int[] counts, int color, String caption,
                     int mouseX, int mouseY, Pending pending, long spanMillis) {
         if (w < 4 || h < 4) return y + Math.max(0, h) + 4;
@@ -342,7 +342,7 @@ final class Charts {
      * Compact trend with no axes or labels, for table rows. Rendered as a
      * filled area so it reads at ~8px tall where a hairline would not.
      */
-    static void sparkline(GuiGraphicsExtractor g, int x, int y, int w, int h,
+    static void sparkline(GuiGraphics g, int x, int y, int w, int h,
                           List<Point> points, int color) {
         if (w < 3 || h < 3 || points == null || points.size() < 2) return;
         double lo = Double.MAX_VALUE;
@@ -380,7 +380,7 @@ final class Charts {
      * Horizontal depth bars for the active order book: how much supply sits at
      * each price level, cheapest first.
      */
-    static int depth(GuiGraphicsExtractor g, Font font, int x, int y, int w, int rowHeight,
+    static int depth(GuiGraphics g, Font font, int x, int y, int w, int rowHeight,
                      List<double[]> levels, int color, double markerPrice) {
         if (w <= 90 || rowHeight < 3 || levels == null || levels.isEmpty()) return y;
         double maxQty = 1;
@@ -424,7 +424,7 @@ final class Charts {
         return clamp(x + 1 + (int) Math.round(t * (w - 3)), x + 1, x + w - 2);
     }
 
-    private static void drawFrame(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+    private static void drawFrame(GuiGraphics g, int x, int y, int w, int h) {
         if (w <= 0 || h <= 0) return;
         g.fill(x, y, x + w, y + 1, AXIS);
         g.fill(x, y + h - 1, x + w, y + h, AXIS);
@@ -433,7 +433,7 @@ final class Charts {
     }
 
     /** A horizontal reference whose gaps remain visible at every GUI scale. */
-    private static void dashedHorizontal(GuiGraphicsExtractor g, int left, int right,
+    private static void dashedHorizontal(GuiGraphics g, int left, int right,
                                          int y, int color, int dash, int gap) {
         int step = Math.max(2, dash + gap);
         for (int xx = left; xx <= right; xx += step) {
@@ -442,7 +442,7 @@ final class Charts {
     }
 
     /** A translucent polygon approximation using at most one column per x. */
-    private static void fillAreaSegment(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1,
+    private static void fillAreaSegment(GuiGraphics g, int x0, int y0, int x1, int y1,
                                         int baselineY, int color) {
         int from = Math.min(x0, x1);
         int to = Math.max(x0, x1);
@@ -455,7 +455,7 @@ final class Charts {
     }
 
     /** Bresenham-style segment, drawn as 2px blocks so it reads on a dark panel. */
-    private static void segment(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int color) {
+    private static void segment(GuiGraphics g, int x0, int y0, int x1, int y1, int color) {
         int dx = Math.abs(x1 - x0);
         int dy = Math.abs(y1 - y0);
         int sx = x0 < x1 ? 1 : -1;
@@ -478,7 +478,7 @@ final class Charts {
     }
 
     /** A crisp one-logical-pixel line for the full-size history plot. */
-    private static void thinSegment(GuiGraphicsExtractor g, int x0, int y0,
+    private static void thinSegment(GuiGraphics g, int x0, int y0,
                                     int x1, int y1, int color) {
         int dx = Math.abs(x1 - x0);
         int dy = Math.abs(y1 - y0);

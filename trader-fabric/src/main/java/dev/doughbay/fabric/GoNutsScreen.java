@@ -24,7 +24,7 @@ public abstract class GoNutsScreen extends Screen {
     private void addReportButton(){
         // No reporting footer or reserved content space.
     }
-    @Override public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(net.minecraft.client.gui.GuiGraphics g,int mx,int my,float delta){
         if(reportFullHeight>height){g.fill(0,height,width,reportFullHeight,UiTheme.BACKGROUND);g.fill(0,height,width,height+1,UiTheme.EDGE);}
         super.extractRenderState(g,mx,my,delta);
     }

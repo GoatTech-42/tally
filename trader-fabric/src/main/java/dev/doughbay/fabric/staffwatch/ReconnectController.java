@@ -26,24 +26,24 @@ public final class ReconnectController {
   return "Automatic reconnect enabled: normally retries after 2 minutes once the disconnect screen is ready. Trading resumes only after native recovery checks pass.";
  }
 
- public boolean controlsConnection(){if(regionEscape.flow.ownsConnection())return true;if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&schedule.watcher()==null)return false;var c=WatchConfig.get();return c.enabled&&c.autoDisconnect&&donutSession&&(cancelledByUser||schedule.active()||flow.phase()!=ReconnectFlow.Phase.IDLE||Minecraft.getInstance().gui.screen() instanceof DisconnectedScreen);}
+ public boolean controlsConnection(){if(regionEscape.flow.ownsConnection())return true;if(dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()&&schedule.watcher()==null)return false;var c=WatchConfig.get();return c.enabled&&c.autoDisconnect&&donutSession&&(cancelledByUser||schedule.active()||flow.phase()!=ReconnectFlow.Phase.IDLE||Minecraft.getInstance().screen instanceof DisconnectedScreen);}
  private String lastWatcher="";
  public String lastWatcher(){return lastWatcher;}
  private final ReconnectFlow flow=new ReconnectFlow(new ReconnectFlow.Client(){
   private Minecraft mc(){return Minecraft.getInstance();}
   public boolean multiplayer(){return !mc().hasSingleplayerServer()&&mc().getCurrentServer()!=null&&DonutServer.matches(mc().getCurrentServer().ip);}
   public boolean connected(){return mc().level!=null&&mc().getConnection()!=null;}
-  public boolean connecting(){return mc().gui.screen() instanceof ConnectScreen || mc().gui.screen() instanceof LevelLoadingScreen || mc().gui.screen() instanceof ProgressScreen;}
-  public boolean disconnectedScreen(){return mc().gui.screen() instanceof DisconnectedScreen;}
-  public boolean countdownScreen(){return mc().gui.screen() instanceof ReconnectScreen;}
+  public boolean connecting(){return mc().screen instanceof ConnectScreen || mc().screen instanceof LevelLoadingScreen || mc().screen instanceof ProgressScreen;}
+  public boolean disconnectedScreen(){return mc().screen instanceof DisconnectedScreen;}
+  public boolean countdownScreen(){return mc().screen instanceof ReconnectScreen;}
   public String currentAddress(){var server=mc().getCurrentServer();return server==null?null:server.ip;}
   public String failedJoinDestination(String attempted){
-   var screen=mc().gui.screen();
+   var screen=mc().screen;
    String reason=screen instanceof DisconnectedScreen ? screen.getNarrationMessage().getString() : "";
    return dev.doughbay.fabric.JoinRecovery.next(attempted,dev.doughbay.fabric.Tuning.text("restart.hop_addresses"),reason);
   }
   public boolean automaticRetryAllowed(){
-   var screen=mc().gui.screen();
+   var screen=mc().screen;
    return !(screen instanceof DisconnectedScreen)||!dev.doughbay.fabric.JoinRecovery.permanentEnforcement(screen.getNarrationMessage().getString());
   }
   public void automaticRetryScheduled(){

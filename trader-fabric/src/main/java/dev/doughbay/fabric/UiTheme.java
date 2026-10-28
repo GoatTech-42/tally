@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /** Shared visual language for the cockpit, HUD, and notification cards. */
 final class UiTheme {
@@ -32,14 +32,14 @@ final class UiTheme {
     }
     static boolean reducedMotion() { return Tuning.get("hud.reduced_motion") >= 0.5; }
 
-    static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+    static void panel(GuiGraphics g, int x, int y, int w, int h, int color) {
         if (w <= 0 || h <= 0) return;
         rounded(g, x + 2, y + 3, w, h, 7, 0x50000000);
         rounded(g, x, y, w, h, 7, EDGE);
         rounded(g, x + 1, y + 1, w - 2, h - 2, 6, color);
     }
 
-    static void rounded(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
+    static void rounded(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
         int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
         g.fill(x, y + r, x + w, y + h - r, color);

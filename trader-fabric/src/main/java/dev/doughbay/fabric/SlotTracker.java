@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * Draws the auction-slot grid shared by the DoughBay screen and the HUD.
@@ -69,7 +69,7 @@ final class SlotTracker {
      * opposite direction to the grid beside it, so the same eighty-one slots
      * looked like two different numbers depending on which one you glanced at.
      */
-    static void drawVanillaBars(GuiGraphicsExtractor graphics) {
+    static void drawVanillaBars(GuiGraphics graphics) {
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return;
         int used = Math.max(0, Math.min(slots(), listedNow()));
@@ -99,7 +99,7 @@ final class SlotTracker {
         return fromServer >= 0 ? fromServer : session.snapshot().openListings();
     }
 
-    static int drawBars(GuiGraphicsExtractor graphics, int x, int y, int width, int used, int cap) {
+    static int drawBars(GuiGraphics graphics, int x, int y, int width, int used, int cap) {
         int bars = Math.max(1, (slots() + PER_BAR - 1) / PER_BAR);
         int barWidth = Math.max(20, Math.min(XP_WIDTH, width));
         int step = XP_HEIGHT + 1;
@@ -121,23 +121,23 @@ final class SlotTracker {
      * returns the y just below it. Cells 0..used-1 are filled, cells up to
      * cap are outlined as available, the rest are dark.
      */
-    static int drawGrid(GuiGraphicsExtractor graphics, int x, int y, int width,
+    static int drawGrid(GuiGraphics graphics, int x, int y, int width,
                         int used, int cap) {
         return drawGrid(graphics, x, y, width, used, cap, 255);
     }
 
-    static int drawGrid(GuiGraphicsExtractor graphics, int x, int y, int width,
+    static int drawGrid(GuiGraphics graphics, int x, int y, int width,
                         int used, int cap, int alpha) {
         return drawGrid(graphics, x, y, width, used, cap, alpha, FILLED, FILLED_EDGE);
     }
 
     /** The grid in another colour: blue cells for the order house, green for the auction. */
-    static int drawGrid(GuiGraphicsExtractor graphics, int x, int y, int width,
+    static int drawGrid(GuiGraphics graphics, int x, int y, int width,
                         int used, int cap, int alpha, int filled, int filledEdge) {
         return drawGrid(graphics, x, y, SlotGridLayout.fit(width, slots()), used, cap, alpha, filled, filledEdge);
     }
 
-    static int drawGrid(GuiGraphicsExtractor graphics, int x, int y, SlotGridLayout layout,
+    static int drawGrid(GuiGraphics graphics, int x, int y, SlotGridLayout layout,
                         int used, int cap, int alpha, int filled, int filledEdge) {
         for (int i = 0; i < layout.slots(); i++) {
             int cx = x + layout.left(i);

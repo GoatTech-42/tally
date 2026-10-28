@@ -1,6 +1,6 @@
 package dev.doughbay.fabric;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -45,7 +45,7 @@ final class StartHereScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back to GoNuts"), b -> onClose())
                 .bounds(left() + half + 6, footer, half, 23).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+    @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int x = left(), y = top(), w = bodyWidth();
         g.text(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);

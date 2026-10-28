@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import dev.doughbay.fabric.proxy.*;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.network.chat.*;
 import net.minecraft.util.FormattedCharSequence;
@@ -54,7 +54,7 @@ final class ProxyPanel {
         if(secret)box.addFormatter((text,cursor)->FormattedCharSequence.forward("*".repeat(text.length()),Style.EMPTY));
         fields.put(key,box);add.accept(box);
     }
-    void render(GuiGraphicsExtractor g,Font font) {
+    void render(GuiGraphics g,Font font) {
         var settings=ProxyAccess.settings();var active=settings.selected();
         g.text(font,UiTheme.fit(font,settings.blocked()?"Routing blocked: fix settings or explicitly disable":settings.state().enabled()?"Active: "+active.name():"Direct connection (proxy disabled)",w-150),x+145,y+6,UiTheme.GOLD);
         g.text(font,"Profile name",x,y+33,UiTheme.TEXT);g.text(font,"Host",x,y+71,UiTheme.TEXT);g.text(font,"Port",x+w-80,y+71,UiTheme.TEXT);

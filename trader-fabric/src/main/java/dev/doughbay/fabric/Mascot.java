@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import dev.doughbay.core.model.Position;
 import dev.doughbay.fabric.automation.AutomationSessionController;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 
@@ -99,10 +99,10 @@ public final class Mascot {
     }
 
     /** The shell stays still. Pupils, lids, eyebrows, mouth and reels move inside it. */
-    public static int draw(GuiGraphicsExtractor graphics, Face face, int x, int y, int width) {
+    public static int draw(GuiGraphics graphics, Face face, int x, int y, int width) {
         return drawCharacter(graphics,face,x,y,width,Appearance.mascot());
     }
-    static int drawCharacter(GuiGraphicsExtractor graphics, Face face, int x, int y, int width, Appearance.Character character) {
+    static int drawCharacter(GuiGraphics graphics, Face face, int x, int y, int width, Appearance.Character character) {
         var facialPose = ANIMATION.frame(MascotAnimation.Mood.valueOf(face.name()),
                 motionMillis(), lastSaleAt, UiTheme.reducedMotion());
         var pose = graphics.pose();
@@ -124,7 +124,7 @@ public final class Mascot {
     }
 
     /** Draws the wordmark at the given height; returns the width used. */
-    public static int drawLogo(GuiGraphicsExtractor graphics, int x, int y, int height) {
+    public static int drawLogo(GuiGraphics graphics, int x, int y, int height) {
         int width = Math.max(1, Math.round(height * (float) LOGO_WIDTH / LOGO_HEIGHT));
         graphics.blit(RenderPipelines.GUI_TEXTURED, LOGO, x, y, 0f, 0f,
                 width, height, LOGO_WIDTH, LOGO_HEIGHT, LOGO_WIDTH, LOGO_HEIGHT);

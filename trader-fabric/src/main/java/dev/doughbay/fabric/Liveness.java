@@ -99,7 +99,7 @@ final class Liveness {
      */
     private static boolean tryEscapeStrayScreen(Minecraft client) {
         if (client == null || client.player == null) return false;
-        Screen open = client.gui.screen();
+        Screen open = client.screen;
         if (open instanceof AbstractContainerScreen<?>) {
             client.player.closeContainer();
             return true;

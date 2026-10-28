@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import java.util.*;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -25,7 +25,7 @@ final class ItemPriorityScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back to Items"),b->onClose())
             .bounds(left(),Math.min(height-24,top()+140),bodyWidth(),20).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);int x=left(),y=top(),w=bodyWidth();
         g.text(font,"ITEM PRIORITY",x,y,UiTheme.GOLD);
         var counts=new EnumMap<ItemPriorities.Level,Integer>(ItemPriorities.Level.class);

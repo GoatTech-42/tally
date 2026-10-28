@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.network.chat.Component;
 import net.fabricmc.loader.api.FabricLoader;
@@ -47,7 +47,7 @@ final class HivePanel {
             var code=new EditBox(font,secondX+10,secondY+17,secondW-20,22,Component.literal("Other hive's code"));code.setMaxLength(12000);code.setValue(input);code.setResponder(s->input=s);add.accept(code);
             add.accept(CockpitButton.builder(Component.literal("Paste code"),b->code.setValue(Minecraft.getInstance().keyboardHandler.getClipboard())).bounds(secondX+10,secondY+45,(secondW-26)/2,22).build());
             var review=CockpitButton.builder(Component.literal("Review connection"),b->{
-                try{ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REQUEST,ActionTrace.Code.JOIN,"NONE",-1,-1,-1);requireOffline();HiveSetup.decode(input);Minecraft.getInstance().gui.setScreen(new HiveCombineScreen(Minecraft.getInstance().gui.screen(),input));return;}
+                try{ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.REQUEST,ActionTrace.Code.JOIN,"NONE",-1,-1,-1);requireOffline();HiveSetup.decode(input);Minecraft.getInstance().gui.setScreen(new HiveCombineScreen(Minecraft.getInstance().screen,input));return;}
                 catch(Exception e){failed(e);}rebuild.run();
             }).bounds(secondX+16+(secondW-26)/2,secondY+45,(secondW-26)/2,22).build();review.setTooltip(Tooltip.create(Component.literal("Review before queuing. Nothing is deleted or imported here. Disconnect from the server first.")));add.accept(review);
         }
@@ -61,7 +61,7 @@ final class HivePanel {
     }
     private void failed(Exception e){note=e instanceof java.io.IOException&&e.getMessage()!=null?e.getMessage():"Setup could not finish. Existing data and settings were kept.";if(Minecraft.getInstance().getConnection()==null)FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());}
     boolean scroll(double mx,double my,double delta){if(mx<x||mx>x+w||my<detailTop||my>bottom-30)return false;scroll=Math.max(0,Math.min(maxScroll,scroll-(int)Math.signum(delta)*26));return true;}
-    void render(GuiGraphicsExtractor g,Font font){
+    void render(GuiGraphics g,Font font){
         g.text(font,UiTheme.fit(font,"CONNECT YOUR ACCOUNTS",w),x,y,UiTheme.GOLD);
         String status=member==null?"One hive can have many accounts. Join it from each new instance.":HiveSetup.active()?"This instance is connected to a hive.":"This instance has a hive link. Restart to connect.";
         g.text(font,UiTheme.fit(font,status,w),x,y+14,UiTheme.SECONDARY);
@@ -81,6 +81,6 @@ final class HivePanel {
         maxScroll=Math.max(0,row+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();
         if(maxScroll>0)g.text(font,"Scroll for setup status",x,bottom-43,UiTheme.MUTED);
     }
-    private void panel(GuiGraphicsExtractor g,Font font,int left,int row,int width,int h,String title,String body){UiTheme.panel(g,left,row,width,h,UiTheme.INSET);g.text(font,UiTheme.fit(font,title,width-20),left+10,row+8,UiTheme.TEAL);int py=row+21;for(var line:font.split(Component.literal(body),width-20)){if(py+9>row+h-8)break;g.text(font,line,left+10,py,UiTheme.SECONDARY);py+=12;}}
-    private int detail(GuiGraphicsExtractor g,Font font,int row,String title,String body){var lines=font.split(Component.literal(body),Math.max(30,w-22));int h=29+lines.size()*12;UiTheme.panel(g,x,row,w,h,UiTheme.INSET);g.text(font,UiTheme.fit(font,title,w-20),x+10,row+9,UiTheme.GOLD);int py=row+24;for(var line:lines){g.text(font,line,x+10,py,UiTheme.TEXT);py+=12;}return row+h+8;}
+    private void panel(GuiGraphics g,Font font,int left,int row,int width,int h,String title,String body){UiTheme.panel(g,left,row,width,h,UiTheme.INSET);g.text(font,UiTheme.fit(font,title,width-20),left+10,row+8,UiTheme.TEAL);int py=row+21;for(var line:font.split(Component.literal(body),width-20)){if(py+9>row+h-8)break;g.text(font,line,left+10,py,UiTheme.SECONDARY);py+=12;}}
+    private int detail(GuiGraphics g,Font font,int row,String title,String body){var lines=font.split(Component.literal(body),Math.max(30,w-22));int h=29+lines.size()*12;UiTheme.panel(g,x,row,w,h,UiTheme.INSET);g.text(font,UiTheme.fit(font,title,w-20),x+10,row+9,UiTheme.GOLD);int py=row+24;for(var line:lines){g.text(font,line,x+10,py,UiTheme.TEXT);py+=12;}return row+h+8;}
 }

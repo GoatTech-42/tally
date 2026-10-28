@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /** Legacy entry points share the same linking and Swarm information panel. */
@@ -14,7 +14,7 @@ public final class CommunityScreen extends GoNutsScreen {
         panel.init(font,x,24,w,height-40,this::addRenderableWidget);
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xF0050505);panel.render(g,font);super.extractRenderState(g,mx,my,delta);
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){

@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 
 /** A passive cockpit view. Highlight the entire server, never a player's exact position. */
 final class RegionMapPanel {
@@ -19,7 +19,7 @@ final class RegionMapPanel {
         }).bounds(x+left+6,y+74,Math.min(160,width-left-6),20).build());
     }
 
-    void render(GuiGraphicsExtractor g, Font font, int x, int y, int width, int bottom) {
+    void render(GuiGraphics g, Font font, int x, int y, int width, int bottom) {
         var client = Minecraft.getInstance();
         var view = RegionMapReport.snapshot();
         g.text(font, "REGION MAP", x, y + 3, UiTheme.GOLD);

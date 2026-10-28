@@ -551,7 +551,7 @@ public class DoughBayClient implements ClientModInitializer {
             // be typed (chat, a search box, an anvil) it must stay a letter.
             boolean openDown = rawKeyDown(client, openScreen);
             if (openDown && !openKeyRawDown && AUTOMATION_SESSION.panelNeedsAsking()
-                    && client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen) {
+                    && client.screen instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen) {
                 openPressed = true;
             }
             openKeyRawDown = openDown;
@@ -573,7 +573,7 @@ public class DoughBayClient implements ClientModInitializer {
                     // the screen is open. Opening over it had the two taking
                     // the screen from each other and the step timing out.
                     AUTOMATION_SESSION.requestPanel();
-                } else if (client.gui.screen() == null) {
+                } else if (client.screen == null) {
                     AUTOMATION_SESSION.cancelPanelRequest();
                     openPanel(client);
                 }
@@ -594,7 +594,7 @@ public class DoughBayClient implements ClientModInitializer {
                     AUTOMATION_SESSION.tick(client,
                             watcher == null ? null : watcher.snapshot());
                     if (AUTOMATION_SESSION.takePanelGrant() && client.player != null) {
-                        net.minecraft.client.gui.screens.Screen up = client.gui.screen();
+                        net.minecraft.client.gui.screens.Screen up = client.screen;
                         boolean page = up instanceof net.minecraft.client.gui.screens.inventory.ContainerScreen;
                         // A page the server put up in the meantime gives way to
                         // the screen the player asked for, but never with a
@@ -653,7 +653,7 @@ public class DoughBayClient implements ClientModInitializer {
             // server announces its restart and never announces the end of one,
             // so the hold would otherwise run its full ten minutes even when
             // the world came back in three.
-            if (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory
+            if (client.screen instanceof net.minecraft.client.gui.screens.inventory
                     .AbstractContainerScreen<?>) {
                 AUTOMATION_SESSION.observeServerAnswered();
             }
@@ -1000,7 +1000,7 @@ public class DoughBayClient implements ClientModInitializer {
      */
     private static void autoRespawn(net.minecraft.client.Minecraft client) {
         if (client == null || client.player == null) return;
-        boolean dead = client.gui.screen() instanceof net.minecraft.client.gui.screens.DeathScreen;
+        boolean dead = client.screen instanceof net.minecraft.client.gui.screens.DeathScreen;
         if (!dead) {
             deathScreenSince = 0;
             // A few seconds after coming back, check what the death cost.

@@ -1,6 +1,6 @@
 package dev.doughbay.fabric;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
@@ -18,7 +18,7 @@ final class PublicSupportNoticeScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Tally source code"),b->Util.getPlatform().openUri(URI.create(ProjectStatus.SOURCE))).bounds(x,height-40,half,24).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Continue to local Tally"),b->onClose()).bounds(x+half+8,height-40,half,24).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);
         int w=Math.max(100,Math.min(640,width-32)),x=(width-w)/2,y=24;
         for(var line:font.split(Component.literal("UPSTREAM SUPPORT HAS ENDED"),w)){g.text(font,line,x,y,UiTheme.GOLD);y+=15;}

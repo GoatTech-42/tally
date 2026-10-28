@@ -5,7 +5,7 @@ import dev.doughbay.fabric.staffwatch.util.NameFilter;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.Identifier;
 
 /** A dedicated warning lane, also drawn over menus after the connection closes. */
@@ -19,7 +19,7 @@ public final class StaffWatchAlert {
     public static void register() {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("doughbay", "staff_warning"),
                 (g, delta) -> {
-                    if (Minecraft.getInstance().gui.screen() == null) render(g);
+                    if (Minecraft.getInstance().screen == null) render(g);
                 });
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) ->
                 ScreenEvents.afterExtract(screen).register((s, g, x, y, delta) -> render(g)));
@@ -39,7 +39,7 @@ public final class StaffWatchAlert {
                 && System.nanoTime() - shownAt < DISPLAY_NANOS;
     }
 
-    private static void render(GuiGraphicsExtractor g) {
+    private static void render(GuiGraphics g) {
         if (!active()) return;
         var font = Minecraft.getInstance().font;
         int width = Math.min(310, g.guiWidth() - 24);

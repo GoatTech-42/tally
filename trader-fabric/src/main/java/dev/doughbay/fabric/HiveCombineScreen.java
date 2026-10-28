@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /** Review and consent only. The actual import can run only at a later startup. */
@@ -48,7 +48,7 @@ final class HiveCombineScreen extends GoNutsScreen {
         }).bounds(x,height-55,w,22).build();confirm.active=!queued&&!joined;addRenderableWidget(confirm);
         addRenderableWidget(CockpitButton.builder(Component.literal(queued||joined?"Back to Hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
         g.text(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
         int top=40,end=Math.max(40,height-120);g.enableScissor(x,top,x+w,end);y=top-scroll;
@@ -63,7 +63,7 @@ final class HiveCombineScreen extends GoNutsScreen {
         }
         maxScroll=Math.max(0,y+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();super.extractRenderState(g,mx,my,dt);
     }
-    private int card(GuiGraphicsExtractor g,int y,int x,int w,String heading,String body,int color){
+    private int card(GuiGraphics g,int y,int x,int w,String heading,String body,int color){
         var lines=font.split(Component.literal(body),w-24);int h=30+lines.size()*13;UiTheme.panel(g,x,y,w,h,UiTheme.INSET);
         g.text(font,UiTheme.fit(font,heading,w-24),x+12,y+9,color);int py=y+25;for(var line:lines){g.text(font,line,x+12,py,UiTheme.TEXT);py+=13;}return y+h+9;
     }

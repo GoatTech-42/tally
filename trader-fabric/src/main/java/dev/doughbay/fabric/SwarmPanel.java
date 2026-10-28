@@ -3,7 +3,7 @@ package dev.doughbay.fabric;
 import dev.doughbay.fabric.hosted.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
@@ -33,11 +33,11 @@ final class SwarmPanel {
     boolean scroll(double mx,double my,double delta){
         return false;
     }
-    private int paragraph(GuiGraphicsExtractor g,Font font,String text,int y,int color){
+    private int paragraph(GuiGraphics g,Font font,String text,int y,int color){
         for(var line:font.split(Component.literal(text),Math.max(40,width-16))){g.text(font,line,x+8,y,color);y+=12;}
         return y+8;
     }
-    void render(GuiGraphicsExtractor g,Font font){
+    void render(GuiGraphics g,Font font){
         paragraph(g,font,ProjectStatus.NOTICE,top+8,UiTheme.TEXT);
     }
     static boolean validCode(String value){

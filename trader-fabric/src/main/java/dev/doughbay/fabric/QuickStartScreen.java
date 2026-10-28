@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 
@@ -53,7 +53,7 @@ final class QuickStartScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Optional tutorials"),b->minecraft.gui.setScreen(new TutorialScreen(parent,this,false)))
             .bounds(x+(w+6)/2,height-27,(w-6)/2,20).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float dt){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
         g.text(font,review?"2 / 2 · REVIEW & START":"1 / 2 · CHOOSE YOUR LIMITS",x,18,UiTheme.GOLD);
         int top=review?46:164,bottom=height-68,y=top-scroll;
@@ -76,7 +76,7 @@ final class QuickStartScreen extends GoNutsScreen {
         if(!message.isBlank())y=paragraph(g,message,x,y,w,UiTheme.BAD);
         maxScroll=Math.max(0,y+scroll-bottom);g.disableScissor();super.extractRenderState(g,mx,my,dt);
     }
-    private int paragraph(GuiGraphicsExtractor g,String text,int x,int y,int w,int color){
+    private int paragraph(GuiGraphics g,String text,int x,int y,int w,int color){
         for(var line:font.split(Component.literal(text),w)){g.text(font,line,x,y,color);y+=13;}return y+10;
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*28)));return true;}

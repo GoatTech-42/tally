@@ -71,7 +71,7 @@ public final class OrbitCamera {
         // standing down for each of those made the view snap in and out
         // constantly. Those screens are not even drawn any more, so there is
         // nothing to stand down for.
-        if (client.gui.screen() != null && !QuietScreen.hideContainer()) return false;
+        if (client.screen != null && !QuietScreen.hideContainer()) return false;
         // And never while the session is stopped or paused: a bot that is not
         // working is one you are probably about to play on. Any running session
         // (armed, or reading orders before it re-arms) is the bot's, so the

@@ -317,7 +317,7 @@ public final class StashDesk {
         if (client == null || client.player == null || client.level == null) return false;
         if (!enabled() || stage != Stage.IDLE || !pending.isEmpty()) return false;
         if (System.currentTimeMillis() < notBefore) return false;
-        if (!client.player.onGround() || client.gui.screen() != null) return false;
+        if (!client.player.onGround() || client.screen != null) return false;
         pitchBefore = client.player.getXRot();
         // The clock starts now. It was left wherever the last run finished, so
         // the first run of a session worked and every one after it gave up on
@@ -393,7 +393,7 @@ public final class StashDesk {
 
     public static void act(Minecraft client) {
         if (client == null || client.player == null) return;
-        if (client.gui.screen()
+        if (client.screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> open) {
             index(client, open);
             if (!holdingAnyEnderChest(client)) takeOneFromReserve(client, open);
@@ -638,7 +638,7 @@ public final class StashDesk {
             say(client, "The stash desk is off (stash.enabled)");
             return;
         }
-        if (client.gui.screen() != null) {
+        if (client.screen != null) {
             // The server pushes the auction page back open between steps, so
             // this is a moment to wait through rather than a reason to stop -
             // and stopping here left the chest in the hotbar, which is how the
@@ -800,7 +800,7 @@ public final class StashDesk {
         if (client == null || client.player == null) return;
         if (reactIn > 0) reactIn--;
         if (closeIn > 0 && --closeIn == 0) {
-            if (client.gui.screen()
+            if (client.screen
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.player.closeContainer();
                 say(client, "Closed the chest");
@@ -808,7 +808,7 @@ public final class StashDesk {
         }
         if (watchTicks > 0) {
             watchTicks--;
-            var screen = client.gui.screen();
+            var screen = client.screen;
             if (screen != null && !watchSaw) {
                 if (screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> other
                         && !other.getTitle().getString().contains("Ender Chest")) {
@@ -865,7 +865,7 @@ public final class StashDesk {
         // Queued clicks first, and only while the container is still open -
         // and never before the eyes have caught up with it.
         if (!pending.isEmpty() && reactIn <= 0) {
-            if (!(client.gui.screen()
+            if (!(client.screen
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> open)) {
                 pending.clear();
             } else {
@@ -888,7 +888,7 @@ public final class StashDesk {
         // restored, and a back-off set, so the interlock can never hold the
         // player - and freeze the trading - indefinitely.
         if (System.currentTimeMillis() > runDeadline) {
-            if (client.gui.screen() != null) client.player.closeContainer();
+            if (client.screen != null) client.player.closeContainer();
             pending.clear();
             afterClicks = null;
             restoreTheHand(client);
@@ -903,7 +903,7 @@ public final class StashDesk {
         // one. The clicks and the close timer above are the only things
         // allowed to run in here, because they are the only things a person
         // with a chest on screen can actually be doing.
-        if (client.gui.screen() != null) {
+        if (client.screen != null) {
             switch (stage) {
                 case LOOKING, SWAPPING, RISING, PLACED, SETTLING, RESTORING -> {
                     // Nothing of ours is open in these stages, so whatever this
@@ -913,7 +913,7 @@ public final class StashDesk {
                     // the run sat behind it until the deadline killed it. A
                     // person closes an unwanted popup and carries on; so does
                     // this, after the moment it takes to notice.
-                    if (client.gui.screen()
+                    if (client.screen
                             instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> stray
                             && ++strayTicks >= strayCloseAt) {
                         DoughBayClient.LOGGER.info(
@@ -946,7 +946,7 @@ public final class StashDesk {
             case EQUIPPING -> {
                 // The pack has to be shut before the placement; a right-click
                 // would be swallowed by the open screen otherwise.
-                if (closeIn > 0 || client.gui.screen() != null) return;
+                if (closeIn > 0 || client.screen != null) return;
                 stage = Stage.LOOKING;
                 startLook(client, PLACE_PITCH);
             }
@@ -1064,7 +1064,7 @@ public final class StashDesk {
             case OPENING -> {
                 // The shelf looks after itself once it is open - index, take
                 // one, close - so this only waits for all of that to finish.
-                if (client.gui.screen() != null || !pending.isEmpty() || closeIn > 0) {
+                if (client.screen != null || !pending.isEmpty() || closeIn > 0) {
                     stageTick = 0;
                     return;
                 }
@@ -1196,7 +1196,7 @@ public final class StashDesk {
         DoughBayClient.LOGGER.info(
                 "DoughBay stash: state before the click - sneaking={}, screen={}, onGround={}, pose={}",
                 client.player.isShiftKeyDown(),
-                client.gui.screen() == null ? "none" : client.gui.screen().getClass().getSimpleName(),
+                client.screen == null ? "none" : client.screen.getClass().getSimpleName(),
                 client.player.onGround(), client.player.getPose());
         rightClick(client);
         say(client, "Right-clicked " + name + " holding " + holding + " ("

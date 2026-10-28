@@ -53,7 +53,7 @@ final class AutoJoin {
             reset();
             return;
         }
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         if (!joinableFrom(screen)) {
             // ConnectScreen means a connection is in flight; anything else
             // means somebody is using the game. Either way, hands off.
@@ -102,7 +102,7 @@ final class AutoJoin {
             DoughBayClient.LOGGER.info("DoughBay auto join added {} to the server list", address);
         }
         DoughBayClient.LOGGER.info("DoughBay auto join: connecting to {} (attempt {})", address, attempts);
-        ConnectScreen.startConnecting(client.gui.screen(), client,
+        ConnectScreen.startConnecting(client.screen, client,
                 ServerAddress.parseString(address), entry, false, null);
     }
 

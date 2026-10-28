@@ -1,6 +1,6 @@
 package dev.doughbay.fabric;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import java.util.*;
 
 /** Numbered doughnut and sampled timeline; no interpolation across unknown observations. */
@@ -9,7 +9,7 @@ final class CapitalCharts {
  void step(int direction){category=Math.floorMod(category+direction,CapitalBreakdown.LABELS.size());}
  void range(){span=span==3_600_000L?86_400_000L:span==86_400_000L?7*86_400_000L:3_600_000L;}
  String rangeLabel(){return span==3_600_000L?"1 hour":span==86_400_000L?"24 hours":"7 days";}
- void render(GuiGraphicsExtractor g,Font font,SettingsAnalyzer.Report report,int x,int y,int w,int bottom,int mx,int my,Charts.Pending tip){
+ void render(GuiGraphics g,Font font,SettingsAnalyzer.Report report,int x,int y,int w,int bottom,int mx,int my,Charts.Pending tip){
   var snapshot=report.capital();if(snapshot==null){g.text(font,"Analyze again to capture the capital breakdown",x,y,UiTheme.SECONDARY);return;}
   g.text(font,"OBSERVED CAPITAL — this account, at cost",x,y,UiTheme.GOLD);
   int radius=Math.min(62,Math.max(30,(bottom-y-145)/3)),cx=x+radius+5,cy=y+radius+21;

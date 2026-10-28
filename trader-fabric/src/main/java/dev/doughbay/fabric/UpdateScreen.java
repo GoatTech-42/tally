@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import dev.doughbay.fabric.automation.AutomationSessionController;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -220,7 +220,7 @@ public final class UpdateScreen extends GoNutsScreen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         // The download can finish, or auto-update be switched on, while this is open.
         String shape = state() + ":" + autoOn();
         if (!shape.equals(shown)) rebuildWidgets();

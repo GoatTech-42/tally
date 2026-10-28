@@ -1,6 +1,6 @@
 package dev.doughbay.fabric;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -55,7 +55,7 @@ public final class PresetsScreen extends GoNutsScreen {
     }
     private interface Action{void run()throws Exception;}
     private void action(int x,int y,int w,String label,Action action){addRenderableWidget(CockpitButton.builder(Component.literal(label),b->{try{action.run();}catch(Exception e){message=e.getMessage()==null?"Could not change presets":e.getMessage();}rebuildWidgets();}).bounds(x,y,w,20).build());}
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xFA050505);g.text(font,itemOnly?"ITEM LOADOUTS":"SAVED PRESETS",15,12,UiTheme.GOLD);
         g.text(font,UiTheme.fit(font,itemOnly?"Save included, excluded and tracked items. Applying changes only these item selections.":"Save a baseline, experiment, then apply a saved copy to switch back. Slot counts stay account-local.",width-30),15,27,UiTheme.SECONDARY);
         g.text(font,UiTheme.fit(font,message,width-30),15,height-43,UiTheme.SECONDARY);super.extractRenderState(g,mx,my,delta);

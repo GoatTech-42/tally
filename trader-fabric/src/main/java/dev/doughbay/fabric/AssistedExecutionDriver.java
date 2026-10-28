@@ -117,7 +117,7 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
         String expectedCount = String.valueOf(target.listing().itemCount());
         String expectedPrice = String.format(Locale.ROOT, "%,d", target.buyPrice());
 
-        Screen screen = Minecraft.getInstance().gui.screen();
+        Screen screen = Minecraft.getInstance().screen;
         if (!(screen instanceof AbstractContainerScreen<?> container)) {
             checks.add(new Check("Auction screen open", "an auction/container screen",
                     "no container screen open", Check.Status.UNKNOWN));

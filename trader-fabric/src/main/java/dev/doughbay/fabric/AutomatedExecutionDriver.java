@@ -1917,7 +1917,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** A Your Orders page this driver left open for the next order-house step, still on screen and still fresh. */
     public synchronized boolean holdsOrdersPage(Minecraft client) {
         if (client == null || keptOrdersContainerId < 0 || System.currentTimeMillis() > keptOrdersUntilMillis) return false;
-        return client.gui.screen() instanceof AbstractContainerScreen<?> container
+        return client.screen instanceof AbstractContainerScreen<?> container
                 && container.getMenu().containerId == keptOrdersContainerId && isYourOrdersPage(container);
     }
 
@@ -1925,7 +1925,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private void expireKeptOrdersPage(Minecraft client) {
         if (keptOrdersContainerId < 0 || System.currentTimeMillis() <= keptOrdersUntilMillis) return;
         if (client != null && client.player != null && !isActive()
-                && client.gui.screen() instanceof AbstractContainerScreen<?> container
+                && client.screen instanceof AbstractContainerScreen<?> container
                 && container.getMenu().containerId == keptOrdersContainerId) {
             client.player.closeContainer();
         }
@@ -2587,7 +2587,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         complete(client, String.format(Locale.ROOT, "Delivered %s x%d to an order for %s (%s)",
                 shortName(targetItemId), targetCount, money(booked), deliverReceipt));
         // The server reopens the empty deliver page; leave the world clean.
-        if (client.gui.screen() instanceof AbstractContainerScreen<?>) client.player.closeContainer();
+        if (client.screen instanceof AbstractContainerScreen<?>) client.player.closeContainer();
     }
 
     /**
@@ -3439,7 +3439,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         lastProbeAsks = List.of();lastProbePlainPurchaseUpper=List.of();lastProbePurchaseDiagnostics=java.util.Map.of();
         dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.requestMarket(canonical,Math.max(1,count));
         probeStaleContainerId = -1;
-        if (client.gui.screen() instanceof AbstractContainerScreen<?> up && client.player != null) {
+        if (client.screen instanceof AbstractContainerScreen<?> up && client.player != null) {
             // A page left open is closed before the search goes out. Sent over
             // it, the search was sometimes never answered at all, and the
             // check sat out its eight seconds on a page that was not its own.
@@ -4168,7 +4168,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private void tickCancelCompletion(Minecraft client) {
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         if (screen instanceof DialogScreen<?> dialogScreen) {
             tickConfirmationDialog(client, dialogScreen);
             return;
@@ -4568,7 +4568,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             public String listingBlocker() { return listingCommandBlocker(client); }
             public boolean escapeMenuMayClose() {
                 if (client == null || client.player == null) return false;
-                if (!(client.gui.screen() instanceof AbstractContainerScreen<?> container)) return false;
+                if (!(client.screen instanceof AbstractContainerScreen<?> container)) return false;
                 return AutomatedExecutionDriver.escapeMenuMayClose(container.getTitle().getString(),
                         client.player.containerMenu.getCarried().isEmpty()
                                 && client.player.inventoryMenu.getCarried().isEmpty());
@@ -4578,7 +4578,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // Revalidate the exact hand at dispatch, but do not reselect it on every command/retry.
                 CommandSendProbe.verify(command, () -> client.getConnection().sendCommand(command));
                 if (operation == Operation.LIST && command.startsWith("ah sell ")) {
-                    Screen screen = client.gui.screen();
+                    Screen screen = client.screen;
                     DoughBayClient.LOGGER.info(
                             "DoughBay listing handoff: packet_handoff=true screen={} menu_id={} inventory_menu_id={} selected_slot={} expected_slot={} held_count={}",
                             screen == null ? "none" : screen.getClass().getSimpleName(),
@@ -4711,7 +4711,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** One of the bot's own menus - an auction page or a confirm dialog - is on screen. */
     private static boolean menuOpen(Minecraft client) {
         if (client == null) return false;
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         return screen instanceof AbstractContainerScreen<?> || screen instanceof DialogScreen<?>;
     }
 
@@ -5484,7 +5484,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (Tuning.get("prices.only") >= 0.5 && cancelUnclickedWatch(client,
                 "Flips only enabled: ending the general auction watch; nothing was charged")) return;
         if (yieldUnclickedWatchIfDue(client, System.currentTimeMillis())) return;
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         if (watching && watchWaiting && !(screen instanceof AbstractContainerScreen<?>)) {
             if (ticksInPhase >= nextWatchDelayTicks) {
                 watchWaiting = false;
@@ -5538,7 +5538,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // found the cure: closing the player inventory (container 0)
                 // restores auction access. Nothing is on screen here, so this
                 // close sends only that packet, and the command follows it.
-                if (client.player != null && client.gui.screen() == null) {
+                if (client.player != null && client.screen == null) {
                     client.player.closeContainer();
                     DoughBayClient.LOGGER.info(
                             "DoughBay: nothing opened in {} s after /{}; closed the player inventory and asking once more",
@@ -5674,7 +5674,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             complete(client, completionMessage());
             return;
         }
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         if (screen instanceof DialogScreen<?> dialogScreen) {
             tickConfirmationDialog(client, dialogScreen);
             return;
@@ -6051,7 +6051,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             tickCancelCompletion(client);
             return;
         }
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         boolean confirmationStillOpen = (screen instanceof AbstractContainerScreen<?> container
                 && container.getMenu().containerId == confirmationContainerId)
                 || (confirmationContainerId == DIALOG_CONFIRMATION
@@ -6623,7 +6623,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private int pageChangesInPhase;
 
     private String phaseTimeoutDetail(Minecraft client, long budget) {
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         String page = screen == null ? "no screen" : screen.getTitle().getString();
         return "No phase progress for " + budget / 1000 + "s; operation=" + operation
                 + ", phase=" + phase + ", orderStage=" + ownStage + ", ticks=" + ticksInPhase
@@ -6723,9 +6723,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         boolean keepOrdersPage = oneTrip() && client != null && !ownPages.hasTurnedPage()
                 && (operation == Operation.OWN_ORDERS || operation == Operation.PLACE_ORDER
                 || operation == Operation.CANCEL_ORDER)
-                && isYourOrdersPage(client.gui.screen());
+                && isYourOrdersPage(client.screen);
         boolean underDialogs = keepOrdersPage && operation == Operation.PLACE_ORDER
-                && ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId == placeFromContainerId;
+                && ((AbstractContainerScreen<?>) client.screen).getMenu().containerId == placeFromContainerId;
         lastMessage = message;
         DoughBayClient.LOGGER.info("{}", message);
         publishTerminal(TerminalOutcome.SUCCEEDED, message);
@@ -6734,7 +6734,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         resetPhaseObservation();
         notifyPlayer(client, message);
         if (keepOrdersPage) {
-            keptOrdersContainerId = ((AbstractContainerScreen<?>) client.gui.screen()).getMenu().containerId;
+            keptOrdersContainerId = ((AbstractContainerScreen<?>) client.screen).getMenu().containerId;
             keptOrdersUntilMillis = System.currentTimeMillis() + KEPT_ORDERS_PAGE_MILLIS;
             keptUnderDialogs = underDialogs;
             return;
@@ -6749,7 +6749,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      */
     /** A confirmation dialog left open after an abort is declined, not abandoned. */
     private static void declineOpenDialog(Minecraft client) {
-        if (client == null || !(client.gui.screen() instanceof DialogScreen<?> dialogScreen)) return;
+        if (client == null || !(client.screen instanceof DialogScreen<?> dialogScreen)) return;
         List<Button> buttons = new ArrayList<>();
         collectButtons(dialogScreen.children(), buttons);
         for (Button button : buttons) {
@@ -6765,7 +6765,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private static void closeAuctionScreen(Minecraft client) {
         if (client == null || client.player == null) return;
-        Screen open = client.gui.screen();
+        Screen open = client.screen;
         if (open instanceof AbstractContainerScreen<?>) {
             client.player.closeContainer();
         } else if (open instanceof DialogScreen<?>) {
@@ -7287,7 +7287,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         String expectedSeller = nullToEmpty(target.listing().sellerName());
 
         Minecraft client = Minecraft.getInstance();
-        Screen screen = client.gui.screen();
+        Screen screen = client.screen;
         if (!(screen instanceof AbstractContainerScreen<?> container)) {
             checks.add(new Check("Auction screen open", "auction/container GUI",
                     "no container open", Check.Status.UNKNOWN));

@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import dev.doughbay.fabric.hosted.*;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
@@ -39,7 +39,7 @@ public final class DashboardScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Swarm API"),b->minecraft.gui.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050505);
         g.text(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);
         if (!ProjectStatus.publicServicesEnabled()) {

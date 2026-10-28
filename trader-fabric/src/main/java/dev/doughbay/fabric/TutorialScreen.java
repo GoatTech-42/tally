@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /** Reopenable lessons. Opening a target page delegates navigation only. */
@@ -51,7 +51,7 @@ final class TutorialScreen extends GoNutsScreen {
         if(course!=null)addRenderableWidget(CockpitButton.builder(Component.literal("Skip / return later"),b->onClose())
             .bounds(x+(w+6)/2,height-28,(w-6)/2,20).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
         g.text(font,UiTheme.fit(font,course==null?"TUTORIALS · CHOOSE A GUIDE":course.title()+" · "+(step+1)+" / "+course.steps().size(),w),x,18,UiTheme.GOLD);
         if(course==null){

@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -28,7 +28,7 @@ final class AnalyzerPanel {
         save.setTooltip(Tooltip.create(Component.literal("Open a separate preset review. Nothing is applied by the Analyzer.")));add.accept(save);
         copy=CockpitButton.builder(Component.literal("Copy report"),b->{var r=SettingsAnalyzer.report();if(r!=null)try{Minecraft.getInstance().keyboardHandler.setClipboard(new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(r));message="Report copied. Review it before sharing.";}catch(Exception ignored){message="Could not copy the report. Your settings are unchanged.";}}).bounds(x+w-104,bottom-23,104,20).build();add.accept(copy);
     }
-    void render(GuiGraphicsExtractor g,Font font,int mx,int my,Charts.Pending tooltip){
+    void render(GuiGraphics g,Font font,int mx,int my,Charts.Pending tooltip){
         g.text(font,UiTheme.fit(font,"UNDERSTAND YOUR TRADING",w),x,y,UiTheme.GOLD);
         g.text(font,UiTheme.fit(font,"Analyze > review findings > choose a small experiment",w),x,y+13,UiTheme.SECONDARY);
         var r=SettingsAnalyzer.report();
@@ -75,11 +75,11 @@ final class AnalyzerPanel {
         if(line.startsWith("Follow observations"))return "PUBLIC OBSERVATIONS";
         return "LOCAL BASELINE";
     }
-    private int card(GuiGraphicsExtractor g,Font font,int row,String title,String body,int accent){
+    private int card(GuiGraphics g,Font font,int row,String title,String body,int accent){
         var lines=font.split(Component.literal(body),Math.max(30,w-30));int h=29+lines.size()*(font.lineHeight+3);
         cardAt(g,font,x,row,w-7,h,title,body,accent);return row+h+7;
     }
-    private void cardAt(GuiGraphicsExtractor g,Font font,int left,int row,int width,int h,String title,String body,int accent){
+    private void cardAt(GuiGraphics g,Font font,int left,int row,int width,int h,String title,String body,int accent){
         UiTheme.panel(g,left,row,width,h,UiTheme.INSET);g.fill(left+1,row+9,left+3,row+h-9,accent);
         g.text(font,UiTheme.fit(font,title,width-24),left+12,row+9,accent);int py=row+24;
         for(var line:font.split(Component.literal(body),Math.max(30,width-24))){g.text(font,line,left+12,py,UiTheme.TEXT);py+=font.lineHeight+3;}

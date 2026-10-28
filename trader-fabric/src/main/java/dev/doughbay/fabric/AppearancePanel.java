@@ -2,7 +2,7 @@ package dev.doughbay.fabric;
 
 import java.util.function.Consumer;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 
@@ -43,7 +43,7 @@ final class AppearancePanel {
     private int artSize(){return Math.max(48,Math.min(112,bottom-y-200));}
     private int maxScroll(){return Math.max(0,artSize()+199-(bottom-y));}
     boolean scroll(double mx,double my,double delta){if(mx<x||mx>x+width||my<y||my>bottom)return false;scroll=Math.max(0,Math.min(maxScroll(),scroll-(int)(delta*24)));return true;}
-    void render(GuiGraphicsExtractor g, Font font) {
+    void render(GuiGraphics g, Font font) {
         int top=this.y;scroll=Math.min(scroll,maxScroll());int y=top-scroll;
         widgetOffsets.forEach((widget,offset)->{int wy=top+offset-scroll;widget.setY(wy);widget.visible=wy>=top&&wy+widget.getHeight()<=bottom;});
         g.enableScissor(x,top,x+width,bottom);

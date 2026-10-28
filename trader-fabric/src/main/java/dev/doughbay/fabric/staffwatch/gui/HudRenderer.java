@@ -18,7 +18,7 @@ public final class HudRenderer {
 
  private final Map<String,Float> widths=new HashMap<>();
  private float stackHeight;
- public int alertTop(int guiHeight){var mc=Minecraft.getInstance();if(mc.level==null||mc.gui.screen() instanceof dev.doughbay.fabric.DoughBayScreen||mc.gui.hud.isHidden()||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud||(!StaffListModule.shouldShowHud()&&!AntiVanishModule.shouldShowHud()))return 12;return 12+(int)Math.ceil(stackHeight*guiHeight/mc.getWindow().getHeight())+8;}
+ public int alertTop(int guiHeight){var mc=Minecraft.getInstance();if(mc.level==null||mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.gui.hud.isHidden()||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud||(!StaffListModule.shouldShowHud()&&!AntiVanishModule.shouldShowHud()))return 12;return 12+(int)Math.ceil(stackHeight*guiHeight/mc.getWindow().getHeight())+8;}
 
  private static float scaleOf(HudLayoutStore.HudElementState state){return Math.max(.75F,Minecraft.getInstance().getWindow().getHeight()/1080F);}
 
@@ -30,7 +30,7 @@ public final class HudRenderer {
 
  private void removeSlot(String key,int px){widths.remove(key+px);}
 
- public void render(){var mc=Minecraft.getInstance();if(mc.gui.screen() instanceof dev.doughbay.fabric.DoughBayScreen||mc.level==null||mc.gui.hud.isHidden()||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud)return;
+ public void render(){var mc=Minecraft.getInstance();if(mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.level==null||mc.gui.hud.isHidden()||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud)return;
 
   var d=ImGui.getBackgroundDrawList();var state=new HudLayoutStore.HudElementState();state.x=12;float dt=ImGui.getIO().getDeltaTime();
   var staff=StaffListModule.shouldShowHud()?planStaff(state,false,dt):null;

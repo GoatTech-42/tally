@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -32,7 +32,7 @@ final class CockpitButton extends Button {
 
     void primary() { this.primary = true; }
 
-    @Override protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
+    @Override protected void extractContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
         var font = Minecraft.getInstance().font;
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         boolean highlight = active && (isHovered() || isFocused());

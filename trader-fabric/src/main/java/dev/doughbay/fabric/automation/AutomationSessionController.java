@@ -2357,7 +2357,7 @@ public final class AutomationSessionController {
             // minutes and the listing timed out. The prepare step already
             // closes these for itself; this one must too, or wait for ever.
             if (isRunning() && client != null && client.player != null) {
-                Screen open = client.gui.screen();
+                Screen open = client.screen;
                 long limit = (long) (dev.doughbay.fabric.Tuning.get("panel.hold_idle_sec") * 1000);
                 if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
                         && client.player.containerMenu != client.player.inventoryMenu) {
@@ -2436,8 +2436,8 @@ public final class AutomationSessionController {
      */
     private boolean heldByPanel(Minecraft client) {
         if (!panelOpen) return false;
-        if (client == null || !(client.gui.screen() instanceof dev.doughbay.fabric.DoughBayScreen
-                || client.gui.screen() instanceof dev.doughbay.fabric.UpdateScreen)) {
+        if (client == null || !(client.screen instanceof dev.doughbay.fabric.DoughBayScreen
+                || client.screen instanceof dev.doughbay.fabric.UpdateScreen)) {
             // The screen went away without telling us; drop the hold.
             panelOpen = false;
             return false;
@@ -2993,7 +2993,7 @@ public final class AutomationSessionController {
         if (client == null || client.player == null || client.level == null) return;
         // With a screen open the player may be holding the very stack on the
         // cursor; the inventory proves nothing until the screen is closed.
-        if (client.gui.screen() != null) return;
+        if (client.screen != null) return;
         String itemId = uncertainExposure.itemId();
         if (itemId == null || itemId.isBlank() || inventoryContainsItem(client, itemId)) return;
         LOGGER.info("DoughBay automation: recovered BUY intent for {} released: none in the inventory, so nothing was bought",
@@ -3026,7 +3026,7 @@ public final class AutomationSessionController {
         if (state != State.PAUSED || !recoveredSession || !uncertainExposure.active()) return;
         if (!uncertainExposure.phase().toUpperCase(Locale.ROOT).contains("LIST")) return;
         if (client == null || client.player == null || client.level == null) return;
-        if (client.gui.screen() != null) return;
+        if (client.screen != null) return;
         // An uncertain LISTING that still points at an open position is the
         // normal case, and the adopt path resolves it; only a true orphan, with
         // no open position of its own left, is released here.
@@ -3231,7 +3231,7 @@ public final class AutomationSessionController {
             if (client.player.containerMenu != null && client.player.inventoryMenu != null
                     && client.player.containerMenu.getCarried().isEmpty()
                     && client.player.inventoryMenu.getCarried().isEmpty()
-                    && client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> page
+                    && client.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> page
                     && page.getTitle().getString().toLowerCase(java.util.Locale.ROOT).contains("auction")
                     && closeStrayAuctionPage(client)) {
                 detail = "Recovery: closing the auction page before the next own-listings check";
@@ -4109,7 +4109,7 @@ public final class AutomationSessionController {
     private boolean closeStrayAuctionPage(Minecraft client) {
         if (client == null || client.player == null) return false;
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return false;
-        Screen open = client.gui.screen();
+        Screen open = client.screen;
         if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> container) {
             String title = container.getTitle().getString().toLowerCase(java.util.Locale.ROOT);
             if (title.contains("auction") || title.contains("orders") || title.contains("deliver")) {
@@ -7888,7 +7888,7 @@ public final class AutomationSessionController {
         if (singlePeelStage >= 0 && (singlePeelOwner != client.player
                 || singlePeelPositionId != trackedPosition.positionId()
                 || client.player.containerMenu != client.player.inventoryMenu
-                || client.gui.screen() != null)) {
+                || client.screen != null)) {
             LOGGER.warn("DoughBay singles: inventory context changed during split; recovering before retry");
             singlePeelStage = -1;
             singlePeelFailedPositionId = trackedPosition.positionId();
@@ -7922,7 +7922,7 @@ public final class AutomationSessionController {
             if (retailStackDue(client, trackedPosition, now)) return listRetailStack(client, now);
             if (retailWaiting(trackedPosition, now)) return deferRetail(now, "waiting for a single to sell");
             if (!safeInventoryContext(client)) {
-                Screen open = client.gui.screen();
+                Screen open = client.screen;
                 if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                     client.player.closeContainer();
                 } else if (open instanceof DoughBayScreen) {
@@ -8183,7 +8183,7 @@ public final class AutomationSessionController {
     private boolean clickPeelSlot(Minecraft client, int menuId, int menuSlot, int button) {
         if (client.gameMode == null || client.player != singlePeelOwner
                 || client.player.containerMenu != client.player.inventoryMenu
-                || client.gui.screen() != null || menuId != client.player.containerMenu.containerId) return false;
+                || client.screen != null || menuId != client.player.containerMenu.containerId) return false;
         try {
             client.gameMode.handleContainerInput(menuId, menuSlot, button,
                     ContainerInput.PICKUP, client.player);
@@ -8202,7 +8202,7 @@ public final class AutomationSessionController {
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return cursorRecovery.pending();
         var menu = client.player.containerMenu;
         ItemStack carried = menu.getCarried();
-        boolean inventoryOnly = menu == client.player.inventoryMenu && client.gui.screen() == null;
+        boolean inventoryOnly = menu == client.player.inventoryMenu && client.screen == null;
         long now = System.currentTimeMillis();
         if (!cursorRecovery.hold(client.player, menu, !carried.isEmpty(), inventoryOnly, now)) {
             cursorRecoveryStartedAt = 0;
@@ -8234,7 +8234,7 @@ public final class AutomationSessionController {
             if (menu != client.player.inventoryMenu) {
                 client.player.closeContainer();
                 cursorStowClickTick = controllerTick;
-            } else if (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
+            } else if (client.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.gui.setScreen(null);
             }
             detail = "Waiting for recovered inventory to settle";
@@ -10474,7 +10474,7 @@ public final class AutomationSessionController {
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) return false;
         if (closeStrayAuctionPage(client)) return false;
         if (modScreenOpen(client)) return false;
-        if (client.gui.screen() != null || !safeInventoryContext(client)) return false;
+        if (client.screen != null || !safeInventoryContext(client)) return false;
         // Only if it is actually in the pack. Stock already on the shelf needs
         // no trip, and asking for one would place a chest to look at nothing.
         // Only stock that genuinely needs putting away - market still below
@@ -11255,7 +11255,7 @@ public final class AutomationSessionController {
             // dialog closes. Nobody else will close it in an unattended
             // session, and the stack cannot be moved while it is open.
             if (client != null && client.player != null) {
-                Screen open = client.gui.screen();
+                Screen open = client.screen;
                 if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                     client.player.closeContainer();
                     detail = "Closing the auction page before preparing the stack";
@@ -11537,7 +11537,7 @@ public final class AutomationSessionController {
             }
             // The server reopens the auction page on its own a moment after
             // an item is collected; a sell command sent over it is refused.
-            if (client != null && client.player != null && client.gui.screen()
+            if (client != null && client.player != null && client.screen
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.player.closeContainer();
                 listNotBeforeMillis = now + 600;
@@ -11613,7 +11613,7 @@ public final class AutomationSessionController {
             deliveringOrder = null;
             listCommandStarted = false;
             listNotBeforeMillis = now + 1500;
-            if (client != null && client.player != null && client.gui.screen()
+            if (client != null && client.player != null && client.screen
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.player.closeContainer();
             }
@@ -11654,7 +11654,7 @@ public final class AutomationSessionController {
                     // command rate limit needs the channel to go quiet, or the
                     // retry lands in the same cooldown and is lost the same way.
                     listNotBeforeMillis = now + 2500L + 1500L * (listRetries - 1);
-                    if (client != null && client.player != null && client.gui.screen()
+                    if (client != null && client.player != null && client.screen
                             instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                         client.player.closeContainer();
                     }
@@ -12985,7 +12985,7 @@ public final class AutomationSessionController {
         if (client == null || client.player == null || client.gameMode == null) {
             return "no player is in a world";
         }
-        Screen open = client.gui.screen();
+        Screen open = client.screen;
         if (open != null) {
             return "the " + open.getClass().getSimpleName()
                     + " screen is open (pause menu, chat, inventory...); close it";
@@ -13010,7 +13010,7 @@ public final class AutomationSessionController {
     private final dev.doughbay.fabric.InventoryBlockerEvidence reportInventory=new dev.doughbay.fabric.InventoryBlockerEvidence();
     private static dev.doughbay.fabric.InventoryBlockerEvidence.Code inventoryBlockerCode(Minecraft client){
         if(client==null||client.player==null||client.gameMode==null)return dev.doughbay.fabric.InventoryBlockerEvidence.Code.NO_WORLD;
-        Screen open=client.gui.screen();
+        Screen open=client.screen;
         if(open!=null){
             String type=open.getClass().getName();
             if(type.equals("dev.doughbay.fabric.BugReportScreen"))return dev.doughbay.fabric.InventoryBlockerEvidence.Code.REPORT_SCREEN;
@@ -13023,7 +13023,7 @@ public final class AutomationSessionController {
 
     private boolean safeInventoryContext(Minecraft client) {
         return client != null && client.player != null && client.gameMode != null
-                && client.gui.screen() == null
+                && client.screen == null
                 && client.player.containerMenu == client.player.inventoryMenu
                 && client.player.inventoryMenu.getCarried().isEmpty();
     }

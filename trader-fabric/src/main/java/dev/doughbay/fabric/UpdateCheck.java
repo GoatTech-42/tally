@@ -6,7 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
@@ -620,14 +620,14 @@ public final class UpdateCheck {
      * The banner: top centre, where neither the slot panel nor the alerts
      * are, for long enough to be read. It slides in, waits, and slides out.
      */
-    private static void hud(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker ignored) {
+    private static void hud(GuiGraphics graphics, net.minecraft.client.DeltaTracker ignored) {
         long since = bannerSince;
         long age = System.currentTimeMillis() - since;
         if (since == 0 || age < 0 || age >= BANNER_MILLIS) return;
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null) return;
         // The notice itself is on screen, or about to be: no need for both.
-        if (client.gui.screen() instanceof DoughBayScreen || client.gui.screen() instanceof UpdateScreen) return;
+        if (client.screen instanceof DoughBayScreen || client.screen instanceof UpdateScreen) return;
         Font font = client.font;
         String title = bannerTitle;
         List<String> lines = bannerLines;

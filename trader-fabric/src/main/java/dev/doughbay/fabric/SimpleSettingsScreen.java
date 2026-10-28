@@ -1,5 +1,5 @@
 package dev.doughbay.fabric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import java.util.*;
 
@@ -34,8 +34,8 @@ public final class SimpleSettingsScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Help & setup"),b->minecraft.gui.setScreen(new StartHereScreen(parent))).bounds(x,height-27,Math.min(140,(w-8)/2),20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Done"),b->onClose()).bounds(x+w-90,height-27,90,20).build());
     }
-    private int wrap(GuiGraphicsExtractor g,String text,int x,int y,int w,int color,int maxLines){int count=0;for(var line:font.split(Component.literal(text),w)){if(count++>=maxLines)break;g.text(font,line,x,y,color);y+=12;}return y;}
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    private int wrap(GuiGraphics g,String text,int x,int y,int w,int color,int maxLines){int count=0;for(var line:font.split(Component.literal(text),w)){if(count++>=maxLines)break;g.text(font,line,x,y,color);y+=12;}return y;}
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         int x=left(),w=wide();g.fill(0,0,width,height,UiTheme.BACKGROUND);g.text(font,"GoNuts / SETTINGS / SIMPLE",x,17,UiTheme.GOLD);
         wrap(g,"Same saved settings. Switching views changes nothing. Custom values stay as they are.",x,40,w,UiTheme.SECONDARY,2);
         if(selected.isEmpty()){int row=0;for(var group:SimpleSettings.current()){int y=70+row++*54;g.fill(x,y,x+w,y+48,UiTheme.SURFACE);g.text(font,group.label(),x+8,y+8,UiTheme.TEXT);wrap(g,group.description(),x+8,y+23,w-Math.min(190,w/2)-22,UiTheme.SECONDARY,2);}}

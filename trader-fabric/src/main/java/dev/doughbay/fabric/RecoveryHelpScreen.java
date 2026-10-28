@@ -1,7 +1,7 @@
 package dev.doughbay.fabric;
 
 import java.util.function.BooleanSupplier;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -37,7 +37,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
         addRenderableWidget(primary);
     }
 
-    @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+    @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int w = bodyWidth(), x = (width - w) / 2;
         g.text(font, "GoNuts - Check interrupted trade", x, 14, UiTheme.TEXT);

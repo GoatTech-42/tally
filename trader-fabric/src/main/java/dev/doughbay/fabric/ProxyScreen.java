@@ -1,5 +1,5 @@
 package dev.doughbay.fabric;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 public final class ProxyScreen extends GoNutsScreen {
@@ -11,7 +11,7 @@ public final class ProxyScreen extends GoNutsScreen {
         panel.init(font,(width-w)/2,40,w,this::addRenderableWidget,this::rebuildWidgets);
         addRenderableWidget(CockpitButton.builder(Component.literal("Done"),b->onClose()).bounds(width/2-50,height-26,100,20).build());
     }
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
+    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);g.text(font,"TALLY · PROXIES",15,15,UiTheme.GOLD);
         panel.render(g,font);super.extractRenderState(g,mx,my,delta);
     }

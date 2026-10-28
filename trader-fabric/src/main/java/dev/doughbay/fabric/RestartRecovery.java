@@ -87,7 +87,7 @@ final class RestartRecovery {
                 == AutomatedExecutionDriver.OperationIntent.NONE
                 && (client.player == null || client.player.containerMenu.getCarried().isEmpty());
         var result = route.tick(new RestartRoute.World(now, inWorld, client.getConnection() != null,
-                client.gui.screen() instanceof ConnectScreen, joinableFrom(client.gui.screen()), address,
+                client.screen instanceof ConnectScreen, joinableFrom(client.screen), address,
                 client.level, SidebarBalance.freshSince(route.connectAt()), limboSeenAt,
                 session.serverRestarting(), safeToLeave));
         if (result.action() == RestartRoute.Action.NONE) return;
@@ -133,7 +133,7 @@ final class RestartRecovery {
 
     private static void leave(Minecraft client) {
         try {
-            if (client.gui.screen() instanceof ConnectScreen connecting) connecting.onClose();
+            if (client.screen instanceof ConnectScreen connecting) connecting.onClose();
             if (client.getConnection() != null) {
                 client.getConnection().getConnection().disconnect(Component.literal("GoNuts restart"));
             }
@@ -144,7 +144,7 @@ final class RestartRecovery {
 
     private static void connect(Minecraft client, String address) {
         try {
-            ConnectScreen.startConnecting(client.gui.screen(), client, ServerAddress.parseString(address),
+            ConnectScreen.startConnecting(client.screen, client, ServerAddress.parseString(address),
                     new ServerData("DonutSMP", address, ServerData.Type.OTHER), false, null);
         } catch (RuntimeException e) {
             DoughBayClient.LOGGER.warn("DoughBay restart: could not connect to {}: {}", address, e.toString());

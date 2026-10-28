@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.function.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.network.chat.Component;
 import dev.doughbay.fabric.staffwatch.WatchConfig;
@@ -41,7 +41,7 @@ final class StaffWatchPanel {
  private void persist(){try{WatchConfig.get().save();message="Saved";error=false;}catch(Exception e){message="Could not save settings";error=true;}}
  private void position(){for(var widget:widgets){int y=top+offsets.get(widget)-scroll;widget.setY(y);widget.visible=y>=top&&y+widget.getHeight()<=bottom;}}
  boolean scroll(double mx,double my,double delta){if(mx<x||mx>x+w||my<top||my>bottom)return false;scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(delta*24)));position();return true;}
- void render(GuiGraphicsExtractor g,Font font){
+ void render(GuiGraphics g,Font font){
   var c=WatchConfig.get();long now=System.currentTimeMillis();var report=StaffWatchReport.snapshot();var rows=report.current(now);
   int historyRows=Math.min(20,report.summaries().size()),eventRows=Math.min(20,report.history().size());
   maxScroll=Math.max(0,480+Math.max(1,rows.size())*22+historyRows*64+eventRows*22-(bottom-top));scroll=Math.min(scroll,maxScroll);position();int y=top-scroll;
@@ -83,5 +83,5 @@ final class StaffWatchPanel {
   g.disableScissor();
   if(maxScroll>0)g.text(font,"Scroll for more",x+w-82,bottom-9,UiTheme.MUTED);
  }
- private void text(GuiGraphicsExtractor g,Font font,String text,int x,int y,int color){g.text(font,UiTheme.fit(font,text,w-20),x,y,color);}
+ private void text(GuiGraphics g,Font font,String text,int x,int y,int color){g.text(font,UiTheme.fit(font,text,w-20),x,y,color);}
 }

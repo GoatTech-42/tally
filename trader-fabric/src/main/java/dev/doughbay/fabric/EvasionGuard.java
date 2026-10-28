@@ -471,7 +471,7 @@ public final class EvasionGuard {
                 return;
             }
             long wait = reconnectAfterMillis();
-            if (wait > 0 && now - leftAt >= wait && client.gui.screen() != null && lastServer != null) {
+            if (wait > 0 && now - leftAt >= wait && client.screen != null && lastServer != null) {
                 DoughBayClient.LOGGER.info("DoughBay evasion: {} s elapsed; reconnecting to {}",
                         (now - leftAt) / 1000, lastServer.ip);
                 leftAt = now;   // one attempt per wait, however it goes
@@ -1265,7 +1265,7 @@ public final class EvasionGuard {
         if (st != AutomationSessionController.State.SCANNING
                 && st != AutomationSessionController.State.MONITORING
                 && st != AutomationSessionController.State.STOPPED) return;
-        if (client.gui.screen() != null) return;
+        if (client.screen != null) return;
         if (StashDesk.busy()) return;
         // A chest in the pocket before leaving, because there is no getting one
         // after landing: opening the shelf is what hands them out, and opening
@@ -1378,7 +1378,7 @@ public final class EvasionGuard {
     }
 
     private static void closeAnyScreen(Minecraft client) {
-        Screen open = client.gui.screen();
+        Screen open = client.screen;
         if (open instanceof AbstractContainerScreen<?>) {
             client.player.closeContainer();
         } else if (open != null && !(open instanceof DoughBayScreen)) {

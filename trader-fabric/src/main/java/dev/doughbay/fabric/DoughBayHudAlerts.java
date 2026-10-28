@@ -8,7 +8,7 @@ import dev.doughbay.fabric.automation.AutomationSessionController;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayDeque;
@@ -147,8 +147,8 @@ final class DoughBayHudAlerts {
         // The HUD is hidden behind a screen only when it is not drawn under
         // screens; the mod's own screen always hides it. While it is visible
         // nothing is held back: a sale shows the moment it happens.
-        boolean hudHidden = client.gui.screen() instanceof DoughBayScreen
-                || (client.gui.screen() != null && Tuning.get("hud.over_screens") < 0.5);
+        boolean hudHidden = client.screen instanceof DoughBayScreen
+                || (client.screen != null && Tuning.get("hud.over_screens") < 0.5);
         if (hudHidden) {
             if (hiddenSince == Long.MIN_VALUE) hiddenSince = now;
             pruneSaleDedupe(now);
@@ -164,7 +164,7 @@ final class DoughBayHudAlerts {
         // screen before spending the one-shot demo previews. Real scanner
         // alerts are still recorded immediately and preserved while hidden.
         boolean holdDemoPreview = snapshot != null && snapshot.demo()
-                && (client.gui.screen() != null || now - worldEnteredAt < 750L);
+                && (client.screen != null || now - worldEnteredAt < 750L);
         if (!holdDemoPreview) observeSnapshot(snapshot, now);
         observeDriverStatus(executionStatus, now);
     }
@@ -410,7 +410,7 @@ final class DoughBayHudAlerts {
     }
 
     /** A small "key does what" legend, placed by hud.keys_x / hud.keys_y, using the current bindings. */
-    private void drawKeyLegend(GuiGraphicsExtractor graphics, Font font, int margin, int screenWidth, int screenHeight) {
+    private void drawKeyLegend(GuiGraphics graphics, Font font, int margin, int screenWidth, int screenHeight) {
         java.util.List<String[]> rows = DoughBayClient.keyLegend();
         if (rows.isEmpty()) return;
         int line = font.lineHeight + 5;
@@ -444,14 +444,14 @@ final class DoughBayHudAlerts {
         }
     }
 
-    private void render(GuiGraphicsExtractor graphics, net.minecraft.client.DeltaTracker ignored) {
+    private void render(GuiGraphics graphics, net.minecraft.client.DeltaTracker ignored) {
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.player == null || client.level == null) return;
         // Over the game and, when asked, under other screens too: the bot
         // spends most of its time inside auction pages, and the panel is
         // most useful exactly then. The mod's own screen shows it all already.
-        if (client.gui.screen() instanceof DoughBayScreen) return;
-        if (client.gui.screen() != null && Tuning.get("hud.over_screens") < 0.5) return;
+        if (client.screen instanceof DoughBayScreen) return;
+        if (client.screen != null && Tuning.get("hud.over_screens") < 0.5) return;
         // Nothing to show until the market feed is live: a fresh install with
         // no key, or a key that has not answered yet, would otherwise draw an
         // empty panel over the game and look broken.
@@ -470,7 +470,7 @@ final class DoughBayHudAlerts {
         if (Tuning.get("hud.keys") >= 0.5) drawKeyLegend(graphics, font, margin, screenWidth, screenHeight);
     }
 
-    private void drawAlerts(GuiGraphicsExtractor graphics, Font font, long now,
+    private void drawAlerts(GuiGraphics graphics, Font font, long now,
                             int screenWidth, int screenHeight, int margin) {
         if (alerts.isEmpty() || Tuning.get("hud.alerts") < 0.5) return;
         boolean alertsLeft = Tuning.get("hud.alerts_left") >= 0.5;
@@ -530,7 +530,7 @@ final class DoughBayHudAlerts {
         return t < 0.5f ? 2 * t * t : 1 - (float) Math.pow(-2 * t + 2, 2) / 2;
     }
 
-    private void drawFlights(GuiGraphicsExtractor graphics, long now) {
+    private void drawFlights(GuiGraphics graphics, long now) {
         java.util.Iterator<Flight> it = flights.iterator();
         while (it.hasNext()) {
             Flight f = it.next();
@@ -561,7 +561,7 @@ final class DoughBayHudAlerts {
      * everything but the profile, so the panel costs nothing to draw and the
      * profile is fetched once every half hour per player.
      */
-    private void drawWhoIsNearby(GuiGraphicsExtractor graphics, Font font, int margin) {
+    private void drawWhoIsNearby(GuiGraphics graphics, Font font, int margin) {
         Minecraft client = Minecraft.getInstance();
         // At least as far as the guard watches. The card looked a hundred and
         // twenty blocks out and the guard pauses the session at a hundred and
@@ -659,7 +659,7 @@ final class DoughBayHudAlerts {
         }
     }
 
-    private void drawSlotPanel(GuiGraphicsExtractor graphics, Font font, int margin) {
+    private void drawSlotPanel(GuiGraphics graphics, Font font, int margin) {
         AutomationSessionController controller = DoughBayClient.automationSessionController();
         if (controller == null) return;
         AutomationSessionController.SessionSnapshot session = controller.snapshot();
@@ -934,7 +934,7 @@ final class DoughBayHudAlerts {
         return lines;
     }
 
-    private static void drawAlert(GuiGraphicsExtractor graphics, Font font, Alert alert,
+    private static void drawAlert(GuiGraphics graphics, Font font, Alert alert,
                                   int x, int y, int width, int height, int alpha, double remaining) {
         if (alpha <= 3) return;
         int accent = withAlpha(alert.type().accent, alpha);

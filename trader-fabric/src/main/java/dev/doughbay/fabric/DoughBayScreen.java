@@ -9,7 +9,7 @@ import dev.doughbay.core.model.Opportunity;
 import dev.doughbay.engine.MarketService;
 import dev.doughbay.fabric.automation.AutomationSessionController;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.EditBox;
@@ -1011,7 +1011,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         refreshPalette();
         MarketWatcher.Snapshot current = snapshot();
         UiLayout ui = layout();
@@ -1070,7 +1070,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 ui.left(), ui.top(), ui.right(), ui.bottom());
     }
 
-    private void renderHeader(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot, UiLayout ui) {
+    private void renderHeader(GuiGraphics graphics, MarketWatcher.Snapshot snapshot, UiLayout ui) {
         int x = ui.innerLeft();
         int top = ui.top();
         if (ui.sidebar() == 0) {
@@ -1109,7 +1109,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.fill(x, ui.contentTop() - 4, ui.innerRight(), ui.contentTop() - 3, PANEL_EDGE);
     }
 
-    private void renderSidebar(GuiGraphicsExtractor graphics, UiLayout ui) {
+    private void renderSidebar(GuiGraphics graphics, UiLayout ui) {
         int x = ui.left();
         graphics.fill(x + 1, ui.top() + 1, x + ui.sidebar(), ui.bottom() - 1, CARD_DARK);
         graphics.fill(x + ui.sidebar(), ui.top() + 1, x + ui.sidebar() + 1, ui.bottom() - 1, PANEL_EDGE);
@@ -1129,7 +1129,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * API has never seen answers HTTP 500, which is an ordinary outcome and
      * must not be shown as zero coins.
      */
-    private void renderAccount(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderAccount(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                UiLayout ui, int y) {
         String name = snapshot.accountName();
         if (name.isEmpty()) return;
@@ -1173,7 +1173,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * fine at the title screen and before a world loads, and a missing face is
      * not worth a gap in the header, let alone an exception in the renderer.
      */
-    private void drawPlayerFace(GuiGraphicsExtractor graphics, int x, int y, int size) {
+    private void drawPlayerFace(GuiGraphics graphics, int x, int y, int size) {
         try {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null) return;
@@ -1255,7 +1255,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             return server==null||!server.contains("donutsmp")?"Join the supported DonutSMP server before starting.":null;
     }
 
-    private void renderOverview(GuiGraphicsExtractor g, MarketWatcher.Snapshot snapshot,
+    private void renderOverview(GuiGraphics g, MarketWatcher.Snapshot snapshot,
                                 UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         overviewSignals.clear();
@@ -1339,7 +1339,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (maxPageScrollPixels > 0) g.text(this.font, "Scroll to explore", ui.innerRight() - 90, ui.bottom() - 9, MUTED);
     }
 
-    private void overviewMetric(GuiGraphicsExtractor g, int x, int y, int w,
+    private void overviewMetric(GuiGraphics g, int x, int y, int w,
                                 String label, String value, String note, int color) {
         UiTheme.panel(g, x, y, w, 53, CARD);
         g.text(this.font, truncate(label, w - 20), x + 10, y + 8, MUTED);
@@ -1347,7 +1347,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         g.text(this.font, truncate(note, w - 20), x + 10, y + 40, SECONDARY);
     }
 
-    private void renderActivity(GuiGraphicsExtractor g, UiLayout ui) {
+    private void renderActivity(GuiGraphics g, UiLayout ui) {
         resetListGeometry();
         int x = ui.innerLeft(), w = ui.innerWidth(), top = ui.contentTop() + 9;
         g.text(this.font, "Every event, in one place", x, top, TEXT);
@@ -1380,7 +1380,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         g.disableScissor();
     }
 
-    private void renderOpportunities(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderOpportunities(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                      UiLayout ui, int mouseX, int mouseY) {
         List<Opportunity> rows = snapshot.opportunities();
         int x = ui.innerLeft(), w = ui.innerWidth(), top = ui.contentTop() + 8;
@@ -1412,7 +1412,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.text(this.font, "Select a signal for price history and the full breakdown", x, ui.bottom() - 17, MUTED);
     }
 
-    private void opportunityCard(GuiGraphicsExtractor g, Opportunity o, MarketWatcher.Snapshot snapshot,
+    private void opportunityCard(GuiGraphics g, Opportunity o, MarketWatcher.Snapshot snapshot,
                                  int x, int y, int w, int h, boolean hover) {
         UiTheme.panel(g, x, y, w, h, hover ? ROW_HOVER : CARD);
         UiTheme.rounded(g, x + 10, y + 10, 29, 29, 5, CARD_DARK);
@@ -1435,7 +1435,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // ------------------------------------------------------------------- detail
 
-    private void renderDetail(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderDetail(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                               Opportunity opportunity, UiLayout ui, int mouseX, int mouseY) {
         Opportunity refreshed = currentOpportunity(snapshot, opportunity);
         if (refreshed != null) opportunity = refreshed;
@@ -1514,7 +1514,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * Nothing is silently dropped at a large GUI scale: the chart, outcome,
      * safety state, and reasons remain reachable with the mouse wheel.
      */
-    private void renderCompactDetail(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderCompactDetail(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                      Opportunity opportunity, UiLayout ui,
                                      int top, int bottom, int mouseX, int mouseY) {
         int gap = 7;
@@ -1575,7 +1575,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderListingCard(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderListingCard(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                    Opportunity opportunity, int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         boolean signal = dev.doughbay.engine.MarketService.isMarketSignal(opportunity);
@@ -1617,7 +1617,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         ? "unknown" : duration(opportunity.listing().timeLeftMillis()), SECONDARY);
     }
 
-    private void renderMarketCard(GuiGraphicsExtractor graphics, MarketStats stats,
+    private void renderMarketCard(GuiGraphics graphics, MarketStats stats,
                                   int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "MARKET", x, y, width);
@@ -1648,7 +1648,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 "Confidence", percent(stats.confidence() * 100), confidenceColor(stats.confidence()));
     }
 
-    private void renderHistoryCard(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderHistoryCard(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                    Opportunity opportunity, int x, int y, int width, int height,
                                    int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
@@ -1694,7 +1694,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void drawLegend(GuiGraphicsExtractor graphics, int x, int y) {
+    private void drawLegend(GuiGraphics graphics, int x, int y) {
         int cursor = x;
         cursor = legendItem(graphics, cursor, y, Charts.SERIES_BLUE, "sales");
         cursor = legendItem(graphics, cursor + 8, y, Charts.SERIES_AQUA, "quick");
@@ -1702,13 +1702,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         legendItem(graphics, cursor + 8, y, GOOD, "listing");
     }
 
-    private int legendItem(GuiGraphicsExtractor graphics, int x, int y, int color, String label) {
+    private int legendItem(GuiGraphics graphics, int x, int y, int color, String label) {
         graphics.fill(x, y + 4, x + 7, y + 5, color);
         graphics.text(this.font, label, x + 10, y, MUTED);
         return x + 10 + this.font.width(label);
     }
 
-    private void renderPriceBand(GuiGraphicsExtractor graphics, Opportunity opportunity,
+    private void renderPriceBand(GuiGraphics graphics, Opportunity opportunity,
                                  int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD_DARK);
         // A rehearsal or test-buy candidate is built from a bare listing and
@@ -1762,7 +1762,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 Charts.SERIES_ORANGE);
     }
 
-    private void renderOutcomeCard(GuiGraphicsExtractor graphics, Opportunity opportunity,
+    private void renderOutcomeCard(GuiGraphics graphics, Opportunity opportunity,
                                    int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "EXPECTED OUTCOME", x, y, width);
@@ -1782,7 +1782,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 "Sale chance", percent(opportunity.saleProbability() * 100), GOOD);
     }
 
-    private void renderExecutionCard(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderExecutionCard(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                      Opportunity opportunity, int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         String heading = snapshot.demo() ? "PREVIEW SAFETY"
@@ -1845,7 +1845,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         statusLine(graphics, textX, yy, textWidth, "No command is sent from this detail screen", SECONDARY);
     }
 
-    private void renderReasonsCard(GuiGraphicsExtractor graphics, Opportunity opportunity,
+    private void renderReasonsCard(GuiGraphics graphics, Opportunity opportunity,
                                    int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "WHY THIS WAS FLAGGED", x, y, width);
@@ -1862,7 +1862,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderDetailFooter(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderDetailFooter(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                     Opportunity opportunity, UiLayout ui, int footerTop) {
         graphics.fill(ui.innerLeft(), footerTop, ui.innerRight(), footerTop + 1, PANEL_EDGE);
 
@@ -1899,7 +1899,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // ------------------------------------------------------------------ markets
 
-    private void renderMarkets(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderMarkets(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                UiLayout ui, int mouseX, int mouseY) {
         List<MarketStats> rows = sortedMarkets(filteredMarkets(snapshot.markets()));
         int totalMarkets = snapshot.markets().size();
@@ -2083,7 +2083,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return String.format(Locale.ROOT, "%.1fd", seconds / 86_400.0);
     }
 
-    private void renderItemBoard(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderItemBoard(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         LedgerStatsProvider ledger = DoughBayClient.ledgerStats();
         ItemBoard.Board board = ledger == null ? ItemBoard.Board.empty(boardRange) : ledger.board(boardRange);
         boardHeads.clear();
@@ -2135,7 +2135,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (sideHeight >= 60) renderItemBoardSide(graphics, board, sideX, sideTop, sideWidth, sideHeight);
     }
 
-    private void renderItemBoardTable(GuiGraphicsExtractor graphics, ItemBoard.Board board, int x, int y,
+    private void renderItemBoardTable(GuiGraphics graphics, ItemBoard.Board board, int x, int y,
                                       int width, int height, boolean wide, int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
         sectionTitle(graphics, "EVERY ITEM  ·  click a column to sort by it, again for the worst first", x, y, width);
@@ -2225,7 +2225,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** Beside the table: the chosen item in full, or, with none chosen, when in the day the money comes. */
-    private void renderItemBoardSide(GuiGraphicsExtractor graphics, ItemBoard.Board board, int x, int y,
+    private void renderItemBoardSide(GuiGraphics graphics, ItemBoard.Board board, int x, int y,
                                      int width, int height) {
         card(graphics, x, y, width, height, CARD);
         int innerX = x + 9;
@@ -2308,7 +2308,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderStats(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot marketSnapshot,
+    private void renderStats(GuiGraphics graphics, MarketWatcher.Snapshot marketSnapshot,
                              UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         if (statsBoard) {
@@ -2404,7 +2404,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     // Rivals tab: who else is flipping, when they are on, what they trade.
     // ------------------------------------------------------------------
 
-    private void renderRivals(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderRivals(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         rivalRowsGeometry = new int[0];
         RivalIntel intel = DoughBayClient.rivalIntel();
@@ -2516,7 +2516,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return shape == MoneyFlows.Shape.HUB || shape == MoneyFlows.Shape.PASSES_ON ? WARN : SECONDARY;
     }
 
-    private void renderMoney(GuiGraphicsExtractor graphics, UiLayout ui, RivalIntel intel, int mouseX, int mouseY) {
+    private void renderMoney(GuiGraphics graphics, UiLayout ui, RivalIntel intel, int mouseX, int mouseY) {
         MoneyFlows.Snapshot m = intel == null ? MoneyFlows.Snapshot.empty() : intel.money();
         moneySnapshot = m;
         moneyRowsGeometry = new int[0];
@@ -2590,7 +2590,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 Math.max(40, sideHeight - transfersHeight - 8));
     }
 
-    private void renderMoneyTable(GuiGraphicsExtractor graphics, MoneyFlows.Snapshot m, int x, int y,
+    private void renderMoneyTable(GuiGraphics graphics, MoneyFlows.Snapshot m, int x, int y,
                                   int width, int height, int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
         sectionTitle(graphics, "WHO MOVES MONEY  ·  click a name for who pays them and who they pay", x, y, width);
@@ -2634,7 +2634,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         moneyRowsGeometry = new int[] {rowsTop, rowHeight, shown};
     }
 
-    private void renderMoneyTransfers(GuiGraphicsExtractor graphics, MoneyFlows.Snapshot m, int x, int y,
+    private void renderMoneyTransfers(GuiGraphics graphics, MoneyFlows.Snapshot m, int x, int y,
                                       int width, int height, long now) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "BIGGEST TRANSFERS  ·  one player to another", x, y, width);
@@ -2650,7 +2650,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** The players whose own notices never told us any of this: private ones first, then the unfollowed. */
-    private void renderMoneyUnseen(GuiGraphicsExtractor graphics, MoneyFlows.Snapshot m, int x, int y,
+    private void renderMoneyUnseen(GuiGraphics graphics, MoneyFlows.Snapshot m, int x, int y,
                                    int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "SEEN THROUGH THE OTHER SIDE  ·  " + m.hidden() + " private, "
@@ -2678,7 +2678,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderMoneyDetail(GuiGraphicsExtractor graphics, MoneyFlows.Snapshot m, MoneyFlows.Account a,
+    private void renderMoneyDetail(GuiGraphics graphics, MoneyFlows.Snapshot m, MoneyFlows.Account a,
                                    int x, int y, int width, int bottom, long now, int mouseX, int mouseY) {
         card(graphics, x, y, width, bottom - y, CARD_DARK);
         sectionTitle(graphics, a.name() + "  ·  " + a.shape().label + "  ·  " + a.privacy().label
@@ -2727,7 +2727,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** One side of an account's payments. Each name opens that player's own page. */
-    private void moneyList(GuiGraphicsExtractor graphics, MoneyFlows.Snapshot m, String title,
+    private void moneyList(GuiGraphics graphics, MoneyFlows.Snapshot m, String title,
                            List<MoneyFlows.Edge> edges, boolean payers, int x, int y, int width, int bottom,
                            long now, int mouseX, int mouseY) {
         graphics.text(this.font, title + "  ·  " + edges.size() + " player(s)", x, y, GOLD);
@@ -2760,7 +2760,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** The shadowed markets: what the rival pays, what they get, and where Underdog would list. */
-    private void renderUnderdog(GuiGraphicsExtractor graphics, RivalIntel.Snapshot s, int x, int y,
+    private void renderUnderdog(GuiGraphics graphics, RivalIntel.Snapshot s, int x, int y,
                                 int width, int height) {
         card(graphics, x, y, width, height, CARD);
         boolean on = Tuning.get("underdog.enabled") >= 0.5;
@@ -2802,7 +2802,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** The at-a-glance card for a rival under the mouse: bot likelihood, volume, markets, profit. */
-    private void renderRivalHoverCard(GuiGraphicsExtractor graphics, RivalIntel.Rival r, int mouseX, int mouseY,
+    private void renderRivalHoverCard(GuiGraphics graphics, RivalIntel.Rival r, int mouseX, int mouseY,
                                       UiLayout ui) {
         List<String> lines = new ArrayList<>();
         List<Integer> colors = new ArrayList<>();
@@ -2850,7 +2850,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderRivalTable(GuiGraphicsExtractor graphics, RivalIntel.Snapshot s, int x, int y,
+    private void renderRivalTable(GuiGraphics graphics, RivalIntel.Snapshot s, int x, int y,
                                   int width, int height, long now, int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
         sectionTitle(graphics, "WHO IS FLIPPING  ·  click a name for their trades", x, y, width);
@@ -2903,7 +2903,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** 24 bars, one per hour of the day; the current hour is gold. */
-    private void activityStrip(GuiGraphicsExtractor graphics, int[] hourly, int x, int y, int width, int height, long now) {
+    private void activityStrip(GuiGraphics graphics, int[] hourly, int x, int y, int width, int height, long now) {
         if (hourly == null || hourly.length < 24 || width < 24) return;
         int max = 1;
         for (int v : hourly) max = Math.max(max, v);
@@ -2917,7 +2917,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderRivalDetail(GuiGraphicsExtractor graphics, RivalIntel.Rival r, int x, int y,
+    private void renderRivalDetail(GuiGraphics graphics, RivalIntel.Rival r, int x, int y,
                                    int width, int bottom, long now) {
         card(graphics, x, y, width, bottom - y, CARD_DARK);
         sectionTitle(graphics, r.name() + "  ·  " + r.status(now) + "  ·  seen "
@@ -3058,7 +3058,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderBuyers(GuiGraphicsExtractor graphics, RivalIntel.Snapshot s, int x, int y,
+    private void renderBuyers(GuiGraphics graphics, RivalIntel.Snapshot s, int x, int y,
                               int width, int height, long now) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "REPEAT BUYERS  ·  who buys from you", x, y, width);
@@ -3298,7 +3298,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 || (desc != null && desc.toLowerCase(Locale.ROOT).contains(q)));
     }
 
-    private void renderSettings(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderSettings(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         settingRowBounds.clear();
         settingRowKeys.clear();
@@ -3481,7 +3481,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private int renderSettingRow(GuiGraphicsExtractor graphics, int x, int y, int width, int rowHeight,
+    private int renderSettingRow(GuiGraphics graphics, int x, int y, int width, int rowHeight,
                                  int listTopY, int listBottomY, String key, String label,
                                  String description, String value, boolean isDefault,
                                  int index, int mouseX, int mouseY) {
@@ -3502,7 +3502,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** What a setting does, its range and default, shown under the mouse. */
-    private void renderSettingTooltip(GuiGraphicsExtractor graphics, String key, int mouseX, int mouseY, UiLayout ui) {
+    private void renderSettingTooltip(GuiGraphics graphics, String key, int mouseX, int mouseY, UiLayout ui) {
         if ("evasion.homes".equals(key)) return;
         if (key.startsWith("key.")) return;
         List<String> lines = new ArrayList<>();
@@ -3580,7 +3580,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return new int[] {x + 9 + col * (cell + gap), y + 27 + row * (cell + gap), cell};
     }
 
-    private void renderSlotBoard(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
+    private void renderSlotBoard(GuiGraphics graphics, int x, int y, int width, int height,
                                  List<AutomationSessionController.OpenListingView> open, int other,
                                  long now, int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
@@ -3641,7 +3641,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     private int[] lastSlotBoard = null;
 
-    private void renderSlotTooltip(GuiGraphicsExtractor graphics,
+    private void renderSlotTooltip(GuiGraphics graphics,
                                    List<AutomationSessionController.OpenListingView> open, int other,
                                    long now, int mouseX, int mouseY) {
         if (lastSlotBoard == null) return;
@@ -3701,7 +3701,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderTopMarkets(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderTopMarkets(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                   int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "TOP MARKETS  ·  by profit", x, y, width);
@@ -3735,7 +3735,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void headlineCard(GuiGraphicsExtractor graphics, int x, int y, int width, int height,
+    private void headlineCard(GuiGraphics graphics, int x, int y, int width, int height,
                               String label, String value, String note, int valueColor) {
         card(graphics, x, y, width, height, CARD);
         graphics.text(this.font, truncate(label, width - 14), x + 7, y + 6, MUTED);
@@ -3747,7 +3747,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderPerformanceChart(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderPerformanceChart(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                         int x, int y, int width, int height,
                                         int mouseX, int mouseY) {
         card(graphics, x, y, width, height, CARD_DARK);
@@ -3785,7 +3785,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderItemLeaders(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderItemLeaders(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                    int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "ITEM LEADERS", x, y, width);
@@ -3832,7 +3832,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderTradeQuality(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderTradeQuality(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                     int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
         sectionTitle(graphics, "TRADE QUALITY", x, y, width);
@@ -3869,7 +3869,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderMilestones(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderMilestones(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                   int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD_DARK);
         String title = stats.mode() == PerformanceStatsSnapshot.Mode.PAPER
@@ -3891,7 +3891,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderMilestoneBadge(GuiGraphicsExtractor graphics,
+    private void renderMilestoneBadge(GuiGraphics graphics,
                                       PerformanceStatsSnapshot.Milestone milestone,
                                       int x, int y, int width, int height) {
         int edge = milestone.unlocked() ? 0xFFE8E8E8 : PANEL_EDGE;
@@ -3922,7 +3922,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return grouped(milestone.progress()) + " / " + grouped(milestone.target()) + " sales";
     }
 
-    private void renderCompactStats(GuiGraphicsExtractor graphics, PerformanceStatsSnapshot stats,
+    private void renderCompactStats(GuiGraphics graphics, PerformanceStatsSnapshot stats,
                                     int x, int y, int width, int bottom,
                                     int mouseX, int mouseY) {
         int remaining = Math.max(100, bottom - y);
@@ -4130,7 +4130,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         rebuildWidgets();
     }
 
-    private void renderTestBuyCard(GuiGraphicsExtractor graphics, AutomationModeGeometry geometry) {
+    private void renderTestBuyCard(GuiGraphics graphics, AutomationModeGeometry geometry) {
         int[] b = testBuyCardBounds(geometry);
         int x = b[0];
         int y = b[1];
@@ -4374,7 +4374,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** Keep recovery instructions ahead of diagnostics so they survive a short viewport. */
-    private int renderRecoveryHelp(GuiGraphicsExtractor graphics,
+    private int renderRecoveryHelp(GuiGraphics graphics,
                                    AutomationSessionController.SessionSnapshot session,
                                    int x, int y, int width, int maxY) {
         if (!session.recoveredSession()) return y;
@@ -4594,7 +4594,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return session.resumable();
     }
 
-    private void renderAutomation(GuiGraphicsExtractor graphics,
+    private void renderAutomation(GuiGraphics graphics,
                                   MarketWatcher.Snapshot snapshot, UiLayout ui) {
         resetListGeometry();
         AutomationModeGeometry geometry = automationModeGeometry(ui);
@@ -4640,7 +4640,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderCompactAutomation(GuiGraphicsExtractor graphics,
+    private void renderCompactAutomation(GuiGraphics graphics,
                                          MarketWatcher.Snapshot snapshot,
                                          Opportunity current,
                                          AutomatedExecutionDriver.PreflightReport report,
@@ -4677,7 +4677,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderAutomationCandidateCard(GuiGraphicsExtractor graphics,
+    private void renderAutomationCandidateCard(GuiGraphics graphics,
                                                MarketWatcher.Snapshot snapshot,
                                                Opportunity current,
                                                AutomationGeometry geometry) {
@@ -4722,7 +4722,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 x + width - 9 - this.font.width(badge), y + 7, badgeColor);
     }
 
-    private void renderPreflightCard(GuiGraphicsExtractor graphics,
+    private void renderPreflightCard(GuiGraphics graphics,
                                      MarketWatcher.Snapshot snapshot,
                                      Opportunity current,
                                      AutomatedExecutionDriver.PreflightReport report,
@@ -4761,7 +4761,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 preflightOutcomeColor(report.outcome()));
     }
 
-    private void renderAutomationReportCard(GuiGraphicsExtractor graphics,
+    private void renderAutomationReportCard(GuiGraphics graphics,
                                             AutomatedExecutionDriver.PreflightReport report,
                                             AutomationGeometry geometry) {
         int x = geometry.left();
@@ -4952,7 +4952,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 geometry.width() - column - geometry.gap() - 18);
     }
 
-    private void renderObserveAutomation(GuiGraphicsExtractor graphics,
+    private void renderObserveAutomation(GuiGraphics graphics,
                                          MarketWatcher.Snapshot snapshot,
                                          Opportunity current,
                                          AutomationModeGeometry geometry) {
@@ -5047,7 +5047,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 .bounds(innerX, geometry.bottom() - 28, geometry.width() - 18, 20).build());
     }
 
-    private void renderLiveTradingSetup(GuiGraphicsExtractor graphics,
+    private void renderLiveTradingSetup(GuiGraphics graphics,
                                         MarketWatcher.Snapshot snapshot,
                                         AutomationModeGeometry geometry) {
         int[] b = liveTradingSetupBounds(geometry);
@@ -5260,7 +5260,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         addRenderableWidget(apiKeyTestButton);
     }
 
-    private void renderApiKeyCard(GuiGraphicsExtractor graphics, ApiKeyGeometry key) {
+    private void renderApiKeyCard(GuiGraphics graphics, ApiKeyGeometry key) {
         card(graphics, key.x(), key.y(), key.width(), key.height(), CARD_DARK);
         DoughBayConfig config = DoughBayClient.activeConfig();
         boolean saved = config != null && config.hasApiKey();
@@ -5517,7 +5517,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         rebuildWidgets();
     }
 
-    private void renderDiscordCard(GuiGraphicsExtractor graphics, AutomationModeGeometry geometry) {
+    private void renderDiscordCard(GuiGraphics graphics, AutomationModeGeometry geometry) {
         int x = geometry.left();
         int y = geometry.bodyY();
         int width = geometry.width();
@@ -5612,7 +5612,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         rebuildWidgets();
     }
 
-    private void renderWebPanelCard(GuiGraphicsExtractor graphics, AutomationModeGeometry geometry) {
+    private void renderWebPanelCard(GuiGraphics graphics, AutomationModeGeometry geometry) {
         int x = geometry.left();
         int y = geometry.bodyY();
         int width = geometry.width();
@@ -5653,7 +5653,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         rebuildWidgets();
     }
 
-    private void renderCompactObserveCard(GuiGraphicsExtractor graphics,
+    private void renderCompactObserveCard(GuiGraphics graphics,
                                           MarketWatcher.Snapshot snapshot,
                                           Opportunity current,
                                           int x, int y, int width, int height) {
@@ -5685,7 +5685,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 innerX, yy, innerWidth, y + height - 10, SECONDARY);
     }
 
-    private void renderObserveAnalysisCard(GuiGraphicsExtractor graphics,
+    private void renderObserveAnalysisCard(GuiGraphics graphics,
                                            MarketWatcher.Snapshot snapshot,
                                            int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
@@ -5712,7 +5712,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 innerX, yy, innerWidth, y + height - 10, SECONDARY);
     }
 
-    private void renderObserveSessionCard(GuiGraphicsExtractor graphics,
+    private void renderObserveSessionCard(GuiGraphics graphics,
                                           Opportunity current,
                                           int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD_DARK);
@@ -5751,7 +5751,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 status.armed() ? WARN : SECONDARY);
     }
 
-    private void renderPreflightAutomation(GuiGraphicsExtractor graphics,
+    private void renderPreflightAutomation(GuiGraphics graphics,
                                            MarketWatcher.Snapshot snapshot,
                                            Opportunity current,
                                            AutomationModeGeometry geometry) {
@@ -5789,7 +5789,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 geometry.width() - column - geometry.gap(), lowerHeight);
     }
 
-    private void renderModeCandidateCard(GuiGraphicsExtractor graphics, Opportunity current,
+    private void renderModeCandidateCard(GuiGraphics graphics, Opportunity current,
                                          AutomationModeGeometry geometry) {
         int x = geometry.left();
         int y = geometry.bodyY();
@@ -5825,7 +5825,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 current == null ? WARN : GOOD);
     }
 
-    private void renderPreflightProcedureCard(GuiGraphicsExtractor graphics,
+    private void renderPreflightProcedureCard(GuiGraphics graphics,
                                               MarketWatcher.Snapshot snapshot,
                                               Opportunity current,
                                               int x, int y, int width, int height) {
@@ -5853,7 +5853,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 current == null ? "no" : "yes", current == null ? WARN : GOOD);
     }
 
-    private void renderPreflightReportModeCard(GuiGraphicsExtractor graphics,
+    private void renderPreflightReportModeCard(GuiGraphics graphics,
                                                MarketWatcher.Snapshot snapshot,
                                                AutomatedExecutionDriver.PreflightReport report,
                                                int x, int y, int width, int height) {
@@ -5915,21 +5915,21 @@ public final class DoughBayScreen extends GoNutsScreen {
         return blocker == null ? GOOD : WARN;
     }
 
-    private void renderSingleTradeAutomation(GuiGraphicsExtractor graphics,
+    private void renderSingleTradeAutomation(GuiGraphics graphics,
                                              MarketWatcher.Snapshot snapshot,
                                              AutomationModeGeometry geometry) {
         renderBoundedSessionAutomation(graphics, snapshot, geometry,
                 AutomationSessionController.RunMode.SINGLE);
     }
 
-    private void renderContinuousAutomation(GuiGraphicsExtractor graphics,
+    private void renderContinuousAutomation(GuiGraphics graphics,
                                             MarketWatcher.Snapshot snapshot,
                                             AutomationModeGeometry geometry) {
         renderBoundedSessionAutomation(graphics, snapshot, geometry,
                 AutomationSessionController.RunMode.CONTINUOUS);
     }
 
-    private void renderCompactContinuousCard(GuiGraphicsExtractor graphics,
+    private void renderCompactContinuousCard(GuiGraphics graphics,
                                              MarketWatcher.Snapshot snapshot,
                                              DoughBayConfig config,
                                              int x, int y, int width, int height) {
@@ -5967,7 +5967,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 innerX, yy + 5, innerWidth, y + height - 10, WARN);
     }
 
-    private void renderContinuousLimitsCard(GuiGraphicsExtractor graphics,
+    private void renderContinuousLimitsCard(GuiGraphics graphics,
                                             DoughBayConfig config,
                                             int x, int y, int width, int height) {
         card(graphics, x, y, width, height, CARD);
@@ -6003,7 +6003,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 Integer.toString(config.continuousReservedHotbarSlot() + 1), SECONDARY);
     }
 
-    private void renderContinuousStateCard(GuiGraphicsExtractor graphics,
+    private void renderContinuousStateCard(GuiGraphics graphics,
                                            MarketWatcher.Snapshot snapshot,
                                            DoughBayConfig config,
                                            int x, int y, int width, int height) {
@@ -6035,7 +6035,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 innerX, yy, innerWidth, y + height - 10, WARN);
     }
 
-    private void renderBoundedSessionAutomation(GuiGraphicsExtractor graphics,
+    private void renderBoundedSessionAutomation(GuiGraphics graphics,
                                                 MarketWatcher.Snapshot marketSnapshot,
                                                 AutomationModeGeometry geometry,
                                                 AutomationSessionController.RunMode requestedMode) {
@@ -6058,7 +6058,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 geometry.width() - column - geometry.gap(), cardHeight);
     }
 
-    private void renderCompactBoundedSessionCard(GuiGraphicsExtractor graphics,
+    private void renderCompactBoundedSessionCard(GuiGraphics graphics,
                                                  MarketWatcher.Snapshot marketSnapshot,
                                                  ContinuousAutomationPolicy policy,
                                                  AutomationSessionController.SessionSnapshot session,
@@ -6139,7 +6139,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     /** Returns the y just below the last row, for whatever follows in the card. */
-    private int renderSessionPolicyCard(GuiGraphicsExtractor graphics,
+    private int renderSessionPolicyCard(GuiGraphics graphics,
                                         ContinuousAutomationPolicy policy,
                                         AutomationSessionController.RunMode requestedMode,
                                         int x, int y, int width, int height) {
@@ -6199,7 +6199,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * listings themselves. Only the mod's own listings are known; anything
      * listed by hand is not counted.
      */
-    private int renderSlotTracker(GuiGraphicsExtractor graphics, int x, int y, int width,
+    private int renderSlotTracker(GuiGraphics graphics, int x, int y, int width,
                                   int maxY, int maxRows) {
         List<AutomationSessionController.OpenListingView> open = AUTOMATION_SESSION.openListingViews();
         int cap = AUTOMATION_SESSION.maxOpenListings();
@@ -6239,7 +6239,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return yy;
     }
 
-    private void renderActualSessionStateCard(GuiGraphicsExtractor graphics,
+    private void renderActualSessionStateCard(GuiGraphics graphics,
                                               MarketWatcher.Snapshot marketSnapshot,
                                               ContinuousAutomationPolicy policy,
                                               AutomationSessionController.SessionSnapshot session,
@@ -6393,7 +6393,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // -------------------------------------------------------------- diagnostics
 
-    private void renderDiagnostics(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderDiagnostics(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                                    UiLayout ui) {
         resetListGeometry();
         MarketWatcher.Diagnostics diagnostics = snapshot.diagnostics();
@@ -6454,7 +6454,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderCollectionDiagnostics(GuiGraphicsExtractor graphics,
+    private void renderCollectionDiagnostics(GuiGraphics graphics,
                                              MarketWatcher.Snapshot snapshot,
                                              MarketWatcher.Diagnostics diagnostics,
                                              int x, int y, int width, int height,
@@ -6509,7 +6509,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderApiDiagnostics(GuiGraphicsExtractor graphics,
+    private void renderApiDiagnostics(GuiGraphics graphics,
                                       MarketWatcher.Diagnostics diagnostics,
                                       int x, int y, int width, int height,
                                       boolean framed) {
@@ -6555,7 +6555,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 ratio > 0.85 ? WARN : Charts.SERIES_AQUA);
     }
 
-    private void renderStorageDiagnostics(GuiGraphicsExtractor graphics,
+    private void renderStorageDiagnostics(GuiGraphics graphics,
                                           MarketWatcher.Snapshot snapshot,
                                           int x, int y, int width, int height,
                                           boolean framed) {
@@ -6586,7 +6586,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderRuntimeDiagnostics(GuiGraphicsExtractor graphics,
+    private void renderRuntimeDiagnostics(GuiGraphics graphics,
                                           MarketWatcher.Snapshot snapshot,
                                           int x, int y, int width, int height,
                                           boolean framed) {
@@ -6619,7 +6619,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // --------------------------------------------------------------------- about
 
-    private void renderAbout(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot,
+    private void renderAbout(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
                              UiLayout ui) {
         resetListGeometry();
         int x = ui.innerLeft();
@@ -7140,7 +7140,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         };
     }
 
-    private void drawWideHeader(GuiGraphicsExtractor graphics, int left, int y,
+    private void drawWideHeader(GuiGraphics graphics, int left, int y,
                                 int[] columns, String[] labels) {
         for (int i = 0; i < labels.length; i++) {
             cell(graphics, labels[i], left, columns[i], y, GOLD, i > 0);
@@ -7154,7 +7154,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * labels are right-aligned to their column offset, so a band would put the
      * clickable area beside the word instead of on it.
      */
-    private void drawSortableHeader(GuiGraphicsExtractor graphics, int left, int y,
+    private void drawSortableHeader(GuiGraphics graphics, int left, int y,
                                     int[] columns, String[] labels, MarketSort[] sorts) {
         for (int i = 0; i < labels.length; i++) {
             MarketSort sort = i < sorts.length ? sorts[i] : null;
@@ -7417,7 +7417,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         searchMessage = "Tracked " + ids.size() + " item(s) from " + v.name();
     }
 
-    private void renderSearch(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderSearch(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         searchRowsGeometry = new int[0];
         searchSaleRowsGeometry = new int[0];
@@ -7432,7 +7432,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         renderSearchResults(graphics, ui, mouseY);
     }
 
-    private void renderSearchResults(GuiGraphicsExtractor graphics, UiLayout ui, int mouseY) {
+    private void renderSearchResults(GuiGraphics graphics, UiLayout ui, int mouseY) {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 28;         // below the search field
@@ -7493,7 +7493,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderSearchItemDetail(GuiGraphicsExtractor graphics, UiLayout ui) {
+    private void renderSearchItemDetail(GuiGraphics graphics, UiLayout ui) {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 26;
@@ -7511,7 +7511,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
     }
 
-    private void renderSearchSeller(GuiGraphicsExtractor graphics, UiLayout ui, int mouseY) {
+    private void renderSearchSeller(GuiGraphics graphics, UiLayout ui, int mouseY) {
         int x = ui.innerLeft();
         int width = ui.innerWidth();
         int top = ui.contentTop() + 26;
@@ -7722,7 +7722,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         rebuildWidgets();
     }
 
-    private void renderItems(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderItems(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         int x = ui.innerLeft();
         int width = ui.innerWidth();
@@ -7809,7 +7809,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // -------------------------------------------------------------- Logs tab
 
-    private void renderLogs(GuiGraphicsExtractor graphics, UiLayout ui) {
+    private void renderLogs(GuiGraphics graphics, UiLayout ui) {
         resetListGeometry();
         int x = ui.innerLeft();
         int width = ui.innerWidth();
@@ -7947,7 +7947,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * <p>The thumb is sized by the visible fraction and floored at a grabbable
      * height, so a list of hundreds still leaves something you can catch.
      */
-    private void drawScrollBar(GuiGraphicsExtractor graphics, int tableRight,
+    private void drawScrollBar(GuiGraphics graphics, int tableRight,
                                int top, int bottom, int rowCount) {
         if (maxScroll <= 0 || bottom - top < 20) {
             scrollBarLeft = scrollBarRight = scrollBarTop = scrollBarBottom = 0;
@@ -7983,7 +7983,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 && mouseY >= scrollBarTop && mouseY <= scrollBarBottom;
     }
 
-    private void drawCompactHeader(GuiGraphicsExtractor graphics, int left, int y,
+    private void drawCompactHeader(GuiGraphics graphics, int left, int y,
                                    int[] columns, String[] labels) {
         for (int i = 0; i < labels.length; i++) {
             cell(graphics, labels[i], left, columns[i], y, GOLD, i > 0);
@@ -7992,7 +7992,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
 
 
-    private void renderEmptyState(GuiGraphicsExtractor graphics, int x, int y, int width,
+    private void renderEmptyState(GuiGraphics graphics, int x, int y, int width,
                                   String heading, String lineOne, String lineTwo) {
         int height = 92;
         card(graphics, x, y, width, height, CARD_DARK);
@@ -8021,7 +8021,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     // ------------------------------------------------------------------- drawing
 
-    private void scaledText(GuiGraphicsExtractor graphics, String text,
+    private void scaledText(GuiGraphics graphics, String text,
                             int x, int y, float scale, int color) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
@@ -8271,7 +8271,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 + money(buy) + " each, sells at " + money(sell) + (entry.singles() ? " one at a time." : " each.") + sized, false);
     }
 
-    private void renderFlips(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderFlips(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         flipRowBounds.clear();
         flipRowItems.clear();
@@ -8596,7 +8596,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return best;
     }
 
-    private void renderOrders(GuiGraphicsExtractor graphics, MarketWatcher.Snapshot snapshot, UiLayout ui, int mouseX, int mouseY) {
+    private void renderOrders(GuiGraphics graphics, MarketWatcher.Snapshot snapshot, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         OrderBook book = DoughBayClient.orderBook();
         int x = ui.innerLeft();
@@ -8702,7 +8702,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         return String.valueOf(n);
     }
 
-    private void renderPayroll(GuiGraphicsExtractor graphics, UiLayout ui, int mouseX, int mouseY) {
+    private void renderPayroll(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
         resetListGeometry();
         payrollRowBounds.clear();
         Payroll payroll = DoughBayClient.payroll();
@@ -8792,25 +8792,25 @@ public final class DoughBayScreen extends GoNutsScreen {
                 right - this.font.width(truncate("Anything not paid out stays in the bot as working capital. Every share is of the profit since that name's last payout.", width)), top + 11, MUTED);
     }
 
-    private void card(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
+    private void card(GuiGraphics graphics, int x, int y, int width, int height, int color) {
         if (width <= 0 || height <= 0) return;
         UiTheme.panel(graphics, x, y, width, height, color);
     }
 
-    private void sectionTitle(GuiGraphicsExtractor graphics, String title,
+    private void sectionTitle(GuiGraphics graphics, String title,
                               int x, int y, int width) {
         graphics.text(this.font, truncate(title, width - 16), x + 8, y + 7, GOLD);
         graphics.fill(x + 8, y + 19, x + width - 8, y + 20, CARD_DARK);
     }
 
-    private void cell(GuiGraphicsExtractor graphics, String value, int left, int column,
+    private void cell(GuiGraphics graphics, String value, int left, int column,
                       int y, int color, boolean rightAlign) {
         int x = left + column;
         if (rightAlign) x -= this.font.width(value);
         graphics.text(this.font, value, x, y, color);
     }
 
-    private int kvRight(GuiGraphicsExtractor graphics, int x, int y, int width,
+    private int kvRight(GuiGraphics graphics, int x, int y, int width,
                         String label, String value, int valueColor) {
         String safeValue = value == null || value.isBlank() ? "unknown" : value;
 
@@ -8836,13 +8836,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         return y + 11;
     }
 
-    private int statusLine(GuiGraphicsExtractor graphics, int x, int y, int width,
+    private int statusLine(GuiGraphics graphics, int x, int y, int width,
                            String text, int color) {
         graphics.text(this.font, this.font.plainSubstrByWidth(text, width), x, y, color);
         return y + 11;
     }
 
-    private int drawWrapped(GuiGraphicsExtractor graphics, String text, int x, int y,
+    private int drawWrapped(GuiGraphics graphics, String text, int x, int y,
                             int width, int maxY, int color) {
         if (width <= 0 || y > maxY) return y;
         for (FormattedCharSequence line : this.font.split(Component.literal(text), width)) {
@@ -9075,7 +9075,7 @@ public final class DoughBayScreen extends GoNutsScreen {
      * @return the horizontal space consumed, so the label can be indented past
      *         it; zero when there is no icon, leaving the layout untouched
      */
-    private int drawItemIcon(GuiGraphicsExtractor graphics, String itemId,
+    private int drawItemIcon(GuiGraphics graphics, String itemId,
                              int x, int rowY, int rowHeight) {
         ItemStack stack = itemIcon(itemId);
         if (stack.isEmpty()) return 0;
