@@ -1,4 +1,16 @@
-# GoNuts changelog
+# Tally changelog
+
+Tally continues GoNuts. The first entry is Tally's own; everything dated
+2026-10-26 or earlier is the upstream GoNuts record, kept unchanged.
+
+## 2026-10-27 17:40 UTC
+
+- Tally 1.0.0, prepared and not yet published. This entry ships when the release does; the date is when these notes were written, not a release claim.
+- Forked from GoNuts at its final standalone source. Same trading features, same mod id, license and upstream credits kept; hosted services that GoNuts retired (Swarm, hosted dashboard, pairing, hosted sign-in, reporting uploads) stay retired in Tally.
+- New achromatic default theme: black and white only, status by brightness and words, never hue. Typographic tally-mark wordmark replaces the default character art; the legacy themes and characters remain selectable.
+- The market-feed badges now say what the feed actually is: a keyless heartbeat no longer reads "LIVE MARKET FEED"; collecting, retrying, local history, degraded and partial scans say so.
+- The updater checks GoatTech-42/tally releases instead of the retired upstream feed.
+- Robustness fixes carried from the fork's review: shared-panel takeover retry, disconnect/ban emergency-stop handling, negated ban reasons, cancelled-snapshot persistence, API transport guards, stop dropping planned desk work, valuation input bounds, retired-service safe defaults, retired source-strip hardening and stricter local content rules.
 
 ## 2026-10-26 — final standalone release; public support retired
 
