@@ -55,10 +55,32 @@ class FeedTruthTest {
     @Test void partialScanIsNotLive() {
         assertEquals(FeedTruth.PARTIAL, FeedTruth.of(snap(List.of(), "PARTIAL: 3 of 10 items scanned", NOW), NOW));
     }
+    @Test void freshPriorApiThenKeylessStartupIsNotLive() {
+        // Mode switch: setStatus keeps the prior scan's updatedAt, so a fresh
+        // API snapshot followed by keyless startup must not read as live.
+        assertEquals(FeedTruth.COLLECTING, FeedTruth.of(
+                snap(List.of(), "Starting keyless mode: learning auction-to-order prices from history...", NOW), NOW));
+        assertEquals(FeedTruth.LOCAL_HISTORY, FeedTruth.of(
+                snap(List.of(market()), "Starting keyless mode: learning auction-to-order prices from history...", NOW), NOW));
+    }
+    @Test void freshPriorThenRetryingIsNotLive() {
+        assertEquals(FeedTruth.RETRYING, FeedTruth.of(
+                snap(List.of(market()), "RETRYING in 30 s: java.io.IOException: boom", NOW), NOW));
+        assertFalse(FeedTruth.live(snap(List.of(market()), "RETRYING in 30 s: java.io.IOException: boom", NOW), NOW));
+    }
+    @Test void staleRetryingIsStale() {
+        assertEquals(FeedTruth.STALE, FeedTruth.of(
+                snap(List.of(market()), "RETRYING in 30 s: java.io.IOException: boom", NOW - 300_000), NOW));
+    }
+    @Test void bootstrappingIsStartingNotLive() {
+        assertEquals(FeedTruth.STARTING, FeedTruth.of(
+                snap(List.of(market()), "Bootstrapping transaction history...", NOW), NOW));
+    }
     @Test void labelMapsEveryState() {
         assertEquals("demo preview", FeedTruth.label(MarketWatcher.Snapshot.demo(NOW), NOW, "demo preview", "live"));
         assertEquals("collecting", FeedTruth.label(snap(List.of(), "KEYLESS: 0 market(s)", NOW), NOW, "demo preview", "live"));
         assertEquals("local history", FeedTruth.label(snap(List.of(market()), "KEYLESS: 1 market(s)", NOW), NOW, "demo preview", "live"));
+        assertEquals("retrying", FeedTruth.label(snap(List.of(), "RETRYING in 30 s: x", NOW), NOW, "demo preview", "live"));
         assertEquals("live", FeedTruth.label(snap(List.of(), "OK", NOW), NOW, "demo preview", "live"));
         assertTrue(FeedTruth.live(snap(List.of(), "OK", NOW), NOW));
         assertFalse(FeedTruth.live(snap(List.of(), "KEYLESS: 0 market(s)", NOW), NOW));

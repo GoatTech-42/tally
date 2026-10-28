@@ -9,7 +9,7 @@ package dev.doughbay.fabric;
  * no gating, permission, or automation behavior.
  */
 enum FeedTruth {
-    DEMO, STOPPED, STARTING, STALE, COLLECTING, LOCAL_HISTORY, DEGRADED, PARTIAL, LIVE_API;
+    DEMO, STOPPED, STARTING, STALE, RETRYING, COLLECTING, LOCAL_HISTORY, DEGRADED, PARTIAL, LIVE_API;
 
     /** Same window DoughBayScreen.isFresh has always used. */
     private static final long FRESHNESS_MILLIS = 120_000L;
@@ -20,7 +20,13 @@ enum FeedTruth {
         if (status.startsWith("STOPPED")) return STOPPED;
         if (snapshot.updatedAt() <= 0) return STARTING;
         if (now - snapshot.updatedAt() > FRESHNESS_MILLIS) return STALE;
-        if (status.startsWith("KEYLESS:")) {
+        // Status text replaces a still-fresh snapshot's standing when the
+        // watcher is between scans, so a heartbeat or a mode switch never
+        // earns "live": retrying after a fault, keyless startup before the
+        // first keyless publish, and bootstrap work are not completed scans.
+        if (status.startsWith("RETRYING")) return RETRYING;
+        if (status.startsWith("Bootstrapping")) return STARTING;
+        if (status.startsWith("KEYLESS:") || status.startsWith("Starting keyless mode")) {
             return snapshot.markets().isEmpty() ? COLLECTING : LOCAL_HISTORY;
         }
         if (status.startsWith("DEGRADED:")) return DEGRADED;
@@ -39,6 +45,7 @@ enum FeedTruth {
             case STOPPED -> "stopped";
             case STARTING -> "starting";
             case STALE -> "stale";
+            case RETRYING -> "retrying";
             case COLLECTING -> "collecting";
             case LOCAL_HISTORY -> "local history";
             case DEGRADED -> "degraded";

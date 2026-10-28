@@ -1093,6 +1093,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             case STOPPED -> "FEED STOPPED";
             case STARTING -> "CONNECTING TO MARKET";
             case STALE -> "STALE / waiting for scan";
+            case RETRYING -> "RETRYING MARKET SCAN";
             case COLLECTING -> "COLLECTING MARKET DATA";
             case LOCAL_HISTORY -> "LOCAL HISTORY / no API key";
             case DEGRADED -> "FEED DEGRADED / valuations locked";
