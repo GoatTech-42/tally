@@ -1110,7 +1110,7 @@ public final class EvasionGuard {
     private static java.util.List<BossWatch.Bar> bossBars(Minecraft client) {
         java.util.List<BossWatch.Bar> out = new java.util.ArrayList<>();
         try {
-            Object overlay = client.gui.hud.getBossOverlay();
+            Object overlay = client.gui.getBossOverlay();
             for (net.minecraft.client.gui.components.LerpingBossEvent bar
                     : ((dev.doughbay.fabric.mixin.BossHealthOverlayAccessor) overlay).doughbay$events().values()) {
                 out.add(new BossWatch.Bar(bar.getName() == null ? "" : bar.getName().getString(), bar.shouldDarkenScreen()));

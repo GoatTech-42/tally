@@ -7,7 +7,7 @@ import dev.doughbay.storage.AutomationPersistenceWorker;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.KeyMapping;
@@ -434,31 +434,31 @@ public class DoughBayClient implements ClientModInitializer {
 
         KeyMapping.Category category = KeyMapping.Category.register(
                 Identifier.fromNamespaceAndPath("doughbay", "main"));
-        openScreen = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        openScreen = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.doughbay.open",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_B,
                 category));
         // Its own key. While the stop shared B with "open the screen", every
         // attempt to watch a running session paused it instead.
-        emergencyStop = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        emergencyStop = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.doughbay.emergency_stop",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_END,
                 category));
-        PEEK_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        PEEK_KEY = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.doughbay.peek",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_LEFT_ALT,
                 category));
         // Home: sweep the pack and list everything sellable, for stock the
         // normal path left behind. Page Up: resume a paused session.
-        listInventoryKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        listInventoryKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.doughbay.list_inventory",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_HOME,
                 category));
-        resumeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        resumeKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
                 "key.doughbay.resume",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_PAGE_UP,

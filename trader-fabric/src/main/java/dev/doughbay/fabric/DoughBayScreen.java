@@ -13,7 +13,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.PlayerFaceExtractor;
+import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -1177,7 +1177,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         try {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null) return;
-            PlayerFaceExtractor.extractRenderState(graphics, player.getSkin(), x, y, size);
+            PlayerFaceRenderer.draw(graphics, player.getSkin(), x, y, size);
         } catch (Throwable ignored) {
             // Skin state can be absent or mid-load; the header must still draw.
         }

@@ -6,7 +6,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.ItemContainerContents;
@@ -85,15 +84,13 @@ public record ItemDescriptor(
             if (depth < 3) {
                 ItemContainerContents container = stack.get(DataComponents.CONTAINER);
                 if (container != null) {
-                    for (ItemStackTemplate template : container.nonEmptyItems()) {
-                        ItemStack inner = template.create();
+                    for (ItemStack inner : container.nonEmptyItems()) {
                         if (!inner.isEmpty()) contents.add(of(inner, depth + 1));
                     }
                 }
                 BundleContents bundle = stack.get(DataComponents.BUNDLE_CONTENTS);
                 if (bundle != null) {
-                    for (ItemStackTemplate template : bundle.items()) {
-                        ItemStack inner = template.create();
+                    for (ItemStack inner : bundle.items()) {
                         if (!inner.isEmpty()) contents.add(of(inner, depth + 1));
                     }
                 }
