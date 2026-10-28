@@ -1,27 +1,8 @@
-> **No longer publicly maintained or supported.** After seven weeks of development, public support has ended. Fork the source to make changes or maintain your own version. See [RETIREMENT.md](RETIREMENT.md).
-
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="GoNuts" width="440">
+<img src="docs/assets/tally-wordmark.png" alt="Tally" width="440">
 
 ### Trade the DonutSMP auction house on autopilot
-
-**[Website, download and current install walkthrough](https://cody-raves.github.io/Gonuts/)**
-
-GoNuts learns real prices from completed sales, hunts flips on both sides of the
-market, and can run the whole play from bidding to reselling. Safety gated, and
-off by default.
-
-<table>
-<tr>
-<td align="center"><img src="docs/assets/mascot-reading.gif" alt="GoNuts bot reading the market" width="110"><br><sub>Reading the market</sub></td>
-<td align="center"><img src="docs/assets/mascot-working.gif" alt="GoNuts bot working a trade" width="110"><br><sub>Working a trade</sub></td>
-<td align="center"><img src="docs/assets/mascot-sale.gif" alt="GoNuts bot with dollar-sign eyes after a sale" width="110"><br><sub>A sale landed</sub></td>
-<td align="center"><img src="docs/assets/mascot-idle.gif" alt="GoNuts bot idling and yawning" width="110"><br><sub>Nothing to do</sub></td>
-</tr>
-</table>
-
-*Meet your trading bot. It watches the market, bids, buys, and relists, and it lights up when a sale lands.*
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Minecraft](https://img.shields.io/badge/Minecraft-26.2-brightgreen)
@@ -31,36 +12,41 @@ off by default.
 
 </div>
 
----
+**Tally is a community-maintained fork of [GoNuts](https://github.com/cody-raves/Gonuts).**
+The upstream project ended public maintenance and support after seven weeks of
+development; see [RETIREMENT.md](RETIREMENT.md) for the upstream record. Its hosted
+services (Swarm, hosted dashboard, bug reports, diagnostic upload) are retired and
+stay retired here. Local trading, market history, settings, ownership records and
+recovery safeguards are unaffected.
 
-## Required diagnostic history
+Tally learns real prices from completed sales, hunts flips on both sides of the
+market, and can run the whole play from bidding to reselling. Safety gated, and
+off by default.
 
-GoNuts sends sanitized diagnostic events and an allowlisted numeric settings
-snapshot to `gonuts.at` for bug diagnosis and detection of recurring failures.
-This is required for every installation, including headless clients and clients
-that do not participate in Swarm. It does not join Swarm or enable trading.
+**Download:** no Tally release is published yet. The first release will land on the
+[releases page](https://github.com/GoatTech-42/tally/releases); building from source
+works today (see Quick start). The in-game updater watches this repository's releases
+only. [Upstream GoNuts releases](https://github.com/cody-raves/Gonuts/releases/latest)
+remain available, with public support ended.
 
-The service retains a rolling history of up to 24 hours. A bounded local queue
-survives restarts and retries outages; expired, rejected or omitted evidence is
-reported as missing coverage. Reports privately link the installation's available
-history across sessions. The stream contains typed actions, decisions, faults,
-lifecycle events and controller context, rather than a copy of Minecraft's log.
-It excludes chat, player names, locations, credentials, commands, raw exception
-messages, text settings and raw settings files. Cloud upload failure does not
-block trading. Shared failure signatures are investigation leads, not proof that
-every affected client has the same bug. Public automatic bug filing remains a
-separate setting.
+## Retired hosted services
+
+Nothing is uploaded anywhere: the retired Swarm, hosted dashboard, bug receiver and
+diagnostic upload services are walled off, and a saved config that still names the
+retired host is normalized to the direct DonutSMP API instead. Everything Tally does
+runs locally, against your own self-hosted hive server if you run one, or through the
+public DonutSMP API.
 
 ## Where is AutoPilot?
 
-Open GoNuts with **B**, then choose **Trade** (the current name for AutoPilot).
+Open Tally with **B**, then choose **Trade** (the current name for AutoPilot).
 The Dashboard shortcut is **Manage trading**. **Set up trading** opens
-**Choose limits → Review & Start**. See the [current setup guide](https://gonuts.at/guide/#trade)
-or **Tutorials → Find AutoPilot / Trade** in game. Opening a tutorial never starts trading.
+**Choose limits → Review & Start**. See **Tutorials → Find AutoPilot / Trade**
+in game. Opening a tutorial never starts trading.
 
-## Why GoNuts
+## Why Tally
 
-Most auction tooling reads the current asking prices and guesses. GoNuts does the
+Most auction tooling reads the current asking prices and guesses. Tally does the
 opposite: it collects every completed sale, builds its own long-term price
 history, and values items from what things **actually sold for**, not what
 someone is hoping to get. Then it puts that edge to work, and keeps adapting as
@@ -84,10 +70,6 @@ the market moves.
 A full in-game control panel: opportunities, live markets, the order house,
 rival intel, performance, and every setting, all in one screen you open with a
 keypress.
-
-> _GUI tour screenshots are on the way. They are captured in the mod's built-in
-> demo mode, so they show the real interface with sample data, never a live
-> account._
 
 ## Documentation
 
@@ -119,7 +101,7 @@ your `mods/` folder. Full walkthrough in [Getting started](docs/getting-started.
 
 ## Safety and honesty
 
-GoNuts starts in **Observe** mode and cannot place a real trade until execution
+Tally starts in **Observe** mode and cannot place a real trade until execution
 is explicitly enabled and the current server is on an exact-address allowlist.
 It aborts on any ambiguity rather than guessing, and it never conceals that it
 is automated.
@@ -127,18 +109,22 @@ is automated.
 **DonutSMP's rules ban scripts, macros, and auto-clickers**, and enforcement can
 reach every account linked to a player. The analysis, pricing, and paper-trading
 features carry no such risk; running live execution is a choice to take a real
-ban risk, made by the account owner. GoNuts is an independent project, not
+ban risk, made by the account owner. Tally is an independent project, not
 affiliated with or endorsed by DonutSMP.
 
-## License
+## Upstream and license
 
-[MIT](LICENSE).
-
-The web panel is set in [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees Hassan, which is
-bundled under the SIL Open Font License 1.1. The font and its licence are in
+Tally continues [GoNuts](https://github.com/cody-raves/Gonuts) by cody-raves,
+released under the [MIT](LICENSE) license, which Tally keeps. The web panel is
+set in [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees Hassan,
+bundled under the SIL Open Font License 1.1; the font and its licence are in
 `trader-fabric/src/main/resources/doughbay/web/`.
 
+### Interface and account views
 
-### Updated interface and account views
-
-Open **B → Settings** for four Simple control groups with a before/after preview. **Advanced view** keeps individual settings grouped by task; switching views never changes saved values. Open **Help & setup** to revisit setup and tutorials. See the [current settings guide](https://gonuts.at/guide/settings.html). The Money and Orders panel account selector scopes figures and rows to one account; All accounts combines the Hive. Order funds and delivered stock are separate from auction cost and asking revenue. Missing or stale order reports remain unknown.
+Open **B → Settings** for four Simple control groups with a before/after preview.
+**Advanced view** keeps individual settings grouped by task; switching views never
+changes saved values. Open **Help & setup** to revisit setup and tutorials. The
+Money and Orders panel account selector scopes figures and rows to one account; All
+accounts combines the Hive. Order funds and delivered stock are separate from
+auction cost and asking revenue. Missing or stale order reports remain unknown.
