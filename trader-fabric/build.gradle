@@ -36,6 +36,10 @@ dependencies {
         mappings loom.officialMojangMappings()
     }
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Loader 0.20 no longer exposes the Mixin annotations transitively to the
+    // compile classpath. The loader provides both at runtime, so compileOnly.
+    compileOnly 'net.fabricmc:sponge-mixin:0.17.5+mixin.0.8.7'
+    compileOnly 'io.github.llamalad7:mixinextras-fabric:0.5.5'
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
     // Match Minecraft's Netty version; bundle only the two additional proxy modules.
