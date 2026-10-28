@@ -48,7 +48,7 @@ final class HiveCombineScreen extends GoNutsScreen {
         }).bounds(x,height-55,w,22).build();confirm.active=!queued&&!joined;addRenderableWidget(confirm);
         addRenderableWidget(CockpitButton.builder(Component.literal(queued||joined?"Back to Hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
+    @Override public void render(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int w=Math.min(600,width-24),x=(width-w)/2,y=42;
         g.drawString(font,UiTheme.fit(font,getTitle().getString(),w),x,18,UiTheme.GOLD);
         int top=40,end=Math.max(40,height-120);g.enableScissor(x,top,x+w,end);y=top-scroll;
@@ -61,7 +61,7 @@ final class HiveCombineScreen extends GoNutsScreen {
         y=card(g,y,x,w,queued?"COMBINATION QUEUED / NEXT STEP":"ONLY WHEN COMBINING EXISTING HISTORIES",queued?"Close BOTH Minecraft instances completely. Start this requesting instance first. Wait for the import confirmation before opening the other. If validation fails, read the reason in Hive setup; do not repeatedly restart.":"Use the same GoNuts build in both instances. Queue safe combination, close BOTH Minecraft windows, then start this requesting instance first. Wait for import confirmation before opening the other. Both original folders are kept; each account keeps its settings, limits and recovery state. Cancel queued combine is available in Hive setup until switching begins.",UiTheme.TEAL);
         if(!message.isEmpty())y=card(g,y,x,w,"SETUP STATUS",message,UiTheme.WARN);
         }
-        maxScroll=Math.max(0,y+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();super.extractRenderState(g,mx,my,dt);
+        maxScroll=Math.max(0,y+scroll-end);scroll=Math.min(scroll,maxScroll);g.disableScissor();super.render(g,mx,my,dt);
     }
     private int card(GuiGraphics g,int y,int x,int w,String heading,String body,int color){
         var lines=font.split(Component.literal(body),w-24);int h=30+lines.size()*13;UiTheme.panel(g,x,y,w,h,UiTheme.INSET);

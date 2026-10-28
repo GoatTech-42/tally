@@ -220,7 +220,7 @@ public final class UpdateScreen extends GoNutsScreen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         // The download can finish, or auto-update be switched on, while this is open.
         String shape = state() + ":" + autoOn();
         if (!shape.equals(shown)) rebuildWidgets();
@@ -243,9 +243,9 @@ public final class UpdateScreen extends GoNutsScreen {
                 graphics.drawString(this.font, "More on the download page and the About tab.", left + 12, y, UiTheme.MUTED);
                 break;
             }
-            graphics.text(this.font, line.text(), left + 12 + line.indent(), y, line.color());
+            graphics.drawString(this.font, line.text(), left + 12 + line.indent(), y, line.color());
             y += 11;
         }
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        super.render(graphics, mouseX, mouseY, delta);
     }
 }

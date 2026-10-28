@@ -37,7 +37,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
         addRenderableWidget(primary);
     }
 
-    @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
+    @Override public void render(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int w = bodyWidth(), x = (width - w) / 2;
         g.drawString(font, "GoNuts - Check interrupted trade", x, 14, UiTheme.TEXT);
@@ -58,7 +58,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
                 : allowed ? "Confirm only what you checked. Your limits stay in place."
                 : "No confirmation available. Follow the steps above, then return to Trade.",
                 x, height - 51, UiTheme.MUTED);
-        super.extractRenderState(g, mx, my, dt);
+        super.render(g, mx, my, dt);
     }
 
     @Override public boolean mouseScrolled(double mx, double my, double dx, double dy) {

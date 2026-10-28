@@ -598,7 +598,7 @@ final class DoughBayHudAlerts {
                         .filter(net.minecraft.client.player.AbstractClientPlayer.class::isInstance)
                         .map(net.minecraft.client.player.AbstractClientPlayer.class::cast).toList()) {
                     if (!entity.getName().getString().equals(p.name())) continue;
-                    net.minecraft.client.gui.components.PlayerFaceExtractor.extractRenderState(
+                    net.minecraft.client.gui.components.PlayerFaceRenderer.draw(
                             graphics, entity.getSkin(), x + 7, row, 16);
                     break;
                 }
@@ -954,7 +954,7 @@ final class DoughBayHudAlerts {
         }
         int lineY = y + 9;
         for (var line : alertLines(font, alert, width)) {
-            graphics.text(font, line.text(), textX, lineY, withAlpha(line.color(), alpha), false);
+            graphics.drawString(font, line.text(), textX, lineY, withAlpha(line.color(), alpha), false);
             lineY += 12;
         }
         graphics.fill(x + 10, y + height - 5, x + width - 10, y + height - 4, withAlpha(UiTheme.EDGE, alpha));

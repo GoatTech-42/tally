@@ -41,7 +41,7 @@ public final class ModuleChat {
       onClientThread(() -> {
          Minecraft mc = Minecraft.getInstance();
          if (module.notificationsOn() && mc.gui != null) {
-            mc.gui.hud.setOverlayMessage(line(module, built), false);
+            mc.gui.setOverlayMessage(line(module, built), false);
          }
       });
    }
@@ -53,7 +53,7 @@ public final class ModuleChat {
    private static void addLine(ClientModule module, Component body) {
       Minecraft mc = Minecraft.getInstance();
       if (mc.gui != null) {
-         mc.gui.hud.getChat().addClientSystemMessage(line(module, body));
+         mc.gui.getChat().addMessage(line(module, body));
       }
    }
 

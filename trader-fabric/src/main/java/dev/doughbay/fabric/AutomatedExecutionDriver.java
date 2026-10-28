@@ -5902,7 +5902,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         for (DialogBody body : dialog.common().body()) {
             if (body instanceof ItemBody item) {
                 try {
-                    shown = item.item().create();
+                    shown = item.item();
                 } catch (RuntimeException ignored) {
                     shown = ItemStack.EMPTY;
                 }
@@ -7447,7 +7447,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
             Files.write(dump, lines, StandardCharsets.UTF_8);
             lastCapturePath = dump;
-            Screenshot.grab(client, false);
+            Screenshot.grab(client.gameDirectory, client.getMainRenderTarget(), (component) -> {});
             DoughBayClient.LOGGER.info(
                     "Captured {} GUI. Lore dump: {} (PNG saved by Minecraft in screenshots)",
                     stage.name().toLowerCase(Locale.ROOT), dump);

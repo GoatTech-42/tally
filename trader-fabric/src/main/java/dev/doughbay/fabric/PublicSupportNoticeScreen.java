@@ -18,7 +18,7 @@ final class PublicSupportNoticeScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Tally source code"),b->Util.getPlatform().openUri(URI.create(ProjectStatus.SOURCE))).bounds(x,height-40,half,24).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Continue to local Tally"),b->onClose()).bounds(x+half+8,height-40,half,24).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
+    @Override public void render(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);
         int w=Math.max(100,Math.min(640,width-32)),x=(width-w)/2,y=24;
         for(var line:font.split(Component.literal("UPSTREAM SUPPORT HAS ENDED"),w)){g.drawString(font,line,x,y,UiTheme.GOLD);y+=15;}
@@ -27,7 +27,7 @@ final class PublicSupportNoticeScreen extends GoNutsScreen {
                 +"There is no public support or automatic patch worker.\n\nLocal trading, your settings, trade history, ownership records and recovery safeguards remain. "
                 +"Existing upstream issues are not claimed fixed. Tally continues the project as a community-maintained fork.";
         for(var line:font.split(Component.literal(text),w)){g.drawString(font,line,x,y,UiTheme.TEXT);y+=12;}
-        super.extractRenderState(g,mx,my,delta);
+        super.render(g,mx,my,delta);
     }
     @Override public void onClose(){minecraft.setScreen(next);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}

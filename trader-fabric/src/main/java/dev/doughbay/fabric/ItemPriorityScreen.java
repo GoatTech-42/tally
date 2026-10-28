@@ -25,7 +25,7 @@ final class ItemPriorityScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back to Items"),b->onClose())
             .bounds(left(),Math.min(height-24,top()+140),bodyWidth(),20).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt){
+    @Override public void render(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);int x=left(),y=top(),w=bodyWidth();
         g.drawString(font,"ITEM PRIORITY",x,y,UiTheme.GOLD);
         var counts=new EnumMap<ItemPriorities.Level,Integer>(ItemPriorities.Level.class);
@@ -34,7 +34,7 @@ final class ItemPriorityScreen extends GoNutsScreen {
         g.drawString(font,UiTheme.fit(font,summary,w),x,y+18,UiTheme.TEXT);
         int line=y+33;
         for(var text:font.split(Component.literal("New trades only. Limits and safety checks still apply."),w)){g.drawString(font,text,x,line,UiTheme.SECONDARY);line+=10;}
-        super.extractRenderState(g,mx,my,dt);
+        super.render(g,mx,my,dt);
     }
     @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}

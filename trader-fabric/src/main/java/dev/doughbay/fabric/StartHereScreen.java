@@ -45,7 +45,7 @@ final class StartHereScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Back to GoNuts"), b -> onClose())
                 .bounds(left() + half + 6, footer, half, 23).build());
     }
-    @Override public void extractRenderState(GuiGraphics g, int mx, int my, float dt) {
+    @Override public void render(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int x = left(), y = top(), w = bodyWidth();
         g.drawString(font, "NEW TO GONUTS? START HERE", x, y, UiTheme.GOLD);
@@ -55,7 +55,7 @@ final class StartHereScreen extends GoNutsScreen {
         for (var line : font.split(Component.literal(message.isBlank()
                 ? "Trading is called Trade. If it is paused or blocked, open Trade to see why."
                 : message), w)) { g.drawString(font, line, x, lineY, UiTheme.TEXT); lineY += 12; }
-        super.extractRenderState(g, mx, my, dt);
+        super.render(g, mx, my, dt);
     }
     @Override public void onClose() { parent.endTutorialNavigation(); minecraft.setScreen(parent); }
     @Override public void removed() { DoughBayClient.automationSessionController().setPanelOpen(false); super.removed(); }

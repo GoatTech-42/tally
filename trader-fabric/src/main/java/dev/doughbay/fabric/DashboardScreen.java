@@ -39,7 +39,7 @@ public final class DashboardScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Swarm API"),b->minecraft.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
+    @Override public void render(GuiGraphics g,int mx,int my,float delta){
         int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050505);
         g.drawString(font,"HOSTED DASHBOARD",x,compact()?6:14,UiTheme.GOLD);
         if (!ProjectStatus.publicServicesEnabled()) {
@@ -47,7 +47,7 @@ public final class DashboardScreen extends GoNutsScreen {
             for(var line:font.split(Component.literal(ProjectStatus.RETIRED),w)){if(ry>=height-56)break;g.drawString(font,line,x,ry,UiTheme.SECONDARY);ry+=12;}
             ry+=6;
             for(var line:font.split(Component.literal("The hosted dashboard, pairing codes and Swarm linking were part of that retired service. A local web panel is built in instead: the same controls in a browser on your own network, protected by a PIN you choose, and off until you turn it on. Set a PIN there to switch it on."),w)){if(ry>=height-56)break;g.drawString(font,line,x,ry,UiTheme.MUTED);ry+=12;}
-            super.extractRenderState(g,mx,my,delta);
+            super.render(g,mx,my,delta);
             return;
         }
         var view=HostedDashboardClient.INSTANCE.view();boolean idle=!view.busy();
@@ -60,7 +60,7 @@ public final class DashboardScreen extends GoNutsScreen {
         for(var line:font.split(Component.literal(view.status()),w)){if(y>=height-(compact()?56:76))break;g.drawString(font,line,x,y,view.online()?UiTheme.GOOD:UiTheme.SECONDARY);y+=12;}
         g.drawString(font,UiTheme.fit(font,"Linking joins Swarm: share public market data and receive discovery hints.",w),x,height-68,UiTheme.MUTED);
         if(!compact())g.drawString(font,UiTheme.fit(font,"Local unlink disconnects it; remove the entry on the website too.",w),x,height-54,UiTheme.MUTED);
-        super.extractRenderState(g,mx,my,delta);
+        super.render(g,mx,my,delta);
     }
     @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public void removed(){DoughBayClient.automationSessionController().setPanelOpen(false);super.removed();}

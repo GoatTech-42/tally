@@ -51,7 +51,7 @@ final class TutorialScreen extends GoNutsScreen {
         if(course!=null)addRenderableWidget(CockpitButton.builder(Component.literal("Skip / return later"),b->onClose())
             .bounds(x+(w+6)/2,height-28,(w-6)/2,20).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
+    @Override public void render(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xF0050505);int x=left(),w=bodyWidth();
         g.drawString(font,UiTheme.fit(font,course==null?"TUTORIALS · CHOOSE A GUIDE":course.title()+" · "+(step+1)+" / "+course.steps().size(),w),x,18,UiTheme.GOLD);
         if(course==null){
@@ -70,7 +70,7 @@ final class TutorialScreen extends GoNutsScreen {
             }
             maxScroll=Math.max(0,y+scroll-bottom);g.disableScissor();
         }
-        super.extractRenderState(g,mx,my,delta);
+        super.render(g,mx,my,delta);
     }
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){
         scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*28)));return true;

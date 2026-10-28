@@ -7,8 +7,8 @@ public final class BugReportScreen extends GoNutsScreen {
     public BugReportScreen(Screen parent){super(Component.literal("Public support retired"));this.parent=parent;}
     @Override protected void init(){addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds((width-100)/2,height-35,100,20).build());}
     @Override public void onClose(){minecraft.setScreen(parent);}
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float delta){
+    @Override public void render(GuiGraphics g,int mx,int my,float delta){
         int y=30;for(var line:font.split(Component.literal(ProjectStatus.NOTICE),Math.max(40,width-40))){g.drawString(font,line,20,y,UiTheme.TEXT);y+=12;}
-        super.extractRenderState(g,mx,my,delta);
+        super.render(g,mx,my,delta);
     }
 }

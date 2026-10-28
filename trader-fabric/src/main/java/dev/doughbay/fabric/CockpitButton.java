@@ -32,7 +32,7 @@ final class CockpitButton extends Button {
 
     void primary() { this.primary = true; }
 
-    @Override protected void extractContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
+    @Override protected void renderContents(GuiGraphics g, int mouseX, int mouseY, float delta) {
         var font = Minecraft.getInstance().font;
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
         boolean highlight = active && (isHovered() || isFocused());

@@ -101,7 +101,7 @@ final class ItemNames {
 
     /** Donut sends English names even when the client uses another language or a resource pack. */
     static void indexNames(Map<String, String> names, String id, String translationKey, String localizedName) {
-        String english = net.minecraft.locale.Language.DEFAULT_INSTANCE.getOrDefault(translationKey, "");
+        String english = net.minecraft.locale.Language.getInstance().getOrDefault(translationKey, "");
         if (!english.isBlank()) names.putIfAbsent(english.strip().toLowerCase(Locale.ROOT), id);
         if (localizedName != null && !localizedName.isBlank()
                 && !localizedName.contains("item.") && !localizedName.contains("block.")) {

@@ -1011,7 +1011,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         refreshPalette();
         MarketWatcher.Snapshot current = snapshot();
         UiLayout ui = layout();
@@ -1065,7 +1065,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         // Widgets are extracted after the cards they sit on. Gui render states
         // preserve submission order, so this keeps embedded Automation buttons
         // (and all other controls) visibly above opaque card fills.
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        super.render(graphics, mouseX, mouseY, delta);
         Charts.drawTooltip(graphics, this.font, pendingTooltip,
                 ui.left(), ui.top(), ui.right(), ui.bottom());
     }
@@ -7855,7 +7855,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             String tag = "[" + ln.state() + "] ";
             graphics.drawString(this.font, tag, x + stampW, ly, MUTED);
             int mx = x + stampW + this.font.width(tag);
-            graphics.text(this.font, truncate(ln.text(), Math.max(20, width - (mx - x))), mx, ly, color);
+            graphics.drawString(this.font, truncate(ln.text(), Math.max(20, width - (mx - x))), mx, ly, color);
         }
         if (maxScroll > 0) {
             String more = (logsScroll < maxScroll ? "▼" : "") + (logsScroll > 0 ? " ▲" : "");

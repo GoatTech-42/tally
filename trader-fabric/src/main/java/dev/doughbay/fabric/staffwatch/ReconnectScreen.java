@@ -16,7 +16,7 @@ public final class ReconnectScreen extends dev.doughbay.fabric.GoNutsScreen {
  }
  public void tick(){super.tick();updateReconnectButton();}
  public void onClose(){ReconnectController.INSTANCE.cancel();minecraft.setScreen(new JoinMultiplayerScreen(new TitleScreen()));}
- public void extractRenderState(GuiGraphics g,int x,int y,float dt){super.extractRenderState(g,x,y,dt);var schedule=ReconnectController.INSTANCE.schedule;
+ public void render(GuiGraphics g,int x,int y,float dt){super.render(g,x,y,dt);var schedule=ReconnectController.INSTANCE.schedule;
   g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
   g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Automatic retry every 2 minutes":"Watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
   g.drawCenteredString(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBDBDBD);

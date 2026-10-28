@@ -871,7 +871,7 @@ public final class AntiVanishModule extends ClientModule {
       boolean doorLike = path.contains("door") && !path.contains("trapdoor") || path.contains("fence_gate");
       if (doorLike && source != null && MC.level != null) {
          for (Entity entity : MC.level.entitiesForRendering()) {
-            if (entity.getType() == net.minecraft.world.entity.EntityTypes.VILLAGER && entity.position().distanceToSqr(source) <= 9.0) {
+            if (entity.getType() == net.minecraft.world.entity.EntityType.VILLAGER && entity.position().distanceToSqr(source) <= 9.0) {
                return true;
             }
          }

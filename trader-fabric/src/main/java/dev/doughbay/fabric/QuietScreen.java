@@ -76,7 +76,7 @@ public final class QuietScreen {
     static void register() {
         HudElementRegistry.replaceElement(VanillaHudElements.HOTBAR, wrapped -> (graphics, tick) -> {
             if (on("quiet.hide_hotbar")) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         // The bar itself is the contextual info bar, not EXPERIENCE_LEVEL -
         // that is only the number floating above it, which is why replacing it
@@ -92,23 +92,23 @@ public final class QuietScreen {
                 return;
             }
             if (on("quiet.hide_hotbar")) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.EXPERIENCE_LEVEL, wrapped -> (graphics, tick) -> {
             if (on("quiet.hide_hotbar") || (Tuning.get("hud.xp_bars") >= 0.5 && !peeking)) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.HEALTH_BAR, wrapped -> (graphics, tick) -> {
             if (on("quiet.hide_hotbar") && vitalsWorthShowing(Minecraft.getInstance())) {
-                wrapped.extractRenderState(graphics, tick);
+                wrapped.render(graphics, tick);
                 return;
             }
             if (!vitalsWorthShowing(Minecraft.getInstance())) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.FOOD_BAR, wrapped -> (graphics, tick) -> {
             if (!vitalsWorthShowing(Minecraft.getInstance())) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, wrapped -> (graphics, tick) -> {
             // Nothing here aims at anything. The bot clicks slots by number
@@ -117,21 +117,21 @@ public final class QuietScreen {
             // camera is drifting, a fixed dot over a moving picture is the
             // one thing that gives away it is not a person playing.
             if (on("quiet.hide_crosshair")) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.HELD_ITEM_TOOLTIP, wrapped -> (graphics, tick) -> {
             // The name that flashes up whenever the held slot changes. The bot
             // changes it every few seconds to reach a stack, so this is the
             // hotbar's flicker rather than a label anybody reads.
             if (on("quiet.hide_hotbar")) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
         HudElementRegistry.replaceElement(VanillaHudElements.CHAT, wrapped -> (graphics, tick) -> {
             // The bot reads chat off the network, not off the screen, so this
             // costs it nothing at all - the sale receipts still arrive and are
             // still parsed with the chat box drawing nothing.
             if (on("quiet.hide_chat")) return;
-            wrapped.extractRenderState(graphics, tick);
+            wrapped.render(graphics, tick);
         });
     }
 }

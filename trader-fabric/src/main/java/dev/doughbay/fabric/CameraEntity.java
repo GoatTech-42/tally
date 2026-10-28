@@ -3,7 +3,7 @@ package dev.doughbay.fabric;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -36,7 +36,7 @@ public final class CameraEntity extends Entity {
     static final int ID = -8_675_309;
 
     public CameraEntity(Level level) {
-        super(EntityTypes.MARKER, level);
+        super(EntityType.MARKER, level);
         // A marker has no renderer, so nothing is ever drawn here. What is
         // seen is the world from this point, and the player standing in it.
         this.noPhysics = true;

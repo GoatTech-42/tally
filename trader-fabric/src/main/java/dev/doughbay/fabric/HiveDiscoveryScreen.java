@@ -16,7 +16,7 @@ final class HiveDiscoveryScreen extends GoNutsScreen {
         addRenderableWidget(CockpitButton.builder(Component.literal("Not now"),b->onClose()).bounds(x,y+28,(w-6)/2,22).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Don't ask again"),b->{HiveDiscovery.dismissAll();onClose();}).bounds(x+(w+6)/2,y+28,(w-6)/2,22).build());
     }
-    @Override public void extractRenderState(GuiGraphics g,int mx,int my,float dt) {
+    @Override public void render(GuiGraphics g,int mx,int my,float dt) {
         g.fill(0,0,width,height,0xF0050505); int w=Math.min(480,width-24),x=(width-w)/2,y=24;
         for(var line:font.split(getTitle(),w)){g.drawString(font,line,x,y,UiTheme.GOLD);y+=14;}
         y+=14;int top=y;
@@ -24,7 +24,7 @@ final class HiveDiscoveryScreen extends GoNutsScreen {
         g.enableScissor(x,top,x+w,Math.max(top,height-94));
         for(var line:font.split(Component.literal(text),w)){g.drawString(font,line,x,y-scroll,UiTheme.TEXT);y+=13;}
         maxScroll=Math.max(0,y-(height-94));
-        g.disableScissor();super.extractRenderState(g,mx,my,dt);
+        g.disableScissor();super.render(g,mx,my,dt);
     }
     @Override public void onClose(){minecraft.setScreen(parent);}
     @Override public boolean mouseScrolled(double mx,double my,double dx,double dy){scroll=Math.max(0,Math.min(maxScroll,scroll-(int)(dy*26)));return true;}
