@@ -6,7 +6,7 @@ public final class WebsiteGuiSmoke implements ClientModInitializer {
  public void onInitializeClient(){Tuning.set("join.auto",0);Tuning.set("update.auto",0);Tuning.set("session.auto_resume",0);ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
  private void require(boolean ok,String message){checks++;if(!ok)throw new IllegalStateException(message);}
  private void tick(Minecraft mc){try{
-  require(mc.level==null,"fixture joined a server");if(overlayActive(mc.gui)||++ticks<35)return;ticks=0;
+  require(mc.level==null,"fixture joined a server");if(mc.getOverlay()!=null||++ticks<35)return;ticks=0;
   switch(phase++){
    case 0->{mc.options.pauseOnLostFocus=false;mc.options.guiScale().set(2);mc.resizeDisplay();fixture=new Fixture();mc.setScreen(fixture);}
    case 1->{
@@ -25,8 +25,6 @@ public final class WebsiteGuiSmoke implements ClientModInitializer {
   }
  }catch(Throwable e){try{Files.writeString(Path.of("website-preview-error.txt"),e.toString());}catch(Exception ignored){}mc.stop();}}
  private boolean absent(String text){return fixture.children().stream().filter(c->c instanceof Button).map(c->(Button)c).noneMatch(b->b.getMessage().getString().equals(text));}
-  private static java.lang.reflect.Field OVERLAY_TIME;static{try{OVERLAY_TIME=net.minecraft.client.gui.Gui.class.getDeclaredField("overlayMessageTime");OVERLAY_TIME.setAccessible(true);}catch(Exception e){throw new ExceptionInInitializerError(e);}}
-  private static boolean overlayActive(net.minecraft.client.gui.Gui gui){try{return OVERLAY_TIME.getInt(gui)>0;}catch(Exception e){throw new RuntimeException(e);}}
  private final class Fixture extends Screen {
   SwarmPanel panel;DashboardWebsiteAccess access;int left;
   Fixture(){super(Component.literal("Offline retired website regression"));access=new DashboardWebsiteAccess(uri->{launches++;},copied::add);try{var c=SwarmPanel.class.getDeclaredConstructor(DashboardWebsiteAccess.class);c.setAccessible(true);panel=c.newInstance(access);}catch(NoSuchMethodException old){panel=new SwarmPanel();}catch(Exception e){throw new RuntimeException(e);}}
