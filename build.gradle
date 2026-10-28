@@ -18,6 +18,9 @@ subprojects {
         testImplementation platform('org.junit:junit-bom:5.10.3')
         testImplementation 'org.junit.jupiter:junit-jupiter'
         testCompileOnly 'org.junit.platform:junit-platform-launcher'
+        // Loader 0.20 (1.21.x line) keeps ASM as a nested lib; tests that
+        // initialize FabricLoader need it on the unit-test classpath.
+        testImplementation 'org.ow2.asm:asm:9.9'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 

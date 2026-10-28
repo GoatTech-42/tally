@@ -851,7 +851,7 @@ class NormalOrderPageCollectionTest {
         ContainerScreen screen=allocate(ContainerScreen.class);
         field(AbstractContainerScreen.class,"menu").set(screen,menu);
         field(Screen.class,"title").set(screen,Component.literal("Your Orders"));
-        Gui gui=allocate(Gui.class);field(Gui.class,"screen").set(gui,screen);field(Minecraft.class,"gui").set(client,gui);
+        Gui gui=allocate(Gui.class);field(net.minecraft.client.Minecraft.class,"screen").set(client,screen);field(Minecraft.class,"gui").set(client,gui);
         client.gameMode=allocate(RecordingGameMode.class);((RecordingGameMode)client.gameMode).slots=new ArrayList<>();
         player.tickCount=100;
         var driver=new AutomatedExecutionDriver();
