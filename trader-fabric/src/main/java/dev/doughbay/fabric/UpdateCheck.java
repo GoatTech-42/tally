@@ -121,7 +121,7 @@ public final class UpdateCheck {
     private static boolean wake;
     /** Long enough to be read by someone who looked away. */
     private static final long BANNER_MILLIS = 20_000L;
-    private static final int BANNER_TOP = 10;
+    static final int BANNER_TOP = 10;
     private static final int BANNER_WIDTH = 430;
     private static volatile long bannerSince;
     private static volatile String bannerTitle = "";
@@ -638,7 +638,15 @@ public final class UpdateCheck {
         int height = 22 + lines.size() * 11 + 5;
         int x = (graphics.guiWidth() - width) / 2;
         double in = UiTheme.reducedMotion() ? 1 : UiMotion.visibility(age, BANNER_MILLIS, 350, 350);
-        int y = (int) Math.round(-height + (height + BANNER_TOP) * in);
+        var hudRenderer = dev.doughbay.fabric.staffwatch.gui.HudRenderer.getInstance();
+        int clearance = bannerClearance(hudRenderer.alertTop(graphics.guiHeight()), StaffWatchAlert.active());
+        if (bannerDefers(hudRenderer.stackGeometryStale(), clearance, height, graphics.guiHeight())) {
+            // Yields to the staff HUD / warning lane: the banner waits whole rather
+            // than overlapping, and its visible budget is not spent while undrawn.
+            bannerSince = System.currentTimeMillis();
+            return;
+        }
+        int y = (int) Math.round(-height + (height + bannerTop(clearance)) * in);
         UiTheme.panel(graphics, x, y, width, height, UiTheme.SURFACE);
         graphics.drawCenteredString(font, UiTheme.fit(font, title, width - 16), x + width / 2, y + 7, UiTheme.GOLD);
         int yy = y + 21;
@@ -650,6 +658,32 @@ public final class UpdateCheck {
             }
             yy += 11;
         }
+    }
+
+    /** Clearance the banner keeps above itself: below the staff HUD stack (the
+     *  same rule the warning lane follows), and below the warning lane while
+     *  that is actually up. The gap matches the stack gap in alertTop. */
+    static int bannerClearance(int alertTop, boolean staffWarningActive) {
+        return alertTop + (staffWarningActive ? StaffWatchAlert.PANEL_HEIGHT + 8 : 0);
+    }
+
+    /** Where the banner rests: at least BANNER_TOP and always below any
+     *  clearance - never pushed back up into the stack or warning lane. */
+    static int bannerTop(int clearance) {
+        return Math.max(BANNER_TOP, clearance);
+    }
+
+    /** The banner is drawn only when it fits whole below its clearance; on a
+     *  window too short it yields the frame rather than overlapping. */
+    static boolean bannerFits(int clearance, int bannerHeight, int guiHeight) {
+        return bannerTop(clearance) + bannerHeight <= guiHeight - BANNER_TOP;
+    }
+
+    /** The banner yields a frame whenever the staff stack is showing but not yet
+     *  measured this visibility period, or it cannot fit whole below its clearance.
+     *  Banner-only rule: critical surfaces keep their existing alertTop geometry. */
+    static boolean bannerDefers(boolean stackStale, int clearance, int bannerHeight, int guiHeight) {
+        return stackStale || !bannerFits(clearance, bannerHeight, guiHeight);
     }
 
     /** What the notice says: a heading, and paragraphs under it. */

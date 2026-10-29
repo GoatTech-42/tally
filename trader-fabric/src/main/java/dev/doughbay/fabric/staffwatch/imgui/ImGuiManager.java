@@ -51,7 +51,10 @@ public final class ImGuiManager {
 
     public void renderIfActive() {
         var mc = Minecraft.getInstance();
-        if (mc.level == null || (!StaffListModule.shouldShowHud() && !AntiVanishModule.shouldShowHud())) return;
+        if (mc.level == null || (!StaffListModule.shouldShowHud() && !AntiVanishModule.shouldShowHud())) {
+            HudRenderer.getInstance().noteStackHidden();
+            return;
+        }
         renderer.render(() -> GL11.glGetString(GL11.GL_VERSION),
                 () -> GL11.glGetString(GL20.GL_SHADING_LANGUAGE_VERSION), this::init, this::draw,
                 reason -> LoggerFactory.getLogger(ImGuiManager.class).warn(

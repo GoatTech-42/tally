@@ -18,7 +18,24 @@ public final class HudRenderer {
 
  private final Map<String,Float> widths=new HashMap<>();
  private float stackHeight;
- public int alertTop(int guiHeight){var mc=Minecraft.getInstance();if(mc.level==null||mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.options.hideGui||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud||(!StaffListModule.shouldShowHud()&&!AntiVanishModule.shouldShowHud()))return 12;return 12+(int)Math.ceil(stackHeight*guiHeight/mc.getWindow().getHeight())+8;}
+ private boolean stackMeasured; // render-lifecycle owned: true only after the stack was actually drawn in the current visibility period
+
+ private boolean stackShowing(){var mc=Minecraft.getInstance();return !(mc.level==null||mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.options.hideGui||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud||(!StaffListModule.shouldShowHud()&&!AntiVanishModule.shouldShowHud()));}
+
+ /** Legacy behaviour, read-only: 12 while hidden, else below the last measured stack. */
+ public int alertTop(int guiHeight){var mc=Minecraft.getInstance();if(!stackShowing())return 12;return 12+(int)Math.ceil(stackHeight*guiHeight/mc.getWindow().getHeight())+8;}
+
+ /** Called whenever the render path is gated off (modules off, screen open, gui hidden):
+  *  the next visible frame is unmeasured until render() draws the stack again. */
+ public void noteStackHidden(){stackMeasured=false;}
+
+ // package-private probes so the lifecycle can be unit-tested without a Minecraft frame
+ boolean stackGeometryStaleForTest(boolean showing){return showing&&!stackMeasured;}
+ void markStackMeasuredForTest(){stackMeasured=true;}
+
+ /** True only while the staff stack is showing but not yet drawn this visibility
+  *  period - the one frame where the cached height may be stale. */
+ public boolean stackGeometryStale(){return stackShowing()&&!stackMeasured;}
 
  private static float scaleOf(HudLayoutStore.HudElementState state){return Math.max(.75F,Minecraft.getInstance().getWindow().getHeight()/1080F);}
 
@@ -30,14 +47,14 @@ public final class HudRenderer {
 
  private void removeSlot(String key,int px){widths.remove(key+px);}
 
- public void render(){var mc=Minecraft.getInstance();if(mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.level==null||mc.options.hideGui||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud)return;
+ public void render(){var mc=Minecraft.getInstance();if(mc.screen instanceof dev.doughbay.fabric.DoughBayScreen||mc.level==null||mc.options.hideGui||!dev.doughbay.fabric.staffwatch.WatchConfig.get().showHud){noteStackHidden();return;}
 
   var d=ImGui.getBackgroundDrawList();var state=new HudLayoutStore.HudElementState();state.x=12;float dt=ImGui.getIO().getDeltaTime();
   var staff=StaffListModule.shouldShowHud()?planStaff(state,false,dt):null;
   var vanish=AntiVanishModule.shouldShowHud()?planVanish(state,false,dt):null;
   float gap=staff!=null&&vanish!=null?8:0;
   float total=(staff==null?0:staff.height())+(vanish==null?0:vanish.height())+gap;
-  stackHeight=total;
+  stackHeight=total;if(staff!=null||vanish!=null)stackMeasured=true;else noteStackHidden();
   state.y=12F*mc.getWindow().getHeight()/mc.getWindow().getGuiScaledHeight();
   if(staff!=null){state.width=staff.width();state.x=(mc.getWindow().getWidth()-state.width)/2F;state.height=staff.height();drawStaff(d,state,staff,true,new DrawTransform(0,0,1));state.y+=state.height+gap;}
   if(vanish!=null){state.width=vanish.width();state.x=(mc.getWindow().getWidth()-state.width)/2F;state.height=vanish.height();drawVanish(d,state,vanish,true,new DrawTransform(0,0,1));}

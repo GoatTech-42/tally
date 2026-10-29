@@ -11,6 +11,8 @@ import net.minecraft.resources.Identifier;
 /** A dedicated warning lane, also drawn over menus after the connection closes. */
 public final class StaffWatchAlert {
     private static final long DISPLAY_NANOS = 10_000_000_000L;
+    /** Warning panel height; other top-centre overlays stack below it via this. */
+    static final int PANEL_HEIGHT = 65;
     private static String watcher = "";
     private static long shownAt;
 
@@ -45,7 +47,7 @@ public final class StaffWatchAlert {
         int width = Math.min(310, g.guiWidth() - 24);
         int x = (g.guiWidth() - width) / 2;
         int y = dev.doughbay.fabric.staffwatch.gui.HudRenderer.getInstance().alertTop(g.guiHeight());
-        UiTheme.panel(g, x, y, width, 65, UiTheme.BACKGROUND);
+        UiTheme.panel(g, x, y, width, PANEL_HEIGHT, UiTheme.BACKGROUND);
         g.fill(x + 9, y + 1, x + width - 9, y + 3, UiTheme.BAD);
         g.drawCenteredString(font, "STAFF WATCH ALERT", g.guiWidth() / 2, y + 10, UiTheme.BAD);
         g.drawCenteredString(font, UiTheme.fit(font, watcher, width - 24), g.guiWidth() / 2, y + 25, UiTheme.TEXT);
