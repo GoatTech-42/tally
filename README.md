@@ -23,9 +23,10 @@ Tally learns real prices from completed sales, hunts flips on both sides of the
 market, and can run the whole play from bidding to reselling. Safety gated, and
 off by default.
 
-**Download:** no Tally release is published yet. The first release will land on the
+**Download:** [Tally 1.0.0 beta](https://github.com/GoatTech-42/tally/releases/tag/v1.0.0-beta)
+(prerelease, Minecraft 1.21.11; requires Fabric and Java 21) is published on the
 [releases page](https://github.com/GoatTech-42/tally/releases); building from source
-works today (see Quick start). The in-game updater watches this repository's releases
+also works (see Quick start). The in-game updater watches this repository's releases
 only. [Upstream GoNuts releases](https://github.com/cody-raves/Gonuts/releases/latest)
 remain available, with public support ended.
 
