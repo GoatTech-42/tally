@@ -1,0 +1,19 @@
+# World-load qualification harness - reviewed pins (test-only)
+# Committed sources
+27878564271be30c536b93b7ba71fdffd66256e534ab45d471e7446b1c20342d  QualWorldSmoke-split-v6_3_3.java
+a5feeee2ca3a782f529cc665249e98271db83304150f394642369be6625833ff  CaptureGate.java
+7518828b8b008e7b38e6fbb106d6af63ca3ebb84971b14f08481a864d32f6e70  TestCaptureGate.java
+7495fc95b9788382034b191bd707e571acac29ba4f91619489a92e80de821ae1  mixin/WindowCaptureMixin.java
+49fa7dff919aac3887b94d2cb0ff32baf2604aa490ebbaccf9c7a59bc9f4301d  launcher/qual-launch-load-split-v633-fixed.sh
+# Reviewed build output (binary retained in QA custody, not committed)
+bfc165463f7ec69742f584593186cc2d1f9dbec5386f7e56f2accf09e3e70387  harness-preswap-split-v633-fixed.jar
+fd1f38ad4bfa6b261af4ed51e93cc250567961a68c5af52f67639babffe01aef  WindowCaptureMixin.class (remapped, inside harness jar)
+# Runtime inputs (pins only; bytes not published)
+0f43e6673e52be7fb9fb7a0c53ed0c288fa81cf427832e827613d3f04feb155e  tally-1.21.11-beta-candidate.jar (public beta release asset)
+c98467cbbaf4d197377266795ae015f4130d65b6  fabric-api-0.141.6+1.21.11.jar (sha1)
+23ebd4bd18823788d58476869d5ba36dea426834e07c0251c536d49646c36c07  owned-world-template.tgz (private QA world; pin only)
+2dcd51890aaf8bb219d58dec1df48b56d955edefa167bf78c1e7142ac4ab4acd  game-cache-intermediary.jar (loader-produced remap cache; absent from custody - the loader regenerates it on first launch)
+735d15d165d05a80ed34c8df17ed4eb68bfe04d1a7158ba16a30a16092089e48  namespace-wrapper-load.sh (pin only)
+6e15f6fcd217352214f1ad6aab62dc8e718779313e2b4a63e691c408dafb64c3  namespace-entry-load.sh (pin only)
+# Classpath manifest referenced by the launcher: pending fresh derivation
+# (new derivation, not the prior run's file).
