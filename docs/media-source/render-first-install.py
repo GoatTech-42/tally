@@ -44,7 +44,7 @@ def stamp(seconds):
 concat, vtt, chapter_vtt = [], ['WEBVTT', ''], ['WEBVTT', '']
 for i, scene in enumerate(scenes):
     frame = Image.new('RGB', (1920, 1080), BG); draw = ImageDraw.Draw(frame)
-    draw.text((65, 28), 'GoNuts / ' + args.heading, font=font(24, True), fill=TEAL)
+    draw.text((65, 28), 'Tally / ' + args.heading, font=font(24, True), fill=TEAL)
     draw.text((1690, 28), f'{i:02} / {len(scenes)-1:02}', font=font(24), fill=MUTED)
     draw.text((65, 75), scene['title'], font=font(50, True), fill=TEXT)
     draw.text((68, 143), scene['subtitle'], font=font(28), fill=MUTED)
@@ -57,7 +57,7 @@ for i, scene in enumerate(scenes):
     draw.rounded_rectangle((625, 215, 1860, 896), radius=18, fill='#060b12', outline=EDGE, width=2)
     if picture in ('fabric', 'folder'):
         draw.text((660, 247), 'VERSION CHECK' if picture == 'fabric' else 'EXAMPLE FOLDER DIAGRAM', font=font(27, True), fill=TEAL)
-        items = [('Minecraft Java Edition', '26.2'), ('Fabric Loader + Fabric API', 'matching Minecraft 26.2'), ('Java runtime', '25')] if picture == 'fabric' else [('Your selected installation', 'Open its game folder'), ('mods/', 'GoNuts-0.1.0-mc26.2.jar'), ('mods/', 'matching Fabric API .jar')]
+        items = [('Minecraft Java Edition', '1.21.11'), ('Fabric Loader + Fabric API', 'matching Minecraft 1.21.11'), ('Java runtime', '21')] if picture == 'fabric' else [('Your selected installation', 'Open its game folder'), ('mods/', 'tally-1.21.11-beta-candidate.jar'), ('mods/', 'matching Fabric API .jar')]
         for j, (label, value) in enumerate(items):
             yy = 330 + j * 153
             draw.text((670, yy), label, font=font(33, True), fill=TEXT)
@@ -68,7 +68,7 @@ for i, scene in enumerate(scenes):
         shot = ImageOps.contain(shot, (1200, 640), Image.Resampling.LANCZOS)
         frame.paste(shot, (643 + (1200-shot.width)//2, 230 + (640-shot.height)//2))
     draw.text((645, 900), 'PUBLIC WEBSITE' if picture == 'download-page.png' else 'REAL OFFLINE GUI CAPTURE' if picture not in ('fabric', 'folder') else 'INSTALLATION INSTRUCTIONS', font=font(19), fill=MUTED)
-    chunks = textwrap.wrap(scene['captionText'], 108, break_long_words=False)
+    chunks = textwrap.wrap(scene['captionText'], 108, break_long_words=False, break_on_hyphens=False)
     total_chars = sum(map(len, chunks)); at = scene['start']
     for j, chunk in enumerate(chunks):
         duration = scene['duration'] * len(chunk) / total_chars
@@ -82,7 +82,7 @@ for i, scene in enumerate(scenes):
         d.rectangle((0, 1071, int(1920*end/(scenes[-1]['start']+scenes[-1]['duration'])), 1080), fill=TEAL)
         name = f'frame-{i:02}-{j:02}.png'; captioned.save(args.output/name)
         concat.extend([f"file '{name}'", f'duration {duration:.6f}'])
-        vtt.extend([f'{stamp(at)} --> {stamp(end)}', '\n'.join(textwrap.wrap(chunk, 64, break_long_words=False)), ''])
+        vtt.extend([f'{stamp(at)} --> {stamp(end)}', '\n'.join(textwrap.wrap(chunk, 64, break_long_words=False, break_on_hyphens=False)), ''])
         if i == 5 and j == 0: captioned.save(args.output/'start-here-chapter.png')
         if i == 0 and j == 0: captioned.save(args.output/(args.name+'-poster.jpg'), quality=92)
         at = end

@@ -1,60 +1,64 @@
 WEBVTT
 
 00:00:00.000 --> 00:00:07.000
-Follow the current GoNuts interface. Simple and Advanced use the
+Follow the current Tally interface. Simple and Advanced use the
 same saved settings. Pause at any step.
 
-00:00:07.000 --> 00:00:17.137
-Use Minecraft Java Edition 26.2, Fabric Loader, the matching
-Fabric API mod, and Java 25. The written guide
+00:00:07.000 --> 00:00:16.699
+Use Minecraft Java Edition 1.21.11, Fabric Loader, the matching
+Fabric API mod, and Java 21. The written
 
-00:00:17.137 --> 00:00:25.000
-links the official Fabric instructions. Use the Fabric setup for
-your own launcher.
+00:00:16.699 --> 00:00:25.000
+guide links the official Fabric instructions. Use the Fabric
+setup for your own launcher.
 
-00:00:25.000 --> 00:00:30.310
+00:00:25.000 --> 00:00:28.779
 Open the Tally releases page on GitHub
-(github.com/GoatTech-42/tally/releases). No Tally release is
+(github.com/GoatTech-42/tally/releases). Download
 
-00:00:30.310 --> 00:00:35.567
-published yet; when one appears, download the mod jar for
-Minecraft 26.2 there and save it without
+00:00:28.779 --> 00:00:33.202
+tally-1.21.11-beta-candidate.jar from the v1.0.0-beta release
+for Minecraft 1.21.11 and save it without
 
-00:00:35.567 --> 00:00:39.000
-extracting. Normal keyless setup does not need a manual API key.
+00:00:33.202 --> 00:00:37.669
+extracting. SHA256SUMS is published beside it. This is a beta,
+not a final release. Normal keyless setup
 
-00:00:39.000 --> 00:00:48.171
+00:00:37.669 --> 00:00:39.000
+does not need a manual API key.
+
+00:00:39.000 --> 00:00:47.695
 Close Minecraft. Open the game folder for the installation you
-actually launch. Put GoNuts and the matching
+actually launch. Put the Tally beta jar and
 
-00:00:48.171 --> 00:00:56.914
-Fabric API jar in its mods folder. Create mods if missing. Keep
-only one GoNuts jar. Updating does not
+00:00:47.695 --> 00:00:56.309
+the matching Fabric API jar in its mods folder. Create mods if
+missing. Keep only one Tally jar. Updating
 
-00:00:56.914 --> 00:01:00.000
-require deleting your configuration.
+00:00:56.309 --> 00:01:00.000
+does not require deleting your configuration.
 
-00:01:00.000 --> 00:01:08.921
+00:01:00.000 --> 00:01:08.965
 Launch your Fabric installation and join DonutSMP. Enable the
 sidebar scoreboard in the server settings so
 
-00:01:08.921 --> 00:01:17.000
-GoNuts can read your balance. Press B. Check Minecraft Controls
+00:01:08.965 --> 00:01:17.000
+Tally can read your balance. Press B. Check Minecraft Controls
 if you changed that key binding.
 
-00:01:17.000 --> 00:01:28.889
+00:01:17.000 --> 00:01:28.805
 New installs open Start here. To return later, press B, choose
-Settings, then Help and setup. Choose Set up
+Settings, then Help & setup. Choose Set up
 
-00:01:28.889 --> 00:01:36.000
+00:01:28.805 --> 00:01:36.000
 trading. Do not search for a separate START HERE navigation tab.
 
-00:01:36.000 --> 00:01:45.640
+00:01:36.000 --> 00:01:45.736
 Enter maximum per trade and maximum session spend. Choose your
 own amounts; these screenshot values are
 
-00:01:45.640 --> 00:01:55.000
-examples, not recommendations. Review and continue opens the
+00:01:45.736 --> 00:01:55.000
+examples, not recommendations. Review & continue opens the
 second step. It does not start trading.
 
 00:01:55.000 --> 00:02:02.756
@@ -68,15 +72,15 @@ hosted Swarm service is retired. Opening a guide
 00:02:10.585 --> 00:02:13.000
 does not start or resume trading.
 
-00:02:13.000 --> 00:02:23.286
-On Review and Start, check your limits and readiness. This
-offline demonstration has not joined a server, so
+00:02:13.000 --> 00:02:23.176
+On Review & Start, check your limits and readiness. This offline
+demonstration has not joined a server, so
 
-00:02:23.286 --> 00:02:33.381
+00:02:23.176 --> 00:02:33.352
 Start is disabled. On your client, read the actual blocker.
 Choose Start trading only when ready. Existing
 
-00:02:33.381 --> 00:02:37.000
+00:02:33.352 --> 00:02:37.000
 recovery and trade checks still apply.
 
 00:02:37.000 --> 00:02:47.800
@@ -87,12 +91,12 @@ client is not necessarily trading. Read the
 actual reason before taking action. End is the default emergency
 stop.
 
-00:02:55.000 --> 00:03:08.338
-Open Settings, Help and setup, then Show menus plus hotbar. Only
-those two display options change. This is
+00:02:55.000 --> 00:03:08.925
+Open Settings, Help & setup, then Show menus + hotbar. Only
+those two display options change. This is not a
 
-00:03:08.338 --> 00:03:14.000
-not a full settings or trading-history reset.
+00:03:08.925 --> 00:03:14.000
+full settings or trading-history reset.
 
 00:03:14.000 --> 00:03:24.948
 Simple groups order management, trading style, action pace and

@@ -8,7 +8,7 @@
       "Choose limits → Review & Start"
     ],
     "image": "start-here.png",
-    "captionText": "Follow the current GoNuts interface. Simple and Advanced use the same saved settings. Pause at any step.",
+    "captionText": "Follow the current Tally interface. Simple and Advanced use the same saved settings. Pause at any step.",
     "duration": 7,
     "start": 0,
     "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
@@ -17,12 +17,12 @@
     "title": "1. Prepare Fabric",
     "subtitle": "Match the versions before installing",
     "bullets": [
-      "Minecraft Java Edition 26.2",
-      "Fabric Loader + Fabric API for 26.2",
-      "Java 25"
+      "Minecraft Java Edition 1.21.11",
+      "Fabric Loader + Fabric API for 1.21.11",
+      "Java 21"
     ],
     "image": "fabric",
-    "captionText": "Use Minecraft Java Edition 26.2, Fabric Loader, the matching Fabric API mod, and Java 25. The written guide links the official Fabric instructions. Use the Fabric setup for your own launcher.",
+    "captionText": "Use Minecraft Java Edition 1.21.11, Fabric Loader, the matching Fabric API mod, and Java 21. The written guide links the official Fabric instructions. Use the Fabric setup for your own launcher.",
     "duration": 18,
     "start": 7
   },
@@ -31,25 +31,25 @@
     "subtitle": "From the project's own GitHub releases",
     "bullets": [
       "Open the project releases page",
-      "No Tally release is published yet",
+      "Download the beta jar",
       "Keep the file as a .jar"
     ],
     "image": "download-page.png",
-    "captionText": "Open the Tally releases page on GitHub (github.com/GoatTech-42/tally/releases). No Tally release is published yet; when one appears, download the mod jar for Minecraft 26.2 there and save it without extracting. Normal keyless setup does not need a manual API key.",
+    "captionText": "Open the Tally releases page on GitHub (github.com/GoatTech-42/tally/releases). Download tally-1.21.11-beta-candidate.jar from the v1.0.0-beta release for Minecraft 1.21.11 and save it without extracting. SHA256SUMS is published beside it. This is a beta, not a final release. Normal keyless setup does not need a manual API key.",
     "duration": 14,
     "start": 25,
-    "captureSha256": "f636914a9d4a1751bbd494e74d9e6e22fd657d1c7bcd7d8438b8966fce75a0c2"
+    "captureSha256": "4c8f40cb2a94ae7da643c09357adfc814018663cb1979326e69a59fd066ce2b6"
   },
   {
     "title": "3. Put both mods in the right folder",
     "subtitle": "Close Minecraft before changing mods",
     "bullets": [
       "Open THIS installation’s folder",
-      "GoNuts + Fabric API go in mods",
-      "Keep only one GoNuts jar"
+      "Tally + Fabric API go in mods",
+      "Keep only one Tally jar"
     ],
     "image": "folder",
-    "captionText": "Close Minecraft. Open the game folder for the installation you actually launch. Put GoNuts and the matching Fabric API jar in its mods folder. Create mods if missing. Keep only one GoNuts jar. Updating does not require deleting your configuration.",
+    "captionText": "Close Minecraft. Open the game folder for the installation you actually launch. Put the Tally beta jar and the matching Fabric API jar in its mods folder. Create mods if missing. Keep only one Tally jar. Updating does not require deleting your configuration.",
     "duration": 21,
     "start": 39
   },
@@ -59,10 +59,10 @@
     "bullets": [
       "Launch your Fabric profile",
       "Enable the sidebar in /settings",
-      "Press B to open GoNuts"
+      "Press B to open Tally"
     ],
     "image": "install-dashboard.png",
-    "captionText": "Launch your Fabric installation and join DonutSMP. Enable the sidebar scoreboard in the server settings so GoNuts can read your balance. Press B. Check Minecraft Controls if you changed that key binding.",
+    "captionText": "Launch your Fabric installation and join DonutSMP. Enable the sidebar scoreboard in the server settings so Tally can read your balance. Press B. Check Minecraft Controls if you changed that key binding.",
     "duration": 17,
     "start": 60,
     "captureSha256": "b249ddded84195e23e964a09a6e1c787992945da933064abf1d503e360c14eba"
@@ -76,7 +76,7 @@
       "Choose Set up trading"
     ],
     "image": "start-here.png",
-    "captionText": "New installs open Start here. To return later, press B, choose Settings, then Help and setup. Choose Set up trading. Do not search for a separate START HERE navigation tab.",
+    "captionText": "New installs open Start here. To return later, press B, choose Settings, then Help & setup. Choose Set up trading. Do not search for a separate START HERE navigation tab.",
     "duration": 19,
     "start": 77,
     "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
@@ -90,7 +90,7 @@
       "Click Review & continue"
     ],
     "image": "quick-start-limits.png",
-    "captionText": "Enter maximum per trade and maximum session spend. Choose your own amounts; these screenshot values are examples, not recommendations. Review and continue opens the second step. It does not start trading.",
+    "captionText": "Enter maximum per trade and maximum session spend. Choose your own amounts; these screenshot values are examples, not recommendations. Review & continue opens the second step. It does not start trading.",
     "duration": 19,
     "start": 96,
     "captureSha256": "8265cc9153814503f887018720db1ea6c94124c38acd0d6283c08e09acdaaa2d"
@@ -118,7 +118,7 @@
       "Start trading only when ready"
     ],
     "image": "quick-start-review.png",
-    "captionText": "On Review and Start, check your limits and readiness. This offline demonstration has not joined a server, so Start is disabled. On your client, read the actual blocker. Choose Start trading only when ready. Existing recovery and trade checks still apply.",
+    "captionText": "On Review & Start, check your limits and readiness. This offline demonstration has not joined a server, so Start is disabled. On your client, read the actual blocker. Choose Start trading only when ready. Existing recovery and trade checks still apply.",
     "duration": 24,
     "start": 133,
     "captureSha256": "29d47336f193e9c13abef585ec692cfc3acd791f690d5d8a93e5f3dbd4285308"
@@ -146,7 +146,7 @@
       "Other settings are kept"
     ],
     "image": "start-here.png",
-    "captionText": "Open Settings, Help and setup, then Show menus plus hotbar. Only those two display options change. This is not a full settings or trading-history reset.",
+    "captionText": "Open Settings, Help & setup, then Show menus + hotbar. Only those two display options change. This is not a full settings or trading-history reset.",
     "duration": 19,
     "start": 175,
     "captureSha256": "f9b7d98e9cd5d831ff02765fc2d40702e0045dd4e6d3b9fd08d537dc3905fdc5"
