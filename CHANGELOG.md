@@ -1135,7 +1135,7 @@ About tab.
 
 ## 2026-10-14 02:10 UTC
 - New: Staff Watch is part of the main GoNuts GUI. Open its Operations tab or use /staffwatch for detection settings, live staff rows, and the reconnect server selector.
-- New: choose Donut SMP Main (donutsmp.net), East (east.donutsmp.net), or West (west.donutsmp.net). Staff alerts close the connection immediately, then wait 5â€“10 minutes before reconnecting. Other disconnects and failed connections retry every two minutes.
+- New: choose Donut SMP Main (donutsmp.net), East (east.donutsmp.net), or West (west.donutsmp.net). Staff alerts close the connection immediately, then wait 5–10 minutes before reconnecting. Other disconnects and failed connections retry every two minutes.
 - New: staff and vanish panels sit at the top center, with the special watcher warning directly below. The warning remains visible over menus after leaving. Sounds are off by default.
 - New: staff escapes appear in the shared web/Discord Evasion history. The Discord bot sends a dedicated notification with the client, watcher, time, destination, and reconnect delay; unsent notifications remain queued.
 - Changed: a staff disconnect pauses trading and takes priority over other reconnect helpers. Cancel stops its reconnect chain. Single-player worlds are never disconnected by Staff Watch.
