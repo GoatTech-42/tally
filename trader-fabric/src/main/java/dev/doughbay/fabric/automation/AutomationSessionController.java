@@ -950,7 +950,7 @@ public final class AutomationSessionController {
     private static String rivalNote() {
         dev.doughbay.fabric.RivalIntel.Snapshot r = rivals();
         if (r == null || r.refreshedAt() == 0 || r.rivals().isEmpty()) return "";
-        return r.quietField() ? " Â· rivals quiet" : " Â· rivals " + r.activeNow() + "/" + r.rivals().size() + " on";
+        return r.quietField() ? " · rivals quiet" : " · rivals " + r.activeNow() + "/" + r.rivals().size() + " on";
     }
     /** How many listings of one item and stack size may be up at once. */
     private static int MAX_OPEN_PER_MARKET() {
@@ -1968,17 +1968,17 @@ public final class AutomationSessionController {
      */
     public synchronized String pauseGuidance() {
         if (state != State.PAUSED) {
-            return state == State.STOPPED ? "Stopped â€” press Start to begin." : "Running.";
+            return state == State.STOPPED ? "Stopped — press Start to begin." : "Running.";
         }
         if (!pauseResumable) {
             return "This pause guards an uncertain operation. Use the recovery controls on the "
                     + "Automation tab, or Stop and Start again.";
         }
         if (recoveredSession) {
-            return "Recovered session â€” use 'Resume recovered session' on the Automation tab, not plain Resume.";
+            return "Recovered session — use 'Resume recovered session' on the Automation tab, not plain Resume.";
         }
         if (dev.doughbay.fabric.Tuning.get("session.auto_resume") < 0.5) {
-            return "session.auto_resume is off, so it will not resume by itself â€” turn it on in Settings.";
+            return "session.auto_resume is off, so it will not resume by itself — turn it on in Settings.";
         }
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return "Waiting: " + blocker;
@@ -1986,9 +1986,9 @@ public final class AutomationSessionController {
             return "The driver is finishing an operation; Resume works once it is idle.";
         }
         if (hasUnresolvedPosition()) {
-            return "A purchased or uncertain position must be reconciled first â€” see the Automation tab.";
+            return "A purchased or uncertain position must be reconciled first — see the Automation tab.";
         }
-        return "Ready to resume â€” press Resume.";
+        return "Ready to resume — press Resume.";
     }
 
     /** Continues an open recovered session without resetting its durable caps. */
@@ -2882,14 +2882,14 @@ public final class AutomationSessionController {
 
     private void synchronizePersistenceRecovery() {
         if (persistence == null) {
-            persistenceStatus = "FAILED â€” automation persistence is not connected";
+            persistenceStatus = "FAILED — automation persistence is not connected";
             return;
         }
         AutomationPersistencePort.Status status = persistence.status();
         dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.PERSISTENCE,
                 status.refusalOutstanding()?dev.doughbay.fabric.ActionTrace.Event.REFUSED:dev.doughbay.fabric.ActionTrace.Event.OBSERVATION,
                 status.loadState(),status.refusalOutstanding()?"PERSISTENCE_REFUSED":status.ready()?"NONE":"PERSISTENCE_WAIT",-1,-1,-1);
-        persistenceStatus = status.loadState().name() + " â€” " + status.detail();
+        persistenceStatus = status.loadState().name() + " — " + status.detail();
         if (!status.ready() || recoveryApplied) return;
 
         AutomationSessionRecovery recovery = status.recovery();
@@ -2907,7 +2907,7 @@ public final class AutomationSessionController {
         long parkedSpend = parkedSpend();
         boolean exposureRemains = !remaining.isEmpty() || recovery.uncertainExposure().active();
         if (!recovery.sessionOpen() && !exposureRemains) {
-            persistenceStatus = "READY â€” no recovered automation exposure; "
+            persistenceStatus = "READY — no recovered automation exposure; "
                     + openListings.size() + " listing(s) still open";
             return;
         }
@@ -2976,7 +2976,7 @@ public final class AutomationSessionController {
                 ? "PAUSED: recovered " + recoveredExposureCount()
                 + " unresolved REAL exposure record(s); no automatic command may run"
                 : "PAUSED: recovered open session; spend/trade caps were not reset";
-        persistenceStatus = "READY â€” durable recovery applied fail-closed";
+        persistenceStatus = "READY — durable recovery applied fail-closed";
     }
 
     /**
@@ -3774,7 +3774,7 @@ public final class AutomationSessionController {
             dev.doughbay.fabric.ItemPriorities.prioritize(watched,o->o.listing().itemId());
             int underdogs = 0;
             for (Opportunity o : watched) if (isUnderdog(o)) underdogs++;
-            String underdogNote = underdogs > 0 ? " Â· underdog " + underdogs : "";
+            String underdogNote = underdogs > 0 ? " · underdog " + underdogs : "";
             watchCandidates = List.copyOf(watched);
             watchBuy = true;
             pendingOpportunity = watched.get(0);
@@ -13388,7 +13388,7 @@ public final class AutomationSessionController {
         AutomationPersistencePort.Status status = persistence.status();
         if (!status.ready()) {
             return "Automation recovery is not ready: " + status.loadState()
-                    + (status.detail().isBlank() ? "" : " â€” " + status.detail());
+                    + (status.detail().isBlank() ? "" : " — " + status.detail());
         }
         if (!recoveryApplied) {
             return "Automation recovery has not yet been applied on the client tick";
@@ -13554,7 +13554,7 @@ public final class AutomationSessionController {
                 true, State.PAUSED.name(), trackedPosition, uncertainExposure,
                 checkpointDetail));
         if (generation <= 0) {
-            persistenceStatus = "FAILED â€” pause checkpoint queue rejected; prior durable state retained";
+            persistenceStatus = "FAILED — pause checkpoint queue rejected; prior durable state retained";
         }
     }
 
@@ -13910,15 +13910,15 @@ public final class AutomationSessionController {
         return n;
     }
 
-    /** "small 12/25 Â· mid 3/15 Â· large 1/5", for the Automation tab and status lines. */
+    /** "small 12/25 · mid 3/15 · large 1/5", for the Automation tab and status lines. */
     public synchronized String tierSummary() {
         StringBuilder out = new StringBuilder();
         for (Tier tier : Tier.values()) {
-            if (out.length() > 0) out.append(" Â· ");
+            if (out.length() > 0) out.append(" · ");
             out.append(tier.name().toLowerCase(java.util.Locale.ROOT)).append(' ')
                     .append(openOfTier(tier)).append('/').append(tierSlots(tier));
         }
-        out.append(" Â· slow ").append(openSlow(System.currentTimeMillis())).append('/').append(slowLaneSlots());
+        out.append(" · slow ").append(openSlow(System.currentTimeMillis())).append('/').append(slowLaneSlots());
         return out.toString();
     }
 
