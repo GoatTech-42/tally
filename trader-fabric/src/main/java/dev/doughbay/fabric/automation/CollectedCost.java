@@ -3,7 +3,7 @@ package dev.doughbay.fabric.automation;
 /** Conservative acquisition estimates when collection notices cover only part of a stack. */
 final class CollectedCost {
     static long fullStack(int count, long unitPrice) {
-        if (count <= 0 || unitPrice <= 0) throw new IllegalArgumentException("Positive quantity and unit cost required");
+        if (count <= 0 || unitPrice <= 0) throw new IllegalArgumentException("positive quantity and unit cost required");
         return Math.multiplyExact(unitPrice, count);
     }
 

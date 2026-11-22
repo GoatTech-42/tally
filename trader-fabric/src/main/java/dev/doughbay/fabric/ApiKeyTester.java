@@ -45,7 +45,7 @@ final class ApiKeyTester {
     record Report(State state, String detail, long updatedAtMillis) {
 
         static Report idle() {
-            return new Report(State.IDLE, "Not tested this session", 0);
+            return new Report(State.IDLE, "not tested this session", 0);
         }
 
         boolean running() {
@@ -76,7 +76,7 @@ final class ApiKeyTester {
                     System.currentTimeMillis()));
             return false;
         }
-        report.set(new Report(State.RUNNING, "Requesting completed sales, page 1...",
+        report.set(new Report(State.RUNNING, "requesting completed sales, page 1...",
                 System.currentTimeMillis()));
         Thread thread = new Thread(() -> run(candidate), "doughbay-api-key-test");
         thread.setDaemon(true);
@@ -91,7 +91,7 @@ final class ApiKeyTester {
             report.set(evaluate(page, System.currentTimeMillis()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            report.set(new Report(State.FAILED, "Test interrupted",
+            report.set(new Report(State.FAILED, "test interrupted",
                     System.currentTimeMillis()));
         } catch (Exception e) {
             // DonutApiClient already redacts the key from its messages, so this
@@ -109,12 +109,12 @@ final class ApiKeyTester {
 
         if (records == 0 && failures == 0) {
             return new Report(State.SUSPECT,
-                    "Authenticated, but page 1 held no completed sales at all",
+                    "authenticated, but page 1 held no completed sales at all",
                     now);
         }
         if (records == 0) {
             return new Report(State.SUSPECT,
-                    "Authenticated, but all " + failures
+                    "authenticated, but all " + failures
                             + " rows failed to parse — " + sampleFailures(page.failures()),
                     now);
         }
@@ -156,7 +156,7 @@ final class ApiKeyTester {
     /**
      * The distinct reasons rows were rejected, newest-first order preserved.
      *
-     * <p>"The response shape has likely changed" is true but useless: the
+     * <p>"the response shape has likely changed" is true but useless: the
      * whole point of showing this on screen is to name the field that moved,
      * so a shape change is a five-minute fix instead of an investigation.
      * Duplicates are collapsed because a broken field fails every row

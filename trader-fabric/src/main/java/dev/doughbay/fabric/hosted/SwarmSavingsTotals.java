@@ -43,14 +43,14 @@ public final class SwarmSavingsTotals {
     }
     public static List<String> lines(JsonNode total) {
         var lines=new ArrayList<String>();
-        lines.add("Your Hive total: "+total.path("reportingAccounts").asInt()+" / "+total.path("knownAccounts").asInt()+" accounts reporting");
+        lines.add("your Hive total: "+total.path("reportingAccounts").asInt()+" / "+total.path("knownAccounts").asInt()+" accounts reporting");
         if(!total.path("hasMeasurements").asBoolean()){
             lines.add("Measurements unavailable; offline, stale and older clients are unmeasured, not zero.");return List.copyOf(lines);
         }
-        lines.add("Scans skipped: "+total.path("actualSkippedReads").asLong()+"; shared lookups: "+total.path("attempts").asLong()+"; fallbacks: "+total.path("fallbackReads").asLong());
-        lines.add(String.format(Locale.ROOT,"Measured shared lookup wait: %.1fs",total.path("lookupWaitMs").asLong()/1000.0));
+        lines.add("scans skipped: "+total.path("actualSkippedReads").asLong()+"; shared lookups: "+total.path("attempts").asLong()+"; fallbacks: "+total.path("fallbackReads").asLong());
+        lines.add(String.format(Locale.ROOT,"measured shared lookup wait: %.1fs",total.path("lookupWaitMs").asLong()/1000.0));
         lines.add(total.path("estimateAvailable").asBoolean()?String.format(Locale.ROOT,"Estimated net bot-time saved: %.1fs%s",total.path("estimatedNetSavedMs").asLong()/1000.0,total.path("estimateComplete").asBoolean()?"":" (partial baseline)"):"Estimated time saved: not calibrated yet.");
-        lines.add("Calibrated skips: "+total.path("calibratedSkippedReads").asLong()+"; without baseline: "+total.path("uncalibratedSkippedReads").asLong());
+        lines.add("calibrated skips: "+total.path("calibratedSkippedReads").asLong()+"; without baseline: "+total.path("uncalibratedSkippedReads").asLong());
         lines.add("Sum of fresh client sessions; offline/older clients excluded. Bot-time is not elapsed wall-clock or proven trading speed/profit.");
         return List.copyOf(lines);
     }

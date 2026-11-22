@@ -74,9 +74,9 @@ import java.util.regex.Pattern;
 public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     private static final String EXECUTION_DISABLED =
-            "Authorized live execution is disabled. Tally is analyzing only.";
+            "Authorized live execution is disabled. tally is analyzing only.";
     private static final String PREFLIGHT_DISABLED =
-            "Read-only automation preflight is disabled.";
+            "read-only automation preflight is disabled.";
 
     private static final int STABLE_TICKS_REQUIRED = 2;
     /** Your Items pages a pull-back will walk before giving up. */
@@ -621,7 +621,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // emergency stop, so the active operation remains the source of truth.
         if (isActive()) {
             return ExecutionResult.refused(
-                    "DRY RUN REFUSED: another Tally operation is already in progress");
+                    "DRY RUN REFUSED: another tally operation is already in progress");
         }
         if (!preflightEnabled) {
             return refusePreflight(requested, PREFLIGHT_DISABLED);
@@ -844,7 +844,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -852,7 +852,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(unavailable);
         }
         if(pagedOwnOrders(op) && !client.player.containerMenu.getCarried().isEmpty())
-            return ExecutionResult.refused("Own-order page navigation waits for an empty cursor");
+            return ExecutionResult.refused("own-order page navigation waits for an empty cursor");
         opportunity = null;
         operation = op;
         targetListingKey = op.name().toLowerCase(Locale.ROOT) + ":" + (itemId == null ? "" : itemId) + ":" + unitPrice;
@@ -935,7 +935,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if(pagedOwnOrders(op))client.player.closeContainer();
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /orders: " + e.getMessage();
@@ -946,11 +946,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     public synchronized ExecutionResult readOwnOrders() {
-        return beginOwnOrdersOperation(Operation.OWN_ORDERS, null, 0, 0, "Reading your orders");
+        return beginOwnOrdersOperation(Operation.OWN_ORDERS, null, 0, 0, "reading your orders");
     }
 
     public synchronized ExecutionResult placeOrder(String itemId, int count, long unitPrice) {
-        if (itemId == null || count <= 0 || unitPrice <= 0) return ExecutionResult.refused("An order needs an item, a count and a price");
+        if (itemId == null || count <= 0 || unitPrice <= 0) return ExecutionResult.refused("an order needs an item, a count and a price");
         placeCount = count;
         placeUnitPrice = unitPrice;
         placeDisplayName = displayNameFor(itemId);
@@ -997,7 +997,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** Positive maximumUnits takes only whole stacks up to the shelf deficit. Zero keeps legacy collection. */
     public synchronized ExecutionResult collectOrder(String itemId, long unitPrice, int requested,
                                                      int ordinal, boolean wholeStacksOnly, boolean finishedOnly, int maximumUnits) {
-        if (maximumUnits < 0) return ExecutionResult.refused("Invalid collection limit");
+        if (maximumUnits < 0) return ExecutionResult.refused("invalid collection limit");
         ExecutionResult result = beginOwnOrdersOperation(Operation.COLLECT_ORDER, itemId, 0, unitPrice,
                 "Collecting " + shortName(itemId) + " delivered to your order");
         if (result.ok()) {
@@ -1014,7 +1014,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     /** What a collect that found only a part stack ends with; the desk leaves that order alone for a while. */
-    public static final String PART_STACK_WAITING = "Only part of a stack is waiting on the order";
+    public static final String PART_STACK_WAITING = "only part of a stack is waiting on the order";
     private boolean collectWholeStacksOnly;
     private boolean collectFinishedOnly;
     private int collectMaximumUnits;
@@ -1072,7 +1072,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         client.player.closeContainer();
         sendCommand(client,"orders");
         resetPhaseObservation();
-        lastMessage="Checking another matching order for delivered goods";
+        lastMessage="checking another matching order for delivered goods";
         return true;
     }
     private int wrongPageReopens;
@@ -1116,7 +1116,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
     public synchronized ExecutionResult cancelOrder(String itemId, long unitPrice, int requested) {
         ExecutionResult result=beginOwnOrdersOperation(Operation.CANCEL_ORDER,itemId,0,unitPrice,
-                "Cancelling your bid on " + shortName(itemId));
+                "cancelling your bid on " + shortName(itemId));
         if(result.ok()) ownMatchRequested=Math.max(0,requested);
         return result;
     }
@@ -1437,7 +1437,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 }
                 rows.add(row);
                 if(multipleOwnOrders() && row.requested()>=1000) {
-                    unparsed.add("Native order quantity exceeds exact-count support");
+                    unparsed.add("native order quantity exceeds exact-count support");
                     rejectedEvidence.add(itemId(stack),stack.getHoverName().getString(),tooltipLines(client,stack),true);
                 }
                 if (matchesOwnOrder(row, targetItemId, ownTargetUnitPrice, ownMatchRequested,
@@ -1473,7 +1473,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 if(turn==OwnOrderPages.Turn.FAILED){lastOwnOrdersComplete=false;abort(client,"Own-order page turn was not confirmed; no complete book assumed");return;}
                 if(!ownPageAccepted) {
                     if(!controlsReady)return;
-                    if(!ownPages.append(rows)){lastOwnOrdersComplete=false;abort(client,"Own-order page repeated or exceeded the bounded page limit");return;}
+                    if(!ownPages.append(rows)){lastOwnOrdersComplete=false;abort(client,"own-order page repeated or exceeded the bounded page limit");return;}
                     ownPageAccepted=true;
                 }
                 if(operation==Operation.OWN_ORDERS && unparsed.isEmpty()) {
@@ -1501,7 +1501,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 // Counts only: unknown native names/tooltips are not diagnostic output.
                 DoughBayClient.LOGGER.info("DoughBay: Your Orders incomplete: {} unparsed native item(s), {} accumulated row(s)",
                         unparsed.size(), lastOwnOrders.size());
-                abort(client,"Own-order book incomplete: " + unparsed.size() + " native item(s) could not be parsed; "
+                abort(client,"own-order book incomplete: " + unparsed.size() + " native item(s) could not be parsed; "
                         + lastOwnOrders.size() + " observed row(s) retained; refreshing Your Orders");
                 return;
             }
@@ -1590,7 +1590,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         abort(client, "No New Order control on Your Orders (page shows: " + String.join(", ", names) + ")");
                         return;
                     }
-                    lastMessage = "Opening a new order";
+                    lastMessage = "opening a new order";
                     placeFromContainerId = container.getMenu().containerId;
                     if (!advanceOwnOrderStep(clickSlot(client, container, newOrder), 2)) {
                         if (clickDeferred) return;   // paced, not impossible: try again next tick
@@ -1604,7 +1604,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         if (operation == Operation.CANCEL_ORDER) {
                             if (multipleOwnOrders() ? !cancelOrderReceipt.isEmpty()
                                     : cancellationObserved(cancelMatchingBefore,matchesSeen,!cancelOrderReceipt.isEmpty())) {
-                                complete(client, "Bid on " + shortName(targetItemId) + " cancelled"
+                                complete(client, "bid on " + shortName(targetItemId) + " cancelled"
                                         + (cancelOrderReceipt.isEmpty() ? "" : " (" + cancelOrderReceipt + ")"));
                             } else if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
                                 abort(client, "The bid is still on Your Orders after the cancel");
@@ -1632,7 +1632,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     }
                     if (!advanceOwnOrderStep(clickSlot(client, container, matchSlot), 3)) {
                         if (clickDeferred) return;   // paced, not impossible: try again next tick
-                        abort(client, "The order could not be opened");
+                        abort(client, "the order could not be opened");
                         return;
                     }
                     if (operation == Operation.COLLECT_ORDER) collectTriedOrdinals.add(ownMatchOrdinal);
@@ -1685,7 +1685,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if (!advanceOwnOrderStep(clickSlot(client, container, slot),
                     operation == Operation.COLLECT_ORDER ? 5 : 4)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The " + control + " control could not be clicked");
+                abort(client, "the " + control + " control could not be clicked");
                 return;
             }
             collectClicks = 0;
@@ -1700,12 +1700,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             int confirm = findControl(container, inventory, "confirm", 0, 45);
             if (confirm < 0) {
-                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "The cancel confirmation shows no Confirm control");
+                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "the cancel confirmation shows no confirm control");
                 return;
             }
             if (!advanceOwnOrderStep(clickSlot(client, container, confirm), 1)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The cancel Confirm control could not be clicked");
+                abort(client, "the cancel confirm control could not be clicked");
                 return;
             }
             ownDone = true;
@@ -1771,12 +1771,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         return;
                     }
                     collectClicks++;
-                    lastMessage = "Collecting stack " + collectClicks + " from the order";
+                    lastMessage = "collecting stack " + collectClicks + " from the order";
                     DoughBayClient.LOGGER.info("DoughBay collect: clicking slot {} ({} x{}) on the collect page (inventory holds {})",
                             pending, itemId(container.getMenu().slots.get(pending).getItem()),
                             container.getMenu().slots.get(pending).getItem().getCount(), now);
                     if (!quickMoveSlot(client, container, pending)) {
-                        abort(client, "The stack on the collect page could not be moved");
+                        abort(client, "the stack on the collect page could not be moved");
                         return;
                     }
                     resetPhaseObservation();
@@ -2042,7 +2042,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     ownSettleUntilTick = humanStep(4);
                     return;
                 }
-                abort(client, "The item chooser finds nothing for " + String.join(" / ", placeSearchTerms));
+                abort(client, "the item chooser finds nothing for " + String.join(" / ", placeSearchTerms));
                 return;
             }
             // After the search: the button named exactly like the item.
@@ -2084,7 +2084,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (title.contains("how many")) {
             Button next = dialogButton(dialogScreen, "Next");
             if (boxes.isEmpty() || next == null) {
-                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "The amount dialog has no box or Next");
+                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "the amount dialog has no box or next");
                 return;
             }
             boxes.get(0).setValue(String.valueOf(placeCount));
@@ -2202,10 +2202,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (requested == null || unitPrice <= 0) {
-            return ExecutionResult.refused("Cannot deliver a missing position");
+            return ExecutionResult.refused("cannot deliver a missing position");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2218,7 +2218,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Hold the position's exact stack in the selected hotbar slot");
         }
         if (ItemDescriptor.of(selected).hasParts()) {
-            return ExecutionResult.refused("Only a plain stack is delivered automatically");
+            return ExecutionResult.refused("only a plain stack is delivered automatically");
         }
         opportunity = null;
         operation = Operation.DELIVER;
@@ -2260,7 +2260,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             deliverSearch = searchTermForItemId(itemId);
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /orders: " + e.getMessage();
@@ -2296,7 +2296,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Item id is not a safe namespaced id");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2330,13 +2330,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             deliverSearch = searchTermForItemId(canonical);
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /orders: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
-        enterPhase(Phase.WAITING_FOR_LISTING, "Checking what orders pay for " + shortName(canonical));
+        enterPhase(Phase.WAITING_FOR_LISTING, "checking what orders pay for " + shortName(canonical));
         return ExecutionResult.awaitingPlayer(lastMessage);
     }
 
@@ -2354,7 +2354,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private void tickDeliverDialog(Minecraft client, DialogScreen<?> dialogScreen) {
         sawContainerInPhase = true;
         if (deliverStage != 1) {
-            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "An unexpected dialog opened in the order house search");
+            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "an unexpected dialog opened in the order house search");
             return;
         }
         List<EditBox> boxes = new ArrayList<>();
@@ -2445,7 +2445,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 complete(client, best > 0
                         ? String.format(Locale.ROOT, "Orders for %s pay up to %s each (%d open on the page)",
                                 shortName(targetItemId), money(best), open)
-                        : "No open order for " + shortName(targetItemId) + " on the page");
+                        : "no open order for " + shortName(targetItemId) + " on the page");
                 return;
             }
             // Stage 2: the search results. The best order that still wants the whole stack.
@@ -2480,10 +2480,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             deliverUnitPrice = bestUnit;
             deliverExpectedTotal = bestUnit * targetCount;
             deliverStage = 3;
-            lastMessage = "Opening the order paying " + money(bestUnit) + " each";
+            lastMessage = "opening the order paying " + money(bestUnit) + " each";
             if (!clickSlot(client, container, bestSlot)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The order could not be clicked");
+                abort(client, "the order could not be clicked");
                 return;
             }
             resetPhaseObservation();
@@ -2512,7 +2512,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 client.gameMode.handleInventoryMouseClick(container.getMenu().containerId, menuSlot, 0,
                         ClickType.QUICK_MOVE, client.player);
             } catch (RuntimeException e) {
-                abort(client, "The stack could not be moved into the deliver page");
+                abort(client, "the stack could not be moved into the deliver page");
                 return;
             }
             deliverStage = 4;
@@ -2529,7 +2529,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 if (!stack.isEmpty() && itemId(stack).equals(targetItemId) && stack.getCount() == targetCount) inGrid = true;
             }
             if (!inGrid) {
-                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "The stack did not land in the deliver page");
+                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "the stack did not land in the deliver page");
                 return;
             }
             deliverStage = 5;
@@ -2554,14 +2554,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 if (name.startsWith("confirm")) confirmSlot = i;
             }
             if (confirmSlot < 0) {
-                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "The delivery confirmation shows no Confirm control");
+                if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "the delivery confirmation shows no confirm control");
                 return;
             }
             deliverStage = 6;
-            lastMessage = "Confirming the delivery";
+            lastMessage = "confirming the delivery";
             if (!clickSlot(client, container, confirmSlot)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The delivery Confirm control could not be clicked");
+                abort(client, "the delivery confirm control could not be clicked");
                 return;
             }
             resetPhaseObservation();
@@ -2572,7 +2572,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 completeDelivery(client);
                 return;
             }
-            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "No delivery receipt arrived after the confirmation");
+            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "no delivery receipt arrived after the confirmation");
         }
     }
 
@@ -2631,7 +2631,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -2688,7 +2688,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         try {
             sendCommand(client, "orders");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /orders: " + e.getMessage();
@@ -2762,7 +2762,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 finishOrders(client, "next page did not open");
                 return;
             }
-            lastMessage = "Order house page " + ordersLastPage + " did not turn; pressing Next again (" + (ordersTurnRetries + 1) + ")";
+            lastMessage = "order house page " + ordersLastPage + " did not turn; pressing Next again (" + (ordersTurnRetries + 1) + ")";
             if (!clickSlot(client, container, again)) {
                 if (clickDeferred) return;
                 finishOrders(client, "next-page arrow could not be clicked");
@@ -2786,7 +2786,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             String name = stack.getHoverName().getString().strip();
             if (name.equalsIgnoreCase("Filter")) {
                 filterSlot = menuSlot;
-                selection = filterSelection(stack, List.of(MOST_PER_ITEM, "Most Paid", RECENTLY_LISTED));
+                selection = filterSelection(stack, List.of(MOST_PER_ITEM, "most paid", RECENTLY_LISTED));
             } else if (name.toLowerCase(Locale.ROOT).startsWith("next page")) {
                 nextSlot = menuSlot;
             }
@@ -2853,7 +2853,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return;
         }
         if (ordersPagesRead < ordersPagesWanted && nextSlot >= 0) {
-            lastMessage = "Order house page " + page + " read; turning the page";
+            lastMessage = "order house page " + page + " read; turning the page";
             ordersTurnPending = true;
             final int next = nextSlot;
             if (!tryOrdersPageTurn(() -> clickSlot(client, container, next))) {
@@ -2936,7 +2936,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             communityOrderStream.finish(ordersPagesRead,lastOrdersPhysicalComplete,lastOrdersSweepCapped,System.currentTimeMillis());
             communityOrderStream=null;
         }
-        complete(client, (ordersFullSweep ? "Order house swept: " : "Order house read: ") + ordersRead.size()
+        complete(client, (ordersFullSweep ? "order house swept: " : "order house read: ") + ordersRead.size()
                 + " order(s) on " + ordersPagesRead + " page(s)" + (note.isEmpty() ? "" : " (" + note + ")"));
     }
 
@@ -3008,7 +3008,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         String invalid = validateExactOpportunity(requested, true);
         if (invalid != null) return ExecutionResult.refused(invalid);
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
 
         Minecraft client = Minecraft.getInstance();
@@ -3025,7 +3025,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
-                    "Could not send the auction search command");
+                    "could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
@@ -3084,10 +3084,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Item id is not a safe namespaced id");
         }
         if (maxTotalPrice <= 0) {
-            return ExecutionResult.refused("The price ceiling must be positive");
+            return ExecutionResult.refused("the price ceiling must be positive");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3128,7 +3128,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
-                    "Could not send the auction search command");
+                    "could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
@@ -3163,10 +3163,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (targets == null || targets.isEmpty()) {
-            return ExecutionResult.refused("No market to watch for");
+            return ExecutionResult.refused("no market to watch for");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3218,7 +3218,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if (searchTerm != null && !searchTerm.isEmpty()) watchSearchTerm = ItemSearchText.requirePlain(searchTerm);
             sendCommand(client, watchSearchTerm.isEmpty() ? "ah" : "ah search " + watchSearchTerm);
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /ah: " + e.getMessage();
@@ -3252,7 +3252,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("A listing to pull back needs a stack size and price");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3299,7 +3299,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         try {
             sendCommand(client, "ah");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /ah: " + e.getMessage();
@@ -3335,7 +3335,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3375,7 +3375,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         try {
             sendCommand(client, "ah");
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
+            publishTerminal(TerminalOutcome.ABORTED, "could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /ah: " + e.getMessage();
@@ -3415,7 +3415,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused("Item id is not a safe namespaced id");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -3456,14 +3456,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             command = "ah search " + searchTermForItemId(canonical);
             sendCommand(client, command);
         } catch (RuntimeException e) {
-            publishTerminal(TerminalOutcome.ABORTED, "Could not send the auction search");
+            publishTerminal(TerminalOutcome.ABORTED, "could not send the auction search");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
-                "Checking the cheapest live " + shortName(canonical) + " before listing");
+                "checking the cheapest live " + shortName(canonical) + " before listing");
         return ExecutionResult.awaitingPlayer(lastMessage);
     }
 
@@ -3560,7 +3560,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             int chestSlot = ownItemsChestSlot(container, inventory);
             if (chestSlot < 0) {
                 if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
-                    abort(client, "The auction page shows no chest for your own listings");
+                    abort(client, "the auction page shows no chest for your own listings");
                 }
                 return;
             }
@@ -3568,11 +3568,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             clickedScreenSignature = containerSignature(client, container);
             if (!clickSlot(client, container, chestSlot)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The own-listings chest could not be clicked");
+                abort(client, "the own-listings chest could not be clicked");
                 return;
             }
             cancelStage = 1;
-            lastMessage = "Reading your listings";
+            lastMessage = "reading your listings";
             resetPhaseObservation();
             return;
         }
@@ -3723,7 +3723,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 auditRows.addAll(rows);
                 auditUnreadable += unreadable;
                 auditPageTurn.requested(pageBeforeClick, System.currentTimeMillis());
-                lastMessage = "Waiting for page " + (auditPagesTurned + 2) + " of your listings";
+                lastMessage = "waiting for page " + (auditPagesTurned + 2) + " of your listings";
                 resetPhaseObservation();
                 return;
             }
@@ -3773,7 +3773,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             int chestSlot = ownItemsChestSlot(container, inventory);
             if (chestSlot < 0) {
                 if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
-                    abort(client, "The auction page shows no chest for your own listings");
+                    abort(client, "the auction page shows no chest for your own listings");
                 }
                 return;
             }
@@ -3782,11 +3782,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             clickedScreenSignature = containerSignature(client, container);
             if (!clickSlot(client, container, chestSlot)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The own-listings chest could not be clicked");
+                abort(client, "the own-listings chest could not be clicked");
                 return;
             }
             cancelStage = 1;
-            lastMessage = "Opening your listings to pull back " + shortName(targetItemId);
+            lastMessage = "opening your listings to pull back " + shortName(targetItemId);
             resetPhaseObservation();
             return;
         }
@@ -3856,11 +3856,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 String pageBeforeClick = ownListingPageFingerprint(client, container);
                 if (!clickSlot(client, container, nextPageSlot)) {
                     if (clickDeferred) return;   // paced, not impossible: try again next tick
-                    abort(client, "The next page of your listings could not be clicked");
+                    abort(client, "the next page of your listings could not be clicked");
                     return;
                 }
                 cancelPageTurn.requested(pageBeforeClick, System.currentTimeMillis());
-                lastMessage = "Looking for " + shortName(targetItemId) + " on page "
+                lastMessage = "looking for " + shortName(targetItemId) + " on page "
                         + (cancelPagesTurned + 2) + " of your listings";
                 resetPhaseObservation();
                 return;
@@ -3879,7 +3879,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         clickedScreenSignature = containerSignature(client, container);
         if (!clickSlot(client, container, rowSlot)) {
             if (clickDeferred) return;   // paced, not impossible: try again next tick
-            abort(client, "Your listing could not be clicked");
+            abort(client, "your listing could not be clicked");
             return;
         }
         enterPhase(Phase.WAITING_FOR_COMPLETION,
@@ -4350,7 +4350,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             clickedScreenSignature = containerSignature(client, container);
             if (!clickSlot(client, container, bestSlot)) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The watched listing could not be clicked");
+                abort(client, "the watched listing could not be clicked");
                 return;
             }
             enterPhase(Phase.WAITING_FOR_CONFIRMATION,
@@ -4411,7 +4411,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         try {
             sendCommand(client, "ah");
         } catch (RuntimeException e) {
-            abort(client, "Could not re-open the auction house while watching");
+            abort(client, "could not re-open the auction house while watching");
             return;
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
@@ -4424,7 +4424,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
      * so the odd one out is the selection.
      */
     private static String filterSelection(ItemStack stack) {
-        return filterSelection(stack, List.of("Lowest Price", "Highest Price", RECENTLY_LISTED));
+        return filterSelection(stack, List.of("lowest price", "highest price", RECENTLY_LISTED));
     }
 
     private static String filterSelection(ItemStack stack, List<String> options) {
@@ -4731,7 +4731,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (now < holdUntil) {
             deferCommand(command, now, Math.max(holdUntil, lastCommandSentAt + gap), gap);
             pendingCommandHoldUntil = holdUntil;
-            lastMessage = "Holding /" + command + " until the server-response backoff ends";
+            lastMessage = "holding /" + command + " until the server-response backoff ends";
             return;
         }
         // A chat command typed while one of the bot's own menus is still open is
@@ -4744,12 +4744,12 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (transport.menuOpen()) {
             transport.closeMenu();
             deferCommand(command, now, now + gap, gap);
-            lastMessage = "Holding /" + command + " until the open menu closes";
+            lastMessage = "holding /" + command + " until the open menu closes";
             return;
         }
         if (now - lastCommandSentAt < gap) {
             deferCommand(command, now, lastCommandSentAt + gap, gap);
-            lastMessage = "Holding /" + command + " for the gap between commands";
+            lastMessage = "holding /" + command + " for the gap between commands";
             return;
         }
         dispatchCommand(transport, command, now);
@@ -4841,7 +4841,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         String command = resendCommand;
         dispatchCommand(transport, command, now);
         resetPhaseObservation();
-        lastMessage = "Sent /" + command + "; waiting for the server";
+        lastMessage = "sent /" + command + "; waiting for the server";
         return PendingDispatch.SENT;
     }
 
@@ -5134,10 +5134,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (price <= 0) {
-            return ExecutionResult.refused("The listing price must be positive");
+            return ExecutionResult.refused("the listing price must be positive");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         Minecraft client = Minecraft.getInstance();
         String unavailable = unavailableReason(client);
@@ -5146,7 +5146,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         }
         ItemStack selected = client.player.getInventory().getSelectedItem();
         if (selected.isEmpty()) {
-            return ExecutionResult.refused("Hold the stack to sell in the selected hotbar slot");
+            return ExecutionResult.refused("hold the stack to sell in the selected hotbar slot");
         }
         if (!listableWithParts(selected)) {
             return ExecutionResult.refused("Only a stack whose value is in its item, enchantments, potion, trim or contents can be listed automatically");
@@ -5180,7 +5180,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
-                    "Could not send the auction listing command");
+                    "could not send the auction listing command");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /" + command + ": " + e.getMessage();
@@ -5201,13 +5201,13 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             return ExecutionResult.refused(EXECUTION_DISABLED);
         }
         if (requested == null) {
-            return ExecutionResult.refused("Cannot list a missing position");
+            return ExecutionResult.refused("cannot list a missing position");
         }
         if (isActive()) {
-            return ExecutionResult.refused("Another Tally execution is already in progress");
+            return ExecutionResult.refused("another tally execution is already in progress");
         }
         if (requested.quantity() <= 0 || price <= 0) {
-            return ExecutionResult.refused("Position quantity and listing price must be positive");
+            return ExecutionResult.refused("position quantity and listing price must be positive");
         }
 
         Minecraft client = Minecraft.getInstance();
@@ -5271,7 +5271,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             sendCommand(client, command);
         } catch (RuntimeException e) {
             publishTerminal(TerminalOutcome.ABORTED,
-                    "Could not send the auction listing command");
+                    "could not send the auction listing command");
             clearTarget();
             phase = Phase.ABORTED;
             lastMessage = "could not send /" + command + ": " + e.getMessage();
@@ -5336,11 +5336,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     @Override
     public String modeName() {
         if (!authorizedExecutionEnabled) {
-            return preflightEnabled ? "Read-only preflight" : "Disabled / observe";
+            return preflightEnabled ? "read-only preflight" : "disabled / observe";
         }
         return authorizedServers.isEmpty()
-                ? "Authorized gate (no servers)"
-                : "Automated (server allowlist)";
+                ? "authorized gate (no servers)"
+                : "automated (server allowlist)";
     }
 
     /**
@@ -5622,14 +5622,14 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 clickedScreenSignature = containerSignature(client, container);
                 if (!clickSlot(client, container, choice.menuSlot())) {
                     if (clickDeferred) return;   // paced, not impossible: try again next tick
-                    abort(client, "The matched listing could not be clicked");
+                    abort(client, "the matched listing could not be clicked");
                     return;
                 }
                 String verification = choice.verification().isBlank()
                         ? "item and stack size"
                         : choice.verification();
                 enterPhase(Phase.WAITING_FOR_CONFIRMATION,
-                        "Matched listing by " + verification + "; waiting for confirmation GUI");
+                        "matched listing by " + verification + "; waiting for confirmation GUI");
             }
             case PRICE_MISMATCH -> {
                 // A page whose cheapest row is well above the ceiling is not
@@ -5749,7 +5749,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // transitioned, unless the candidate explicitly says confirm/accept.
         if (!transitioned && !explicitConfirmation) {
             if (ticksInPhase >= CONFIRM_TIMEOUT_TICKS) {
-                abort(client, "Listing click did not transition to a confirmation GUI");
+                abort(client, "listing click did not transition to a confirmation GUI");
             }
             return;
         }
@@ -5763,7 +5763,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 confirmationContainerId = container.getMenu().containerId;
                 if (!clickSlot(client, container, choice.menuSlot())) {
                     if (clickDeferred) return;   // paced, not impossible: try again next tick
-                    abort(client, "The confirmation control could not be clicked");
+                    abort(client, "the confirmation control could not be clicked");
                     return;
                 }
                 enterPhase(Phase.WAITING_FOR_COMPLETION,
@@ -5800,7 +5800,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             command = "ah search " + searchTermForItemId(targetItemId);
             sendCommand(client, command);
         } catch (RuntimeException e) {
-            abort(client, "Could not re-send the auction search while hunting");
+            abort(client, "could not re-send the auction search while hunting");
             return;
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
@@ -5845,7 +5845,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             try {
                 reopenWatch.run();
             } catch (RuntimeException e) {
-                abort(client, "Could not re-open the auction house after a vanished listing");
+                abort(client, "could not re-open the auction house after a vanished listing");
                 return;
             }
             enterPhase(Phase.WAITING_FOR_LISTING,
@@ -5917,7 +5917,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         boolean buyTitle = lower.contains("buy") || lower.contains("purchase");
         boolean sellTitle = lower.contains("sell") || lower.contains("list");
         if (operation == Operation.BUY ? !buyTitle : operation == Operation.LIST && !sellTitle) {
-            abort(client, "The dialog is not a " + (operation == Operation.BUY ? "purchase" : "listing")
+            abort(client, "the dialog is not a " + (operation == Operation.BUY ? "purchase" : "listing")
                     + " confirmation: \"" + title + "\"");
             return;
         }
@@ -5951,7 +5951,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         } else if (targetCeiling > 0) {
             if (upper > targetCeiling || asked < targetPrice
                     || asked - targetPrice >= targetPriceSpan) {
-                abort(client, "Confirmation dialog asks " + money(asked)
+                abort(client, "confirmation dialog asks " + money(asked)
                         + (span > 1 ? " (up to " + money(upper) + ")" : "")
                         + " for a row displayed as " + money(targetPrice)
                         + " under a " + money(targetCeiling) + " ceiling; refusing");
@@ -5959,7 +5959,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             }
             targetPrice = asked;
         } else if (!price.isExact(targetPrice)) {
-            abort(client, "Confirmation dialog asks " + money(asked) + " instead of "
+            abort(client, "confirmation dialog asks " + money(asked) + " instead of "
                     + money(targetPrice) + "; refusing the changed price");
             return;
         }
@@ -6166,7 +6166,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // preflight here, read-only mode can never emit container input.
         if (operation == Operation.DRY_RUN) {
             DoughBayClient.LOGGER.error(
-                    "Blocked an internal attempt to click during a Tally dry run");
+                    "Blocked an internal attempt to click during a tally dry run");
             return false;
         }
         if (client.gameMode == null || client.player == null) {
@@ -6308,7 +6308,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                         .anyMatch(c -> tooltipMentionsAnySeller(c.tooltip()));
                 if (guiPublishesSellers) {
                     return new ListingChoice(Resolution.AMBIGUOUS, -1, "",
-                            "Matching item, stack, and price found, but seller "
+                            "matching item, stack, and price found, but seller "
                                     + targetSeller + " could not be verified; refusing to guess");
                 }
                 sellerMatches = remaining;
@@ -6530,7 +6530,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if (exact > targetCeiling || exact < targetPrice
                     || exact - targetPrice >= targetPriceSpan) {
                 return new ConfirmChoice(Resolution.PRICE_MISMATCH, -1, false,
-                        "Confirmation GUI showed " + money(exact) + " for a row displayed as "
+                        "confirmation GUI showed " + money(exact) + " for a row displayed as "
                                 + money(targetPrice) + " under a " + money(targetCeiling)
                                 + " ceiling; refusing");
             }
@@ -6538,7 +6538,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             targetPrice = exact;
         } else if (!visiblePrice.isExact(targetPrice)) {
             return new ConfirmChoice(Resolution.PRICE_MISMATCH, -1, false,
-                    "Confirmation GUI showed " + formatObservedPrices(visiblePrices)
+                    "confirmation GUI showed " + formatObservedPrices(visiblePrices)
                             + " instead of " + money(targetPrice) + "; refusing the changed price");
         }
 
@@ -6684,15 +6684,15 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     "Pulled back %s x%d from the auction house",
                     shortName(targetItemId), targetCount);
             case AUDIT -> "Auction slots checked";
-            case PROBE -> "Live price checked";
-            case ORDERS -> "Order house read";
-            case DELIVER -> "Delivered to an order";
-            case ORDER_QUOTE -> "Order prices checked";
-            case OWN_ORDERS -> "Your orders read";
-            case PLACE_ORDER -> "Bid placed";
-            case COLLECT_ORDER -> "Collected from your order";
-            case CANCEL_ORDER -> "Bid cancelled";
-            case NONE, DRY_RUN -> "Execution complete";
+            case PROBE -> "live price checked";
+            case ORDERS -> "order house read";
+            case DELIVER -> "delivered to an order";
+            case ORDER_QUOTE -> "order prices checked";
+            case OWN_ORDERS -> "your orders read";
+            case PLACE_ORDER -> "bid placed";
+            case COLLECT_ORDER -> "collected from your order";
+            case CANCEL_ORDER -> "bid cancelled";
+            case NONE, DRY_RUN -> "execution complete";
         };
     }
 
@@ -6834,7 +6834,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private String validateExactOpportunity(Opportunity requested,
                                             boolean requireSeller) {
         if (requested == null || requested.listing() == null) {
-            return "Cannot verify a missing opportunity";
+            return "cannot verify a missing opportunity";
         }
         String listingKey = requested.listing().listingKey();
         if (listingKey == null || listingKey.isBlank()) {
@@ -6848,7 +6848,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 || itemId.isBlank()
                 || requested.listing().itemCount() <= 0
                 || requested.buyPrice() <= 0) {
-            return "Opportunity has an invalid item, stack size, or price";
+            return "opportunity has an invalid item, stack size, or price";
         }
         try {
             if (!NamespacedId.normalize(itemId).equals(itemId)) {
@@ -6863,7 +6863,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (requireSeller
                 && (requested.listing().sellerName() == null
                 || requested.listing().sellerName().isBlank())) {
-            return "An exact seller name is required so Tally cannot guess between listings";
+            return "An exact seller name is required so tally cannot guess between listings";
         }
         if (requireSeller
                 && !PLAYER_NAME.matcher(requested.listing().sellerName()).matches()) {
@@ -7049,7 +7049,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (server == null || !ServerAllowlist.allows(authorizedServers, server)) {
             return server == null
                     ? "The current server identity is unavailable; execution is locked"
-                    : "Server " + server + " is not in Tally's authorizedServers allowlist";
+                    : "Server " + server + " is not in tally's authorizedServers allowlist";
         }
         return null;
     }
@@ -7062,7 +7062,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         if (server == null || !ServerAllowlist.allows(preflightServers, server)) {
             return server == null
                     ? "The current server identity is unavailable; preflight is locked"
-                    : "Server " + server + " is not in Tally's preflightServers allowlist";
+                    : "Server " + server + " is not in tally's preflightServers allowlist";
         }
         return null;
     }
@@ -7292,7 +7292,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             checks.add(new Check("Auction screen open", "auction/container GUI",
                     "no container open", Check.Status.UNKNOWN));
             checks.add(new Check("Item", expectedItem, "—", Check.Status.UNKNOWN));
-            checks.add(new Check("Stack size", expectedCount, "—", Check.Status.UNKNOWN));
+            checks.add(new Check("stack size", expectedCount, "—", Check.Status.UNKNOWN));
             checks.add(new Check("Price", expectedPrice, "—", Check.Status.UNKNOWN));
             if (!expectedSeller.isBlank()) {
                 checks.add(new Check("Seller", expectedSeller, "—", Check.Status.UNKNOWN));
@@ -7322,7 +7322,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
 
         if (sameItem.isEmpty()) {
             checks.add(new Check("Item", expectedItem, "not visible", Check.Status.MISMATCH));
-            checks.add(new Check("Stack size", expectedCount, "—", Check.Status.UNKNOWN));
+            checks.add(new Check("stack size", expectedCount, "—", Check.Status.UNKNOWN));
             checks.add(new Check("Price", expectedPrice, "—", Check.Status.UNKNOWN));
             if (!expectedSeller.isBlank()) {
                 checks.add(new Check("Seller", expectedSeller, "—", Check.Status.UNKNOWN));
@@ -7337,11 +7337,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         List<ItemObservation> exactPrice = List.of();
         if (exactCount.isEmpty()) {
             int observedCount = sameItem.getFirst().count();
-            checks.add(new Check("Stack size", expectedCount, String.valueOf(observedCount),
+            checks.add(new Check("stack size", expectedCount, String.valueOf(observedCount),
                     Check.Status.MISMATCH));
             checks.add(new Check("Price", expectedPrice, "stack mismatch", Check.Status.UNKNOWN));
         } else {
-            checks.add(new Check("Stack size", expectedCount, expectedCount, Check.Status.MATCH));
+            checks.add(new Check("stack size", expectedCount, expectedCount, Check.Status.MATCH));
             exactPrice = exactCount.stream()
                     .filter(o -> o.price().isExact(target.buyPrice()))
                     .toList();
@@ -7674,7 +7674,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     /** The text accepted by /ah search for the opportunity's item. */
     public static String searchTermFor(Opportunity opportunity) {
         if (opportunity == null || opportunity.listing() == null) {
-            throw new IllegalArgumentException("Cannot build a search for a missing opportunity");
+            throw new IllegalArgumentException("cannot build a search for a missing opportunity");
         }
         String raw = opportunity.listing().itemId();
         final String canonical;
@@ -7682,11 +7682,11 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             canonical = NamespacedId.normalize(raw);
         } catch (IllegalArgumentException ignored) {
             throw new IllegalArgumentException(
-                    "Cannot build a command from a malformed item id");
+                    "cannot build a command from a malformed item id");
         }
         if (!canonical.equals(raw)) {
             throw new IllegalArgumentException(
-                    "Cannot build a command from a non-canonical item id");
+                    "cannot build a command from a non-canonical item id");
         }
         return searchTermForItemId(canonical);
     }
@@ -7742,9 +7742,9 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     }
 
     private static final String[] ROUTINE_ABORTS = {
-        "No recent listing came in", "vanished on click", "did not open a container",
-        "not among your listings", "Your Items page did not open", "is not visible in the auction",
-        "Cheapest visible", "no click sent", "already bought",
+        "no recent listing came in", "vanished on click", "did not open a container",
+        "not among your listings", "your items page did not open", "is not visible in the auction",
+        "cheapest visible", "no click sent", "already bought",
     };
 
     static String chatLine(String message) {

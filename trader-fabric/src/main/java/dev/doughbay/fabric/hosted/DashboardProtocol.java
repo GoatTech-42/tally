@@ -48,13 +48,13 @@ public final class DashboardProtocol {
             .put("resume",known.equals("PAUSED")||known.equals("STOPPED")).put("snapshot",true).put("send_crash_report",false);
         return j;
     }
-    private static String activity(String state){return switch(state){case "SCANNING"->"Evaluating configured trades";case "BID_DESK"->"Managing orders";case "BUYING"->"Purchasing";case "PREPARING_LIST","LISTING"->"Listing stock";case "MONITORING"->"Monitoring listings";case "REPRICING"->"Repricing stock";case "PAUSED"->"Trading paused";case "STOPPED"->"Trading stopped";case "EVADING"->"Connection recovery";case "RECOVERING"->"Recovering retained stock";case "COOLDOWN"->"Waiting for cooldown";default->"Idle";};}
+    private static String activity(String state){return switch(state){case "SCANNING"->"evaluating configured trades";case "BID_DESK"->"managing orders";case "BUYING"->"purchasing";case "PREPARING_LIST","LISTING"->"listing stock";case "MONITORING"->"monitoring listings";case "REPRICING"->"repricing stock";case "PAUSED"->"trading paused";case "STOPPED"->"trading stopped";case "EVADING"->"connection recovery";case "RECOVERING"->"recovering retained stock";case "COOLDOWN"->"waiting for cooldown";default->"Idle";};}
     public static long count(long value){return Math.max(0,Math.min(1_000_000,value));}
     public static long money(long value){return Math.max(-1_000_000_000_000L,Math.min(1_000_000_000_000L,value));}
     public static JsonNode parse(String text)throws Exception{
         int bytes=text.getBytes(StandardCharsets.UTF_8).length;
-        if(bytes>MAX_PANEL_FRAME_BYTES)throw new IllegalArgumentException("Oversized frame");
-        JsonNode j=JSON.readTree(text);if(!j.isObject())throw new IllegalArgumentException("Invalid frame");
+        if(bytes>MAX_PANEL_FRAME_BYTES)throw new IllegalArgumentException("oversized frame");
+        JsonNode j=JSON.readTree(text);if(!j.isObject())throw new IllegalArgumentException("invalid frame");
         if(bytes>MAX_BYTES&&!j.path("type").asText().equals("panel"))throw new IllegalArgumentException("Oversized frame");
         return j;
     }

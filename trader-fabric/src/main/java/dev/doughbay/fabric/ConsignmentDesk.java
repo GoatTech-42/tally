@@ -180,7 +180,7 @@ final class ConsignmentDesk {
                     lines.add(new String[] {"box", key});
                     lines.add(new String[] {"contents valued", "$" + String.format(Locale.ROOT, "%,d", p.value())});
                     lines.add(new String[] {"their share", Math.round(share) + "% of the profit, paid when it sells"});
-                    hook.alert("Box listed on consignment", 0x74E48B, lines, p.from());
+                    hook.alert("box listed on consignment", 0x74E48B, lines, p.from());
                 }
             } else if (giveUp > 0 && now - p.at() > giveUp) {
                 // Never reached the market: lost, taken back, or dropped on

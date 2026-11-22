@@ -465,11 +465,11 @@ public final class StashDesk {
             }
         }
         if (reserve < 0) {
-            say(client, "No ender chests in the reserve - buy a stack");
+            say(client, "no ender chests in the reserve - buy a stack");
             return false;
         }
         if (free < 0) {
-            say(client, "The chest pocket (slot " + (pocketSlot() + 1) + ") is not free");
+            say(client, "the chest pocket (slot " + (pocketSlot() + 1) + ") is not free");
             return false;
         }
         pending.clear();
@@ -478,7 +478,7 @@ public final class StashDesk {
         pending.add(new Click(free, 1, pickup));      // right-click drops exactly one
         pending.add(new Click(reserve, 0, pickup));   // put the rest back
         afterClicks = () -> {
-            say(client, "Took one chest out of the reserve");
+            say(client, "took one chest out of the reserve");
             // Not on the same tick as the last click. A container that shuts in
             // the same breath as the click that finished with it is a thing no
             // hand does, and leaving it open is worse - an open container
@@ -543,7 +543,7 @@ public final class StashDesk {
         int gets = back.size();
         afterClicks = () -> {
             fetched.addAll(cameBack);
-            say(client, "Put away " + puts + " stack(s) and fetched " + gets);
+            say(client, "put away " + puts + " stack(s) and fetched " + gets);
             closeIn = 6 + (int) (Math.random() * 14);
         };
         DoughBayClient.LOGGER.info("DoughBay stash: putting away {} stack(s) and fetching {}", puts, gets);
@@ -578,11 +578,11 @@ public final class StashDesk {
             if (source < 0) source = slot.index;
         }
         if (source < 0) {
-            say(client, "No ender chest in the pack to move to the off hand");
+            say(client, "no ender chest in the pack to move to the off hand");
             return false;
         }
         if (!client.player.getOffhandItem().isEmpty()) {
-            say(client, "The off hand is holding something else");
+            say(client, "the off hand is holding something else");
             return false;
         }
         client.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(client.player));
@@ -635,7 +635,7 @@ public final class StashDesk {
      */
     private static void startJump(Minecraft client) {
         if (!enabled()) {
-            say(client, "The stash desk is off (stash.enabled)");
+            say(client, "the stash desk is off (stash.enabled)");
             return;
         }
         if (client.screen != null) {
@@ -661,10 +661,10 @@ public final class StashDesk {
         // run then spends twelve seconds waiting for a height it cannot reach.
         var head = client.player.blockPosition().above(2);
         if (!client.level.getBlockState(head).isAir()) {
-            say(client, "No headroom to jump - " + client.level.getBlockState(head).getBlock()
+            say(client, "no headroom to jump - " + client.level.getBlockState(head).getBlock()
                     .getName().getString() + " overhead");
             stage = Stage.IDLE;
-            runFailed(client, "No headroom for the jump");
+            runFailed(client, "no headroom for the jump");
             return;
         }
         groundY = client.player.getY();
@@ -937,7 +937,7 @@ public final class StashDesk {
                     ? String.format(java.util.Locale.ROOT,
                     "Gave up: the jump only reached %.2f blocks and a chest needs a full one",
                     highestY - groundY)
-                    : "Gave up on the run at " + stage;
+                    : "gave up on the run at " + stage;
             stage = Stage.IDLE;
             runFailed(client, how);
             return;
@@ -1004,7 +1004,7 @@ public final class StashDesk {
                     }
                     restoreTheHand(client);
                     stage = Stage.IDLE;
-                    runFailed(client, "No chest in hand to place");
+                    runFailed(client, "no chest in hand to place");
                     return;
                 }
                 // Place against the ground in front. One right-click, no jump.
@@ -1016,7 +1016,7 @@ public final class StashDesk {
                             look == null ? "null" : look.getType());
                     restoreTheHand(client);
                     stage = Stage.IDLE;
-                    runFailed(client, "Nothing to place the chest against in front");
+                    runFailed(client, "nothing to place the chest against in front");
                     return;
                 }
                 // Never against the block directly underfoot: placing on its
@@ -1032,7 +1032,7 @@ public final class StashDesk {
                             target);
                     restoreTheHand(client);
                     stage = Stage.IDLE;
-                    runFailed(client, "Aim landed on the block underfoot, not the one in front");
+                    runFailed(client, "aim landed on the block underfoot, not the one in front");
                     return;
                 }
                 rightClick(client);
@@ -1047,7 +1047,7 @@ public final class StashDesk {
                 if (!holdingEnderChest(client)) {
                     restoreTheHand(client);
                     stage = Stage.IDLE;
-                    runFailed(client, "The chest did not come out of the off hand");
+                    runFailed(client, "the chest did not come out of the off hand");
                     return;
                 }
                 // In hand now; back to LOOKING, which places straight away
@@ -1074,7 +1074,7 @@ public final class StashDesk {
             case RESTORING -> {
                 if (!stepLook(client)) return;
                 restoreTheHand(client);
-                say(client, "Run finished");
+                say(client, "run finished");
                 failedRuns = 0;
                 stage = Stage.IDLE;
             }
@@ -1093,7 +1093,7 @@ public final class StashDesk {
                     // off rather than knock at the same block again.
                     restoreTheHand(client);
                     stage = Stage.IDLE;
-                    runFailed(client, "Placed but no chest appeared in front");
+                    runFailed(client, "placed but no chest appeared in front");
                     return;
                 }
             }
@@ -1175,7 +1175,7 @@ public final class StashDesk {
     public static void openWhatYouAreLookingAt(Minecraft client) {
         if (client == null || client.player == null || client.level == null) return;
         if (!enabled()) {
-            say(client, "The stash desk is off (stash.enabled)");
+            say(client, "the stash desk is off (stash.enabled)");
             return;
         }
         HitResult hit = client.hitResult;
@@ -1199,7 +1199,7 @@ public final class StashDesk {
                 client.screen == null ? "none" : client.screen.getClass().getSimpleName(),
                 client.player.onGround(), client.player.getPose());
         rightClick(client);
-        say(client, "Right-clicked " + name + " holding " + holding + " ("
+        say(client, "right-clicked " + name + " holding " + holding + " ("
                 + String.format(java.util.Locale.ROOT, "%.2f", reach) + " blocks)");
         // Watch for the screen the server is meant to send back. If one opens
         // and then goes again, something on this side is closing it and the

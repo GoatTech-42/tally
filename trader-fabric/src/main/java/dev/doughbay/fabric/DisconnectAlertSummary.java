@@ -13,11 +13,11 @@ public final class DisconnectAlertSummary {
                 ? "Tally — CONNECTION TIMEOUT" : "Tally — CONNECTION LOST";
     }
     public static String explanation(String reason) {
-        if (reason != null && DisconnectRecovery.clickSpam(reason)) return "The disconnect reason explicitly reports click spam.";
+        if (reason != null && DisconnectRecovery.clickSpam(reason)) return "the disconnect reason explicitly reports click spam.";
         return "The Minecraft connection was lost. The reported reason does not establish the underlying cause.";
     }
     public static List<String[]> fields(String server, String reason, String recovery, String next) {
-        return List.of(new String[]{"What happened", explanation(reason)},
+        return List.of(new String[]{"what happened", explanation(reason)},
                 new String[]{"Reported reason", reason == null || reason.isBlank() ? "Not supplied" : reason},
                 new String[]{"Staff Watch trigger", "No — this is an unexpected connection loss, not a local Staff Watch detection."},
                 new String[]{"Server", server}, new String[]{"Settings recovery", recovery},

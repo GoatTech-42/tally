@@ -20,16 +20,16 @@ public final class ManualRegionFlow {
     private String destination = "";
     private long deadline;
     private boolean prepared, sent;
-    private String status = "Choose a region, then Switch region";
+    private String status = "choose a region, then switch region";
     public ManualRegionFlow(Client client, LongSupplier clock) { this.client=client; this.clock=clock; }
     public boolean active() { return !destination.isEmpty(); }
     public String status() { return status; }
     public boolean request(String region) {
         if (!DESTINATIONS.contains(region)) { if(!active())status="Unknown region"; return false; }
         if (active()) return false;
-        if (!client.available()) { status="Connect to DonutSMP and clear other connection actions first"; return false; }
+        if (!client.available()) { status="connect to DonutSMP and clear other connection actions first"; return false; }
         destination=region; deadline=clock.getAsLong()+30_000; prepared=false; sent=false;
-        status="Waiting for a safe checkpoint to switch to "+region;
+        status="waiting for a safe checkpoint to switch to "+region;
         return true;
     }
     public void tick() {
@@ -43,7 +43,7 @@ public final class ManualRegionFlow {
         if (sent && client.arrived()) {
             String completed=destination;
             client.release(); destination=""; prepared=false; sent=false;
-            client.resumeOwnedPause(); status="Transfer confirmed: "+completed;
+            client.resumeOwnedPause(); status="transfer confirmed: "+completed;
         }
     }
     public void cancel(String reason) {

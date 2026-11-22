@@ -140,10 +140,10 @@ public final class WebPages {
         if(target==null)return answer(false,"Choose one hive account").toString();
         try{
             boolean accepted=dev.doughbay.fabric.hosted.HostedDashboardClient.INSTANCE.hiveAction(target,
-                    form.getOrDefault("action",""),form.getOrDefault("code",""),form.getOrDefault("name","Tally client"));
+                    form.getOrDefault("action",""),form.getOrDefault("code",""),form.getOrDefault("name","tally client"));
             return answer(accepted,accepted?"Request sent to selected account; waiting for its status":"Account unavailable, busy, or request already pending").toString();
-        }catch(IllegalArgumentException e){return answer(false,"Check the pairing code and action").toString();}
-        catch(Exception e){return answer(false,"Could not send dashboard request").toString();}
+        }catch(IllegalArgumentException e){return answer(false,"check the pairing code and action").toString();}
+        catch(Exception e){return answer(false,"could not send dashboard request").toString();}
     }
 
     // ---------------------------------------------------------------- settings
@@ -163,13 +163,13 @@ public final class WebPages {
         if(!dev.doughbay.fabric.staffwatch.ManualRegionFlow.DESTINATIONS.contains(destination))
             return answer(false,"Choose a valid region").toString();
         String target=form.getOrDefault("account","");
-        if(target.isBlank())return answer(false,"Choose one account to switch").toString();
+        if(target.isBlank())return answer(false,"choose one account to switch").toString();
         if(!target.equalsIgnoreCase(DoughBayClient.account())) {
             if(DoughBayClient.hiveAccounts().stream().noneMatch(target::equalsIgnoreCase))
                 return answer(false,"Unknown hive account").toString();
             var control=DoughBayClient.hiveControl();
-            boolean queued=control!=null && control.post(target,"REGION:"+destination,"Region Map");
-            return answer(queued,queued?"Switch request queued for "+target+"; wait for its reply":"Could not queue region switch").toString();
+            boolean queued=control!=null && control.post(target,"REGION:"+destination,"region map");
+            return answer(queued,queued?"switch request queued for "+target+"; wait for its reply":"could not queue region switch").toString();
         }
         boolean accepted=dev.doughbay.fabric.staffwatch.ManualRegionTransfer.request(destination);
         return answer(accepted,dev.doughbay.fabric.staffwatch.ManualRegionTransfer.status()).toString();
@@ -321,7 +321,7 @@ public final class WebPages {
             var root=answer(true,"Preview only; nothing saved");
             root.set("notices",MAPPER.valueToTree(SettingsFeedback.preview(query.getOrDefault("key",""),query.getOrDefault("value",""))));
             return root.toString();
-        }catch(IllegalArgumentException invalid){return answer(false,"Enter a valid setting value.").toString();}
+        }catch(IllegalArgumentException invalid){return answer(false,"enter a valid setting value.").toString();}
     }
 
     /** How far one press of plus or minus moves a setting; the same steps the Discord panel takes. */
@@ -370,7 +370,7 @@ public final class WebPages {
 
     static String setting(Map<String, String> form) {
         Tuning.Setting s = known(form.get("key"));
-        if (s == null) return answer(false, "There is no such setting.").toString();
+        if (s == null) return answer(false, "there is no such setting.").toString();
         if (form.containsKey("reset")) {
             Tuning.reset(s.key());
             if (s.key().equals("evasion.enabled") && DoughBayClient.evasionGuard() != null)
@@ -444,10 +444,10 @@ public final class WebPages {
         for (Tuning.ListSetting l : Tuning.LISTS) if (l.key().equals(key)) found = l;
         if (found == null) return answer(false, "There is no such list.").toString();
         if (SECRET.contains(key)) {
-            return answer(false, found.label() + " is set on the Tally screen in game, not from here.").toString();
+            return answer(false, found.label() + " is set on the tally screen in game, not from here.").toString();
         }
         String text = form.getOrDefault("text", "").replaceAll("[\\r\\n\\t]+", " ").strip();
-        if (text.length() > 8_000) return answer(false, "That is too long to save.").toString();
+        if (text.length() > 8_000) return answer(false, "that is too long to save.").toString();
         Tuning.setText(key, text);
         if (key.equals(OwnPrices.KEY) && !text.isEmpty()) {
             // Said back at once: a price list with a slip in it should not look saved and working.
@@ -496,7 +496,7 @@ public final class WebPages {
         for (String p : Tuning.PRESETS.keySet()) if (p.equalsIgnoreCase(name)) match = p;
         if (match == null) return answer(false, "There is no such preset.").toString();
         int changed = Tuning.applyPreset(match);
-        return answer(true, "Preset " + match + " applied: " + changed + " setting(s) changed").toString();
+        return answer(true, "preset " + match + " applied: " + changed + " setting(s) changed").toString();
     }
 
     static String importCode(String code) {
@@ -526,7 +526,7 @@ public final class WebPages {
         try {
             ObjectNode root=(ObjectNode)MAPPER.readTree(prices(ownPriceViews(),OwnPrices.current().problems(),Tuning.text(OwnPrices.KEY)));
             root.put("only",FlipsMode.only());root.put("modeDescription",FlipsMode.description());return root.toString();
-        } catch(java.io.IOException e) { return answer(false,"Could not read Flips settings").toString(); }
+        } catch(java.io.IOException e) { return answer(false,"could not read flips settings").toString(); }
     }
 
     static String prices(List<AutomationSessionController.OwnPriceView> views, List<String> problems, String text) {
@@ -612,7 +612,7 @@ public final class WebPages {
             if (id.matches("[a-z0-9_.\\-]{1,64}")) picked.add(id);
             if (picked.size() >= MAX_IDS) break;
         }
-        if (picked.isEmpty()) return answer(false, "Tick some items first.").toString();
+        if (picked.isEmpty()) return answer(false, "tick some items first.").toString();
         String did;
         switch (what == null ? "" : what) {
             case "exclude" -> {
@@ -621,11 +621,11 @@ public final class WebPages {
             }
             case "include" -> {
                 ItemLists.include(picked);
-                did = "Included";
+                did = "included";
             }
             case "clear" -> {
                 ItemLists.clear(picked);
-                did = "Cleared from both lists:";
+                did = "cleared from both lists:";
             }
             case "track" -> {
                 ItemLists.track(picked, true);
@@ -633,10 +633,10 @@ public final class WebPages {
             }
             case "untrack" -> {
                 ItemLists.track(picked, false);
-                did = "No longer tracking";
+                did = "no longer tracking";
             }
             default -> {
-                return answer(false, "There is no such action.").toString();
+                return answer(false, "there is no such action.").toString();
             }
         }
         return lists(answer(true, did + " " + picked.size() + " item(s)")).toString();
@@ -817,7 +817,7 @@ public final class WebPages {
     static String rival(RivalIntel.Snapshot s, String name, long now, ZoneId zone,
                         List<AutomationSessionController.OpenListingView> mine) {
         RivalIntel.Rival r = find(s, name);
-        if (r == null) return answer(false, "That player is no longer on the list.").toString();
+        if (r == null) return answer(false, "that player is no longer on the list.").toString();
         boolean follows = s.fromFollows();
         ObjectNode root = answer(true, "");
         root.put("id", hex(r.name()));
@@ -827,8 +827,8 @@ public final class WebPages {
         ArrayNode pairs = root.putArray("pairs");
         pair(pairs, follows ? "Listings today" : "Sales today",
                 Figures.grouped(r.sales()) + " across " + r.items() + " items", "text");
-        pair(pairs, follows ? "Asked for them" : "Revenue today", Figures.money(r.revenue()), "text");
-        pair(pairs, follows ? "Asked over paid" : "Est. profit today",
+        pair(pairs, follows ? "asked for them" : "revenue today", Figures.money(r.revenue()), "text");
+        pair(pairs, follows ? "asked over paid" : "est. profit today",
                 Figures.money(r.estimatedProfit()) + (follows ? " if it all sells"
                         : r.profitFromFlips() ? "" : " (assumed 20%)"), "good");
         pair(pairs, "Bot likelihood", r.botScore() + "%  ·  " + r.activeHours() + "/24 h active",
@@ -839,7 +839,7 @@ public final class WebPages {
             if (tops.length() > 0) tops.append(", ");
             tops.append(item(top));
         }
-        pair(pairs, "Top items", tops.length() == 0 ? "unknown" : tops.toString(), "secondary");
+        pair(pairs, "top items", tops.length() == 0 ? "unknown" : tops.toString(), "secondary");
         pair(pairs, follows ? "Orders matched to listings" : "Reconstructed flips",
                 Figures.grouped(r.flips().size()), "text");
         if (follows) {
@@ -895,7 +895,7 @@ public final class WebPages {
         ArrayNode heads = root.putArray("heads");
         for (String h : follows
                 ? new String[] {"Item", "Orders at (ea)", "Asks (ea)", "Seen sold (ea)", "Ask / order", "Listed"}
-                : new String[] {"Item", "Bought", "Listed", "Sold", "Margin", "Turnaround"}) {
+                : new String[] {"item", "bought", "listed", "sold", "margin", "turnaround"}) {
             heads.add(h);
         }
         root.put("empty", follows ? "No order and listing of the same item seen from this player yet."
@@ -935,13 +935,13 @@ public final class WebPages {
     /** The markets a rival has been seen in, tracked or let through the trade filter, as the buttons in game do. */
     static String rivalMarkets(RivalIntel.Snapshot s, String name, String what) {
         RivalIntel.Rival r = find(s, name);
-        if (r == null) return answer(false, "That player is no longer on the list.").toString();
+        if (r == null) return answer(false, "that player is no longer on the list.").toString();
         LinkedHashSet<String> ids = new LinkedHashSet<>();
         for (RivalIntel.Flip f : r.flips()) {
             String bare = Tuning.normalizeItem(f.itemKey());
             if (!bare.isEmpty()) ids.add(bare);
         }
-        if (ids.isEmpty()) return answer(false, "No markets seen from them yet.").toString();
+        if (ids.isEmpty()) return answer(false, "no markets seen from them yet.").toString();
         if ("track".equals(what)) {
             ItemLists.track(ids, true);
             return answer(true, "Tracking " + ids.size() + " of their market(s)").toString();
@@ -950,7 +950,7 @@ public final class WebPages {
             ItemLists.include(ids);
             return answer(true, ids.size() + " of their market(s) added to the items the bot may trade").toString();
         }
-        return answer(false, "There is no such action.").toString();
+        return answer(false, "there is no such action.").toString();
     }
 
     static String followKnownBots() {
@@ -960,7 +960,7 @@ public final class WebPages {
         } catch (Throwable e) {
             follows = null;
         }
-        if (follows == null) return answer(false, "Following is not running yet. Join the server first.").toString();
+        if (follows == null) return answer(false, "following is not running yet. join the server first.").toString();
         try {
             int added = follows.followKnownBots();
             return answer(true, "known bots queued (" + added + " new list entries). " + follows.status()
@@ -989,7 +989,7 @@ public final class WebPages {
     }
 
     private static String onClient(Supplier<String> work) {
-        return onClient(work, answer(false, "The game did not answer in time. Try again.").toString());
+        return onClient(work, answer(false, "the game did not answer in time. try again.").toString());
     }
 
     private static String onClientPanel(Supplier<String> work) {

@@ -50,7 +50,7 @@ public final class Mascot {
         return System.currentTimeMillis() - lastSaleAt > SALE_FACE_MILLIS ? "" : lastSaleItem;
     }
 
-    /** "Sold redstone +$3.2k", for a few seconds after a sale; otherwise "". */
+    /** "sold redstone +$3.2k", for a few seconds after a sale; otherwise "". */
     public static String recentSaleLine() {
         long now = System.currentTimeMillis();
         if (now - lastSaleAt > SALE_FACE_MILLIS || lastSaleItem.isEmpty()) return "";

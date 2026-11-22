@@ -32,7 +32,7 @@ public final class BugReportTransport {
         return request(payload,key,token,diagnosticLog,reporter,0);
     }
     static HttpRequest request(BugReportPayload payload,String key,String token,String diagnosticLog,String reporter,int relatedIssue) {
-        if(relatedIssue<0)throw new IllegalArgumentException("Invalid related issue");
+        if(relatedIssue<0)throw new IllegalArgumentException("invalid related issue");
         if (key == null || !key.matches("[A-Za-z0-9_-]{8,64}")) throw new IllegalArgumentException("Invalid report retry identifier");
         URI endpoint=relatedIssue==0?ENDPOINT:URI.create(ENDPOINT+"/"+relatedIssue+"/evidence");
         var builder=HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(25))
@@ -53,7 +53,7 @@ public final class BugReportTransport {
             AutomaticReportMetadata automatic, com.fasterxml.jackson.databind.JsonNode capabilities) {
         if (!advertisesAutomaticReports(capabilities,automatic.kind())
                 || diagnosticLog!=null&&!diagnosticLog.isEmpty()&&!advertisesLogSupport(capabilities))
-            throw new IllegalStateException("Receiver does not support grouped automatic reports");
+            throw new IllegalStateException("receiver does not support grouped automatic reports");
         if(key==null||!key.matches("[A-Za-z0-9_-]{8,64}"))throw new IllegalArgumentException("Invalid report retry identifier");
         return HttpRequest.newBuilder(ENDPOINT).timeout(Duration.ofSeconds(25))
             .header("Content-Type","application/json").header("Idempotency-Key",key)
@@ -66,7 +66,7 @@ public final class BugReportTransport {
     static com.fasterxml.jackson.databind.JsonNode readCapabilities(int status, java.io.InputStream stream)
             throws java.io.IOException {
         byte[] bytes = stream.readNBytes(MAX_CAPABILITY_BYTES + 1);
-        if (status != 200 || bytes.length > MAX_CAPABILITY_BYTES) throw new java.io.IOException("Capabilities unavailable");
+        if (status != 200 || bytes.length > MAX_CAPABILITY_BYTES) throw new java.io.IOException("capabilities unavailable");
         return JSON.readTree(bytes);
     }
     static boolean advertisesSettingsSupport(com.fasterxml.jackson.databind.JsonNode body) {
@@ -137,7 +137,7 @@ public final class BugReportTransport {
                 String url = reply.path("issueUrl").asText("");
                 if (!url.matches("https://github\\.com/cody-raves/Gonuts/issues/[1-9][0-9]*") || !reply.path("reportId").asText("").matches("br_[A-Za-z0-9_-]{1,100}")) throw new IllegalArgumentException();
                 return new Result(true, reply.path("duplicate").asBoolean(false) ? "Already received. Open the existing issue below." : "Sent. Open your issue below.", url, 0);
-            } catch (Exception e) { return new Result(false, "Unexpected receiver reply. Retry this report later.", "", 0); }
+            } catch (Exception e) { return new Result(false, "unexpected receiver reply. retry this report later.", "", 0); }
         }
         if (code == 429) {
             long seconds = 3600;
@@ -148,10 +148,10 @@ public final class BugReportTransport {
             case 400 -> "The receiver rejected the form. Check its text and prepare it again.";
             case 401 -> "The reporting service rejected public access. Try later or use GitHub fallback.";
             case 409 -> "This retry identifier conflicts with another report. Prepare again before sending.";
-            case 413 -> "Report is too large. Shorten the description.";
+            case 413 -> "report is too large. shorten the description.";
             case 503 -> "Bug reporting is temporarily unavailable. Keep this report and try later.";
-            case 502 -> "GitHub is unavailable. Retry this report later.";
-            default -> "Receiver unavailable (HTTP " + code + "). Try later.";
+            case 502 -> "GitHub is unavailable. retry this report later.";
+            default -> "receiver unavailable (HTTP " + code + "). Try later.";
         }, "", (code == 502 || code == 503 || code >= 500) ? now + 60_000 : 0);
     }
 }

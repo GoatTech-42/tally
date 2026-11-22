@@ -143,7 +143,7 @@ public class DoughBayClient implements ClientModInitializer {
     private static AutomationPersistenceWorker automationPersistence;
     private static volatile ContinuousAutomationPolicy continuousPolicy;
     private static volatile String continuousPolicyBlocker =
-            "Continuous automation configuration has not loaded";
+            "continuous automation configuration has not loaded";
     private static boolean exactCoverageForwarded;
 
     @Override
@@ -758,7 +758,7 @@ public class DoughBayClient implements ClientModInitializer {
     public static synchronized String applyApiKey(String key, String baseUrl) {
         DoughBayConfig existing = activeConfig;
         if (existing == null) {
-            return "Tally configuration has not finished loading";
+            return "tally configuration has not finished loading";
         }
         try {
             if (key != null) DoughBayConfig.saveApiKey(existing.directory(), key);
@@ -822,7 +822,7 @@ public class DoughBayClient implements ClientModInitializer {
                                                          long maxPerSession, String joinedAddress) {
         DoughBayConfig existing = activeConfig;
         if (existing == null) {
-            return "Tally configuration has not finished loading";
+            return "tally configuration has not finished loading";
         }
         if (!enabled) {
             AUTOMATION_SESSION.stop();
@@ -871,10 +871,10 @@ public class DoughBayClient implements ClientModInitializer {
     public static java.util.List<String[]> keyLegend() {
         java.util.List<String[]> out = new java.util.ArrayList<>();
         legendRow(out, emergencyStop, "Emergency stop");
-        legendRow(out, listInventoryKey, "List inventory");
-        legendRow(out, resumeKey, "Resume");
-        legendRow(out, openScreen, "Open panel");
-        legendRow(out, PEEK_KEY, "Peek (hold)");
+        legendRow(out, listInventoryKey, "list inventory");
+        legendRow(out, resumeKey, "resume");
+        legendRow(out, openScreen, "open panel");
+        legendRow(out, PEEK_KEY, "peek (hold)");
         return out;
     }
 
@@ -1022,7 +1022,7 @@ public class DoughBayClient implements ClientModInitializer {
                         if (!heldAtDeath.isEmpty()) {
                             lines.add(new String[] {"was holding", String.join("\n", heldAtDeath)});
                         }
-                        WEBHOOK.alert("Died and respawned", 0xE86A6A, lines, "");
+                        WEBHOOK.alert("died and respawned", 0xE86A6A, lines, "");
                     }
                 } catch (Throwable ignored) {
                     // the audit matters more than telling anyone about it
@@ -1235,10 +1235,10 @@ public class DoughBayClient implements ClientModInitializer {
         return hiveRoster().contains(sellerName.strip().toLowerCase(java.util.Locale.ROOT));
     }
 
-    /** "Trading" or "Scanning", for the HUD and the status lines. */
+    /** "trading" or "scanning", for the HUD and the status lines. */
     public static String clientMode() {
         if (!multiClient()) return "Trading";
-        return collector() ? "Scanning" : "Trading";
+        return collector() ? "scanning" : "Trading";
     }
 
     public static dev.doughbay.fabric.discord.DiscordBridge discord() {
@@ -1285,7 +1285,7 @@ public class DoughBayClient implements ClientModInitializer {
 
     private static void configureContinuousAutomation(DoughBayConfig config) {
         continuousPolicy = null;
-        continuousPolicyBlocker = "Continuous automation limits are incomplete";
+        continuousPolicyBlocker = "continuous automation limits are incomplete";
         AUTOMATION_SESSION.setContinuousAuthorization(false, java.util.List.of());
         try {
             ContinuousAutomationPolicy parsed = ContinuousAutomationPolicy.fromConfigValues(
@@ -1310,14 +1310,14 @@ public class DoughBayClient implements ClientModInitializer {
                         "Auction fees/taxes are not explicitly confirmed in config";
             } else if (config.notificationServers().isEmpty()) {
                 continuousPolicyBlocker =
-                        "No server is trusted for strict sale notifications";
+                        "no server is trusted for strict sale notifications";
             } else {
                 continuousPolicyBlocker = "";
             }
         } catch (IllegalArgumentException | ArithmeticException e) {
             // Zero caps are the shipped safe default. Do not turn a partial or
             // malformed configuration into permission to send commands.
-            continuousPolicyBlocker = "Continuous automation has invalid or zero safety limits";
+            continuousPolicyBlocker = "continuous automation has invalid or zero safety limits";
             LOGGER.warn("DoughBay continuous automation remains locked: invalid safety limits");
         }
     }

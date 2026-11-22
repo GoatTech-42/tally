@@ -10,7 +10,7 @@ public final class RegionMapReport {
         public String server() { return RegionMapData.name(area); }
         public boolean mapped() { return area >= 0; }
     }
-    private static volatile Snapshot current = new Snapshot(0, -1, "Not connected to DonutSMP");
+    private static volatile Snapshot current = new Snapshot(0, -1, "not connected to DonutSMP");
     private RegionMapReport() { }
     public static void tick(Minecraft client) {
         var server = client.getCurrentServer();
@@ -21,15 +21,15 @@ public final class RegionMapReport {
                 connected ? client.player.getX() : 0, connected ? client.player.getZ() : 0);
     }
     public static Snapshot locate(long at, boolean connected, boolean overworld, double x, double z) {
-        if (!connected) return new Snapshot(at, -1, "Not connected to DonutSMP");
-        if (!overworld) return new Snapshot(at, -1, "Region map is available in the Overworld");
+        if (!connected) return new Snapshot(at, -1, "not connected to DonutSMP");
+        if (!overworld) return new Snapshot(at, -1, "region map is available in the Overworld");
         int area = RegionMapData.regionAt(x, z);
-        return new Snapshot(at, area, area < 0 ? "Outside the known region map" : "Requires Donut Randomized Coords: OFF");
+        return new Snapshot(at, area, area < 0 ? "outside the known region map" : "Requires Donut Randomized Coords: OFF");
     }
     public static Snapshot snapshot() {
         var value = current;
         long age = System.currentTimeMillis() - value.at();
-        return age < 0 || age > 15_000 ? new Snapshot(0, -1, "Current region unavailable") : value;
+        return age < 0 || age > 15_000 ? new Snapshot(0, -1, "current region unavailable") : value;
     }
     /** Fixed-length dummy characters: scrambling never renders real digits or their length. */
     public static String coordinates(double x, double y, double z, boolean privacy) {

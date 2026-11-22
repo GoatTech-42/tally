@@ -43,7 +43,7 @@ public final class ImGuiManager {
                 label = atlas.addFontFromMemoryTTF(in.readAllBytes(), 28);
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot load staff HUD fonts", e);
+            throw new IllegalStateException("cannot load staff HUD fonts", e);
         }
         glfw.init(Minecraft.getInstance().getWindow().handle(), false);
         gl3.init(null);

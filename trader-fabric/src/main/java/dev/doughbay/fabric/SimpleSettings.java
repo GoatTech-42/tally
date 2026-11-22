@@ -9,19 +9,19 @@ public final class SimpleSettings {
     public record Preview(String group,String option,String effect,String expected,List<Change> changes,List<SettingsFeedback.Notice> notices) { }
     public record View(String id,String label,String description,String current,String currentId,String expected,List<Preview> previews,List<Option> options) { }
     public static final List<Group> GROUPS=List.of(
-        new Group("orders","Order management","Place and manage buy orders; existing safety and spending limits still apply.",List.of(
-            option("managed","Managed orders","Enables order-book reads, new bids, collecting whole stacks and margin-limited bid chasing. Leaves prices, limits and direct delivery unchanged.","orders.enabled",1,"orders.bid",1,"orders.collect",1,"orders.collect_whole_stacks",1,"orders.chase",1),
-            option("pause","No new bids","Stops new buy orders only. Existing stock and order-management settings are preserved.","orders.bid",0))),
-        new Group("style","Trading style","Choose bulk stock or permit individual-item strategies.",List.of(
-            option("stacks","Whole stacks","Disables premium single splitting and copied rival orders; keeps sale-aware stack sizing. Existing inventory, orders and cost records are preserved. Older retail lots may wait.","list.singles",0,"underdog.enabled",0,"orders.size_by_sale",1),
-            option("mixed","Mixed lots","Allows premium single splitting and rival-copy orders, including one-item lots, with sale-aware sizing. This is not a stack-only strategy.","list.singles",1,"underdog.enabled",1,"orders.size_by_sale",1))),
-        new Group("pace","Action pace","Change optional waits without changing server pacing or safety gates.",List.of(
-            option("standard","Standard pace","Uses normal listing waits and human step pauses. Existing timing ranges are kept.","pace.fast",0,"pace.human_steps",1),
-            option("fast","Fast pace","Uses short listing waits and removes optional human step pauses. Native server gaps and trading guards remain active.","pace.fast",1,"pace.human_steps",0))),
-        new Group("batch","Order batch ceiling","A maximum, not a guaranteed fill or order size. Market depth and safety caps still apply.",List.of(
-            option("4","Up to 4 stacks","Changes only the batch ceiling. Existing depth, price and spending rules stay in effect.","orders.bid_stacks",4),
-            option("8","Up to 8 stacks","Changes only the batch ceiling. Existing depth, price and spending rules stay in effect.","orders.bid_stacks",8),
-            option("16","Up to 16 stacks","Changes only the batch ceiling. Current ordinary 64-item bids remain capped at15 stacks for exact-count recognition; other limits can reduce this further.","orders.bid_stacks",16)))
+        new Group("orders","order management","Place and manage buy orders; existing safety and spending limits still apply.",List.of(
+            option("managed","managed orders","Enables order-book reads, new bids, collecting whole stacks and margin-limited bid chasing. Leaves prices, limits and direct delivery unchanged.","orders.enabled",1,"orders.bid",1,"orders.collect",1,"orders.collect_whole_stacks",1,"orders.chase",1),
+            option("pause","no new bids","Stops new buy orders only. Existing stock and order-management settings are preserved.","orders.bid",0))),
+        new Group("style","trading style","choose bulk stock or permit individual-item strategies.",List.of(
+            option("stacks","whole stacks","Disables premium single splitting and copied rival orders; keeps sale-aware stack sizing. Existing inventory, orders and cost records are preserved. Older retail lots may wait.","list.singles",0,"underdog.enabled",0,"orders.size_by_sale",1),
+            option("mixed","mixed lots","Allows premium single splitting and rival-copy orders, including one-item lots, with sale-aware sizing. This is not a stack-only strategy.","list.singles",1,"underdog.enabled",1,"orders.size_by_sale",1))),
+        new Group("pace","action pace","Change optional waits without changing server pacing or safety gates.",List.of(
+            option("standard","standard pace","Uses normal listing waits and human step pauses. Existing timing ranges are kept.","pace.fast",0,"pace.human_steps",1),
+            option("fast","fast pace","Uses short listing waits and removes optional human step pauses. Native server gaps and trading guards remain active.","pace.fast",1,"pace.human_steps",0))),
+        new Group("batch","order batch ceiling","A maximum, not a guaranteed fill or order size. Market depth and safety caps still apply.",List.of(
+            option("4","up to 4 stacks","Changes only the batch ceiling. Existing depth, price and spending rules stay in effect.","orders.bid_stacks",4),
+            option("8","up to 8 stacks","Changes only the batch ceiling. Existing depth, price and spending rules stay in effect.","orders.bid_stacks",8),
+            option("16","up to 16 stacks","Changes only the batch ceiling. Current ordinary 64-item bids remain capped at15 stacks for exact-count recognition; other limits can reduce this further.","orders.bid_stacks",16)))
     );
     private SimpleSettings(){}
     private static Option option(String id,String label,String effect,Object... pairs){var values=new LinkedHashMap<String,Double>();for(int i=0;i<pairs.length;i+=2)values.put((String)pairs[i],((Number)pairs[i+1]).doubleValue());return new Option(id,label,effect,Collections.unmodifiableMap(values));}

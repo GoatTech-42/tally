@@ -31,7 +31,7 @@ public interface PerformanceStatsProvider {
                                                      long nowMillis) {
                 if (!demoFeed) {
                     return PerformanceStatsSnapshot.empty(mode,
-                            "Performance history is not connected yet");
+                            "performance history is not connected yet");
                 }
                 return mode == PerformanceStatsSnapshot.Mode.PAPER ? paper : real;
             }

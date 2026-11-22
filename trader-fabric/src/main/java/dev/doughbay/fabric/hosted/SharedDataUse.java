@@ -90,17 +90,17 @@ public final class SharedDataUse {
     }
     public static List<String> lines(JsonNode v) {
         var rows=new ArrayList<String>();
-        rows.add("Data use: "+v.path("reportingAccounts").asLong()+" / "+v.path("knownAccounts").asLong()+" accounts reporting");
+        rows.add("data use: "+v.path("reportingAccounts").asLong()+" / "+v.path("knownAccounts").asLong()+" accounts reporting");
         if(v.path("reportingAccounts").asLong()==0){rows.add("Data-use measurements unavailable; older clients are unmeasured.");return rows;}
         long cloud=0;for(String key:GROUPS.get("cloudAccepted"))cloud+=v.path("cloudAccepted").path(key).asLong();
-        rows.add("Validated cloud responses: "+cloud+" (market batches "+v.path("cloudAccepted").path("marketBatch").asLong()+")");
-        rows.add("Cloud hints used in decisions: "+v.path("hintsConsumed").path("cloudAggregate").asLong());
-        rows.add("Included sources: follow activity "+v.path("hintsConsumed").path("followTrade").asLong()+"; price levels "+v.path("hintsConsumed").path("priceLevel").asLong()+" (can overlap)");
-        rows.add("Shared history imported: "+v.path("historyImported").path("sales").asLong()+" sale rows");
-        rows.add("Local stored-book reads: "+v.path("hiveLocalReuse").path("reads").asLong()+"; local-book planning uses: "+v.path("hintsConsumed").path("hiveLocal").asLong());
+        rows.add("validated cloud responses: "+cloud+" (market batches "+v.path("cloudAccepted").path("marketBatch").asLong()+")");
+        rows.add("cloud hints used in decisions: "+v.path("hintsConsumed").path("cloudAggregate").asLong());
+        rows.add("included sources: follow activity "+v.path("hintsConsumed").path("followTrade").asLong()+"; price levels "+v.path("hintsConsumed").path("priceLevel").asLong()+" (can overlap)");
+        rows.add("shared history imported: "+v.path("historyImported").path("sales").asLong()+" sale rows");
+        rows.add("local stored-book reads: "+v.path("hiveLocalReuse").path("reads").asLong()+"; local-book planning uses: "+v.path("hintsConsumed").path("hiveLocal").asLong());
         var reasons=new ArrayList<String>();for(String key:GROUPS.get("fallbacks"))if(v.path("fallbacks").path(key).asLong()>0)
             reasons.add(key.replaceAll("([a-z])([A-Z])","$1 $2").toLowerCase(Locale.ROOT)+": "+v.path("fallbacks").path(key).asLong());
-        if(!reasons.isEmpty())rows.add("Rejected scan-replacement lookups: "+String.join("; ",reasons));
+        if(!reasons.isEmpty())rows.add("rejected scan-replacement lookups: "+String.join("; ",reasons));
         rows.add("These are data-use counts, not scans avoided or time saved. Local reads may reuse this account's own saved book.");return rows;
     }
 }

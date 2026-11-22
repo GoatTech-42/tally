@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 final class DashboardWebsiteAccess {
     private final Consumer<URI> launcher;
     private final Consumer<String> clipboard;
-    private String message = "No browser? Copy this address.";
+    private String message = "no browser? copy this address.";
 
     DashboardWebsiteAccess(Consumer<URI> launcher, Consumer<String> clipboard) {
         this.launcher = launcher;
@@ -24,9 +24,9 @@ final class DashboardWebsiteAccess {
         if (retired()) { message = ProjectStatus.RETIRED; return; }
         try {
             launcher.accept(DashboardProtocol.PAGE);
-            message = "No browser? Copy this address.";
+            message = "no browser? copy this address.";
         } catch (RuntimeException unavailable) {
-            message = "Browser unavailable. Copy this address.";
+            message = "browser unavailable. copy this address.";
         }
     }
 
@@ -34,9 +34,9 @@ final class DashboardWebsiteAccess {
         if (retired()) { message = ProjectStatus.RETIRED; return; }
         try {
             clipboard.accept(address());
-            message = "Address copied. Paste in your browser.";
+            message = "address copied. paste in your browser.";
         } catch (RuntimeException unavailable) {
-            message = "Copy failed. Type the address above.";
+            message = "copy failed. type the address above.";
         }
     }
 }

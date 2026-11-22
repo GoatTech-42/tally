@@ -16,13 +16,13 @@ public final class AutomaticReportOutbox {
             if(retryKey==null || !retryKey.matches("[A-Za-z0-9_-]{8,64}") || fingerprint==null
                 || !fingerprint.matches("[a-f0-9]{64}") || body==null || body.getBytes(StandardCharsets.UTF_8).length>65536
                 || reservedAt<0 || attempts<0 || attempts>5 || nextAttemptAt<0)
-                throw new IllegalArgumentException("Invalid automatic outbox");
+                throw new IllegalArgumentException("invalid automatic outbox");
             validateBody(body,fingerprint);
         }
         public byte[] bytes() {return body.getBytes(StandardCharsets.UTF_8);}
         public AutomaticReportDetector.Failure kind() {
             try {return AutomaticReportDetector.Failure.valueOf(JSON.readTree(body).path("automatic").path("kind").asText());}
-            catch(IOException e) {throw new IllegalArgumentException("Invalid automatic outbox");}
+            catch(IOException e) {throw new IllegalArgumentException("invalid automatic outbox");}
         }
         public Pending attempted(long now) {return new Pending(retryKey,fingerprint,body,reservedAt,attempts+1,now+60_000);}
         public Pending delayed(long until) {return new Pending(retryKey,fingerprint,body,reservedAt,attempts,until);}
@@ -92,12 +92,12 @@ public final class AutomaticReportOutbox {
     }
     public Optional<Pending> load(long now) throws IOException {
         if(!Files.exists(file)) return Optional.empty();
-        if(Files.size(file)>131072) throw new IOException("Automatic outbox too large");
+        if(Files.size(file)>131072) throw new IOException("automatic outbox too large");
         try {
             Pending pending=JSON.readValue(Files.readAllBytes(file),Pending.class);
-            if(pending.reservedAt()>now+300_000 || pending.nextAttemptAt()>now+86_700_000) throw new IOException("Invalid outbox chronology");
+            if(pending.reservedAt()>now+300_000 || pending.nextAttemptAt()>now+86_700_000) throw new IOException("invalid outbox chronology");
             return Optional.of(pending);
-        } catch(RuntimeException e) {throw new IOException("Invalid automatic outbox",e);}
+        } catch(RuntimeException e) {throw new IOException("invalid automatic outbox",e);}
     }
     public void save(Pending pending) throws IOException {
         Files.createDirectories(file.toAbsolutePath().getParent());

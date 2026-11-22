@@ -16,7 +16,7 @@ public final class CommunityHistoryBootstrap {
     public static final long WINDOW=86_400_000, FRESH_MARKET=900_000;
     public record Page(List<Sale> sales,String next,long asOf,long windowStart){}
     private static long integer(JsonNode row,String key){
-        var value=row.path(key);if(!value.isIntegralNumber()||!value.canConvertToLong())throw new IllegalArgumentException("Invalid history number");
+        var value=row.path(key);if(!value.isIntegralNumber()||!value.canConvertToLong())throw new IllegalArgumentException("invalid history number");
         return value.asLong();
     }
     public static Page decode(JsonNode body,Set<String> requested,long now,long expectedAsOf){
@@ -24,7 +24,7 @@ public final class CommunityHistoryBootstrap {
         if(body.path("schema").asInt()!=1||!body.path("kind").asText().equals("completed_sales")
                 ||!body.path("regionScope").asText().equals("net-donut")||generated<=0||generated>now+5000||now-generated>120_000
                 ||asOf<=0||asOf>generated||now-asOf>600_000||since<asOf-WINDOW||since>asOf||expectedAsOf>0&&asOf!=expectedAsOf
-                ||body.path("capped").asBoolean()||!body.path("rows").isArray()||body.path("rows").size()>1000)throw new IllegalArgumentException("Invalid history envelope");
+                ||body.path("capped").asBoolean()||!body.path("rows").isArray()||body.path("rows").size()>1000)throw new IllegalArgumentException("invalid history envelope");
         var sales=new ArrayList<Sale>();var ids=new HashSet<String>();
         for(var row:body.path("rows")){
             String id=row.path("id").asText(),key=row.path("itemKey").asText();
@@ -40,17 +40,17 @@ public final class CommunityHistoryBootstrap {
             if(provenance.path("ownAccount").asBoolean())continue;
             if(count<1||stack!=Math.min(count,64)||stack!=Integer.parseInt(key.substring(key.indexOf('|')+1))
                     ||total<count||total>1_000_000_000_000L||at<=0||at<since||at>asOf||at>now
-                    ||integer(row,"unitPrice")!=total/count)throw new IllegalArgumentException("Invalid completed sale");
+                    ||integer(row,"unitPrice")!=total/count)throw new IllegalArgumentException("invalid completed sale");
             // The service freezes the window at asOf. A valid edge receipt can
             // age out while this page travels or later pages are read; skip it
             // without rejecting the fresh receipts in the same snapshot.
             if(now-at>WINDOW)continue;
             // A multi-stack receipt is one sale, not several independent stack samples.
             if(count>64)continue;
-            sales.add(new Sale(ItemFingerprint.sha256("swarm-history-v1|"+id),at,SOURCE,"Shared completed-sale history",item,item,(int)count,total));
+            sales.add(new Sale(ItemFingerprint.sha256("swarm-history-v1|"+id),at,SOURCE,"shared completed-sale history",item,item,(int)count,total));
         }
         var next=body.get("next");
-        if(next==null||!next.isNull()&&(!next.isTextual()||next.asText().isEmpty()||next.asText().length()>1024))throw new IllegalArgumentException("Invalid history cursor");
+        if(next==null||!next.isNull()&&(!next.isTextual()||next.asText().isEmpty()||next.asText().length()>1024))throw new IllegalArgumentException("invalid history cursor");
         return new Page(List.copyOf(sales),next.isNull()?"":next.asText(),asOf,since);
     }
     /** A thin ledger gets one seed; established or previously seeded ledgers keep collecting normally. */

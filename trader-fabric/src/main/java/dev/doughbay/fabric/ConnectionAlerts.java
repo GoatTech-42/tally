@@ -16,7 +16,7 @@ public final class ConnectionAlerts {
                 boolean changed = Tuning.setLocalBatch(DisconnectRecovery.slower(Tuning::get));
                 recovery = String.format(Locale.ROOT,
                         "%s Click gap %.2f–%.2fs; command gap %.2f–%.2fs. Saved for this account only.",
-                        changed ? "Slower pacing applied." : "Conservative pacing already at its limit.",
+                        changed ? "Slower pacing applied." : "conservative pacing already at its limit.",
                         Tuning.get("pace.click_gap_min_sec"), Tuning.get("pace.click_gap_max_sec"),
                         Tuning.get("pace.command_min_sec"), Tuning.get("pace.command_max_sec"));
             } catch (Exception e) {

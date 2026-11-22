@@ -46,13 +46,13 @@ public final class SwarmTotals {
     public static List<String[]> rows(long now) {
         var s = current;
         if (s == null || now < s.at - 5000 || now >= s.expires)
-            return List.<String[]>of(new String[]{"Swarm totals", "Waiting for current service data"});
+            return List.<String[]>of(new String[]{"swarm totals", "waiting for current service data"});
         var rows=new java.util.ArrayList<String[]>();
-        rows.addAll(List.of(new String[]{"Active Hives · last 10 min", figure(s.hives)},
-                new String[]{"Active bots · last 10 min", figure(s.bots)},
+        rows.addAll(List.of(new String[]{"active hives · last 10 min", figure(s.hives)},
+                new String[]{"active bots · last 10 min", figure(s.bots)},
                 new String[]{"Items with shared order levels · 24h", figure(s.markets)},
-                new String[]{"Stored sale observations · 7d", figure(s.sales)}));
-        if(s.linkedBots!=null)rows.add(new String[]{"Your linked bots",figure(s.linkedBots)});
+                new String[]{"stored sale observations · 7d", figure(s.sales)}));
+        if(s.linkedBots!=null)rows.add(new String[]{"your linked bots",figure(s.linkedBots)});
         return List.copyOf(rows);
     }
 }

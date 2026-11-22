@@ -25,7 +25,7 @@ public final class FlipEdits {
         OwnPrices.Entry e = entry(listText, itemId);
         if (e == null) return no(listText, name(itemId) + " is not on your Flips list");
         long price = MoneyInput.parse(typed);
-        if (price <= 0) return no(listText, "Not a price: " + show(typed));
+        if (price <= 0) return no(listText, "not a price: " + show(typed));
         if (price <= e.buy()) {
             return no(listText, "The sell price has to be above the buy price (" + Figures.grouped(e.buy()) + ")");
         }
@@ -40,9 +40,9 @@ public final class FlipEdits {
         OwnPrices.Entry e = entry(listText, itemId);
         if (e == null) return no(listText, name(itemId) + " is not on your Flips list");
         long price = MoneyInput.parse(typed);
-        if (price <= 0) return no(listText, "Not a price: " + show(typed));
+        if (price <= 0) return no(listText, "not a price: " + show(typed));
         if (price >= e.sell()) {
-            return no(listText, "The buy price has to be below the sell price (" + Figures.grouped(e.sell()) + ")");
+            return no(listText, "the buy price has to be below the sell price (" + Figures.grouped(e.sell()) + ")");
         }
         if (price == e.buy()) return no(listText, name(itemId) + " is already bought at " + Figures.grouped(price) + " each");
         OwnPrices.Entry next = new OwnPrices.Entry(e.itemId(), price, e.sell(), e.stacks(), e.singles(), e.over(), e.total(), e.budget());
@@ -56,7 +56,7 @@ public final class FlipEdits {
         if (line.isEmpty()) return no(listText, "Type an item, a buy price and a sell price, like: obsidian 250 900");
         OwnPrices.Parsed read = OwnPrices.parse(line);
         if (!read.problems().isEmpty() || read.entries().size() != 1) {
-            return no(listText, read.problems().isEmpty() ? "One item at a time, like: obsidian 250 900" : read.problems().get(0));
+            return no(listText, read.problems().isEmpty() ? "one item at a time, like: obsidian 250 900" : read.problems().get(0));
         }
         OwnPrices.Entry e = read.entries().values().iterator().next();
         boolean was = entry(listText, e.itemId()) != null;
@@ -81,7 +81,7 @@ public final class FlipEdits {
 
     private static String name(String itemId) {
         String bare = itemId == null ? "" : Tuning.normalizeItem(itemId).replace('_', ' ');
-        return bare.isEmpty() ? "That item" : bare.substring(0, 1).toUpperCase(Locale.ROOT) + bare.substring(1);
+        return bare.isEmpty() ? "that item" : bare.substring(0, 1).toUpperCase(Locale.ROOT) + bare.substring(1);
     }
 
     private static String show(String typed) {

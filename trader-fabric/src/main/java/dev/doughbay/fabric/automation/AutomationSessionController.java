@@ -114,7 +114,7 @@ public final class AutomationSessionController {
 
     private AutomationPersistencePort persistence;
     private boolean recoveryApplied;
-    private String persistenceStatus = "Automation recovery is not connected";
+    private String persistenceStatus = "automation recovery is not connected";
     private boolean sessionOpen;
     private boolean recoveredSession;
     private long sessionStartedAtMillis;
@@ -334,7 +334,7 @@ public final class AutomationSessionController {
             recoveredQueue.removeIf(x -> x.positionId() == p.positionId());
             committedSpend = Math.max(0, committedSpend - p.purchasePrice());
             persistence.submit(checkpoint(sessionOpen, state.name(), written, uncertainExposure,
-                    "Lost on death"));
+                    "lost on death"));
             if (trackedPosition == p) {
                 trackedPosition = null;
                 positionValuation = null;
@@ -371,14 +371,14 @@ public final class AutomationSessionController {
 
     /** Manual commands wait for native ownership, persistence and connection gates. */
     public synchronized String panelCommandBlocker(Minecraft client) {
-        if(client==null||client.player==null||client.getConnection()==null||client.hasSingleplayerServer())return "Waiting for a multiplayer connection";
+        if(client==null||client.player==null||client.getConnection()==null||client.hasSingleplayerServer())return "waiting for a multiplayer connection";
         var server=client.getCurrentServer();
         if(server==null||!dev.doughbay.fabric.staffwatch.DonutServer.matches(server.ip))return "Waiting for DonutSMP";
         if(staffTransferHold||dev.doughbay.fabric.DoughBayClient.restartOwnsConnection()
-                ||dev.doughbay.fabric.staffwatch.StaffWatchClient.controlsConnection())return "Waiting for connection recovery or protective escape";
+                ||dev.doughbay.fabric.staffwatch.StaffWatchClient.controlsConnection())return "waiting for connection recovery or protective escape";
         if(uncertainExposure.active()||snapshot().unresolvedExposure())return "Waiting for native recovery; commands do not bypass holds";
-        if(!safeToLeave()||!nothingInFlight()||!externalSafe(client)||driver.commandPending())return "Waiting for the current action and durable checkpoint";
-        if(!client.player.containerMenu.getCarried().isEmpty())return "Waiting for the cursor to be empty";
+        if(!safeToLeave()||!nothingInFlight()||!externalSafe(client)||driver.commandPending())return "waiting for the current action and durable checkpoint";
+        if(!client.player.containerMenu.getCarried().isEmpty())return "waiting for the cursor to be empty";
         return null;
     }
 
@@ -717,7 +717,7 @@ public final class AutomationSessionController {
             double holdHours = stats.salesPerHour() > 0 ? Math.min(3.5, 1.0 / stats.salesPerHour()) : 2.0;
             out.add(new Opportunity(signal, stats, buy, sell, profit, profit / buy * 100.0, holdHours,
                     Math.max(0.6, stats.confidence()), 0.7, 900 + stats.salesPerHour(),
-                    List.of("Mirror: a rival is working this market right now")));
+                    List.of("mirror: a rival is working this market right now")));
         }
         return out;
     }
@@ -765,7 +765,7 @@ public final class AutomationSessionController {
     private static Opportunity timed(Opportunity o, double factor) {
         if (factor == 1.0) return o;
         List<String> reasons = new ArrayList<>(o.reasons());
-        reasons.add(String.format(java.util.Locale.ROOT, "Demand this hour x%.1f", factor));
+        reasons.add(String.format(java.util.Locale.ROOT, "demand this hour x%.1f", factor));
         return new Opportunity(o.listing(), o.stats(), o.buyPrice(), o.recommendedSellPrice(), o.expectedNetProfit(),
                 o.expectedRoiPercent(), Math.min(24.0, o.estimatedHoldHours() / Math.max(0.1, factor)),
                 o.saleProbability(), o.confidence(), o.score() * factor, reasons);
@@ -944,7 +944,7 @@ public final class AutomationSessionController {
         double profit = net - b.ceiling();
         return new Opportunity(listing, stats, b.ceiling(), b.value(), profit,
                 profit / Math.max(1, b.ceiling()) * 100.0, 0.5, 0.8, 0.8, 0,
-                List.of("Box priced by contents: " + b.breakdown()));
+                List.of("box priced by contents: " + b.breakdown()));
     }
 
     private static String rivalNote() {
@@ -1074,7 +1074,7 @@ public final class AutomationSessionController {
      * since. Whatever the bank holds beyond that is money from sales the bot
      * never saw a notice for, and only that much may be booked as sold.
      *
-     * <p>"Every purchase" has to include the bot's own buy orders. The order
+     * <p>"every purchase" has to include the bot's own buy orders. The order
      * house takes an order's whole price when it is placed and gives back the
      * unfilled part when it is cancelled, and for a long time neither was
      * counted here. An account placing orders therefore looked poorer than
@@ -1361,8 +1361,8 @@ public final class AutomationSessionController {
         this.persistence = persistence;
         recoveryApplied = false;
         persistenceStatus = persistence == null
-                ? "Automation persistence is unavailable"
-                : "Loading durable automation recovery";
+                ? "automation persistence is unavailable"
+                : "loading durable automation recovery";
     }
 
     /** Independent opt-in; it cannot widen the driver's own live allowlist. */
@@ -1371,7 +1371,7 @@ public final class AutomationSessionController {
         continuousAuthorizationEnabled = enabled;
         continuousAuthorizedServers = normalizeServers(servers);
         if (!enabled && isRunning()) {
-            pauseInternal("Continuous automation authorization was disabled");
+            pauseInternal("continuous automation authorization was disabled");
         }
     }
 
@@ -1704,7 +1704,7 @@ public final class AutomationSessionController {
         // it could never start. The desk and the watch still refuse a market
         // without enough observations, so nothing is bought blind.
         if (dev.doughbay.fabric.KeylessFeed.active()) return null;
-        return "Still watching the market before trading: " + w.detail();
+        return "still watching the market before trading: " + w.detail();
     }
 
     public synchronized ExecutionResult start(ContinuousAutomationPolicy requestedPolicy,
@@ -1722,7 +1722,7 @@ public final class AutomationSessionController {
             return ExecutionResult.refused("A complete automation policy and run mode are required");
         }
         if (isRunning()) {
-            return ExecutionResult.refused("An automation session is already running");
+            return ExecutionResult.refused("an automation session is already running");
         }
         String persistenceBlocker = persistenceStartBlocker();
         if (persistenceBlocker != null) {
@@ -1772,7 +1772,7 @@ public final class AutomationSessionController {
         cooldownUntilMillis = 0;
         bufferedSaleNotice = null;
         boundListingKey = "";
-        reconciliationStatus = "Waiting for a post-purchase active-listing snapshot";
+        reconciliationStatus = "waiting for a post-purchase active-listing snapshot";
         lastActiveListingScanStartedAt = 0;
         saleNoticeBaselineScanStartedAt = 0;
         saleNoticeObservedAtMillis = 0;
@@ -1784,7 +1784,7 @@ public final class AutomationSessionController {
         clearPersistenceGenerations();
         AutomationSessionCheckpoint startCheckpoint = checkpoint(
                 true, State.SCANNING.name(), null, AutomationUncertainExposure.none(),
-                "New authorized automation session opened");
+                "new authorized automation session opened");
         sessionStartPersistenceGeneration = persistence.submit(startCheckpoint);
         if (sessionStartPersistenceGeneration <= 0) {
             sessionOpen = false;
@@ -1876,12 +1876,12 @@ public final class AutomationSessionController {
         driver.emergencyStop();
         restoreSelectedSlot(Minecraft.getInstance());
         if (exposure) {
-            pauseFromCurrent("Session stopped with unresolved exposure retained",
+            pauseFromCurrent("session stopped with unresolved exposure retained",
                     state == State.MONITORING);
-            queuePauseCheckpoint("Explicit stop retained unresolved exposure");
+            queuePauseCheckpoint("explicit stop retained unresolved exposure");
         } else if (sessionOpen) {
             if (!requestSessionEnd(
-                    "Session deliberately ended with no unresolved exposure")) {
+                    "session deliberately ended with no unresolved exposure")) {
                 // Stop is synchronous even when the persistence queue cannot
                 // accept the closing checkpoint. Retain the open session and
                 // its caps in a non-resumable recovery lock; never leave the
@@ -1897,13 +1897,13 @@ public final class AutomationSessionController {
             pendingOpportunity = null;
             bufferedSaleNotice = null;
             clearCoverageEvidence();
-            transition(State.STOPPED, "Automation session stopped");
+            transition(State.STOPPED, "automation session stopped");
         }
     }
 
     public synchronized void pause(String reason) {
         String safeReason = reason == null || reason.isBlank()
-                ? "Automation paused by request" : reason;
+                ? "automation paused by request" : reason;
         if (state == State.SCANNING) clearPendingCandidate();
         pauseFromCurrent(safeReason,
                 state == State.SCANNING || state == State.MONITORING);
@@ -1914,7 +1914,7 @@ public final class AutomationSessionController {
     public synchronized ExecutionResult resume() {
         if (staffTransferHold) return ExecutionResult.refused("Staff Watch region transfer is in progress");
         if (state != State.PAUSED) {
-            return ExecutionResult.refused("Only a paused session can be resumed");
+            return ExecutionResult.refused("only a paused session can be resumed");
         }
         if (!pauseResumable) {
             return ExecutionResult.refused(
@@ -1930,7 +1930,7 @@ public final class AutomationSessionController {
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return ExecutionResult.refused(blocker);
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
-            return ExecutionResult.refused("The execution driver is not idle");
+            return ExecutionResult.refused("the execution driver is not idle");
         }
         long now = System.currentTimeMillis();
         if (pausedFromState == State.MONITORING
@@ -1945,7 +1945,7 @@ public final class AutomationSessionController {
                     && reconciliationTimedOut(saleNoticeObservedAtMillis, now)) {
                 pauseResumable = false;
                 return ExecutionResult.refused(
-                        "Buffered sale evidence is too old to reconcile automatically");
+                        "buffered sale evidence is too old to reconcile automatically");
             }
             armed=true;
             pausedByPlayer = false;
@@ -1972,7 +1972,7 @@ public final class AutomationSessionController {
         }
         if (!pauseResumable) {
             return "This pause guards an uncertain operation. Use the recovery controls on the "
-                    + "Automation tab, or Stop and Start again.";
+                    + "automation tab, or stop and start again.";
         }
         if (recoveredSession) {
             return "Recovered session â€” use 'Resume recovered session' on the Automation tab, not plain Resume.";
@@ -1981,14 +1981,14 @@ public final class AutomationSessionController {
             return "session.auto_resume is off, so it will not resume by itself â€” turn it on in Settings.";
         }
         String blocker = authorizationBlocker(Minecraft.getInstance());
-        if (blocker != null) return "Waiting: " + blocker;
+        if (blocker != null) return "waiting: " + blocker;
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
             return "The driver is finishing an operation; Resume works once it is idle.";
         }
         if (hasUnresolvedPosition()) {
             return "A purchased or uncertain position must be reconciled first â€” see the Automation tab.";
         }
-        return "Ready to resume â€” press Resume.";
+        return "ready to resume â€” press resume.";
     }
 
     /** Continues an open recovered session without resetting its durable caps. */
@@ -1997,7 +1997,7 @@ public final class AutomationSessionController {
         if (staffTransferHold) return ExecutionResult.refused("Staff Watch region transfer is in progress");
         if (!recoveryApplied || !recoveredSession || !sessionOpen
                 || state != State.PAUSED) {
-            return ExecutionResult.refused("No exposure-free recovered session is available");
+            return ExecutionResult.refused("no exposure-free recovered session is available");
         }
         if (requestedPolicy == null) {
             return ExecutionResult.refused("A complete automation policy is required");
@@ -2010,7 +2010,7 @@ public final class AutomationSessionController {
                 String blocker = authorizationBlocker(client);
                 if (blocker != null) return ExecutionResult.refused(blocker);
                 if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
-                    return ExecutionResult.refused("The execution driver is not idle");
+                    return ExecutionResult.refused("the execution driver is not idle");
                 }
                 armed = true;
                 pausedByPlayer = false;
@@ -2041,17 +2041,17 @@ public final class AutomationSessionController {
         String blocker = authorizationBlocker(Minecraft.getInstance());
         if (blocker != null) return ExecutionResult.refused(blocker);
         if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
-            return ExecutionResult.refused("The execution driver is not idle");
+            return ExecutionResult.refused("the execution driver is not idle");
         }
         recoveredSession = false;
         armed = true;
         sessionStartPersistenceGeneration = persistence.submit(checkpoint(
                 true, State.SCANNING.name(), null, AutomationUncertainExposure.none(),
-                "Recovered session resumed without resetting durable caps"));
+                "recovered session resumed without resetting durable caps"));
         if (sessionStartPersistenceGeneration <= 0) {
             recoveredSession = true;
             return ExecutionResult.refused(
-                    "Recovered-session resume could not be queued durably");
+                    "recovered-session resume could not be queued durably");
         }
         pausedByPlayer = false;
         transition(State.SCANNING,
@@ -2070,7 +2070,7 @@ public final class AutomationSessionController {
             MarketWatcher.Snapshot snapshot) {
         if (!recoveryApplied || !recoveredSession || state != State.PAUSED
                 || !recoveredExposureRemains()) {
-            return ExecutionResult.refused("No recovered exposure is available to resolve");
+            return ExecutionResult.refused("no recovered exposure is available to resolve");
         }
         if (recoveredExposureCount() != 1) {
             return ExecutionResult.refused(
@@ -2084,7 +2084,7 @@ public final class AutomationSessionController {
         if (blocker != null) return ExecutionResult.refused(blocker);
         String itemId = recoveredExposureItemId();
         if (itemId.isBlank()) {
-            return ExecutionResult.refused("Recovered exact item identity is unavailable");
+            return ExecutionResult.refused("recovered exact item identity is unavailable");
         }
         if (inventoryContainsItem(client, itemId)) {
             return ExecutionResult.refused(
@@ -2118,7 +2118,7 @@ public final class AutomationSessionController {
         if (manualResolutionFirstConfirmedAt <= 0 || !manualResolutionEvidenceReady
                 || manualResolutionPersistenceGeneration > 0) {
             return ExecutionResult.refused(
-                    "Recovery evidence is not ready for the second confirmation");
+                    "recovery evidence is not ready for the second confirmation");
         }
         String itemId = recoveredExposureItemId();
         if (itemId.isBlank() || inventoryContainsItem(client, itemId)) {
@@ -2131,7 +2131,7 @@ public final class AutomationSessionController {
         String evidenceBlocker = manualResolutionCoverageBlocker(client, snapshot, now);
         if (evidenceBlocker != null) {
             return ExecutionResult.refused(
-                    "Waiting for final post-evidence recheck: " + evidenceBlocker);
+                    "waiting for final post-evidence recheck: " + evidenceBlocker);
         }
 
         List<Position> exposurePositions = exposurePositions();
@@ -2172,13 +2172,13 @@ public final class AutomationSessionController {
     /** Deliberately closes an exposure-free recovered session; caps reset only afterward. */
     public synchronized ExecutionResult endRecoveredSession() {
         if (!recoveredSession || !sessionOpen || state != State.PAUSED) {
-            return ExecutionResult.refused("No recovered open session is available to end");
+            return ExecutionResult.refused("no recovered open session is available to end");
         }
         if (recoveredExposureRemains()) {
             return ExecutionResult.refused(
                     "Recovered exposure must be resolved before ending the session");
         }
-        if (requestSessionEnd("Recovered session deliberately ended after reconciliation")) {
+        if (requestSessionEnd("recovered session deliberately ended after reconciliation")) {
             return ExecutionResult.awaitingPlayer(detail);
         }
         return ExecutionResult.refused(detail);
@@ -2220,7 +2220,7 @@ public final class AutomationSessionController {
         for (Position p : abandoned) {
             persistence.submit(checkpoint(sessionOpen, state.name(),
                     p.closed(PositionStatus.CANCELLED, now, 0, Double.NaN),
-                    AutomationUncertainExposure.none(), "Force reset by the operator"));
+                    AutomationUncertainExposure.none(), "force reset by the operator"));
         }
         recoveredOpenPositions = List.of();
         trackedPosition = null;
@@ -2245,8 +2245,8 @@ public final class AutomationSessionController {
         manualResolutionPersistenceGeneration = 0;
         runtimePersistenceGeneration = 0;
         pendingPersistenceSince = 0;
-        transition(State.SCANNING, "Force reset: exposure abandoned, scanning fresh");
-        detail = "Force reset: recovery cleared, scanning fresh";
+        transition(State.SCANNING, "force reset: exposure abandoned, scanning fresh");
+        detail = "force reset: recovery cleared, scanning fresh";
         return ExecutionResult.awaitingPlayer(detail);
     }
 
@@ -2528,12 +2528,12 @@ public final class AutomationSessionController {
             // A page of ours, or one the server reopened: it goes first, and
             // the screen opens on the tick after.
             client.player.closeContainer();
-            detail = "Closing the page to open the Tally screen";
+            detail = "closing the page to open the tally screen";
             return true;
         }
         panelRequestedAt = 0;
         panelGranted = true;
-        detail = "Opening the Tally screen";
+        detail = "opening the tally screen";
         return true;
     }
 
@@ -2594,7 +2594,7 @@ public final class AutomationSessionController {
                 && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE) {
             if (externalHoldSince == 0) externalHoldSince = now;
             if (now - externalHoldSince < 3_000) {
-                detail = "Sending a queued command before the next action";
+                detail = "sending a queued command before the next action";
                 return;
             }
         } else {
@@ -2655,7 +2655,7 @@ public final class AutomationSessionController {
                 } else if (bufferedSaleNotice != null) {
                     reconcileSaleDisappearance(client, marketSnapshot, now);
                 } else if (now - trackedPosition.listedAt() > policy.maximumHoldMillis()) {
-                    pauseInternal("Maximum hold time elapsed without an exact sale notice");
+                    pauseInternal("maximum hold time elapsed without an exact sale notice");
                 }
             }
             case COOLDOWN -> {
@@ -2667,9 +2667,9 @@ public final class AutomationSessionController {
                 if (now >= cooldownUntilMillis) {
                     if (runMode == RunMode.SINGLE) {
                         sessionOpen = false;
-                        transition(State.STOPPED, "Single-trade session completed");
+                        transition(State.STOPPED, "single-trade session completed");
                     } else if (sessionLimitReached()) {
-                        requestSessionEnd("Continuous session limit reached");
+                        requestSessionEnd("continuous session limit reached");
                     } else {
                         pendingOpportunity = null;
                         transition(State.SCANNING, "Cooldown complete; scanning fresh signals");
@@ -2821,7 +2821,7 @@ public final class AutomationSessionController {
                 &&driver.operationIntent()==AutomatedExecutionDriver.OperationIntent.NONE
                 &&reportDeskGate.equals("INVENTORY_SAFETY")&&System.currentTimeMillis()-reportDeskGateAt<2000){
             String blocker=reportInventory.blockerText();
-            if(blocker!=null)visibleDetail="Bid desk waiting: "+blocker;
+            if(blocker!=null)visibleDetail="bid desk waiting: "+blocker;
         }
         return new SessionSnapshot(state, runMode, visibleDetail, trackedPosition,
                 pendingOpportunity == null ? "" : pendingOpportunity.listing().listingKey(),
@@ -2970,7 +2970,7 @@ public final class AutomationSessionController {
         state = State.PAUSED;
         stateChangedAtMillis = System.currentTimeMillis();
         reconciliationStatus = recoveredExposureRemains()
-                ? "Recovered exposure is locked pending explicit reconciliation"
+                ? "recovered exposure is locked pending explicit reconciliation"
                 : "Recovered session caps retained; choose Resume or End session";
         detail = recoveredExposureRemains()
                 ? "PAUSED: recovered " + recoveredExposureCount()
@@ -3001,9 +3001,9 @@ public final class AutomationSessionController {
         uncertainExposure = AutomationUncertainExposure.none();
         persistence.submit(checkpoint(sessionOpen, State.PAUSED.name(), null,
                 AutomationUncertainExposure.none(),
-                "Recovered BUY intent released: inventory holds none of " + itemId));
+                "recovered BUY intent released: inventory holds none of " + itemId));
         reconciliationStatus = recoveredExposureRemains()
-                ? "Recovered exposure is locked pending explicit reconciliation"
+                ? "recovered exposure is locked pending explicit reconciliation"
                 : "Recovered session caps retained; choose Resume or End session";
         detail = recoveredExposureRemains()
                 ? "PAUSED: recovered " + recoveredExposureCount()
@@ -3042,7 +3042,7 @@ public final class AutomationSessionController {
                 AutomationUncertainExposure.none(),
                 "Orphan LISTING intent released: no open position, inventory holds none of " + itemId));
         reconciliationStatus = recoveredExposureRemains()
-                ? "Recovered exposure is locked pending explicit reconciliation"
+                ? "recovered exposure is locked pending explicit reconciliation"
                 : "Recovered session caps retained; choose Resume or End session";
         detail = recoveredExposureRemains()
                 ? "PAUSED: recovered " + recoveredExposureCount()
@@ -3106,7 +3106,7 @@ public final class AutomationSessionController {
             saleNoticeObservedAtMillis = 0;
             saleNoticeBaselineScanStartedAt = 0;
             clearCoverageEvidence();
-            reconciliationStatus = "Exact notice and disappearance are durably reconciled";
+            reconciliationStatus = "exact notice and disappearance are durably reconciled";
             if (runMode == RunMode.SINGLE) sessionOpen = false;
             if (state == State.PAUSED) {
                 if (sessionOpen) {
@@ -3115,7 +3115,7 @@ public final class AutomationSessionController {
                 } else {
                     recoveredSession = false;
                     transition(State.STOPPED,
-                            "Sale closure and single-session end are durable");
+                            "sale closure and single-session end are durable");
                 }
             }
         }
@@ -3151,7 +3151,7 @@ public final class AutomationSessionController {
             trackedPosition = null;
             boundListingKey = "";
             reconciliationStatus = "Session closed durably; a future Start creates new caps";
-            transition(State.STOPPED, "Automation session ended durably");
+            transition(State.STOPPED, "automation session ended durably");
         }
         consumeResolvedPausedIntentReceipts();
     }
@@ -3249,7 +3249,7 @@ public final class AutomationSessionController {
         }
         manualNativeAuditStartedAt = now;
         manualNativeAuditPending = true;
-        detail = "Recovery: checking all pages of your own auction listings";
+        detail = "recovery: checking all pages of your own auction listings";
     }
 
     private void updateManualResolutionEvidence(Minecraft client,
@@ -3270,26 +3270,26 @@ public final class AutomationSessionController {
         }
         String snapshotBlocker = liveSnapshotBlocker(snapshot, now);
         if (snapshotBlocker != null) {
-            detail = "Recovery evidence blocked by market health: " + snapshotBlocker;
+            detail = "recovery evidence blocked by market health: " + snapshotBlocker;
             return;
         }
         CoverageRequest request = coverageRequest();
         String blocker = exactCoverageBlocker(
                 snapshot == null ? null : snapshot.exactListingCoverage(), request, now);
         if (blocker != null) {
-            detail = "Recovery step 1: waiting for exact active-book coverage: " + blocker;
+            detail = "recovery step 1: waiting for exact active-book coverage: " + blocker;
             return;
         }
         MarketWatcher.ExactListingCoverage coverage = snapshot.exactListingCoverage();
         ActiveBookEvidence.Analysis book = activeBookEvidence.analyze(itemId, coverage.listings());
         if (!book.valid()) {
-            detail = "Recovery evidence blocked: " + book.detail();
+            detail = "recovery evidence blocked: " + book.detail();
             return;
         }
         String ownershipBlocker = recoveredOwnershipBlocker(
                 client, book.listings(), itemId, recoveredExposureItemCount());
         if (ownershipBlocker != null) {
-            detail = "Recovery evidence blocked: " + ownershipBlocker;
+            detail = "recovery evidence blocked: " + ownershipBlocker;
             return;
         }
         if (!acceptConsecutiveStableCoverage("MANUAL_RECOVERY", coverage, book, ownRows(client))) {
@@ -3344,7 +3344,7 @@ public final class AutomationSessionController {
             if (startSlotAudit(client)) return;
         }
         if (snapshot == null) {
-            detail = "Waiting for a real market snapshot";
+            detail = "waiting for a real market snapshot";
             return;
         }
         // Fail-safe first, before the full-book gate below can return: a stack
@@ -3403,7 +3403,7 @@ public final class AutomationSessionController {
             // doing nothing at all and waiting for sales it had stopped
             // helping along.
             if (startRepriceIfDue(client, now2)) return;
-            detail = "The auction house is full (" + fromServer + " of " + rankSlots
+            detail = "the auction house is full (" + fromServer + " of " + rankSlots
                     + " listed" + (spokenFor > 0 ? ", " + spokenFor + " already promised" : "")
                     + "); recounting and repricing to free a slot";
             return;
@@ -3451,7 +3451,7 @@ public final class AutomationSessionController {
         }
         String snapshotBlocker = liveSnapshotBlocker(snapshot, now);
         if (snapshotBlocker != null) {
-            detail = "Waiting for a healthy completed-sale snapshot: " + snapshotBlocker;
+            detail = "waiting for a healthy completed-sale snapshot: " + snapshotBlocker;
             return;
         }
 
@@ -3478,13 +3478,13 @@ public final class AutomationSessionController {
                 var guard=dev.doughbay.fabric.DoughBayClient.evasionGuard();
                 String waiting=queuedStockBlocker(now,true,guard!=null&&guard.triggered(),
                         authorizationBlocker(client));
-                if(waiting!=null){detail="Recovered stock remains queued: "+waiting;return;}
+                if(waiting!=null){detail="recovered stock remains queued: "+waiting;return;}
                 if (!safeInventoryContext(client)) {
                     if (client != null && client.player != null
                             && client.player.containerMenu.getCarried().isEmpty()
                             && client.player.inventoryMenu.getCarried().isEmpty()
                             && closeStrayAuctionPage(client)) return;
-                    detail = "Recovered stock remains queued: " + guiBlockerDescription(client);
+                    detail = "recovered stock remains queued: " + guiBlockerDescription(client);
                     return;
                 }
                 recoveredQueue.remove(next);
@@ -3559,7 +3559,7 @@ public final class AutomationSessionController {
                 stop();
                 return;
             }
-            detail = "Winding down: " + openListings.size() + " listing(s) left to sell; not buying";
+            detail = "winding down: " + openListings.size() + " listing(s) left to sell; not buying";
             return;
         }
         if (pendingOpportunity == null && ownOnly()) {
@@ -3641,7 +3641,7 @@ public final class AutomationSessionController {
             String lastGateDetail = "";
             for (Opportunity o : offered) {
                 if (o.listing() == null || !dev.doughbay.fabric.Tuning.buyingAllowed(o.listing().itemId())) {
-                    lastGateDetail = "Outside the new-purchase market focus";
+                    lastGateDetail = "outside the new-purchase market focus";
                     continue;
                 }
                 ContinuousOpportunitySelector.SelectionResult one = selector.select(
@@ -3703,7 +3703,7 @@ public final class AutomationSessionController {
                     // just wait in line behind each other.
                     if (ok.stats() == null || !Double.isFinite(ok.stats().salesPerHour())
                             || ok.stats().salesPerHour() * demand < LARGE_MIN_SALES_PER_HOUR()) {
-                        lastGateDetail = "Large ticket " + ok.listing().itemId()
+                        lastGateDetail = "large ticket " + ok.listing().itemId()
                                 + " skipped: fewer than " + (int) LARGE_MIN_SALES_PER_HOUR() + " sale(s) per hour";
                         continue;
                     }
@@ -3713,13 +3713,13 @@ public final class AutomationSessionController {
                     boolean tooGood = ok.expectedRoiPercent() >= SPILL_MIN_ROI_PERCENT()
                             && ok.confidence() >= SPILL_MIN_CONFIDENCE();
                     if (!tooGood) {
-                        lastGateDetail = "Tier pool full (" + tierSummary() + ")";
+                        lastGateDetail = "tier pool full (" + tierSummary() + ")";
                         continue;
                     }
                 }
                 // The slow lane: a long hold may not take a slot kept for quick flips.
                 if (!quickCandidate(ok) && openSlow(now) >= slowLaneSlots()) {
-                    lastGateDetail = "Slow lane full (" + openSlow(now) + " of " + slowLaneSlots()
+                    lastGateDetail = "slow lane full (" + openSlow(now) + " of " + slowLaneSlots()
                             + " long holds up); only quick flips until something sells";
                     continue;
                 }
@@ -3729,7 +3729,7 @@ public final class AutomationSessionController {
             }
             if (byRow.isEmpty()) {
                 detail = lastGateDetail.isBlank()
-                        ? "No market clears the live-trade gates right now" : lastGateDetail;
+                        ? "no market clears the live-trade gates right now" : lastGateDetail;
                 return;
             }
             if (freeInventorySlots(client) < 1) {
@@ -3829,7 +3829,7 @@ public final class AutomationSessionController {
             restMarket(pendingOpportunity.listing().itemId(),
                     System.currentTimeMillis() + MARKET_REST_MILLIS);
             clearPendingCandidate();
-            detail = "Candidate invalidated before purchase: " + revalidated.detail();
+            detail = "candidate invalidated before purchase: " + revalidated.detail();
             return;
         }
         Opportunity rebound = revalidated.opportunity().orElseThrow();
@@ -3839,7 +3839,7 @@ public final class AutomationSessionController {
                         rebound.recommendedSellPrice()),
                 localUuid(client), localName(client));
         if (existingOwn.ambiguous()) {
-            pauseInternal("Pre-buy own-listing state is ambiguous: " + existingOwn.detail());
+            pauseInternal("pre-buy own-listing state is ambiguous: " + existingOwn.detail());
             return;
         }
         if (!existingOwn.unambiguousZero()) {
@@ -3862,7 +3862,7 @@ public final class AutomationSessionController {
         ActiveListingReconciler.Ownership ownership = listingReconciler.ownershipOf(
                 rebound.listing(), localUuid(client), localName(client));
         if (ownership == ActiveListingReconciler.Ownership.UNKNOWN) {
-            pauseInternal("Candidate seller ownership is malformed or unavailable");
+            pauseInternal("candidate seller ownership is malformed or unavailable");
             return;
         }
         if (ownership == ActiveListingReconciler.Ownership.OWN) {
@@ -3875,7 +3875,7 @@ public final class AutomationSessionController {
             // counts as an open GUI. Close it rather than wait for them to:
             // the auction house is about to be opened regardless.
             client.setScreen(null);
-            detail = "Closing the Tally screen to begin buying";
+            detail = "closing the tally screen to begin buying";
             return;
         }
         if (!safeInventoryContext(client)) {
@@ -3887,13 +3887,13 @@ public final class AutomationSessionController {
         // mimic a buy. Initial automation therefore requires zero preexisting
         // instances and later requires one unique newly arrived exact stack.
         if (inventoryContainsItem(client, rebound.listing().itemId())) {
-            pauseInternal("Clear all " + rebound.listing().itemId()
+            pauseInternal("clear all " + rebound.listing().itemId()
                     + " stacks before background execution; purchase attribution is ambiguous");
             return;
         }
         Inventory inventory = client.player.getInventory();
         switch (ensureReservedSlotFree(client)) {
-            case CLEARING -> { detail = "Moving a stray item out of the reserved listing slot"; return; }
+            case CLEARING -> { detail = "moving a stray item out of the reserved listing slot"; return; }
             case STUCK -> {
                 if (sellWhenPackIsFull(client, System.currentTimeMillis())) return;
                 pauseInternal(reservedSlotBlocked(inventory));
@@ -3910,7 +3910,7 @@ public final class AutomationSessionController {
         if (ceiling <= 0) {
             rememberAttempt(rebound.listing().listingKey());
             clearPendingCandidate();
-            detail = "No purchase price clears policy at the resale target of "
+            detail = "no purchase price clears policy at the resale target of "
                     + rebound.recommendedSellPrice();
             return;
         }
@@ -3929,7 +3929,7 @@ public final class AutomationSessionController {
         buyCommandStarted = false;
         buyIntentPersistenceGeneration = persistence.submit(checkpoint(
                 true, "BUY_INTENT", null, uncertainExposure,
-                "Exact BUY intent queued before any auction command"));
+                "exact BUY intent queued before any auction command"));
         if (buyIntentPersistenceGeneration <= 0) {
             uncertainExposure = AutomationUncertainExposure.none();
             pauseInternal("BUY intent could not be queued durably; no command was sent");
@@ -4030,7 +4030,7 @@ public final class AutomationSessionController {
         LOGGER.info("DoughBay automation: {}; re-queuing {} x{} and scanning on",
                 why, held == null ? "the stack" : baseItemId(held.itemKey()),
                 held == null ? 0 : held.quantity());
-        transition(State.SCANNING, "Listing deferred (" + why + "); scanning on");
+        transition(State.SCANNING, "listing deferred (" + why + "); scanning on");
     }
 
     /** Slots the player's own hand-made listings occupy, as last audited. */
@@ -4114,12 +4114,12 @@ public final class AutomationSessionController {
             String title = container.getTitle().getString().toLowerCase(java.util.Locale.ROOT);
             if (title.contains("auction") || title.contains("orders") || title.contains("deliver")) {
                 client.player.closeContainer();
-                detail = "Closing a stray auction page the server reopened";
+                detail = "closing a stray auction page the server reopened";
                 return true;
             }
         } else if (open == null && client.player.containerMenu != client.player.inventoryMenu) {
             client.player.closeContainer();
-            detail = "Closing the auction container the server left open";
+            detail = "closing the auction container the server left open";
             return true;
         } else if (open instanceof net.minecraft.client.gui.screens.dialog.DialogScreen<?>) {
             // A server-pushed dialog - an event prompt, a vote reminder, a
@@ -4129,7 +4129,7 @@ public final class AutomationSessionController {
             // (checked above), so this is never the buy confirmation, which is
             // handled inside the buy while the driver is busy.
             client.setScreen(null);
-            detail = "Dismissed a server dialog that was blocking the bot";
+            detail = "dismissed a server dialog that was blocking the bot";
             return true;
         }
         return false;
@@ -4234,7 +4234,7 @@ public final class AutomationSessionController {
             double profit = sell - buy;
             out.add(new Opportunity(signal, stats, buy, sell, profit, profit / buy * 100.0, 0.1, 0.95, 0.9,
                     1_500 + profit * 100.0 / buy,
-                    List.of("Order: pays " + o.unitPrice() + " each for " + o.remaining() + " more")));
+                    List.of("order: pays " + o.unitPrice() + " each for " + o.remaining() + " more")));
         }
         return out;
     }
@@ -4385,7 +4385,7 @@ public final class AutomationSessionController {
     /**
      * Adds a delivery notice to what has been delivered of that item since
      * the orders were last read, and says whether that now makes a stack. A
-     * notice that names no item ("Players delivered you 19") or no count
+     * notice that names no item ("players delivered you 19") or no count
      * cannot be added up and counts as a reason to look.
      */
     private boolean stackNoticed(String notice) {
@@ -5420,11 +5420,11 @@ public final class AutomationSessionController {
             if (closeStrayAuctionPage(client)) return true;
             if (modScreenOpen(client)) {
                 client.setScreen(null);
-                detail = "Closing the Tally screen for the bid desk";
+                detail = "closing the tally screen for the bid desk";
                 return true;
             }
             if (!safeInventoryContext(client)) {
-                detail="Bid desk waiting for safe inventory: "+guiBlockerDescription(client);
+                detail="bid desk waiting for safe inventory: "+guiBlockerDescription(client);
                 return deskBlocked("not a safe moment");
             }
         }
@@ -5432,7 +5432,7 @@ public final class AutomationSessionController {
             // The server is still closing the last order's pages. A /orders
             // sent in the same instant opens a page it then replaces, and the
             // Your Orders click on it is lost.
-            detail = "Letting the last order settle before the next";
+            detail = "letting the last order settle before the next";
             return true;
         }
         DeskStep step = deskQueue.pollFirst();
@@ -5519,7 +5519,7 @@ public final class AutomationSessionController {
                     || step.unitPrice() <= 0 || step.count() > effectivePurchaseCap()/step.unitPrice()
                     || step.count() > (effectiveSpendCap()-committedSpend-bidsOut())/step.unitPrice())) {
                 deskReadDue = true;
-                detail = "Reserve Stock: selling batch and reserve are already covered";
+                detail = "reserve stock: selling batch and reserve are already covered";
                 return true;
             }
             if (step.action() == DeskAction.COLLECT && !windingDown())
@@ -7678,7 +7678,7 @@ public final class AutomationSessionController {
         if (missing <= 0) return false;
         RetailSplit split = RetailSplit.of(parent, allocatePositionId(), allocatePositionId(), lot.unitTarget(), missing);
         long generation = persistence.submitRetail(checkpoint(sessionOpen, state.name(), split.single(),
-                AutomationUncertainExposure.none(), "Wrote off " + missing + " of a retail lot that the inventory does not hold"),
+                AutomationUncertainExposure.none(), "wrote off " + missing + " of a retail lot that the inventory does not hold"),
                 lot.child(split.single().positionId()), parent, split.remainder());
         // Not saved: nothing has changed, and it waits as it did before.
         if (generation <= 0) return false;
@@ -7705,7 +7705,7 @@ public final class AutomationSessionController {
         positionValuation = null;
         recoveredOpenPositions = List.of();
         recoveredSession = false;
-        transition(State.SCANNING, "Retail stock held: " + reason);
+        transition(State.SCANNING, "retail stock held: " + reason);
         return true;
     }
 
@@ -7729,8 +7729,8 @@ public final class AutomationSessionController {
         }
         RetailLot lot = new RetailLot(trackedPosition.positionId(), trackedPosition.positionId(), plan.singlePrice());
         long generation = persistence.submitRetail(checkpoint(sessionOpen, state.name(), trackedPosition,
-                uncertainExposure, "Reserve purchase for individual resale"), lot, null, null);
-        if (generation <= 0) { pauseInternal("Retail plan could not be persisted"); return true; }
+                uncertainExposure, "reserve purchase for individual resale"), lot, null, null);
+        if (generation <= 0) { pauseInternal("retail plan could not be persisted"); return true; }
         retailLots.put(lot.positionId(), lot);
         purchasePersistenceGeneration = generation;
         return true;
@@ -7796,7 +7796,7 @@ public final class AutomationSessionController {
 
     /** Consumes an ID leased durably off-thread from the shared ledger. */
     private long allocatePositionId() {
-        if (persistence == null) throw new IllegalStateException("Automation persistence is unavailable");
+        if (persistence == null) throw new IllegalStateException("automation persistence is unavailable");
         return persistence.allocatePositionId();
     }
 
@@ -7810,7 +7810,7 @@ public final class AutomationSessionController {
         if (position.quantity() == quantity) return position;
         Position closed = position.closed(PositionStatus.CANCELLED, now, 0, Double.NaN);
         persistence.submit(checkpoint(sessionOpen, state.name(), closed, uncertainExposure,
-                "Superseded by a stack of " + quantity));
+                "superseded by a stack of " + quantity));
         Position fresh = withQuantity(position, quantity);
         // The same purchase, re-sized: it has held its slot since it was bought.
         return new Position(allocatePositionId(), fresh.mode(), fresh.itemKey(), fresh.bucket(), fresh.quantity(),
@@ -7909,7 +7909,7 @@ public final class AutomationSessionController {
             if (trackedPosition.quantity() == 1
                     && retailSingleSlot(client, trackedPosition.itemKey()) >= 0) return false;
             if (driver.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE || driver.commandPending()) {
-                detail = "Waiting for the current operation before splitting inventory";
+                detail = "waiting for the current operation before splitting inventory";
                 return true;
             }
             if (singlePeelFailedPositionId == trackedPosition.positionId()) {
@@ -7931,7 +7931,7 @@ public final class AutomationSessionController {
                     client.player.closeContainer();
                 }
                 singlePeelReadyAt = now + 1000;
-                detail = "Closing pages before peeling a single";
+                detail = "closing pages before peeling a single";
                 return true;
             }
             if (now < singlePeelReadyAt) return true;
@@ -8000,7 +8000,7 @@ public final class AutomationSessionController {
                 return true;
             }
             singlePeelStage++;
-            detail = "Peeling a single (" + singlePeelStage + " of 3)";
+            detail = "peeling a single (" + singlePeelStage + " of 3)";
             return true;
         }
 
@@ -8126,7 +8126,7 @@ public final class AutomationSessionController {
                 (int) dev.doughbay.fabric.Tuning.get("list.singles_max"), baseItemId(stack.itemKey()), stack.quantity(), target);
         trackedPosition = withTargetPrice(stack, target);
         purchasedInventorySlot = slot;
-        listPurchasedStackInHand(client, now, "Stack from retail batch " + lot.rootPositionId() + "; single slots full");
+        listPurchasedStackInHand(client, now, "stack from retail batch " + lot.rootPositionId() + "; single slots full");
         return true;
     }
 
@@ -8173,7 +8173,7 @@ public final class AutomationSessionController {
         recoveredQueue.add(split.remainder());
         trackedPosition = split.single();
         singlePeelPositionId = trackedPosition.positionId();
-        listPurchasedStackInHand(client, now, "Single from retail batch " + lot.rootPositionId());
+        listPurchasedStackInHand(client, now, "single from retail batch " + lot.rootPositionId());
         // The generic checkpoint follows the atomic split on the same writer queue.
         // Waiting for its generation also waits for both children and the parent close.
         return true;
@@ -8227,7 +8227,7 @@ public final class AutomationSessionController {
             // from the player's own menu on the next pass.
             client.player.closeContainer();
             cursorStowClickTick = controllerTick;
-            detail = "Closing the open page before recovering the cursor";
+            detail = "closing the open page before recovering the cursor";
             return true;
         }
         if (carried.isEmpty()) {
@@ -8237,7 +8237,7 @@ public final class AutomationSessionController {
             } else if (client.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.setScreen(null);
             }
-            detail = "Waiting for recovered inventory to settle";
+            detail = "waiting for recovered inventory to settle";
             return true;
         }
         // Slots are resolved against the current menu on every click. Never
@@ -8314,7 +8314,7 @@ public final class AutomationSessionController {
             if (!bookCollectedStack(client, now, itemId, part.count(), unitPrice, part.cost(), true))
                 accepted = false;
         }
-        if (accepted) transition(State.SCANNING, "Collected batch queued for verified inventory listing");
+        if (accepted) transition(State.SCANNING, "collected batch queued for verified inventory listing");
         return accepted;
     }
 
@@ -8434,7 +8434,7 @@ public final class AutomationSessionController {
         if (queued) {
             recoveredQueue.add(collected);
             var checkpoint = checkpoint(sessionOpen, state.name(), collected, uncertainExposure,
-                    "Additional collected stack queued for listing");
+                    "additional collected stack queued for listing");
             long generation = lot == null ? persistence.submit(checkpoint)
                     : persistence.submitRetail(checkpoint, lot, null, null);
             if (generation <= 0) {
@@ -8444,7 +8444,7 @@ public final class AutomationSessionController {
             return true;
         }
         trackedPosition = collected;
-        listPurchasedStackInHand(client, now, "Collected from your bid");
+        listPurchasedStackInHand(client, now, "collected from your bid");
         return true;
     }
 
@@ -8567,7 +8567,7 @@ public final class AutomationSessionController {
         }
         if ((!pausedByPlayer || armed || (state != State.STOPPED && state != State.PAUSED)) || staffTransferHold || client == null || client.player == null
                 || client.level == null || now - isolatedOrderStarted > 10 * 60_000L) {
-            driver.abandon("Isolated order comparison interrupted");
+            driver.abandon("isolated order comparison interrupted");
             finishIsolatedOrderTest(false, "interrupted_or_timeout");
             return;
         }
@@ -8581,7 +8581,7 @@ public final class AutomationSessionController {
         if (isolatedOrderStage == 0) {
             if (!safeInventoryContext(client)) {
                 isolatedJob("waiting_inventory","own_orders_inventory_not_clear");
-                detail = "Read-only test waiting for a clear inventory screen";
+                detail = "read-only test waiting for a clear inventory screen";
                 closeStrayAuctionPage(client);
                 return;
             }
@@ -8637,7 +8637,7 @@ public final class AutomationSessionController {
                         dev.doughbay.fabric.DoughBayClient.account(),
                         dev.doughbay.fabric.DoughBayClient.hiveAccounts(), isolatedGuardsClear(),
                         peer -> { var control=dev.doughbay.fabric.DoughBayClient.hiveControl();
-                            return control!=null && control.post(peer,"ORDER_SOURCE_READ","Read-only comparison fresh-source request"); });
+                            return control!=null && control.post(peer,"ORDER_SOURCE_READ","read-only comparison fresh-source request"); });
                 if (source.equals("source_no_peer") || source.equals("source_write_failed")) {
                     finishIsolatedOrderTest(false,source);return;
                 }
@@ -8673,10 +8673,10 @@ public final class AutomationSessionController {
         var event = nextTerminal(AutomatedExecutionDriver.OperationIntent.ORDERS);
         if (event == null) {
             int pages = driver.ordersPagesRead();
-            detail = "Read-only community comparison: " + pages + "/" + driver.ordersPagesWanted()
+            detail = "read-only community comparison: " + pages + "/" + driver.ordersPagesWanted()
                     + " pages; trading stopped";
             if (ordersReadWatchdog.stalled(now, driver.commandPending(), driver.lastCommandSentAt(), pages)) {
-                driver.abandon("Isolated order read stalled");
+                driver.abandon("isolated order read stalled");
                 finishIsolatedOrderTest(false, "full_read_stalled");
             }
             return;
@@ -8876,7 +8876,7 @@ public final class AutomationSessionController {
                 && pausedByPlayer && !armed && isolatedOrderRetry.interrupted(System.currentTimeMillis());
         if (retry) isolatedJob("waiting_guard","guard_interrupted_read");
         else { isolatedOrderRetry.cancel(); isolatedJob(succeeded?"completed":"failed",reason); }
-        detail = "Read-only comparison " + (retry ? "queued for safe retry: " : succeeded ? "finished: " : "stopped: ")
+        detail = "read-only comparison " + (retry ? "queued for safe retry: " : succeeded ? "finished: " : "stopped: ")
                 + reason + "; trading remains paused";
         LOGGER.info("GoNuts isolated order test: {}; actions dispatched=false; trading remains stopped", reason);
     }
@@ -9058,7 +9058,7 @@ public final class AutomationSessionController {
         if (closeStrayAuctionPage(client)) return true;
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the Tally screen to read the order house";
+            detail = "closing the tally screen to read the order house";
             return true;
         }
         if (!safeInventoryContext(client)) return false;
@@ -9070,7 +9070,7 @@ public final class AutomationSessionController {
         ExecutionResult result = driver.scanOrders(pages);
         if (!result.ok()) {
             nextOrdersReadAt = now + 60_000;
-            detail = "Order house read could not start: " + result.detail();
+            detail = "order house read could not start: " + result.detail();
             return false;
         }
         dev.doughbay.fabric.hosted.CommunityClient.INSTANCE.finishOrderShadow(communityOrderShadowCycle,List.of(),false,now);communityOrderShadowCycle=0;
@@ -9129,7 +9129,7 @@ public final class AutomationSessionController {
                 LOGGER.info("DoughBay automation: order-house read made no page progress for {}s"
                                 + " (stuck at {} page(s)); abandoning to recover",
                         OrderReadWatchdog.STALL_MILLIS / 1000, pages);
-                driver.abandon("Order-house read stalled (navigation click dropped)");
+                driver.abandon("order-house read stalled (navigation click dropped)");
             }
             return;
         }
@@ -9151,7 +9151,7 @@ public final class AutomationSessionController {
                     row.parts(), row.unitPrice(), row.delivered(), row.total(), row.page()));
         }
         int pages = orders.stream().mapToInt(dev.doughbay.fabric.OrderBook.Order::page).max().orElse(0);
-        // "Full" is what the sweep set out to be; complete is whether it got
+        // "full" is what the sweep set out to be; complete is whether it got
         // there. Only a sweep that reached the end of the book may retire the
         // orders it did not see - a two-page read that gave up is a partial.
         boolean complete = ordersReadWasFull && driver.lastOrdersSweepComplete();
@@ -9178,7 +9178,7 @@ public final class AutomationSessionController {
                 || dev.doughbay.fabric.Tuning.get("orders.collect") >= 0.5;
         LOGGER.info("DoughBay automation: order house {}: {} order(s) on {} page(s)",
                 ordersReadWasFull ? "swept" : "read", orders.size(), pages);
-        transition(State.SCANNING, "Order house read: " + orders.size() + " order(s); scanning");
+        transition(State.SCANNING, "order house read: " + orders.size() + " order(s); scanning");
     }
 
     /** Called on the controller thread after recording the live read. Never dispatches an action.
@@ -9270,7 +9270,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the Tally screen to check auction slots";
+            detail = "closing the tally screen to check auction slots";
             return true;
         }
         if (!safeInventoryContext(client)) {
@@ -9396,7 +9396,7 @@ public final class AutomationSessionController {
                 Position adopted = withTargetPrice(listed, row.displayedPrice());
                 openListings.replaceAll(p -> p.positionId() == listed.positionId() ? adopted : p);
                 persistence.submit(checkpoint(sessionOpen, state.name(), adopted,
-                        uncertainExposure, "Adopted hand-relisted price " + row.displayedPrice()));
+                        uncertainExposure, "adopted hand-relisted price " + row.displayedPrice()));
                 LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) is up at {} (was {}); adopted",
                         listed.positionId(), listed.itemKey(), listed.quantity(),
                         row.displayedPrice(), listed.targetPrice());
@@ -9454,7 +9454,7 @@ public final class AutomationSessionController {
                 // purchase path already does when a stack merges.
                 Position closed = was.closed(PositionStatus.CANCELLED, now, 0, Double.NaN);
                 persistence.submit(checkpoint(sessionOpen, state.name(), closed, uncertainExposure,
-                        "Superseded: the page shows x" + row.count() + " at " + row.displayedPrice()));
+                        "superseded: the page shows x" + row.count() + " at " + row.displayedPrice()));
                 Position fixed = new Position(allocatePositionId(), was.mode(), was.itemKey(),
                         StackBucket.of(row.count()), row.count(), was.purchasePrice(), row.displayedPrice(),
                         was.purchasedAt(), was.listedAt() > 0 ? was.listedAt() : now, 0, 0,
@@ -9462,7 +9462,7 @@ public final class AutomationSessionController {
                 openListings.removeIf(p -> p.positionId() == was.positionId());
                 openListings.add(fixed);
                 persistence.submit(checkpoint(sessionOpen, state.name(), fixed, uncertainExposure,
-                        "Resized to the " + row.count() + " actually on the page at " + row.displayedPrice()));
+                        "resized to the " + row.count() + " actually on the page at " + row.displayedPrice()));
                 LOGGER.info("DoughBay automation: parked listing #{} recorded as {} x{} at {} is really x{} at {}; "
                                 + "reopened as #{} rather than losing both sides of it",
                         was.positionId(), was.itemKey(), was.quantity(), was.targetPrice(),
@@ -9499,7 +9499,7 @@ public final class AutomationSessionController {
                     Position rekeyed = withItemKey(listed, actual);
                     openListings.replaceAll(p -> p.positionId() == listed.positionId() ? rekeyed : p);
                     persistence.submit(checkpoint(sessionOpen, state.name(), rekeyed,
-                            uncertainExposure, "Re-keyed to the box in the inventory " + actual));
+                            uncertainExposure, "re-keyed to the box in the inventory " + actual));
                     inHandCorroborated = true;
                     LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) is missing from the page; the only unclaimed box in the inventory is {}; re-keyed, will relist",
                             listed.positionId(), listed.itemKey(), listed.quantity(), actual);
@@ -9535,7 +9535,7 @@ public final class AutomationSessionController {
             openListings.add(back);
             committedSpend = Math.addExact(committedSpend, back.purchasePrice());
             persistence.submit(checkpoint(sessionOpen, state.name(), back, uncertainExposure,
-                    "Re-adopted: still on the page after being booked as returned"));
+                    "re-adopted: still on the page after being booked as returned"));
             LOGGER.info("DoughBay automation: #{} ({} x{}) was booked as returned but is still up at {}; re-adopted",
                     back.positionId(), back.itemKey(), back.quantity(), row.displayedPrice());
             it.remove();
@@ -9792,7 +9792,7 @@ public final class AutomationSessionController {
         openListings.removeIf(p -> p.positionId() == listed.positionId());
         committedSpend = Math.max(0, committedSpend - listed.purchasePrice());
         persistence.submit(checkpoint(sessionOpen, state.name(), returned,
-                uncertainExposure, "Parked listing missing and unpaid: returned to the player"));
+                uncertainExposure, "parked listing missing and unpaid: returned to the player"));
         LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) is missing from the page but the balance shows no sale of {}; booked as returned to you, not sold",
                 listed.positionId(), listed.itemKey(), listed.quantity(), listed.targetPrice());
     }
@@ -9808,7 +9808,7 @@ public final class AutomationSessionController {
         Position sold = listed.closed(PositionStatus.SOLD, now, salePrice, profit);
         openListings.removeIf(p -> p.positionId() == listed.positionId());
         committedSpend = Math.max(0, committedSpend - listed.purchasePrice());
-        persistence.submit(parkedSaleCheckpoint(sold, "Parked listing sold while offline: " + salePrice));
+        persistence.submit(parkedSaleCheckpoint(sold, "parked listing sold while offline: " + salePrice));
         LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) sold while offline for {} (profit {})",
                 listed.positionId(), listed.itemKey(), listed.quantity(), salePrice, Math.round(profit));
     }
@@ -9858,7 +9858,7 @@ public final class AutomationSessionController {
             // cannot collide, so the pull-back relist can no longer stall it.
             Position closedListing = listed.closed(PositionStatus.CANCELLED, now, 0, Double.NaN);
             persistence.submit(checkpoint(sessionOpen, state.name(), closedListing, uncertainExposure,
-                    "Pulled-back listing superseded by the stack in hand"));
+                    "pulled-back listing superseded by the stack in hand"));
             trackedPosition = new Position(allocatePositionId(), listed.mode(), listed.itemKey(), listed.bucket(),
                     listed.quantity(), listed.purchasePrice(), listed.targetPrice(), listed.purchasedAt(),
                     0, 0, 0, Double.NaN, PositionStatus.PURCHASED);
@@ -9931,15 +9931,15 @@ public final class AutomationSessionController {
             double net = auctionFees.netSale(target);
             positionValuation = new Opportunity(own, placeholder, receipt.price(), target,
                     net - receipt.price(), (net - receipt.price()) / Math.max(1, receipt.price()) * 100.0,
-                    0, 1.0, 1.0, 0, List.of("Unlisted purchase found in the inventory"));
+                    0, 1.0, 1.0, 0, List.of("unlisted purchase found in the inventory"));
             pendingOpportunity = null;
             purchasePersistenceGeneration = persistence.submit(checkpoint(
                     true, State.PREPARING_LIST.name(), trackedPosition,
                     AutomationUncertainExposure.none(),
-                    "Unlisted purchase listed from receipt: " + receipt.itemName()));
+                    "unlisted purchase listed from receipt: " + receipt.itemName()));
             if (purchasePersistenceGeneration <= 0) {
                 trackedPosition = null;
-                pauseInternal("Unlisted purchase could not be queued for persistence");
+                pauseInternal("unlisted purchase could not be queued for persistence");
                 return true;
             }
             clearCoverageEvidence();
@@ -9955,7 +9955,7 @@ public final class AutomationSessionController {
             listNotBeforeMillis = now + 1000;
             LOGGER.info("DoughBay automation: unlisted purchase {} x{} (receipt {}) found in the inventory; listing at {}",
                     foundId, receipt.count(), receipt.price(), target);
-            transition(State.PREPARING_LIST, "Listing an unlisted purchase: " + baseItemId(foundId)
+            transition(State.PREPARING_LIST, "listing an unlisted purchase: " + baseItemId(foundId)
                     + " x" + receipt.count() + " bought at " + receipt.price());
             return true;
         }
@@ -10204,7 +10204,7 @@ public final class AutomationSessionController {
 
     private boolean startRepriceIfDue(Minecraft client, long now) {
         if (dev.doughbay.fabric.ServerStrain.holding()) {
-            detail = "Holding the pull-backs: " + dev.doughbay.fabric.ServerStrain.describe();
+            detail = "holding the pull-backs: " + dev.doughbay.fabric.ServerStrain.describe();
             return false;
         }
         if (openListings.isEmpty()) return false;
@@ -10217,7 +10217,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the Tally screen to reprice a listing";
+            detail = "closing the tally screen to reprice a listing";
             return true;
         }
         if (!safeInventoryContext(client)) {
@@ -10232,7 +10232,7 @@ public final class AutomationSessionController {
         }
         String itemId = baseItemId(due.itemKey());
         if (inventoryContainsItem(client, itemId)) {
-            detail = "Cannot reprice " + itemId + " while the inventory already holds some";
+            detail = "cannot reprice " + itemId + " while the inventory already holds some";
             repriceAttemptedAt.put(due.positionId(), now);
             return false;
         }
@@ -10242,7 +10242,7 @@ public final class AutomationSessionController {
         awaitedTerminalSequence = driver.lastTerminalEvent().sequence();
         ExecutionResult result = driver.cancelOwnListing(itemId, due.quantity(), due.targetPrice());
         if (!result.ok()) {
-            detail = "Reprice could not start: " + result.detail();
+            detail = "reprice could not start: " + result.detail();
             return false;
         }
         stockFlow.repriceStarted();
@@ -10326,7 +10326,7 @@ public final class AutomationSessionController {
             repricing = null;
             transition(State.SCANNING, missingListing
                     ? "Listing no longer visible; checking the auction book before repricing"
-                    : "Pull-back did not complete (" + event.detail() + "); listing state remains unverified");
+                    : "pull-back did not complete (" + event.detail() + "); listing state remains unverified");
             return;
         }
         repricingArrived = true;
@@ -10497,7 +10497,7 @@ public final class AutomationSessionController {
         shelvedAtLastRun = shelved.size();
         LOGGER.info("DoughBay shelf: carrying {} stack(s) that belong on the shelf; going to put them away",
                 shelved.size());
-        detail = "Putting " + shelved.size() + " stack(s) away on the shelf";
+        detail = "putting " + shelved.size() + " stack(s) away on the shelf";
         return true;
     }
 
@@ -10649,7 +10649,7 @@ public final class AutomationSessionController {
             }
             repricingArrived = false;
             repricing = null;
-            pauseInternal("Pulled a listing back but no single new stack of " + itemId
+            pauseInternal("pulled a listing back but no single new stack of " + itemId
                     + " arrived; inspect the inventory");
             return;
         }
@@ -10675,16 +10675,16 @@ public final class AutomationSessionController {
         positionValuation = new Opportunity(own, stats, listed.purchasePrice(), repricingNewPrice,
                 net - listed.purchasePrice(),
                 (net - listed.purchasePrice()) / Math.max(1, listed.purchasePrice()) * 100.0,
-                0, 1.0, 1.0, 0, List.of("Repriced after sitting unsold"));
+                0, 1.0, 1.0, 0, List.of("repriced after sitting unsold"));
         pendingOpportunity = null;
         buyIntentCoverageBoundaryMillis = 0;
         purchasePersistenceGeneration = persistence.submit(checkpoint(
                 true, State.PREPARING_LIST.name(), trackedPosition,
                 AutomationUncertainExposure.none(),
-                "Repricing parked listing from " + listed.targetPrice() + " to " + repricingNewPrice));
+                "repricing parked listing from " + listed.targetPrice() + " to " + repricingNewPrice));
         if (purchasePersistenceGeneration <= 0) {
             trackedPosition = null;
-            pauseInternal("Repriced position could not be queued for persistence");
+            pauseInternal("repriced position could not be queued for persistence");
             return;
         }
         clearCoverageEvidence();
@@ -10733,7 +10733,7 @@ public final class AutomationSessionController {
         }
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the Tally screen to begin watching";
+            detail = "closing the tally screen to begin watching";
             return;
         }
         if (!safeInventoryContext(client)) {
@@ -10742,7 +10742,7 @@ public final class AutomationSessionController {
         }
         Inventory inventory = client.player.getInventory();
         switch (ensureReservedSlotFree(client)) {
-            case CLEARING -> { detail = "Moving a stray item out of the reserved listing slot"; return; }
+            case CLEARING -> { detail = "moving a stray item out of the reserved listing slot"; return; }
             case STUCK -> {
                 if (sellWhenPackIsFull(client, System.currentTimeMillis())) return;
                 pauseInternal(reservedSlotBlocked(inventory));
@@ -10766,7 +10766,7 @@ public final class AutomationSessionController {
             watchBuy = false;
             watchCandidates = List.of();
             clearPendingCandidate();
-            detail = "No watched market clears a purchase price any more";
+            detail = "no watched market clears a purchase price any more";
             return;
         }
         targetAbsentBeforeBuy = true;
@@ -10823,7 +10823,7 @@ public final class AutomationSessionController {
                     releaseUnclickedWatchExposure();
                     persistence.submit(checkpoint(true, State.SCANNING.name(), null,
                             AutomationUncertainExposure.none(),
-                            "Watch intent released: inventory changed before any command"));
+                            "watch intent released: inventory changed before any command"));
                     buyIntentPersistenceGeneration = 0;
                     buyCommandStarted = false;
                     transition(State.SCANNING,
@@ -10873,7 +10873,7 @@ public final class AutomationSessionController {
                 }
                 ExecutionResult result = driver.watchRecentListings(targets, 24, sweepTerm, sweepPages);
                 if (!result.ok()) {
-                    pauseInternal("Watch could not start after durable intent: " + result.detail());
+                    pauseInternal("watch could not start after durable intent: " + result.detail());
                     return;
                 }
                 buyCommandStarted = true;
@@ -10905,7 +10905,7 @@ public final class AutomationSessionController {
                     pendingOpportunity.listing().itemId(), buyCeiling,
                     pendingOpportunity.listing().itemCount(), 8);
             if (!result.ok()) {
-                pauseInternal("Buy could not start after durable intent: " + result.detail());
+                pauseInternal("buy could not start after durable intent: " + result.detail());
                 return;
             }
             buyCommandStarted = true;
@@ -10927,7 +10927,7 @@ public final class AutomationSessionController {
                         if (o.listing().itemId().equals(clicked)) {
                             uncertainExposure = uncertainBuy(o, ceilingFor(o), now);
                             persistence.submit(checkpoint(true, "BUY_INTENT", null, uncertainExposure,
-                                    "Watch clicked " + clicked + "; exposure updated"));
+                                    "watch clicked " + clicked + "; exposure updated"));
                             matched = true;
                             break;
                         }
@@ -10937,14 +10937,14 @@ public final class AutomationSessionController {
                         if (box != null) {
                             uncertainExposure = uncertainBuy(box, box.buyPrice(), now);
                             persistence.submit(checkpoint(true, "BUY_INTENT", null, uncertainExposure,
-                                    "Watch clicked box " + clicked + "; exposure updated"));
+                                    "watch clicked box " + clicked + "; exposure updated"));
                         }
                     }
                 }
                 return;
             }
             if (!matchesPendingBuy(event)) {
-                pauseInternal("Unexpected or mismatched BUY terminal event");
+                pauseInternal("unexpected or mismatched BUY terminal event");
                 return;
             }
             if (event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
@@ -10952,7 +10952,7 @@ public final class AutomationSessionController {
                     abandonBuyAndRescan(event.detail());
                     return;
                 }
-                pauseInternal("Buy did not complete: " + event.detail());
+                pauseInternal("buy did not complete: " + event.detail());
                 return;
             }
             if (!event.confirmationSubmitted()) {
@@ -10960,7 +10960,7 @@ public final class AutomationSessionController {
                 return;
             }
             if (event.price() <= 0 || event.price() > buyCeiling) {
-                pauseInternal("Verified purchase price " + event.price()
+                pauseInternal("verified purchase price " + event.price()
                         + " is outside the " + buyCeiling + " ceiling; inspect before continuing");
                 return;
             }
@@ -11036,12 +11036,12 @@ public final class AutomationSessionController {
         purchasePersistenceGeneration = persistence.submit(checkpoint(
                 true, State.PREPARING_LIST.name(), trackedPosition,
                 AutomationUncertainExposure.none(),
-                "Verified purchase and conservative session caps"));
+                "verified purchase and conservative session caps"));
         if (purchasePersistenceGeneration <= 0) {
             // The durable pre-command BUY intent remains the sole recovery
             // identity; do not present an unpersisted Position as a second one.
             trackedPosition = null;
-            pauseInternal("Verified purchase could not be queued for persistence");
+            pauseInternal("verified purchase could not be queued for persistence");
             return;
         }
         clearCoverageEvidence();
@@ -11093,7 +11093,7 @@ public final class AutomationSessionController {
         if (now < prepareNotBeforeMillis) {
             // A swap sent while the server is reopening its page is dropped
             // server-side, and the stack silently stays where it was.
-            detail = "Letting the auction house settle before moving the stack";
+            detail = "letting the auction house settle before moving the stack";
             return;
         }
 
@@ -11104,7 +11104,7 @@ public final class AutomationSessionController {
         if (!preListMarketVerified) {
             String snapshotBlocker = liveSnapshotBlocker(marketSnapshot, now);
             if (snapshotBlocker != null) {
-                detail = "Waiting for post-purchase completed-sale data: " + snapshotBlocker;
+                detail = "waiting for post-purchase completed-sale data: " + snapshotBlocker;
                 return;
             }
             // No exact-book gate before listing. The API's active rows lag by
@@ -11181,7 +11181,7 @@ public final class AutomationSessionController {
             preListMarketVerified = true;
             preListVerifiedScanStartedAt = now;
             preListValuationCalculatedAt = latestStats.calculatedAt();
-            reconciliationStatus = "Resale target " + trackedPosition.targetPrice()
+            reconciliationStatus = "resale target " + trackedPosition.targetPrice()
                     + " set from completed sales; listing";
         }
 
@@ -11201,14 +11201,14 @@ public final class AutomationSessionController {
                     LOGGER.info("DoughBay automation: live price check skipped: {}", probe.detail());
                 } else {
                     probeStarted = true;
-                    detail = "Checking the cheapest live ask before listing";
+                    detail = "checking the cheapest live ask before listing";
                     return;
                 }
             } else {
                 AutomatedExecutionDriver.TerminalEvent event = nextTerminal(
                         AutomatedExecutionDriver.OperationIntent.PROBE);
                 if (event == null) {
-                    detail = "Checking the cheapest live ask before listing";
+                    detail = "checking the cheapest live ask before listing";
                     return;
                 }
                 probeStarted = false;
@@ -11233,7 +11233,7 @@ public final class AutomationSessionController {
                                 baseItemId(trackedPosition.itemKey()), trackedPosition.quantity(),
                                 event.price(), target, trackedPosition.targetPrice(), floor);
                         trackedPosition = withTargetPrice(trackedPosition, target);
-                        reconciliationStatus = "Undercutting the median live ask " + event.price()
+                        reconciliationStatus = "undercutting the median live ask " + event.price()
                                 + ": listing at " + target;
                     }
                 }
@@ -11258,12 +11258,12 @@ public final class AutomationSessionController {
                 Screen open = client.screen;
                 if (open instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                     client.player.closeContainer();
-                    detail = "Closing the auction page before preparing the stack";
+                    detail = "closing the auction page before preparing the stack";
                     return;
                 }
                 if (open instanceof DoughBayScreen) {
                     client.setScreen(null);
-                    detail = "Closing the Tally screen before preparing the stack";
+                    detail = "closing the tally screen before preparing the stack";
                     return;
                 }
                 if (open == null && client.player.containerMenu != client.player.inventoryMenu) {
@@ -11271,7 +11271,7 @@ public final class AutomationSessionController {
                     // container open (the player's own screen was up when the
                     // pull-back finished). Close it ourselves; nobody else can.
                     client.player.closeContainer();
-                    detail = "Closing the auction container the server left open";
+                    detail = "closing the auction container the server left open";
                     return;
                 }
             }
@@ -11301,7 +11301,7 @@ public final class AutomationSessionController {
                 }
             }
             if (source < 0) {
-                pauseInternal("Purchased stack is missing or has unexpected components");
+                pauseInternal("purchased stack is missing or has unexpected components");
                 return;
             }
             // With an identical copy elsewhere, the verified arrival slot is the one to take.
@@ -11311,7 +11311,7 @@ public final class AutomationSessionController {
                 source = purchasedInventorySlot;
             }
             if (source != purchasedInventorySlot) {
-                pauseInternal("Purchased stack moved from its verified arrival slot");
+                pauseInternal("purchased stack moved from its verified arrival slot");
                 return;
             }
             originalSelectedSlot = inventory.getSelectedSlot();
@@ -11328,7 +11328,7 @@ public final class AutomationSessionController {
                 }
                 int menuSlot = inventoryMenuSlot(client, source);
                 if (menuSlot < 0) {
-                    pauseInternal("Could not bind the purchased stack to an inventory-menu slot");
+                    pauseInternal("could not bind the purchased stack to an inventory-menu slot");
                     return;
                 }
                 try {
@@ -11345,11 +11345,11 @@ public final class AutomationSessionController {
                 }
             }
             if (!setSelectedSlot(client, reserved)) {
-                pauseInternal("Could not synchronize the reserved selected slot");
+                pauseInternal("could not synchronize the reserved selected slot");
                 return;
             }
             swapIssuedAtTick = controllerTick;
-            detail = "Verifying the reserved exact stack before /ah sell";
+            detail = "verifying the reserved exact stack before /ah sell";
             return;
         }
 
@@ -11432,7 +11432,7 @@ public final class AutomationSessionController {
                     : !atSource.isEmpty() && itemId(atSource).equals(itemId(displacedFromReserved))
                             && atSource.getCount() == displacedFromReserved.getCount();
             if (!asExpected) {
-                pauseInternal("Source slot changed during exact-stack preparation");
+                pauseInternal("source slot changed during exact-stack preparation");
                 return;
             }
         }
@@ -11461,7 +11461,7 @@ public final class AutomationSessionController {
         listingInventoryVerified = false;
         listInventoryProofAtMillis = 0;
         listingReconciliationStartedAt = now;
-        reconciliationStatus = "Pre-list snapshot proved zero exact own listings";
+        reconciliationStatus = "pre-list snapshot proved zero exact own listings";
         // Never list at more than three times what the stack cost. Every
         // listing passes here, so one bad valuation cannot strand stock: two
         // joke asks of 43M and 44M for 64 experience bottles got into the
@@ -11488,7 +11488,7 @@ public final class AutomationSessionController {
         listIntentWaitSinceMillis = 0;
         listIntentPersistenceGeneration = persistence.submit(checkpoint(
                 true, "LIST_INTENT", trackedPosition, uncertainExposure,
-                "Exact LIST intent queued before /ah sell"));
+                "exact LIST intent queued before /ah sell"));
         if (listIntentPersistenceGeneration <= 0) {
             pauseInternal("LIST intent could not be queued durably; no command was sent");
             return;
@@ -11532,7 +11532,7 @@ public final class AutomationSessionController {
                 LOGGER.info("DoughBay automation: listing despite a stale market feed ({})", marketBlocker);
             }
             if (now < listNotBeforeMillis) {
-                detail = "Letting the auction house settle before /ah sell";
+                detail = "letting the auction house settle before /ah sell";
                 return;
             }
             // The server reopens the auction page on its own a moment after
@@ -11541,7 +11541,7 @@ public final class AutomationSessionController {
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.player.closeContainer();
                 listNotBeforeMillis = now + 600;
-                detail = "Closing the auction page before /ah sell";
+                detail = "closing the auction page before /ah sell";
                 return;
             }
             // No exact-book gate before the sell command. The target was set
@@ -11567,7 +11567,7 @@ public final class AutomationSessionController {
                     LOGGER.info("DoughBay automation: delivering #{} ({} x{}) to an order paying {} each ({} total, listing target {})",
                             trackedPosition.positionId(), trackedPosition.itemKey(), trackedPosition.quantity(),
                             order.unitPrice(), order.unitPrice() * trackedPosition.quantity(), trackedPosition.targetPrice());
-                    detail = "Delivering to an order paying " + order.unitPrice() + " each";
+                    detail = "delivering to an order paying " + order.unitPrice() + " each";
                     return;
                 }
                 LOGGER.info("DoughBay automation: delivery could not start ({}); listing instead", delivery.detail());
@@ -11587,7 +11587,7 @@ public final class AutomationSessionController {
             ExecutionResult result = driver.list(
                     trackedPosition, trackedPosition.targetPrice());
             if (!result.ok()) {
-                pauseInternal("Listing could not start after durable intent: " + result.detail());
+                pauseInternal("listing could not start after durable intent: " + result.detail());
                 return;
             }
             listCommandStarted = true;
@@ -11617,7 +11617,7 @@ public final class AutomationSessionController {
                     instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>) {
                 client.player.closeContainer();
             }
-            detail = "Delivery did not complete (" + event.detail() + "); listing instead";
+            detail = "delivery did not complete (" + event.detail() + "); listing instead";
             return;
         }
         if (!listTerminalSucceeded) {
@@ -11626,7 +11626,7 @@ public final class AutomationSessionController {
             if (event == null) return;
             if (!matchesTrackedList(event)) {
                 restoreSelectedSlot(client);
-                pauseInternal("Unexpected or mismatched LIST terminal event");
+                pauseInternal("unexpected or mismatched LIST terminal event");
                 return;
             }
             if (event.outcome() != AutomatedExecutionDriver.TerminalOutcome.SUCCEEDED) {
@@ -11660,7 +11660,7 @@ public final class AutomationSessionController {
                     }
                     LOGGER.info("DoughBay automation: sell command did not list ({}); retry {} of {}",
                             event.detail(), listRetries, LIST_MAX_RETRIES);
-                    detail = "Sell command did not list (" + event.detail() + "); retrying";
+                    detail = "sell command did not list (" + event.detail() + "); retrying";
                     return;
                 }
                 // Retries exhausted with nothing listed. The stack is still ours
@@ -11715,26 +11715,26 @@ public final class AutomationSessionController {
         }
         String blocker = liveSnapshotBlocker(marketSnapshot, now);
         if (blocker != null) {
-            detail = "Waiting to reconcile LIST against a healthy feed: " + blocker;
+            detail = "waiting to reconcile LIST against a healthy feed: " + blocker;
             return;
         }
         CoverageRequest request = coverageRequest();
         String coverageBlocker = exactCoverageBlocker(
                 marketSnapshot.exactListingCoverage(), request, now);
         if (coverageBlocker != null) {
-            detail = "Waiting for post-LIST exact coverage: " + coverageBlocker;
+            detail = "waiting for post-LIST exact coverage: " + coverageBlocker;
             return;
         }
         ActiveBookEvidence.Analysis book = activeBookEvidence.analyze(
                 request.itemId(), marketSnapshot.exactListingCoverage().listings());
         if (!book.valid()) {
-            pauseInternal("Post-LIST exact coverage is internally ambiguous: " + book.detail());
+            pauseInternal("post-LIST exact coverage is internally ambiguous: " + book.detail());
             return;
         }
         ActiveListingReconciler.Reconciliation afterList = reconcileOwnTarget(
                 client, book.listings(), trackedPosition);
         if (afterList.ambiguous()) {
-            pauseInternal("New own listing is ambiguous: " + afterList.detail());
+            pauseInternal("new own listing is ambiguous: " + afterList.detail());
             return;
         }
         if (afterList.uniqueOwn().isPresent()) {
@@ -11781,14 +11781,14 @@ public final class AutomationSessionController {
         listedPersistenceGeneration = persistence.submit(checkpoint(
                 true, State.MONITORING.name(), trackedPosition,
                 AutomationUncertainExposure.none(),
-                "Verified LIST bound to exact active listing"));
+                "verified LIST bound to exact active listing"));
         if (listedPersistenceGeneration <= 0) {
-            pauseInternal("Verified LISTED position could not be queued for persistence");
+            pauseInternal("verified LISTED position could not be queued for persistence");
             return;
         }
         clearPreparationState();
         if (bufferedSaleNotice == null) {
-            reconciliationStatus = "Bound one exact own active listing: " + listingKey;
+            reconciliationStatus = "bound one exact own active listing: " + listingKey;
             transition(State.MONITORING,
                     "Listing bound; waiting for durable LISTED checkpoint");
         } else {
@@ -11812,14 +11812,14 @@ public final class AutomationSessionController {
         }
         String blocker = liveSnapshotBlocker(marketSnapshot, now);
         if (blocker != null) {
-            detail = "Waiting to reconcile sale against a healthy feed: " + blocker;
+            detail = "waiting to reconcile sale against a healthy feed: " + blocker;
             return;
         }
         CoverageRequest request = coverageRequest();
         String coverageBlocker = exactCoverageBlocker(
                 marketSnapshot.exactListingCoverage(), request, now);
         if (coverageBlocker != null) {
-            detail = "Waiting for post-sale exact coverage: " + coverageBlocker;
+            detail = "waiting for post-sale exact coverage: " + coverageBlocker;
             return;
         }
         ActiveBookEvidence.Analysis book = activeBookEvidence.analyze(
@@ -12141,7 +12141,7 @@ public final class AutomationSessionController {
 
     private String reservedSlotBlocked(Inventory inventory) {
         ItemStack held = inventory.getItem(policy.reservedHotbarSlot());
-        return "Hotbar slot " + (policy.reservedHotbarSlot() + 1) + " is reserved for listing but holds "
+        return "hotbar slot " + (policy.reservedHotbarSlot() + 1) + " is reserved for listing but holds "
                 + itemId(held).replace("minecraft:", "") + " x" + held.getCount()
                 + "; move it to another slot, then Resume";
     }
@@ -12427,7 +12427,7 @@ public final class AutomationSessionController {
                 && !dev.doughbay.fabric.Tuning.liquidating(heldId)) {
             setAsideItems.add(trackedPosition.itemKey());
             prepareRetries = 0;
-            pauseInternal("Owned purchase #" + trackedPosition.positionId()
+            pauseInternal("owned purchase #" + trackedPosition.positionId()
                     + " is not allowed by the current item filter; stock record and spending retained, no listing sent");
             return;
         }
@@ -12487,7 +12487,7 @@ public final class AutomationSessionController {
                 ? persistence.submitRetail(purchaseCheckpoint, retailLot, null, null)
                 : persistence.submit(purchaseCheckpoint);
         if (purchasePersistenceGeneration <= 0) {
-            pauseInternal("Purchase in hand could not be queued for persistence");
+            pauseInternal("purchase in hand could not be queued for persistence");
             return;
         }
         clearCoverageEvidence();
@@ -12509,7 +12509,7 @@ public final class AutomationSessionController {
         listNotBeforeMillis = now + (fastPace() ? FAST_LIST_SETTLE_MILLIS : 2000);
         LOGGER.info("DoughBay automation: {} x{} is in the inventory (bought at {}); listing it at {} ({})",
                 itemId, trackedPosition.quantity(), trackedPosition.purchasePrice(), target, why);
-        transition(State.PREPARING_LIST, "Listing the purchase in hand: " + itemId
+        transition(State.PREPARING_LIST, "listing the purchase in hand: " + itemId
                 + " x" + trackedPosition.quantity() + " at " + target);
     }
 
@@ -12562,7 +12562,7 @@ public final class AutomationSessionController {
         recoveredOpenPositions = List.of();
         LOGGER.info("DoughBay automation: BUY intent for {} found in the inventory; booked at {} and listing at {}",
                 itemKey, paid, target);
-        listPurchasedStackInHand(client, now, "Bought stack found in the inventory after a paused buy");
+        listPurchasedStackInHand(client, now, "bought stack found in the inventory after a paused buy");
     }
 
     /** Whether the only recovered exposure is a bought stack sitting in the inventory. */
@@ -12675,7 +12675,7 @@ public final class AutomationSessionController {
         if (closeStrayAuctionPage(client)) return;
         if (modScreenOpen(client)) {
             client.setScreen(null);
-            detail = "Closing the Tally screen to check your listings for the recovered purchase";
+            detail = "Closing the tally screen to check your listings for the recovered purchase";
             return;
         }
         if (!safeInventoryContext(client)) return;
@@ -12683,7 +12683,7 @@ public final class AutomationSessionController {
         recoveryAuditRetry.attempt(trackedPosition.positionId(), now);
         ExecutionResult result = driver.auditOwnListings();
         if (!result.ok()) {
-            detail = "Could not check your listings for the recovered purchase: " + result.detail();
+            detail = "could not check your listings for the recovered purchase: " + result.detail();
             return;
         }
         recoveryAuditPending = true;
@@ -12734,7 +12734,7 @@ public final class AutomationSessionController {
         LOGGER.warn("DoughBay automation: wrote off recovered purchase #{} ({} x{}, cost {}): {}",
                 p.positionId(), p.itemKey(), p.quantity(), p.purchasePrice(), reason);
         reconciliationStatus = recoveredExposureRemains()
-                ? "Recovered exposure is locked pending explicit reconciliation"
+                ? "recovered exposure is locked pending explicit reconciliation"
                 : "Recovered session caps retained; choose Resume or End session";
         detail = recoveredExposureRemains()
                 ? "PAUSED: recovered " + recoveredExposureCount()
@@ -12834,11 +12834,11 @@ public final class AutomationSessionController {
     /** Uses internal reconciliation without the operator-only force-reset paths or new spend caps. */
     public synchronized ExecutionResult resumeAfterRestart() {
         if (!restartRecoveryMayResume()) {
-            return ExecutionResult.refused("No internally paused running session is available");
+            return ExecutionResult.refused("no internally paused running session is available");
         }
-        if (serverRestarting()) return ExecutionResult.refused("The restart world is not verified yet");
+        if (serverRestarting()) return ExecutionResult.refused("the restart world is not verified yet");
         String blocked = persistenceStartBlocker();
-        if (blocked != null) return ExecutionResult.refused("Restart resume is waiting for persistence: " + blocked);
+        if (blocked != null) return ExecutionResult.refused("restart resume is waiting for persistence: " + blocked);
         autoResumeInternalPause(Minecraft.getInstance(), System.currentTimeMillis(), true);
         return state == State.PAUSED
                 ? ExecutionResult.refused("Waiting for safe inventory, exposure and server reconciliation")
@@ -12857,9 +12857,9 @@ public final class AutomationSessionController {
     public synchronized ExecutionResult resumeAfterEvasion() {
         if (!restartRecoveryMayResume()) {
             reportResumeGate("NO_RESUMABLE_SESSION",System.currentTimeMillis());
-            return ExecutionResult.refused("No internally paused running session is available");
+            return ExecutionResult.refused("no internally paused running session is available");
         }
-        if (serverRestarting()) {reportResumeGate("WORLD_RECOVERY_HOLD",System.currentTimeMillis());return ExecutionResult.refused("The restart world is not verified yet");}
+        if (serverRestarting()) {reportResumeGate("WORLD_RECOVERY_HOLD",System.currentTimeMillis());return ExecutionResult.refused("the restart world is not verified yet");}
         String blocked = persistenceStartBlocker();
         if (blocked != null) {reportResumeGate("PERSISTENCE_WAIT",System.currentTimeMillis());return ExecutionResult.refused("Evasion resume is waiting for persistence: " + blocked);}
         if (durableListedPauseMayResume()) {
@@ -12920,7 +12920,7 @@ public final class AutomationSessionController {
         if (now - stateChangedAtMillis >= INTERNAL_PAUSE_RESUME_MILLIS() && purchasedStackInHand(client)
                 && driver.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
                 && authorizationBlocker(client) == null) {
-            listPurchasedStackInHand(client, now, "Purchase still in the inventory after a pause");
+            listPurchasedStackInHand(client, now, "purchase still in the inventory after a pause");
             reportResumeGate("RETAINED_STOCK_RECOVERY",now);
             return;
         }
@@ -12954,7 +12954,7 @@ public final class AutomationSessionController {
         recoveredSession = false;
         pauseResumable = false;
         persistence.submit(checkpoint(true, State.SCANNING.name(), null,
-                AutomationUncertainExposure.none(), "Auto-resumed after an internal pause"));
+                AutomationUncertainExposure.none(), "auto-resumed after an internal pause"));
         transition(State.SCANNING, "Auto-resumed after an internal pause; scanning again");
     }
 
@@ -13384,10 +13384,10 @@ public final class AutomationSessionController {
     }
 
     private String persistenceStartBlocker() {
-        if (persistence == null) return "Automation persistence is unavailable";
+        if (persistence == null) return "automation persistence is unavailable";
         AutomationPersistencePort.Status status = persistence.status();
         if (!status.ready()) {
-            return "Automation recovery is not ready: " + status.loadState()
+            return "automation recovery is not ready: " + status.loadState()
                     + (status.detail().isBlank() ? "" : " â€” " + status.detail());
         }
         if (!recoveryApplied) {
@@ -13403,12 +13403,12 @@ public final class AutomationSessionController {
     }
 
     private String persistenceHealthBlocker() {
-        if (persistence == null) return "Automation persistence is unavailable";
+        if (persistence == null) return "automation persistence is unavailable";
         AutomationPersistencePort.Status status = persistence.status();
         if (status.refusalOutstanding()) return "A durable automation write was refused; reconcile or restart before resuming";
         if (status.ready() && !persistence.positionIdsAvailable()) return "Waiting for durable position ID lease";
         return status.ready() ? null
-                : "Automation persistence is " + status.loadState()
+                : "automation persistence is " + status.loadState()
                 + (status.detail().isBlank() ? "" : ": " + status.detail());
     }
 
@@ -13500,7 +13500,7 @@ public final class AutomationSessionController {
         verifiedBuyPrice = 0;
         buyIntentCoverageBoundaryMillis = 0;
         clearPendingCandidate();
-        transition(State.SCANNING, "No purchase: " + why + "; scanning again");
+        transition(State.SCANNING, "no purchase: " + why + "; scanning again");
     }
 
     private static AutomationUncertainExposure uncertainBuy(
@@ -13573,7 +13573,7 @@ public final class AutomationSessionController {
             return false;
         }
         if (recoveredExposureRemains()) {
-            detail = "Cannot end a session while unresolved exposure remains";
+            detail = "cannot end a session while unresolved exposure remains";
             return false;
         }
         if (persistence == null || !persistence.status().ready()) {
@@ -14013,7 +14013,7 @@ public final class AutomationSessionController {
         // The session spend cap bounds money out at once, not turnover: a
         // sale returns its purchase price to the budget so buying continues.
         committedSpend = Math.max(0, committedSpend - listed.purchasePrice());
-        persistence.submit(parkedSaleCheckpoint(sold, "Parked listing sold: " + salePrice));
+        persistence.submit(parkedSaleCheckpoint(sold, "parked listing sold: " + salePrice));
         LOGGER.info("DoughBay automation: parked listing #{} ({} x{}) sold for {} (profit {}); {} still open",
                 listed.positionId(), listed.itemKey(), listed.quantity(), salePrice,
                 Math.round(profit), openListings.size());
@@ -14027,7 +14027,7 @@ public final class AutomationSessionController {
                 dev.doughbay.fabric.DoughBayClient.account());
 
         reconciliationStatus = openListings.isEmpty()
-                ? "All parked listings sold"
+                ? "all parked listings sold"
                 : openListings.size() + " listing(s) still open";
     }
 
@@ -14270,7 +14270,7 @@ public final class AutomationSessionController {
                 && now - lastRuntimeHeartbeatNanos < RUNTIME_HEARTBEAT_NANOS) return;
         long generation = persistence.submit(checkpoint(
                 true, state.name(), trackedPosition, uncertainExposure,
-                "Periodic active-runtime checkpoint"));
+                "periodic active-runtime checkpoint"));
         if (generation > 0) {
             runtimePersistenceGeneration = generation;
             lastRuntimeHeartbeatNanos = now;

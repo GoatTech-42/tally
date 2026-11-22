@@ -254,7 +254,7 @@ public final class DoughBayConfig {
             dir = HiveSetup.resolve(FabricLoader.getInstance().getGameDir(),
                     FabricLoader.getInstance().getConfigDir().resolve("doughbay"),DoughBayClient.account());
         } catch (IOException e) {
-            throw new IllegalStateException("Tally hive folder is unavailable. Restore the shared folder before starting; no replacement ledger was created.", e);
+            throw new IllegalStateException("tally hive folder is unavailable. Restore the shared folder before starting; no replacement ledger was created.", e);
         }
         String key = "";
         boolean collect = true;
@@ -1042,13 +1042,13 @@ public final class DoughBayConfig {
                                            long maxPerSession, String joinedAddress) throws IOException {
         if (enabled) {
             if (maxPerTrade <= 0 || maxPerSession <= 0) {
-                throw new IllegalArgumentException("Set both spend limits above zero");
+                throw new IllegalArgumentException("set both spend limits above zero");
             }
             if (maxPerTrade > maxPerSession) {
-                throw new IllegalArgumentException("The per-trade limit can't be above the per-session limit");
+                throw new IllegalArgumentException("the per-trade limit can't be above the per-session limit");
             }
             if (maxPerSession > MAX_CONFIGURED_MONEY) {
-                throw new IllegalArgumentException("That spend limit is too large");
+                throw new IllegalArgumentException("that spend limit is too large");
             }
         }
         Files.createDirectories(directory);
@@ -1125,12 +1125,12 @@ public final class DoughBayConfig {
     public static void saveApiKey(Path directory, String key) throws IOException {
         String trimmed = key == null ? "" : key.strip();
         if (trimmed.length() > MAX_API_KEY_LENGTH) {
-            throw new IOException("That value is too long to be a Donut API key");
+            throw new IOException("that value is too long to be a Donut API key");
         }
         if (trimmed.chars().anyMatch(c -> c < 0x20 || c == 0x7F)) {
             // A pasted log line or file fragment would otherwise be written
             // verbatim and then fail much later as a confusing auth error.
-            throw new IOException("The key contains line breaks or control characters");
+            throw new IOException("the key contains line breaks or control characters");
         }
         Files.createDirectories(directory);
         Path secret = directory.resolve("secret.dat");

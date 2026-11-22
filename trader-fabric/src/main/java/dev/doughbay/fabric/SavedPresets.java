@@ -17,7 +17,7 @@ public final class SavedPresets {
     SavedPresets(Path directory) { this(directory,false); }
     SavedPresets(Path directory,boolean itemOnly) { this.itemOnly=itemOnly;file = directory.resolve(itemOnly?"item-loadouts.json":"saved-presets.json"); }
     static void load(Path directory) { current = new SavedPresets(directory);itemLoadouts=new SavedPresets(directory,true); }
-    static SavedPresets items(){if(itemLoadouts==null)throw new IllegalStateException("Item loadouts are not ready yet");return itemLoadouts;}
+    static SavedPresets items(){if(itemLoadouts==null)throw new IllegalStateException("item loadouts are not ready yet");return itemLoadouts;}
     static SavedPresets current() {
         if (current == null) throw new IllegalStateException("Presets are not ready yet");
         return current;
@@ -38,25 +38,25 @@ public final class SavedPresets {
                 throw new IOException("Invalid saved presets; existing file kept");
             result.add(entry);
         }
-        if (result.size() > 100) throw new IOException("Too many saved presets");
+        if (result.size() > 100) throw new IOException("too many saved presets");
         result.sort(Comparator.comparing(Entry::name, String.CASE_INSENSITIVE_ORDER));
         return List.copyOf(result);
     }
     private static void validate(String name, String code) throws IOException {
         if (name == null || name.isBlank() || name.length() > 48 || name.chars().anyMatch(Character::isISOControl))
-            throw new IOException("Use a preset name between 1 and 48 characters");
+            throw new IOException("use a preset name between 1 and 48 characters");
         if (code == null || !code.startsWith("DB1-") || code.length() > 32_000)
             throw new IOException("Could not capture this settings code");
     }
     public synchronized Entry save(String id, String name, String code) throws IOException {
         name = name == null ? "" : name.strip(); validate(name, code);
-        if(itemOnly&&!SettingsCode.isItemLoadout(code))throw new IOException("Save an item-only loadout here");
+        if(itemOnly&&!SettingsCode.isItemLoadout(code))throw new IOException("save an item-only loadout here");
         final String cleanName = name;
         return mutate(rows -> {
             Entry previous = id == null || id.isEmpty() ? null : rows.stream().filter(e -> e.id().equals(id)).findFirst().orElseThrow(() -> new IOException("Select an existing preset"));
             if (rows.stream().anyMatch(e -> e.name().equalsIgnoreCase(cleanName) && (previous == null || !e.id().equals(previous.id()))))
                 throw new IOException("That name is already used; choose another name");
-            if (previous == null && rows.size() >= 100) throw new IOException("You can save up to 100 presets");
+            if (previous == null && rows.size() >= 100) throw new IOException("you can save up to 100 presets");
             Entry entry = new Entry(previous == null ? UUID.randomUUID().toString() : previous.id(), cleanName, code, System.currentTimeMillis());
             if (previous != null) rows.remove(previous);
             rows.add(entry); return entry;

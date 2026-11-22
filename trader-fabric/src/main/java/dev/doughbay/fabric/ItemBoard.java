@@ -38,7 +38,7 @@ public final class ItemBoard {
 
     /** The stretch of time a board covers. */
     public enum Range {
-        TODAY("Today"), DAY("24 h"), WEEK("7 days"), ALL("All time");
+        TODAY("today"), DAY("24 h"), WEEK("7 days"), ALL("all time");
 
         public final String label;
 
@@ -54,7 +54,7 @@ public final class ItemBoard {
     /** What the rows are put in order by. */
     public enum Sort {
         PROFIT("Profit"), SALES("Sales"), PER_SALE("Per sale"), RETURN("Return"), SLOT_HOUR("Per slot-hour"),
-        SELLS_IN("Sells in"), WIN_RATE("Win rate"), TIED_UP("Tied up"), TREND("Trend");
+        SELLS_IN("sells in"), WIN_RATE("win rate"), TIED_UP("tied up"), TREND("trend");
 
         public final String label;
 

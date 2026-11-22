@@ -54,7 +54,7 @@ public final class MandatoryDiagnostics {
         var response=http.send(request,HttpResponse.BodyHandlers.ofInputStream());
         try(InputStream body=response.body()){
             CompletableFuture.delayedExecutor(10,TimeUnit.SECONDS).execute(()->{try{body.close();}catch(Exception ignored){}});
-            byte[] bytes=body.readNBytes(65_537);if(bytes.length>65_536)throw new IllegalArgumentException("Oversized diagnostic response");
+            byte[] bytes=body.readNBytes(65_537);if(bytes.length>65_536)throw new IllegalArgumentException("oversized diagnostic response");
             JsonNode data;try{data=DashboardProtocol.JSON.readTree(bytes);}catch(Exception invalid){data=DashboardProtocol.JSON.createObjectNode();}
             return new Reply(response.statusCode(),data==null?DashboardProtocol.JSON.createObjectNode():data);
         }
@@ -73,13 +73,13 @@ public final class MandatoryDiagnostics {
             var frame=outbox.batch(now,frameEvents);if(frame==null){state="Uploaded; no pending events";return;}
             outbox.sent(frame);var reply=request(uploadRequest(frame,credential));nextAttempt=now+5000;
             switch(reply.status){
-                case 200->{if(!outbox.acknowledge(reply.body))throw new IllegalArgumentException("Invalid diagnostic acknowledgement");acked+=reply.body.path("stored").asLong()+reply.body.path("duplicate").asLong();refused+=reply.body.path("refused").asLong();attempts=0;retryBlockedUntil=0;state=reply.body.path("quota").path("exhausted").asBoolean()?"Cloud quota reached; coverage gap recorded":"Uploading sanitized diagnostics";if(reply.body.path("quota").path("exhausted").asBoolean())retryBlockedUntil=nextAttempt=now+300_000;}
+                case 200->{if(!outbox.acknowledge(reply.body))throw new IllegalArgumentException("invalid diagnostic acknowledgement");acked+=reply.body.path("stored").asLong()+reply.body.path("duplicate").asLong();refused+=reply.body.path("refused").asLong();attempts=0;retryBlockedUntil=0;state=reply.body.path("quota").path("exhausted").asBoolean()?"Cloud quota reached; coverage gap recorded":"uploading sanitized diagnostics";if(reply.body.path("quota").path("exhausted").asBoolean())retryBlockedUntil=nextAttempt=now+300_000;}
                 case 400->{outbox.reject(frame);state="Invalid event frame removed; coverage gap recorded";}
-                case 413->{frameEvents=Math.max(1,frameEvents/2);state="Retrying a smaller diagnostic batch";}
+                case 413->{frameEvents=Math.max(1,frameEvents/2);state="retrying a smaller diagnostic batch";}
                 case 429,503->{retryBlockedUntil=nextAttempt=now+Math.max(5000,Math.min(3_600_000,reply.body.path("retryAfterMs").asLong(60_000)));state="Upload delayed; durable retry queued";}
                 case 401->{retryBlockedUntil=nextAttempt=now+300_000;state="Diagnostic credential refused; queued locally";}
                 case 409->{outbox.recoverConflict(frame);statusChecked=false;state="Diagnostic session repaired; durable events retained";}
-                default->throw new java.io.IOException("Diagnostic service unavailable");
+                default->throw new java.io.IOException("diagnostic service unavailable");
             }
         }catch(Exception failure){retryBlockedUntil=nextAttempt=now+Math.min(300_000,5000L<<Math.min(6,attempts++));state="Upload unavailable; durable retry queued";}
     }

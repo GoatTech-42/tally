@@ -697,7 +697,7 @@ public final class EvasionGuard {
             client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
             if (onlyFriendsAbout) {
                 DoughBayClient.LOGGER.info(
-                        "Tally evasion: the damage came from a friend and nobody else is about; carrying on");
+                        "tally evasion: the damage came from a friend and nobody else is about; carrying on");
             } else if (Tuning.get("evasion.on_damage") >= 0.5) {
                 if (running) session.pause("Evasion: took damage");
                 closeAnyScreen(client);
@@ -1312,7 +1312,7 @@ public final class EvasionGuard {
             leaveWanted = false;
             leftAt = System.currentTimeMillis();
             if (client.getConnection() != null) {
-                client.getConnection().getConnection().disconnect(Component.literal("Tally evasion"));
+                client.getConnection().getConnection().disconnect(Component.literal("tally evasion"));
             }
         } catch (RuntimeException e) {
             away = false;

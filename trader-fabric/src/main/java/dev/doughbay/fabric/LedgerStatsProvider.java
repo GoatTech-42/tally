@@ -25,7 +25,7 @@ public final class LedgerStatsProvider implements PerformanceStatsProvider {
     private volatile PerformanceStatsSnapshot real =
             PerformanceStatsSnapshot.empty(PerformanceStatsSnapshot.Mode.REAL, "Reading the ledger");
     private volatile PerformanceStatsSnapshot paper =
-            PerformanceStatsSnapshot.empty(PerformanceStatsSnapshot.Mode.PAPER, "No paper ledger");
+            PerformanceStatsSnapshot.empty(PerformanceStatsSnapshot.Mode.PAPER, "no paper ledger");
     private volatile long refreshedAt;
     record CapitalCache(Map<String,long[]> byAccount,long at,long unattributed) {
         CapitalBreakdown.Stock account(String name){
@@ -77,7 +77,7 @@ public final class LedgerStatsProvider implements PerformanceStatsProvider {
                 refresh();
             } catch (Throwable t) {
                 real = PerformanceStatsSnapshot.empty(PerformanceStatsSnapshot.Mode.REAL,
-                        "Ledger read failed: " + t);
+                        "ledger read failed: " + t);
             }
             try {
                 Thread.sleep(REFRESH_MILLIS);

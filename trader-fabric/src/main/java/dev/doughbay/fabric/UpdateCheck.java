@@ -540,9 +540,9 @@ public final class UpdateCheck {
             // An update went in since the last run: say so before anything about the next one.
             changedAnnounced = true;
             String open = DoughBayClient.openKeyName();
-            bannerTitle = "Tally has something new";
+            bannerTitle = "tally has something new";
             List<String> lines = new ArrayList<>(headlines(changed, BANNER_CHANGES));
-            lines.add(open.isEmpty() ? "Open Tally to see what changed" : "Press " + open + " to see what changed");
+            lines.add(open.isEmpty() ? "open tally to see what changed" : "press " + open + " to see what changed");
             bannerLines = List.copyOf(lines);
             bannerSince = now;
             return;
@@ -559,10 +559,10 @@ public final class UpdateCheck {
     /** Puts the banner up for {@code state}: what there is, and which key shows the rest. */
     private static void raise(State state, long now) {
         String open = DoughBayClient.openKeyName();
-        String more = open.isEmpty() ? "Open Tally for details" : "Press " + open + " for details";
-        bannerTitle = state == State.READY ? "Tally update downloaded" : "Tally update available";
+        String more = open.isEmpty() ? "open tally for details" : "press " + open + " for details";
+        bannerTitle = state == State.READY ? "tally update downloaded" : "tally update available";
         List<String> lines = new ArrayList<>();
-        if (state == State.READY) lines.add("Installs when you close the game, ready when you reopen it");
+        if (state == State.READY) lines.add("installs when you close the game, ready when you reopen it");
         lines.addAll(headlines(news, BANNER_CHANGES));
         lines.add(more);
         bannerLines = List.copyOf(lines);
@@ -662,25 +662,25 @@ public final class UpdateCheck {
     static Alert explain(State state, boolean auto, long uploadedAgoMillis) {
         String when = "It installs when you close the game and is ready when you open it again.";
         if (state == State.READY) {
-            return new Alert("A new Tally build is downloaded", List.of(
+            return new Alert("A new tally build is downloaded", List.of(
                     when,
                     "Nothing changes while the game is running, so there is no need to stop what you are doing."));
         }
         if (state == State.NO_RELEASE) {
             return new Alert("No Tally release yet", List.of(
-                    "Tally has not published a release. When one is out, this notice says so here."));
+                    "tally has not published a release. When one is out, this notice says so here."));
         }
         if (state != State.NEWER) {
-            return new Alert("Tally is up to date", List.of("There is nothing newer to install."));
+            return new Alert("Tally is up to date", List.of("there is nothing newer to install."));
         }
-        String out = "It was put up " + age(uploadedAgoMillis) + " ago. You are running an older one.";
+        String out = "it was put up " + age(uploadedAgoMillis) + " ago. You are running an older one.";
         if (auto) {
-            return new Alert("A new Tally build is out", List.of(
+            return new Alert("A new tally build is out", List.of(
                     out,
-                    "Auto-update is on and the new build is downloading now. " + when,
+                    "auto-update is on and the new build is downloading now. " + when,
                     "If the download does not finish, the download page has the same file."));
         }
-        return new Alert("A new Tally build is out", List.of(
+        return new Alert("A new tally build is out", List.of(
                 out,
                 "Turn on auto-update and it downloads now. " + when + " Every later build then arrives the same way.",
                 "Or do it by hand: close the game, download the jar, and replace the one in your mods folder."));

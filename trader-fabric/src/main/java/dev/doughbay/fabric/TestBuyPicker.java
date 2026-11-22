@@ -69,7 +69,7 @@ public final class TestBuyPicker {
                 .findFirst()
                 .orElseGet(() -> placeholderStats(listing, now));
         return new Opportunity(listing, stats, listing.totalPrice(), listing.totalPrice(),
-                0, 0, 0, 0, 0, 0, List.of("Manual test buy"));
+                0, 0, 0, 0, 0, 0, List.of("manual test buy"));
     }
 
     public static MarketStats placeholderStats(Listing listing, long now) {

@@ -9,7 +9,7 @@ final class CollectedStacks {
 
     static List<Part> split(int count, int maximumStack, long cost, long unitPrice) {
         if (count <= 0 || maximumStack <= 0 || maximumStack > 64 || cost <= 0)
-            throw new IllegalArgumentException("Invalid collected batch");
+            throw new IllegalArgumentException("invalid collected batch");
         long totalCost = Math.max(cost, CollectedCost.fullStack(count, unitPrice));
         var parts = new ArrayList<Part>();
         int left = count;

@@ -28,7 +28,7 @@ final class RetailOrderPlans {
                     if (bid <= 0 || target <= 0) throw new IllegalArgumentException();
                     read.put(key(fields[0], bid), target);
                 } catch (IllegalArgumentException e) {
-                    throw new IOException("Invalid retail order record", e);
+                    throw new IOException("invalid retail order record", e);
                 }
             }
         }
@@ -39,8 +39,8 @@ final class RetailOrderPlans {
     long target(String item, long unitPrice) { return targets.getOrDefault(key(item, unitPrice), 0L); }
 
     void remember(String item, long unitPrice, long target) throws IOException {
-        if (!loaded || path == null) throw new IOException("Retail order store unavailable");
-        if (unitPrice <= 0 || target <= 0) throw new IllegalArgumentException("Invalid retail prices");
+        if (!loaded || path == null) throw new IOException("retail order store unavailable");
+        if (unitPrice <= 0 || target <= 0) throw new IllegalArgumentException("invalid retail prices");
         Map<String, Long> next = new HashMap<>(targets);
         next.put(key(item, unitPrice), target);
         Path temp = path.resolveSibling(path.getFileName() + ".tmp");

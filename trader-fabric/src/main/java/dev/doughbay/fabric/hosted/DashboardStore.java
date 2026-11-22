@@ -15,12 +15,12 @@ public final class DashboardStore {
             if(id<=0||credential==null||!credential.matches("gni1_[A-Za-z0-9_-]{43}"))throw new IllegalArgumentException("Invalid installation credential");
             this.installationId=id;this.credential=credential;this.name=DashboardProtocol.label(name);
         }
-        @Override public String toString(){return "Dashboard installation "+installationId;}
+        @Override public String toString(){return "dashboard installation "+installationId;}
     }
     public DashboardStore(Path gameDirectory){file=gameDirectory.resolve("gonuts-dashboard/installation.json");}
     public Link load() throws Exception {
         if(!Files.exists(file))return null;
-        if(Files.size(file)>8192)throw new java.io.IOException("Invalid local dashboard file");
+        if(Files.size(file)>8192)throw new java.io.IOException("invalid local dashboard file");
         restrict(file);var j=JSON.readTree(Files.readAllBytes(file));
         return new Link(j.path("installationId").asLong(),j.path("credential").asText(),j.path("name").asText());
     }
@@ -44,7 +44,7 @@ public final class DashboardStore {
         }
         var posix=Files.getFileAttributeView(path,PosixFileAttributeView.class);
         if(posix!=null){posix.setPermissions(PosixFilePermissions.fromString(Files.isDirectory(path)?"rwx------":"rw-------"));return;}
-        throw new java.io.IOException("Private file permissions unavailable");
+        throw new java.io.IOException("private file permissions unavailable");
     }
     public static String hive(Path sharedDirectory) throws Exception {
         Files.createDirectories(sharedDirectory);Path path=sharedDirectory.resolve("dashboard-hive-id.txt");

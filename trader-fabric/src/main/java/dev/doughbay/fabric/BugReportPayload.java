@@ -20,13 +20,13 @@ public record BugReportPayload(String build, String minecraftVersion, String des
         diagnostics = Map.copyOf(diagnostics);
         if (build == null || !build.matches("[0-9A-Za-z.+_-]{1,40}") || minecraftVersion == null || !minecraftVersion.matches("[0-9A-Za-z.+_-]{1,40}"))
             throw new IllegalArgumentException("Invalid build metadata");
-        validateText(description, 10, 40, "Describe the problem in at least 10 characters");
-        validateText(expected, 1, 30, "Describe the expected behavior");
+        validateText(description, 10, 40, "describe the problem in at least 10 characters");
+        validateText(expected, 1, 30, "describe the expected behavior");
         if (!diagnostics.keySet().equals(KEYS) || !STATES.contains(diagnostics.get("state"))) throw new IllegalArgumentException("Invalid diagnostic fields");
         for (String key : KEYS) if (!key.equals("state")) {
             Object value = diagnostics.get(key);
             if (!(value instanceof Integer || value instanceof Long) || ((Number)value).longValue() < 0 || ((Number)value).longValue() > 1_000_000_000L)
-                throw new IllegalArgumentException("Invalid diagnostic counter");
+                throw new IllegalArgumentException("invalid diagnostic counter");
         }
     }
     private static void validateText(String text, int min, int maxLines, String hint) {
@@ -52,9 +52,9 @@ public record BugReportPayload(String build, String minecraftVersion, String des
             grouping.put("kind",automatic.kind().name());grouping.put("signature",automatic.signature().name());
             grouping.put("fingerprint",automatic.fingerprint());
             byte[] bytes=JSON.writeValueAsBytes(body);
-            if(bytes.length>65536)throw new IllegalArgumentException("Automatic report exceeds receiver size limit");
+            if(bytes.length>65536)throw new IllegalArgumentException("automatic report exceeds receiver size limit");
             return bytes;
-        } catch(java.io.IOException e){throw new IllegalStateException("Could not prepare automatic report",e);}
+        } catch(java.io.IOException e){throw new IllegalStateException("could not prepare automatic report",e);}
     }
     public byte[] json(String diagnosticLog) {
         try {
@@ -69,9 +69,9 @@ public record BugReportPayload(String build, String minecraftVersion, String des
             }
             byte[] bytes = JSON.writeValueAsBytes(body);
             int limit = diagnosticLog == null || diagnosticLog.isEmpty() ? 16384 : 65536;
-            if (bytes.length > limit) throw new IllegalArgumentException("Report exceeds the receiver's size limit");
+            if (bytes.length > limit) throw new IllegalArgumentException("report exceeds the receiver's size limit");
             return bytes;
-        } catch (java.io.IOException e) { throw new IllegalStateException("Could not prepare report"); }
+        } catch (java.io.IOException e) { throw new IllegalStateException("could not prepare report"); }
     }
     public String preview() {
         return "GoNuts bug report\nBuild: " + build + "\nMinecraft: " + minecraftVersion + "\n\nWhat happened:\n" + description

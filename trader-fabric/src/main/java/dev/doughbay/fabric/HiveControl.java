@@ -158,7 +158,7 @@ public final class HiveControl {
             return "Already running (" + s.state() + ")";
         } else {
             String blocker = DoughBayClient.continuousPolicyBlocker();
-            if (blocker != null && !blocker.isBlank()) return "Cannot start: " + blocker;
+            if (blocker != null && !blocker.isBlank()) return "cannot start: " + blocker;
             result = session.start(policy, AutomationSessionController.RunMode.CONTINUOUS);
         }
         return (result.ok() ? "OK: " : "Refused: ") + result.detail();

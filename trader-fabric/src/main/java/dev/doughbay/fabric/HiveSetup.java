@@ -56,7 +56,7 @@ public final class HiveSetup {
 
     static Membership read(Path file) throws IOException {
         if (!Files.isRegularFile(file) || Files.size(file) > 8192)
-            throw new IOException("Hive setup file is missing or invalid. Restore the shared folder before starting Tally.");
+            throw new IOException("Hive setup file is missing or invalid. Restore the shared folder before starting tally.");
         try {
             Membership m = JSON.readValue(Files.readString(file), Membership.class);
             if ((m.version() != 1 && m.version() != 2) || m.id() == null || m.directory() == null || m.owner() == null
@@ -71,7 +71,7 @@ public final class HiveSetup {
         return validate(m,0);
     }
     private static Membership validate(Membership m,int depth) throws IOException {
-        if(depth>8)throw new IOException("Invalid combined hive chain");
+        if(depth>8)throw new IOException("invalid combined hive chain");
         Path directory = Path.of(m.directory()).toRealPath();
         Membership stored = read(directory.resolve(MANIFEST));
         if (!stored.id().equals(m.id()) || !stored.owner().equals(m.owner())
@@ -86,9 +86,9 @@ public final class HiveSetup {
 
     static void requireLocalLedger(Path directory) throws IOException {
         Path config = directory.resolve("config.json");
-        if (!Files.isRegularFile(config)) throw new IOException("Open Tally once in the source instance first");
+        if (!Files.isRegularFile(config)) throw new IOException("open tally once in the source instance first");
         var root = JSON.readTree(Files.readString(config));
-        if (root == null || !root.isObject()) throw new IOException("Invalid Tally configuration");
+        if (root == null || !root.isObject()) throw new IOException("invalid tally configuration");
         String db = root.path("databasePath").asText("");
         if (!db.isBlank() && !directory.resolve(db).toAbsolutePath().normalize().equals(directory.resolve("doughbay.db").toAbsolutePath().normalize()))
             throw new IOException("This instance uses a custom database path. Keep its existing setup; the wizard cannot migrate it automatically.");
@@ -99,7 +99,7 @@ public final class HiveSetup {
             throw new IOException("Sign into the Minecraft account whose data you want to keep first");
         Path dir = directory.toRealPath();
         requireLocalLedger(dir);
-        if (!Files.isRegularFile(dir.resolve("doughbay.db"))) throw new IOException("Trading database is not ready yet");
+        if (!Files.isRegularFile(dir.resolve("doughbay.db"))) throw new IOException("trading database is not ready yet");
         Membership m = Files.exists(dir.resolve(MANIFEST)) ? read(dir.resolve(MANIFEST))
                 : new Membership(1, UUID.randomUUID().toString(), dir.toString(), owner);
         if (!Files.exists(dir.resolve(MANIFEST))) writeNew(dir.resolve(MANIFEST), m);
@@ -117,11 +117,11 @@ public final class HiveSetup {
             throw new IOException("Paste a code copied with Create hive on this same computer");
         try {
             var m = JSON.readValue(Base64.getUrlDecoder().decode(code.strip().substring(PREFIX.length())), Membership.class);
-            if (m.version() != 1 || m.id() == null || m.owner() == null || m.directory() == null) throw new IOException("Invalid hive code");
+            if (m.version() != 1 || m.id() == null || m.owner() == null || m.directory() == null) throw new IOException("invalid hive code");
             UUID.fromString(m.id());
-            if (!Path.of(m.directory()).isAbsolute()) throw new IOException("Invalid hive folder");
+            if (!Path.of(m.directory()).isAbsolute()) throw new IOException("invalid hive folder");
             return validate(m);
-        } catch (RuntimeException e) { throw new IOException("Invalid hive code", e); }
+        } catch (RuntimeException e) { throw new IOException("invalid hive code", e); }
     }
 
     static Membership join(Path game, Path local, String code) throws IOException {
@@ -194,7 +194,7 @@ public final class HiveSetup {
             return m;
         }
         if(Files.exists(game.resolve("gonuts-hive-combine.json")))
-            throw new IOException("Cancel the queued combination before restoring an account");
+            throw new IOException("cancel the queued combination before restoring an account");
         requireLocalLedger(local);requireEmpty(local);
         Path shared=Path.of(m.directory());
         try(var lease=HiveCombine.joinLease(shared)) {

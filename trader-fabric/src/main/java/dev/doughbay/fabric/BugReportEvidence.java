@@ -34,7 +34,7 @@ public final class BugReportEvidence {
         return combine(context,trace.report(now,topic,11000)+log,topic);
     }
     private static String combine(String context,String log,ReportTopic topic) {
-        if(context.getBytes(StandardCharsets.UTF_8).length>7168)throw new IllegalArgumentException("Controller context exceeds report budget");
+        if(context.getBytes(StandardCharsets.UTF_8).length>7168)throw new IllegalArgumentException("controller context exceeds report budget");
         var lines=new java.util.ArrayList<>(java.util.List.of(log.split("\n")));
         String headers="";
         if(log.startsWith("Filtered GoNuts diagnostic excerpt;")){

@@ -10,7 +10,7 @@ final class ItemSearchText {
         try {
             if (!NamespacedId.normalize(canonicalId).equals(canonicalId)) throw new IllegalArgumentException();
         } catch (IllegalArgumentException invalid) {
-            throw new IllegalArgumentException("Item search requires a canonical item id");
+            throw new IllegalArgumentException("item search requires a canonical item id");
         }
         return requirePlain(displayName);
     }

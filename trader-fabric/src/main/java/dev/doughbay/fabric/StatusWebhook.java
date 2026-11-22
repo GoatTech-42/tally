@@ -83,7 +83,7 @@ public final class StatusWebhook {
      * whatever they were carrying is listed: that is the difference between
      * "somebody walked past" and "somebody in full netherite came for us".
      *
-     * @param title  the headline, e.g. "Escaped: SomePlayer came too close"
+     * @param title  the headline, e.g. "escaped: SomePlayer came too close"
      * @param colour a Discord embed colour, decimal
      * @param lines  label and value pairs, drawn as fields
      * @param player the player to show a face for, or "" for none
@@ -241,7 +241,7 @@ public final class StatusWebhook {
                 "#74E48B", headline, listed, slots,
                 new String[] {"", "last hour", "last 24 h"},
                 new boolean[] {false, true, true}, rows,
-                "Posted by " + who() + " · shared ledger totals");
+                "posted by " + who() + " · shared ledger totals");
     }
 
     /** Discord takes an image as a file part beside the JSON payload. */
@@ -322,7 +322,7 @@ public final class StatusWebhook {
 
     private static String reportTitle() {
         return HiveSetup.active() || DoughBayClient.hiveAccounts().size() > 1
-                ? "Tally Hive — all accounts" : "Tally — ledger totals";
+                ? "tally Hive — all accounts" : "tally — ledger totals";
     }
 
     private java.util.List<String> reportAccounts() {

@@ -119,7 +119,7 @@ public final class CommunityClient {
             try{var config=store.read("settings.json");if(config!=null){enabled=config.path("enabled").asBoolean();guidanceConsent=config.path("guidanceEnabled").asBoolean(false);linkConsentApplied=config.path("linkConsentApplied").asBoolean(false);credential=config.path("credential").asText();contributor=config.path("contributorId").asText();registeredAccount=config.path("account").asText();
                 if(!credential.isEmpty()&&!credential.matches("gnc1_[A-Za-z0-9_-]{43}"))throw new IllegalArgumentException();}
                 credentialRejected=config!=null&&config.path("credentialRejected").asBoolean();
-                pending=store.read("pending.json");enrolled=!credential.isEmpty();status=credentialRejected?"Swarm membership needs renewal; use Retry Swarm connection":enabled?"Starting Swarm":"Off";
+                pending=store.read("pending.json");enrolled=!credential.isEmpty();status=credentialRejected?"Swarm membership needs renewal; use Retry Swarm connection":enabled?"starting swarm":"Off";
             }catch(Exception e){enabled=false;credential="";status="Could not load private community settings";}
             finally{configReady=true;}
         });
@@ -157,7 +157,7 @@ public final class CommunityClient {
     public boolean readSavingsSharing(){return started&&enabled&&eligible&&HostedDashboardClient.INSTANCE.view().linked();}
     boolean guidanceEnabled(boolean dashboardLinked){return started&&enabled&&guidanceConsent&&eligible&&dashboardLinked;}
     public void enable(){enable(false);}
-    private void enable(boolean freshPairing){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;generation.incrementAndGet();status="Connecting Swarm through your linked dashboard";worker.execute(()->{try{if(freshPairing){credentialRejected=true;linkConsentApplied=true;}renewRejectedCredential();enabled=true;guidanceConsent=true;save();nextCapabilities=nextUpload=nextStatus=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="Could not save consent";}});}
+    private void enable(boolean freshPairing){if(!started||!HostedDashboardClient.INSTANCE.view().linked())return;generation.incrementAndGet();status="connecting swarm through your linked dashboard";worker.execute(()->{try{if(freshPairing){credentialRejected=true;linkConsentApplied=true;}renewRejectedCredential();enabled=true;guidanceConsent=true;save();nextCapabilities=nextUpload=nextStatus=0;}catch(Exception e){enabled=false;guidanceConsent=false;status="could not save consent";}});}
     /** A new explicit pairing must not inherit an earlier installation's membership. */
     public void dashboardPaired(){enable(true);}
     boolean renewRejectedCredential(){
@@ -166,17 +166,17 @@ public final class CommunityClient {
         return true;
     }
     void refuseCredential(int code)throws Exception{
-        if(code!=401&&code!=403)throw new IllegalArgumentException("Not a credential refusal");
+        if(code!=401&&code!=403)throw new IllegalArgumentException("not a credential refusal");
         enabled=false;eligible=false;credentialRejected=true;
         SwarmRank.clear();
-        status="Swarm membership refused (HTTP "+code+"). Use Retry Swarm connection to renew through your linked dashboard.";
+        status="swarm membership refused (HTTP "+code+"). Use Retry Swarm connection to renew through your linked dashboard.";
         save();
     }
     public void disable(){
         if(HostedDashboardClient.INSTANCE.view().linked()){status="Swarm participation is included with the dashboard; unlink to leave";return;}
         disableSharing();
     }
-    private void disableSharing(){if(!started)return;enabled=false;guidanceConsent=false;generation.incrementAndGet();status="Disabling Swarm";worker.execute(()->{
+    private void disableSharing(){if(!started)return;enabled=false;guidanceConsent=false;generation.incrementAndGet();status="disabling swarm";worker.execute(()->{
         synchronized(this){queue.clear();queries.clear();cache.clear();}
         try{save();acknowledgeOrderBatch(false);store.remove("pending.json");pending=null;unenroll();}catch(Exception e){status="Off; waiting to remove server enrollment";}
     });}
@@ -364,8 +364,8 @@ public final class CommunityClient {
             for(var previous:file.path("sessions")){if(previous.path("session").asText().equals(current.path("session").asText()))continue;
                 if(previous.path("observedAt").asLong()>now-7*24*60*60_000L)sessions.add(previous);}
             while(sessions.size()>=168)sessions.remove(0);sessions.add(current);file.set("sessions",sessions);store.write("performance.json",file);
-            measurementStatus="Recording locally";
-        }catch(Exception ignored){measurementStatus="Local measurement snapshot unavailable";}
+            measurementStatus="recording locally";
+        }catch(Exception ignored){measurementStatus="local measurement snapshot unavailable";}
     }
     private HttpResponse<byte[]> request(String method,String path,ObjectNode body,boolean auth)throws Exception{
         requestStage=path.equals("capabilities")?"capabilities":path.equals("me/accounts")?"account registration":path.equals("me")?"membership":path.equals("unenroll")?"leaving":"market query";
@@ -376,7 +376,7 @@ public final class CommunityClient {
         try{dev.doughbay.fabric.SwarmActivity.sent();var response=http.send(builder.build(),HttpResponse.BodyHandlers.ofByteArray());lastHttpStatus=response.statusCode();if(response.statusCode()>=200&&response.statusCode()<300)dev.doughbay.fabric.SwarmActivity.received();if(response.statusCode()==429&&CommunityQueryBackoff.query(method,path))queryBackoff.defer(System.currentTimeMillis(),response.headers().firstValue("Retry-After").orElse("60"));if(response.statusCode()>=400)lastServiceFailure=System.currentTimeMillis();
             if(response.statusCode()==429&&!CommunityQueryBackoff.query(method,path))serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));
             dev.doughbay.fabric.ActionTrace.INSTANCE.httpResult(response.statusCode());
-            if(response.statusCode()>=500)throw new java.io.IOException("Service unavailable");
+            if(response.statusCode()>=500)throw new java.io.IOException("service unavailable");
             if(response.statusCode()>=200&&response.statusCode()<300)serviceRetry.success();
             return response;}
         catch(Exception error){dev.doughbay.fabric.FaultTrace.INSTANCE.record(dev.doughbay.fabric.FaultTrace.Stage.COMMUNITY_UPLOAD,error,System.currentTimeMillis());lastServiceFailure=System.currentTimeMillis();throw error;}
@@ -389,7 +389,7 @@ public final class CommunityClient {
         if(!serviceRetry.ready(now))return;
         if(!enabled){if(credentialRejected)return;if(!credential.isEmpty()&&now>=nextUpload){nextUpload=now+60_000;unenroll();}return;}
         if(!HostedDashboardClient.INSTANCE.view().linked())return;
-        if(now>=nextCapabilities){nextCapabilities=now+60_000;var response=request("GET","capabilities",null,false);if(response.statusCode()!=200){serviceEnabled=false;networkSupported=false;status="Swarm capabilities unavailable (HTTP "+response.statusCode()+"); local scanning continues";return;}
+        if(now>=nextCapabilities){nextCapabilities=now+60_000;var response=request("GET","capabilities",null,false);if(response.statusCode()!=200){serviceEnabled=false;networkSupported=false;status="swarm capabilities unavailable (HTTP "+response.statusCode()+"); local scanning continues";return;}
             var c=json(response);serviceEnabled=c.path("enabled").asBoolean()&&java.util.stream.StreamSupport.stream(c.path("schemas").spliterator(),false).anyMatch(v->v.isInt()&&v.asInt()==1);var supported=new HashSet<String>();for(var type:c.path("types"))supported.add(type.asText());types=Set.copyOf(supported);networkSupported=serviceEnabled&&CommunityBatches.networkAdvertised(c);}
         if(!serviceEnabled||account.isBlank())return;
         if(credential.isEmpty()){
@@ -397,7 +397,7 @@ public final class CommunityClient {
         }
         if(!registeredAccount.equals(account)){
             var body=DashboardProtocol.JSON.createObjectNode();body.putArray("observerAccounts").add(account);var response=request("PUT","me/accounts",body,true);
-            if(response.statusCode()!=204){status="Swarm account registration unavailable (HTTP "+response.statusCode()+"); retry pending, local scanning continues";return;}registeredAccount=account;save();
+            if(response.statusCode()!=204){status="swarm account registration unavailable (HTTP "+response.statusCode()+"); retry pending, local scanning continues";return;}registeredAccount=account;save();
         }
         if(now>=nextStatus){
             nextStatus=now+60_000;var response=request("GET","me",null,true);
@@ -426,7 +426,7 @@ public final class CommunityClient {
             if(own!=generation.get()||!owner.equals(account)||!enabled||!eligible||!wanted.equals(warmupMarkets))return;
             if(response.statusCode()!=200){
                 if(response.statusCode()==401||response.statusCode()==403)refuseCredential(response.statusCode());
-                throw new IllegalArgumentException("Shared history unavailable");
+                throw new IllegalArgumentException("shared history unavailable");
             }
             var page=CommunityHistoryBootstrap.decode(json(response),wanted,System.currentTimeMillis(),warmupAsOf);
             if(warmupAsOf>0&&warmupWindowStart!=page.windowStart())throw new IllegalArgumentException("History window changed");
@@ -459,13 +459,13 @@ public final class CommunityClient {
     }
     private void enroll()throws Exception{
         requestStage="enrollment";lastHttpStatus=0;
-        if(!HostedDashboardClient.INSTANCE.view().linked()){status="Link this client to the dashboard first";return;}
+        if(!HostedDashboardClient.INSTANCE.view().linked()){status="link this client to the dashboard first";return;}
         long own=generation.get();var body=DashboardProtocol.JSON.createObjectNode().put("schema",1).put("build",DashboardProtocol.build(build)).put("consent",CommunityWire.CONSENT);
         String enrolledAccount=account;
         body.putArray("observerAccounts").add(enrolledAccount);var response=HostedDashboardClient.INSTANCE.enrollCommunity(body).get(20,TimeUnit.SECONDS);
         lastHttpStatus=response.statusCode();
         if(own!=generation.get()||!enabled)return;
-        if(response.statusCode()!=200&&response.statusCode()!=201){if(response.statusCode()==401||response.statusCode()==403){refuseCredential(response.statusCode());return;}if(response.statusCode()==429)serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));status="Enrollment refused (HTTP "+response.statusCode()+"); local scanning continues";return;}
+        if(response.statusCode()!=200&&response.statusCode()!=201){if(response.statusCode()==401||response.statusCode()==403){refuseCredential(response.statusCode());return;}if(response.statusCode()==429)serviceRetry.fail(System.currentTimeMillis(),retryAfter(response));status="enrollment refused (HTTP "+response.statusCode()+"); local scanning continues";return;}
         var j=json(response);String secret=j.path("credential").asText(),id=j.path("contributorId").asText();
         if(!secret.matches("gnc1_[A-Za-z0-9_-]{43}")||!id.matches("c_[A-Za-z0-9_-]{12}"))throw new IllegalArgumentException();
         credential=secret;contributor=id;registeredAccount=enrolledAccount;save();enrolled=true;if(!enabled){unenroll();return;}status="Enrolled in Swarm; live checks retained";nextUpload=0;
@@ -493,7 +493,7 @@ public final class CommunityClient {
         else if(code==429){nextUpload=System.currentTimeMillis()+retryAfter(response);status="Upload rate limited; local scanning continues";}
         else if(code>=500){nextUpload=System.currentTimeMillis()+Math.min(600_000,10_000L<<Math.min(6,failures++));status="Upload retry pending; local scanning continues";}
         else if(code==401||code==403){refuseCredential(code);}
-        else{rejected+=body.path("records").size();acknowledgeOrderBatch(false);clearPending();status="Upload refused (HTTP "+code+"); local scanning continues";}
+        else{rejected+=body.path("records").size();acknowledgeOrderBatch(false);clearPending();status="upload refused (HTTP "+code+"); local scanning continues";}
     }
     private void clearPending()throws Exception{store.remove("pending.json");pending=null;}
     private void query(long now)throws Exception{

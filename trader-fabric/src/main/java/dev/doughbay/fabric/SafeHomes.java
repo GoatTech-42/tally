@@ -127,14 +127,14 @@ public final class SafeHomes {
 
     /** UI accepts names, not commands. Reject the entire edit rather than saving a partial list. */
     public static List<String> parseNames(String text) {
-        if (text == null || text.length() > 2048) throw new IllegalArgumentException("Enter up to 32 home names");
+        if (text == null || text.length() > 2048) throw new IllegalArgumentException("enter up to 32 home names");
         var unique = new LinkedHashMap<String, String>();
         for (String token : text.strip().split("[\\s,]+")) {
             if (token.isEmpty()) continue;
             if (!token.matches("[A-Za-z0-9_-]{1,32}"))
                 throw new IllegalArgumentException("Use home names only, such as base, vault, farm; no slash or command");
             unique.putIfAbsent(token.toLowerCase(Locale.ROOT), token);
-            if (unique.size() > 32) throw new IllegalArgumentException("Use at most 32 home names");
+            if (unique.size() > 32) throw new IllegalArgumentException("use at most 32 home names");
         }
         return List.copyOf(unique.values());
     }
@@ -143,12 +143,12 @@ public final class SafeHomes {
     public static synchronized void saveHomes(String text) throws IOException {
         List<String> names = parseNames(text);
         Path f = file;
-        if (f == null) throw new IOException("Home settings have not loaded yet");
+        if (f == null) throw new IOException("home settings have not loaded yet");
         var root = MAPPER.createObjectNode();
         if (Files.exists(f)) {
-            if (Files.size(f) > 65_536) throw new IOException("Home settings file is too large");
+            if (Files.size(f) > 65_536) throw new IOException("home settings file is too large");
             JsonNode existing = MAPPER.readTree(Files.readString(f));
-            if (existing == null || !existing.isObject()) throw new IOException("Home settings need repair before saving");
+            if (existing == null || !existing.isObject()) throw new IOException("home settings need repair before saving");
             root = (com.fasterxml.jackson.databind.node.ObjectNode) existing;
         }
         var array = root.putArray("homes");

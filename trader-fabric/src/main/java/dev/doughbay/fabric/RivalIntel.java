@@ -220,7 +220,7 @@ public final class RivalIntel {
             try {
                 refresh();
             } catch (Throwable t) {
-                snapshot = Snapshot.empty("Rival read failed: " + t);
+                snapshot = Snapshot.empty("rival read failed: " + t);
                 DoughBayClient.LOGGER.warn("DoughBay rival intel failed: {}", t.toString());
             }
             try {
@@ -240,7 +240,7 @@ public final class RivalIntel {
         // rival of the player and the underdog queued a bid to shadow their
         // own diamonds. Nothing is built until we know who we are.
         if (own == null || own.isBlank()) {
-            snapshot = Snapshot.empty("Waiting for the game to log in");
+            snapshot = Snapshot.empty("waiting for the game to log in");
             return;
         }
         try (Database db = new Database(databasePath)) {

@@ -16,7 +16,7 @@ public final class AutomaticReportJournal {
                     || !retryKey.matches("[A-Za-z0-9_-]{8,64}") || reservedAt < 0 || sentAt < 0 || outcome == null)
                 throw new IllegalArgumentException("Invalid automatic-report journal entry");
             if ((outcome == Outcome.SENT) != (sentAt > 0))
-                throw new IllegalArgumentException("Invalid automatic-report receipt state");
+                throw new IllegalArgumentException("invalid automatic-report receipt state");
         }
     }
     private final Path path;
@@ -47,29 +47,29 @@ public final class AutomaticReportJournal {
                     outcome == Outcome.SENT ? now : 0,outcome)); found=true; break;
             }
         }
-        if (!found) throw new IOException("Automatic-report reservation is missing");
+        if (!found) throw new IOException("automatic-report reservation is missing");
         write(entries);
     }
     private List<Entry> read(long now) throws IOException {
         if (!Files.exists(path)) return new ArrayList<>();
-        if (Files.size(path)>65536) throw new IOException("Automatic-report journal is too large");
+        if (Files.size(path)>65536) throw new IOException("automatic-report journal is too large");
         try {
             var root=JSON.readTree(Files.readAllBytes(path));
-            if (!root.isArray() || root.size()>64) throw new IOException("Invalid automatic-report journal");
+            if (!root.isArray() || root.size()>64) throw new IOException("invalid automatic-report journal");
             List<Entry> entries=new ArrayList<>(); Set<String> retryKeys=new HashSet<>(); Set<String> queued=new HashSet<>();
             for (var node:root) {
                 Entry entry=JSON.treeToValue(node,Entry.class);
                 if (!retryKeys.add(entry.retryKey()) || entry.reservedAt()>now+300_000 || entry.sentAt()>now+300_000
                         || entry.outcome()==Outcome.QUEUED && !queued.add(entry.fingerprint())
                         || entry.outcome()==Outcome.SENT && entry.sentAt()<entry.reservedAt())
-                    throw new IOException("Invalid automatic-report journal chronology");
+                    throw new IOException("invalid automatic-report journal chronology");
                 if (now-entry.reservedAt()<RETENTION) entries.add(entry);
             }
             return entries;
-        } catch (RuntimeException e) { throw new IOException("Invalid automatic-report journal",e); }
+        } catch (RuntimeException e) { throw new IOException("invalid automatic-report journal",e); }
     }
     private void write(List<Entry> entries) throws IOException {
-        if (entries.size()>64) throw new IOException("Automatic-report journal is full");
+        if (entries.size()>64) throw new IOException("automatic-report journal is full");
         Path parent=path.toAbsolutePath().getParent(); Files.createDirectories(parent);
         Path temporary=Files.createTempFile(parent,"auto-report-",".tmp");
         try {

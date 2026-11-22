@@ -24,7 +24,7 @@ public final class DashboardMetrics {
                     p.setString(1,account);p.setLong(2,from);p.setLong(3,at);
                     try(ResultSet r=p.executeQuery()){
                         r.next();double profit=r.getDouble(2);
-                        if(!Double.isFinite(profit)||r.getLong(1)!=r.getLong(3))throw new IllegalStateException("Incomplete booked profit data");
+                        if(!Double.isFinite(profit)||r.getLong(1)!=r.getLong(3))throw new IllegalStateException("incomplete booked profit data");
                         ((ObjectNode)root.get("sales")).put(key,DashboardProtocol.count(r.getLong(1)));((ObjectNode)root.get("profit")).put(key,DashboardProtocol.money(Math.round(profit)));
                     }
                 }

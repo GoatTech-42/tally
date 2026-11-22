@@ -62,11 +62,11 @@ public final class DiagnosticOutbox implements AutoCloseable {
         return switch(kind){case "SNAPSHOT"->ctx&&!act&&!dec&&!cov&&!state&&!life;case "ACTION"->act&&!dec&&!cov&&!state&&!life;case "DECISION"->dec&&!act&&!state&&!life;case "GATE"->dec&&allRefused&&!act&&!ctx&&!state&&!life;case "STATE"->state&&!act&&!dec&&!cov&&!life;case "FAULT"->fault&&!dec&&!state&&!life;case "LIFECYCLE"->life&&lines.size()==1;default->false;};
     }
     public synchronized long append(String kind,List<String> lines,String settings,long at)throws Exception{
-        if(!valid(kind,lines)||at<=0)throw new IllegalArgumentException("Invalid typed diagnostic event");
+        if(!valid(kind,lines)||at<=0)throw new IllegalArgumentException("invalid typed diagnostic event");
         long sequence;String settingsId;
         try(var s=db.prepareStatement("SELECT next_sequence,last_settings FROM sessions WHERE id=?")){s.setString(1,session);try(var r=s.executeQuery()){r.next();sequence=r.getLong(1);settingsId=r.getString(2);}}
         if(settings!=null&&!settings.isEmpty()){SettingsCode.validateReportCode(settings);settingsId=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(StandardCharsets.UTF_8)));try(var s=db.prepareStatement("INSERT OR IGNORE INTO settings(id,code) VALUES(?,?)")){s.setString(1,settingsId);s.setString(2,settings);s.executeUpdate();}}
-        if(settingsId.isEmpty()||sequence>=9_007_199_254_740_991L)throw new IllegalArgumentException("Session requires numeric settings");
+        if(settingsId.isEmpty()||sequence>=9_007_199_254_740_991L)throw new IllegalArgumentException("session requires numeric settings");
         db.setAutoCommit(false);try{
             try(var s=db.prepareStatement("INSERT INTO events VALUES(?,?,?,?,?,?)")){s.setString(1,session);s.setLong(2,sequence);s.setLong(3,at);s.setString(4,kind);s.setString(5,DashboardProtocol.JSON.writeValueAsString(lines));s.setString(6,settingsId);s.executeUpdate();}
             try(var s=db.prepareStatement("UPDATE sessions SET next_sequence=?,last_settings=? WHERE id=?")){s.setLong(1,sequence+1);s.setString(2,settingsId);s.setString(3,session);s.executeUpdate();}db.commit();

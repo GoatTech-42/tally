@@ -46,8 +46,8 @@ public final class MoneyFlows {
                 + "donations, or a place money is gathered."),
         PAYS_MANY("pays many", "Pays many players and takes little in: wages, prizes or payouts."),
         PASSES_ON("passes it on", "About as much goes out as came in, and to other players: money passing through."),
-        RECEIVES("receives", "Only seen receiving. Nothing has been seen going back."),
-        SENDS("sends", "Only seen sending. Nothing has been seen coming back."),
+        RECEIVES("receives", "only seen receiving. nothing has been seen going back."),
+        SENDS("sends", "only seen sending. nothing has been seen coming back."),
         MIXED("both ways", "Money moves both ways.");
 
         public final String label;

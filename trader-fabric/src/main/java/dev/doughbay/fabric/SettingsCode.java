@@ -87,13 +87,13 @@ public final class SettingsCode {
         lists.put("items.allow",Tuning.text("items.allow"));lists.put("items.deny",Tuning.text("items.deny"));
         lists.put("watch.tracked",String.join(", ",new java.util.TreeSet<>(ItemLists.tracked())));
         try{return encode(mapper.writeValueAsBytes(root));}
-        catch(java.io.IOException e){throw new IllegalStateException("Could not capture item loadout");}
+        catch(java.io.IOException e){throw new IllegalStateException("could not capture item loadout");}
     }
 
     private static void validateItemLoadout(String code) throws java.io.IOException {
         if(code==null || code.length()>32000 || !code.startsWith("DB1-"))throw new java.io.IOException("Invalid item loadout");
         try(var gz=new GZIPInputStream(new ByteArrayInputStream(base32Decode(code)))) {
-            byte[] bytes=gz.readNBytes(65537);if(bytes.length>65536)throw new java.io.IOException("Item loadout is too large");
+            byte[] bytes=gz.readNBytes(65537);if(bytes.length>65536)throw new java.io.IOException("item loadout is too large");
             var root=new ObjectMapper().enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
                 .enable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(bytes);
             if(root==null || !root.isObject() || root.size()!=3 || !root.path("v").isIntegralNumber()
@@ -103,8 +103,8 @@ public final class SettingsCode {
                     || !root.path("t").isObject() || root.path("t").size()!=3)throw new java.io.IOException("Not an item-only loadout");
             for(String key:java.util.List.of("items.allow","items.deny","watch.tracked"))
                 if(!root.path("t").path(key).isTextual() || root.path("t").path(key).asText().length()>16000)
-                    throw new java.io.IOException("Invalid item selection");
-        }catch(RuntimeException e){throw new java.io.IOException("Invalid item loadout",e);}
+                    throw new java.io.IOException("invalid item selection");
+        }catch(RuntimeException e){throw new java.io.IOException("invalid item loadout",e);}
     }
     static boolean isItemLoadout(String code){try{validateItemLoadout(code);return true;}catch(java.io.IOException e){return false;}}
     static Result applyItemLoadout(String code){
@@ -401,7 +401,7 @@ public final class SettingsCode {
             if (Double.isFinite(value)) numbers.put(key, value);
         }
         try { return encode(mapper.writeValueAsBytes(root)); }
-        catch (java.io.IOException e) { throw new IllegalStateException("Could not prepare settings snapshot"); }
+        catch (java.io.IOException e) { throw new IllegalStateException("could not prepare settings snapshot"); }
     }
 
     static void validateReportCode(String code) {
@@ -423,7 +423,7 @@ public final class SettingsCode {
                 if (!REPORT_KEYS.contains(field.getKey()) || !field.getValue().isNumber()
                         || !Double.isFinite(field.getValue().asDouble())) throw new IllegalArgumentException();
             }
-        } catch (Exception e) { throw new IllegalArgumentException("Invalid or unsafe report settings code"); }
+        } catch (Exception e) { throw new IllegalArgumentException("invalid or unsafe report settings code"); }
     }
 
     /** The code for a settings document. */

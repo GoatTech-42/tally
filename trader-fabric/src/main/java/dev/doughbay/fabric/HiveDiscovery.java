@@ -42,10 +42,10 @@ final class HiveDiscovery {
         this.account=account == null || account.isBlank() ? "" : digest(account.toLowerCase(Locale.ROOT));
         this.hive=hive == null ? "" : hive;
         if (Files.exists(preferences)) {
-            if (Files.size(preferences)>16_384) throw new java.io.IOException("Invalid discovery preferences");
+            if (Files.size(preferences)>16_384) throw new java.io.IOException("invalid discovery preferences");
             var j=JSON.readTree(Files.readAllBytes(preferences));
             if(j==null || j.path("v").asInt()!=1 || !j.path("disabled").isBoolean() || !j.path("seen").isArray())
-                throw new java.io.IOException("Invalid discovery preferences");
+                throw new java.io.IOException("invalid discovery preferences");
             disabled=j.path("disabled").asBoolean();
             for(var key:j.path("seen")) if(key.isTextual() && key.asText().matches("[a-f0-9]{64}")) seen.add(key.asText());
         }

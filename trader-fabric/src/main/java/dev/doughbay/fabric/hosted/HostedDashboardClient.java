@@ -89,17 +89,17 @@ public final class HostedDashboardClient {
         if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled()){view=new View(false,false,false,"",dev.doughbay.fabric.ProjectStatus.RETIRED,0);return;}
         if(started)return;started=true;store=new DashboardStore(game);hivePanel=new DashboardHive(shared);database=db;build=DashboardProtocol.build(currentBuild);rankDirectory=game.resolve("gonuts-dashboard/rank-coverage");
         worker.execute(()->{
-            try{hive=DashboardStore.hive(shared);link=store.load();if(link!=null){view=new View(true,false,false,link.name,"Checking link",0);nextConnect=0;}}
-            catch(Exception e){view=new View(false,false,false,"","Could not load private dashboard settings",0);}
+            try{hive=DashboardStore.hive(shared);link=store.load();if(link!=null){view=new View(true,false,false,link.name,"checking link",0);nextConnect=0;}}
+            catch(Exception e){view=new View(false,false,false,"","could not load private dashboard settings",0);}
         });
-        worker.scheduleWithFixedDelay(()->{try{pump();}catch(Exception e){failed("Dashboard temporarily unavailable");}},250,250,TimeUnit.MILLISECONDS);
+        worker.scheduleWithFixedDelay(()->{try{pump();}catch(Exception e){failed("dashboard temporarily unavailable");}},250,250,TimeUnit.MILLISECONDS);
         Runtime.getRuntime().addShutdownHook(new Thread(()->{epochs.incrementAndGet();panel.close();worker.shutdownNow();if(socket!=null)socket.abort();},"gonuts-dashboard-close"));
     }
     public synchronized void pair(String code,String name) {
         if(!started||view.busy()||view.linked()||System.currentTimeMillis()<view.retryAt())return;
         String normalized;
-        try{normalized=DashboardProtocol.code(code);}catch(IllegalArgumentException e){view=new View(false,false,false,"","Enter the eight-character code from the website",0);return;}
-        view=new View(false,false,true,"","Linking securely...",0);long operation=epochs.incrementAndGet();
+        try{normalized=DashboardProtocol.code(code);}catch(IllegalArgumentException e){view=new View(false,false,false,"","enter the eight-character code from the website",0);return;}
+        view=new View(false,false,true,"","linking securely...",0);long operation=epochs.incrementAndGet();
         worker.execute(()->{
             try {
                 var request=HttpRequest.newBuilder(DashboardProtocol.REDEEM).timeout(Duration.ofSeconds(15)).header("Content-Type","application/json")
@@ -121,11 +121,11 @@ public final class HostedDashboardClient {
         if(!dev.doughbay.fabric.ProjectStatus.publicServicesEnabled())return CompletableFuture.failedFuture(new IllegalStateException(dev.doughbay.fabric.ProjectStatus.RETIRED));
         var result=new CompletableFuture<HttpResponse<byte[]>>();
         worker.execute(()->{
-            var current=link;if(current==null){result.completeExceptionally(new IllegalStateException("Dashboard not linked"));return;}
+            var current=link;if(current==null){result.completeExceptionally(new IllegalStateException("dashboard not linked"));return;}
             var request=HttpRequest.newBuilder(CommunityWire.BASE.resolve("enroll")).timeout(Duration.ofSeconds(15))
                     .header("Authorization","Bearer "+current.credential).header("Content-Type","application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
-            http.sendAsync(request,HttpResponse.BodyHandlers.ofByteArray()).whenComplete((response,error)->{if(error!=null)result.completeExceptionally(new IllegalStateException("Enrollment unavailable"));else result.complete(response);});
+            http.sendAsync(request,HttpResponse.BodyHandlers.ofByteArray()).whenComplete((response,error)->{if(error!=null)result.completeExceptionally(new IllegalStateException("enrollment unavailable"));else result.complete(response);});
         });return result;
     }
     private static long retry(HttpResponse<?> response){
@@ -138,7 +138,7 @@ public final class HostedDashboardClient {
         staffPending.set(null);
         SwarmStaffSightings.INSTANCE.clear();
         SwarmRank.clear();
-        if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","Removing local link...",0);
+        if(!started)return;long old=epoch;epochs.incrementAndGet();commands.disconnected(old);panel.disconnected(old);view=new View(false,false,true,"","removing local link...",0);
         CommunityClient.INSTANCE.dashboardUnlinked();
         worker.execute(()->{
             if(socket!=null)socket.abort();socket=null;link=null;welcome=false;connecting=false;nextConnect=Long.MAX_VALUE;
@@ -218,7 +218,7 @@ public final class HostedDashboardClient {
         }
         if(link==null||view.busy())return;
         if(socket==null&&!connecting&&now>=nextConnect){connect();return;}
-        if(socket!=null&&!welcome&&now-connectedAt>10_000){failed("Dashboard handshake timed out");return;}
+        if(socket!=null&&!welcome&&now-connectedAt>10_000){failed("dashboard handshake timed out");return;}
         if(!welcome)return;
         if(now-lastReceived>=80_000){failed("Dashboard heartbeat timed out; reconnecting");return;}
         if(now-lastPing>=20_000){send(DashboardProtocol.JSON.createObjectNode().put("type","ping").put("at",now));lastPing=now;}
@@ -233,7 +233,7 @@ public final class HostedDashboardClient {
     }
     private void connect() {
         if(link==null)return;connecting=true;welcome=false;readSavingsSupported=false;dataUseSupported=false;settingsAnalysisSupported=false;diagnosticHistory.disconnected();epoch=epochs.incrementAndGet();long own=epoch;
-        view=new View(true,false,false,link.name,"Checking link",0);
+        view=new View(true,false,false,link.name,"checking link",0);
         var request=HttpRequest.newBuilder(DashboardProtocol.CHECK).timeout(Duration.ofSeconds(10)).header("Authorization","Bearer "+link.credential)
             .header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString("{}")).build();
         http.sendAsync(request,HttpResponse.BodyHandlers.ofByteArray()).whenComplete((r,e)->worker.execute(()->{
@@ -253,7 +253,7 @@ public final class HostedDashboardClient {
                         if(epochs.get()!=own){if(ws!=null)ws.abort();return;}
                         if(error!=null){failed("Dashboard socket unavailable; retrying");return;}
                         socket=ws;connecting=false;connectedAt=System.currentTimeMillis();lastPing=connectedAt;lastTelemetry=0;lastShape="";writes=CompletableFuture.completedFuture(null);pendingWrites=0;
-                        view=new View(true,false,false,link.name,"Negotiating dashboard protocol",0);
+                        view=new View(true,false,false,link.name,"negotiating dashboard protocol",0);
                         send(DashboardProtocol.hello(build,link.name,hive));
                     }));
             }catch(Exception ex){failed("Dashboard check failed; retrying");}
@@ -402,11 +402,11 @@ public final class HostedDashboardClient {
         @Override public void onOpen(WebSocket ws){dev.doughbay.fabric.ActionTrace.INSTANCE.record(dev.doughbay.fabric.ActionTrace.Scope.DASHBOARD,dev.doughbay.fabric.ActionTrace.Event.CONNECTED,dev.doughbay.fabric.ActionTrace.Code.SOCKET,"NONE",-1,-1,-1);ws.request(1);}
         @Override public CompletionStage<?> onText(WebSocket ws,CharSequence data,boolean last){
             bytes+=data.toString().getBytes(StandardCharsets.UTF_8).length;
-            if(bytes>DashboardProtocol.MAX_PANEL_FRAME_BYTES){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("Oversized dashboard message");});return null;}
+            if(bytes>DashboardProtocol.MAX_PANEL_FRAME_BYTES){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("oversized dashboard message");});return null;}
             fragments.append(data);if(last){String text=fragments.toString();fragments.setLength(0);bytes=0;worker.execute(()->received(own,text));}
             ws.request(1);return null;
         }
-        @Override public CompletionStage<?> onBinary(WebSocket ws,java.nio.ByteBuffer data,boolean last){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("Unsupported dashboard message");});return null;}
+        @Override public CompletionStage<?> onBinary(WebSocket ws,java.nio.ByteBuffer data,boolean last){ws.abort();worker.execute(()->{if(epochs.get()==own)failed("unsupported dashboard message");});return null;}
         @Override public CompletionStage<?> onClose(WebSocket ws,int code,String reason){worker.execute(()->{
             if(epochs.get()!=own)return;
             var closeCode=switch(code){case 4401->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4401;case 4403->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4403;case 4409->dev.doughbay.fabric.ActionTrace.Code.SOCKET_4409;case 1000->dev.doughbay.fabric.ActionTrace.Code.SOCKET_1000;case 1006->dev.doughbay.fabric.ActionTrace.Code.SOCKET_1006;default->dev.doughbay.fabric.ActionTrace.Code.SOCKET;};

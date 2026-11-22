@@ -48,7 +48,7 @@ public final class StaffRegionEscapeFlow {
         phase = Phase.PREPARING_FIRST;
         deadline = clock.getAsLong() + PREPARE_TIMEOUT;
         try { client.detected(watcher); } catch (RuntimeException ignored) { /* Protection must continue. */ }
-        client.notice(watcher, "Preparing a safe region change");
+        client.notice(watcher, "preparing a safe region change");
         return true;
     }
     public void tick(boolean enabled) {
@@ -60,7 +60,7 @@ public final class StaffRegionEscapeFlow {
             return;
         }
         if (!client.connected()) { fallback("Connection lost during region escape"); return; }
-        if (clock.getAsLong() >= deadline) { fallback("Region escape timed out"); return; }
+        if (clock.getAsLong() >= deadline) { fallback("region escape timed out"); return; }
         switch (phase) {
             case PREPARING_FIRST -> {
                 if (!client.pauseSafely()) return;
@@ -68,11 +68,11 @@ public final class StaffRegionEscapeFlow {
                 String next = chooseRegion(client.regions(), exclude);
                 if (next.isEmpty()) return; // Discovery may still be pending; timeout is bounded.
                 client.clearDetections();
-                if (!client.requestRegion(next)) { fallback("Region command unavailable or blocked"); return; }
+                if (!client.requestRegion(next)) { fallback("region command unavailable or blocked"); return; }
                 lastRegion = next;
                 phase = Phase.TRANSFERRING_FIRST;
                 deadline = clock.getAsLong() + TRANSFER_TIMEOUT;
-                client.notice(watcher, "Changing region: " + next);
+                client.notice(watcher, "changing region: " + next);
             }
             case TRANSFERRING_FIRST -> {
                 if (!client.commandSent() || !client.transferConfirmed()) return;

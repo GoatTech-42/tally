@@ -53,12 +53,12 @@ final class HiveCombine {
         Path request=game.resolve(REQUEST);if(!Files.exists(request))return;
         Plan pending=null;
         try {
-            if(Files.size(request)>24_576)throw new IOException("Invalid pending hive combination");
+            if(Files.size(request)>24_576)throw new IOException("invalid pending hive combination");
             Plan p=JSON.readValue(Files.readAllBytes(request),Plan.class);
             if(p==null||p.first()==null||p.second()==null||p.combined()==null||p.first().directory()==null||p.second().directory()==null)
-                throw new IOException("Invalid pending hive combination");
+                throw new IOException("invalid pending hive combination");
             Path.of(p.first().directory());Path.of(p.second().directory());pending=p;
-            if(p.version()!=1)throw new IOException("Unsupported hive combination");
+            if(p.version()!=1)throw new IOException("unsupported hive combination");
             complete(p);
             // Preserve the exact request as a local receipt rather than deleting it.
             Files.move(request,game.resolve("gonuts-hive-combine-"+p.combined().id()+".applied.json"));
@@ -92,7 +92,7 @@ final class HiveCombine {
         else if(failure instanceof java.nio.file.AccessDeniedException||failure instanceof java.nio.file.NoSuchFileException)
             next="A required hive file is missing or inaccessible. Restore access to the original folders before retrying; do not create replacement ledgers.";
         else next="The import could not finish safely. Keep both original folders and submit a report from Help > Report a bug, describing the Hive setup failure.";
-        return "Combination not completed. "+next+" Original ledgers were kept.";
+        return "combination not completed. "+next+" Original ledgers were kept.";
     }
     static void complete(Plan p) throws Exception {
         complete(p,Path.of(System.getProperty("user.home"),".gonuts","local-presence"));
@@ -171,7 +171,7 @@ final class HiveCombine {
                 "evasion.txt","market-rests.txt","follow-list.txt","follow-events.tsv","markets-last.txt"))
             copyIfPresent(source.resolve(name),destination.resolve(name));
         Path config=destination.resolve("config.json");var j=JSON.readTree(Files.readAllBytes(config));
-        if(!(j instanceof com.fasterxml.jackson.databind.node.ObjectNode obj))throw new IOException("Invalid source settings");
+        if(!(j instanceof com.fasterxml.jackson.databind.node.ObjectNode obj))throw new IOException("invalid source settings");
         obj.put("databasePath",ledger.resolve("doughbay.db").toString());
         Files.write(config,JSON.writerWithDefaultPrettyPrinter().writeValueAsBytes(obj));
         for(String file:AccountRecords.FILES) {
@@ -210,7 +210,7 @@ final class HiveCombine {
     }
     static HiveSetup.Membership follow(HiveSetup.Membership membership) throws IOException {
         Path file=Path.of(membership.directory()).resolve(REDIRECT);if(!Files.exists(file))return membership;
-        if(Files.size(file)>24_576)throw new IOException("Invalid combined hive link");
+        if(Files.size(file)>24_576)throw new IOException("invalid combined hive link");
         Plan p=JSON.readValue(Files.readAllBytes(file),Plan.class);
         if(!membership.id().equals(p.first().id())&&!membership.id().equals(p.second().id()))throw new IOException("Combined hive link does not match the original");
         Path out=Path.of(p.combined().directory());verifyReady(out,p);return p.combined();
@@ -232,7 +232,7 @@ final class HiveCombine {
         if(!Files.isDirectory(root.resolve("member-profiles")))return root;
         if(account==null||!account.matches("[A-Za-z0-9_.-]{1,32}"))throw new IOException("Sign into the hive account first");
         Path profile=root.resolve("member-profiles").resolve(account.toLowerCase(Locale.ROOT));
-        if(!Files.isRegularFile(profile.resolve("config.json")))throw new IOException("No preserved settings profile for this hive account");return profile;
+        if(!Files.isRegularFile(profile.resolve("config.json")))throw new IOException("no preserved settings profile for this hive account");return profile;
     }
     private static void writeNew(Path file,Object value) throws IOException {
         // Complete temp file then atomically claim the destination; never replace an existing source or receipt.

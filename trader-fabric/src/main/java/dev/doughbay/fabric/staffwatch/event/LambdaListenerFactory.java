@@ -28,7 +28,7 @@ public final class LambdaListenerFactory {
          } catch (RuntimeException var3) {
             throw var3;
          } catch (Throwable var4) {
-            throw new RuntimeException("Unexpected error creating listener for method " + method, var4);
+            throw new RuntimeException("unexpected error creating listener for method " + method, var4);
          }
       }
    }
@@ -67,12 +67,12 @@ public final class LambdaListenerFactory {
    private static RuntimeException wrap(Method method, Throwable t) {
       if (t instanceof LambdaConversionException) {
          return new RuntimeException(
-            "LambdaMetafactory failed for method " + method + ". Ensure the listener method is public and its parameter type is a concrete Event subclass.", t
+            "lambdaMetafactory failed for method " + method + ". Ensure the listener method is public and its parameter type is a concrete Event subclass.", t
          );
       } else {
          return t instanceof IllegalAccessException
-            ? new RuntimeException("Cannot access method " + method + ". Listener methods must be public and their declaring class must be accessible.", t)
-            : new RuntimeException("Unexpected error creating listener for method " + method, t);
+            ? new RuntimeException("cannot access method " + method + ". Listener methods must be public and their declaring class must be accessible.", t)
+            : new RuntimeException("unexpected error creating listener for method " + method, t);
       }
    }
 

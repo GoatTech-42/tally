@@ -27,7 +27,7 @@ public final class AutomaticReportService implements AutoCloseable {
     private final ScheduledExecutorService daemon;
     private volatile Sample current;
     private volatile boolean closed;
-    private volatile String status="Automatic critical reports: off";
+    private volatile String status="automatic critical reports: off";
     private boolean storageFailed;
     private long nextCapabilityCheck;
 
@@ -54,7 +54,7 @@ public final class AutomaticReportService implements AutoCloseable {
     public void observe(AutomaticReportDetector.Observation observation,long elapsedMillis) {
         WebReports.observe(observation, elapsedMillis, build);
         current=new Sample(observation,detector.observe(observation,elapsedMillis).orElse(null),wallClock.getAsLong());
-        if(!observation.optedIn()) status="Automatic critical reports: off";
+        if(!observation.optedIn()) status="automatic critical reports: off";
     }
     public String status() {return status;}
     private boolean consented() {var sample=current;return !closed && sample!=null && sample.observation().optedIn();}
@@ -105,15 +105,15 @@ public final class AutomaticReportService implements AutoCloseable {
         }
         if(!connected() || now<nextCapabilityCheck) return;
         var sample=current;
-        if(pending==null && sample.candidate()==null) {status="Automatic reports ready: no critical failure";return;}
+        if(pending==null && sample.candidate()==null) {status="automatic reports ready: no critical failure";return;}
         JsonNode capabilities;
         try {capabilities=gateway.capabilities();}
-        catch(Exception e) {nextCapabilityCheck=now+300_000;status="Automatic reports waiting for receiver support";return;}
+        catch(Exception e) {nextCapabilityCheck=now+300_000;status="automatic reports waiting for receiver support";return;}
         sample=current;
         var kind=pending!=null?pending.kind():sample.candidate()==null?null:sample.candidate().failure();
         if(kind==null || !BugReportTransport.advertisesAutomaticReports(capabilities,kind)
             || !BugReportTransport.advertisesLogSupport(capabilities)) {
-            nextCapabilityCheck=now+300_000;status="Automatic reports waiting for receiver support";return;
+            nextCapabilityCheck=now+300_000;status="automatic reports waiting for receiver support";return;
         }
         if(pending==null) {
             var candidate=current.candidate();
@@ -121,12 +121,12 @@ public final class AutomaticReportService implements AutoCloseable {
             var metadata=AutomaticReportMetadata.of(build,minecraft,candidate);
             // Never replace a missing frozen body for an older reservation: it may have reached the receiver.
             if(journal.entries(now).stream().anyMatch(e -> e.outcome()==AutomaticReportJournal.Outcome.QUEUED))
-                throw new java.io.IOException("Incomplete report outbox");
+                throw new java.io.IOException("incomplete report outbox");
             Prepared prepared;
             try {prepared=evidence.capture(metadata);}
-            catch(Exception e) {nextCapabilityCheck=now+300_000;status="Automatic report waiting for sanitized diagnostics";return;}
+            catch(Exception e) {nextCapabilityCheck=now+300_000;status="automatic report waiting for sanitized diagnostics";return;}
             var reservation=journal.reserve(metadata.fingerprint(),now);
-            if(reservation.isEmpty()) {nextCapabilityCheck=now+300_000;status="Automatic report suppressed by duplicate or daily limit";return;}
+            if(reservation.isEmpty()) {nextCapabilityCheck=now+300_000;status="automatic report suppressed by duplicate or daily limit";return;}
             var entry=reservation.get();
             pending=new AutomaticReportOutbox.Pending(entry.retryKey(),entry.fingerprint(),
                 new String((BugReportTransport.advertisesSettingsSupport(capabilities) ? prepared.payload() : prepared.payload().withoutSettings()).json(prepared.log(),metadata),java.nio.charset.StandardCharsets.UTF_8),now,0,0);
@@ -140,7 +140,7 @@ public final class AutomaticReportService implements AutoCloseable {
         try {receipt=gateway.send(pending.bytes(),pending.retryKey());}
         catch(Exception e) {
             outbox.save(pending.delayed(now+Math.min(3_600_000,60_000L<<(pending.attempts()-1))));
-            status="Automatic report waiting to retry the same request";return;
+            status="automatic report waiting to retry the same request";return;
         }
         if(receipt.result().filed()) {
             journal.finish(pending.retryKey(),AutomaticReportJournal.Outcome.SENT,wallClock.getAsLong());outbox.clear();
@@ -151,7 +151,7 @@ public final class AutomaticReportService implements AutoCloseable {
             status="Automatic report rejected; retries stopped";
         } else {
             outbox.save(pending.delayed(Math.max(receipt.result().retryAtMillis(),now+Math.min(3_600_000,60_000L<<(pending.attempts()-1)))));
-            status="Automatic report waiting to retry the same request";
+            status="automatic report waiting to retry the same request";
         }
     }
     private static String pendingKey(Optional<AutomaticReportOutbox.Pending> loaded) {return loaded.orElseThrow().retryKey();}

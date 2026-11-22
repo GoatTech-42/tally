@@ -56,7 +56,7 @@ final class DiscordGateway implements WebSocket.Listener {
 
     /**
      * Sets what Discord shows under the bot's name: "Watching the auction
-     * house", "Selling map x64 for $420K", and so on. Discord allows a few
+     * house", "selling map x64 for $420K", and so on. Discord allows a few
      * of these every twenty seconds, so the bridge sends only changes.
      */
     void presence(String text, int activityType) {

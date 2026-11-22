@@ -36,9 +36,9 @@ public final class EventBus {
                return (EventType<?>)f.get(null);
             }
          } catch (NoSuchFieldException var3) {
-            throw new IllegalArgumentException("Event class " + eventClass.getName() + " must declare 'public static final EventType<...> TYPE'.", var3);
+            throw new IllegalArgumentException("event class " + eventClass.getName() + " must declare 'public static final EventType<...> TYPE'.", var3);
          } catch (IllegalAccessException var4) {
-            throw new IllegalArgumentException("Cannot access " + eventClass.getName() + ".TYPE", var4);
+            throw new IllegalArgumentException("cannot access " + eventClass.getName() + ".TYPE", var4);
          }
       }
    };
@@ -77,7 +77,7 @@ public final class EventBus {
 
          return processed;
       } else {
-         throw new IllegalArgumentException("Drain limits must be positive");
+         throw new IllegalArgumentException("drain limits must be positive");
       }
    }
 
@@ -145,7 +145,7 @@ public final class EventBus {
             try {
                listener = castListener((Listener)spec.listenerFactory().invokeExact((Object)subscriber));
             } catch (Throwable var7) {
-               throw new RuntimeException("Failed to bind listener for " + subscriber.getClass().getName(), var7);
+               throw new RuntimeException("failed to bind listener for " + subscriber.getClass().getName(), var7);
             }
          }
 
@@ -166,7 +166,7 @@ public final class EventBus {
       for (Class<?> parent = clazz; parent != null; parent = parent.getSuperclass()) {
          for (Method method : parent.getDeclaredMethods()) {
             if (isHandler(method) && !Modifier.isPublic(method.getModifiers())) {
-               throw new IllegalArgumentException("Event handler must be public: " + method);
+               throw new IllegalArgumentException("event handler must be public: " + method);
             }
          }
       }
@@ -192,7 +192,7 @@ public final class EventBus {
          if (matched) {
             Class<?>[] params = methodx.getParameterTypes();
             if (params.length != 1 || !Event.class.isAssignableFrom(params[0]) || methodx.getReturnType() != void.class) {
-               throw new IllegalArgumentException("Event handler must return void and accept one Event: " + methodx);
+               throw new IllegalArgumentException("event handler must return void and accept one event: " + methodx);
             }
 
             Class<Event> eventClass = (Class<Event>)params[0];

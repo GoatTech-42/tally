@@ -64,7 +64,7 @@ public record PerformanceStatsSnapshot(
                             long progress, long target) {
         public Milestone {
             id = Objects.requireNonNullElse(id, "milestone");
-            title = Objects.requireNonNullElse(title, "Milestone");
+            title = Objects.requireNonNullElse(title, "milestone");
             description = Objects.requireNonNullElse(description, "");
             progress = Math.max(0, progress);
             if (target <= 0) throw new IllegalArgumentException("milestone target must be positive");
@@ -160,17 +160,17 @@ public record PerformanceStatsSnapshot(
                         7, 448, 86_000, 39_800),
                 new ItemPerformance("minecraft:ender_pearl", "Ender Pearl x16",
                         5, 80, 142_000, 28_700),
-                new ItemPerformance("minecraft:glowstone", "Glowstone x64",
+                new ItemPerformance("minecraft:glowstone", "glowstone x64",
                         3, 192, 94_000, 23_100));
 
         List<Milestone> milestones = List.of(
-                new Milestone("first_sale", "FIRST SALE", "Complete one reconciled sale", 1, 1),
-                new Milestone("ten_sales", "MARKET REGULAR", "Complete 10 sales", 18, 10),
-                new Milestone("profit_100k", "$100K CLUB", "Realize $100k profit", 184_600, 100_000),
-                new Milestone("deployed_1m", "CAPITAL MOVER", "Deploy $1m lifetime", 2_840_000, 1_000_000),
-                new Milestone("active_10h", "TEN HOURS", "Run automation 10 active hours",
+                new Milestone("first_sale", "FIRST SALE", "complete one reconciled sale", 1, 1),
+                new Milestone("ten_sales", "MARKET REGULAR", "complete 10 sales", 18, 10),
+                new Milestone("profit_100k", "$100K CLUB", "realize $100k profit", 184_600, 100_000),
+                new Milestone("deployed_1m", "CAPITAL MOVER", "deploy $1m lifetime", 2_840_000, 1_000_000),
+                new Milestone("active_10h", "TEN HOURS", "run automation 10 active hours",
                         12 * 60 + 34, 10 * 60),
-                new Milestone("active_100h", "CENTURY WATCH", "Run automation 100 active hours",
+                new Milestone("active_100h", "CENTURY WATCH", "run automation 100 active hours",
                         12 * 60 + 34, 100 * 60));
 
         String ledger = mode == Mode.PAPER ? "DEMO PAPER LEDGER" : "DEMO REAL LEDGER";

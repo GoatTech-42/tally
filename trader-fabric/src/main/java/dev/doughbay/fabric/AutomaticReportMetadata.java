@@ -18,7 +18,7 @@ public record AutomaticReportMetadata(AutomaticReportDetector.Failure kind,
                     || signature == AutomaticReportDetector.Signature.CHECKPOINT_REJECTED;
         };
         if (!matches)
-            throw new IllegalArgumentException("Failure and signature do not match");
+            throw new IllegalArgumentException("failure and signature do not match");
     }
     public static AutomaticReportMetadata of(String build, String minecraft, AutomaticReportDetector.Candidate candidate) {
         if (build == null || !build.matches("[0-9A-Za-z.+_-]{1,40}")

@@ -22,7 +22,7 @@ final class RestartRoute {
     void cancel() { state = State.IDLE; }
 
     void start(List<String> addresses, Object parkedLevel, long now) {
-        if (addresses.isEmpty()) throw new IllegalArgumentException("No regional address");
+        if (addresses.isEmpty()) throw new IllegalArgumentException("no regional address");
         this.addresses = List.copyOf(addresses);
         this.parkedLevel = parkedLevel;
         index = 0;

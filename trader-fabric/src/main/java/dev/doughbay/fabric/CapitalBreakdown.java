@@ -14,7 +14,7 @@ public final class CapitalBreakdown {
   public double knownTotal(){double total=0;for(Long v:values())if(v!=null&&v>0)total+=v;return total;}
  }
  public static Orders orders(long at,List<AutomatedExecutionDriver.OwnOrderRow> rows,Map<String,Integer> collected){
-  if(at<=0)return new Orders(0,0,null,null,"Own orders have not been read");
+  if(at<=0)return new Orders(0,0,null,null,"own orders have not been read");
   long reserved=0,waiting=0;
   Map<String,Long> delivered=new HashMap<>(),prices=new HashMap<>();
   try{
@@ -30,7 +30,7 @@ public final class CapitalBreakdown {
     waiting=Math.addExact(waiting,Math.multiplyExact(e.getValue()-had,prices.get(e.getKey())));
    }
    return new Orders(at,rows.size(),reserved,waiting,"Observed own-order rows only; delivered minus recorded collections. Manual changes and unseen pages may be missing.");
-  }catch(ArithmeticException invalid){return new Orders(at,rows.size(),null,null,"Order quantities or costs could not be reconciled");}
+  }catch(ArithmeticException invalid){return new Orders(at,rows.size(),null,null,"order quantities or costs could not be reconciled");}
  }
  public static Snapshot combine(long now,long bank,long bankAt,Orders orders,Stock stock){
   boolean bankFresh=bank>=0&&bankAt>0&&now-bankAt<=300_000;
@@ -39,8 +39,8 @@ public final class CapitalBreakdown {
   List<String> notes=new ArrayList<>();
   notes.add("This account only. Pie shows observed capital at purchase cost, not net worth or realized profit.");
   notes.add("Sidebar bank amounts have the displayed resolution; source-read timestamps are retained.");
-  if(!bankFresh)notes.add("Bank is unknown or older than five minutes.");
-  if(!ordersFresh)notes.add("Own-order figures are unknown or older than five minutes.");
+  if(!bankFresh)notes.add("bank is unknown or older than five minutes.");
+  if(!ordersFresh)notes.add("own-order figures are unknown or older than five minutes.");
   if(orders!=null)notes.add(orders.rows()+" own-order rows observed. "+orders.note());
   if(!stockFresh)notes.add("Account stock ledger is unavailable or older than 30 seconds.");
   if(stock!=null&&stock.unattributed()>0)notes.add("Unattributed legacy stock exists in the hive ledger; it is not assigned to this account.");

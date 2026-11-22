@@ -56,13 +56,13 @@ public final class SwarmReadSavings {
 
     public static List<String> lines(com.fasterxml.jackson.databind.JsonNode v) {
         var rows = new ArrayList<String>();
-        rows.add("Scans skipped: " + v.path("actualSkippedReads").asLong() + " / " + v.path("attempts").asLong()
+        rows.add("scans skipped: " + v.path("actualSkippedReads").asLong() + " / " + v.path("attempts").asLong()
                 + " shared lookups; fallbacks: " + v.path("fallbackReads").asLong());
-        rows.add("Measured shared lookup wait: " + seconds(v.path("lookupWaitMs").asLong()));
+        rows.add("measured shared lookup wait: " + seconds(v.path("lookupWaitMs").asLong()));
         if (v.path("estimateAvailable").asBoolean()) {
             rows.add("Estimated net time saved" + (v.path("estimateComplete").asBoolean()?"":" (partial baseline)") + ": " + seconds(v.path("estimatedNetSavedMs").asLong())
                     + " (includes all lookup waits; negative means overhead)");
-            rows.add("Calibrated skips: " + v.path("calibratedSkippedReads").asLong() + "; without baseline: "
+            rows.add("calibrated skips: " + v.path("calibratedSkippedReads").asLong() + "; without baseline: "
                     + v.path("uncalibratedSkippedReads").asLong());
         } else rows.add("Time saved: not calibrated yet; needs 3 recent successful scans of matching region and page count.");
         if (v.has("estimatedMatchedReadSpeedRatio")) rows.add(String.format(Locale.ROOT,

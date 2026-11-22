@@ -123,7 +123,7 @@ public final class AntiVanishModule extends ClientModule {
    private String ghostName;
 
    public AntiVanishModule() {
-      super("anti-vanish", "Anti Vanish", "Detects vanished players.", ModuleCategory.DONUT);
+      super("anti-vanish", "Anti Vanish", "detects vanished players.", ModuleCategory.DONUT);
       this.usesNotifications();
    }
 
@@ -517,7 +517,7 @@ public final class AntiVanishModule extends ClientModule {
          String name = known != null && known.name != null ? known.name : this.knownName(uuid);
          if (this.credibleSubject(uuid, name) && AntiVanishText.isPlausiblePlayerName(name)) {
             if (!this.recentMessageNames(name)) {
-               this.reportHidden(uuid, name, false, "Vanish Event: hidden from TAB", "hidden from TAB", 100);
+               this.reportHidden(uuid, name, false, "vanish event: hidden from TAB", "hidden from TAB", 100);
             }
          }
       }
@@ -583,9 +583,9 @@ public final class AntiVanishModule extends ClientModule {
                } else {
                   Player remaining = MC.level.getPlayerByUUID(pending.uuid);
                   if (remaining != null && !remaining.isRemoved()) {
-                     this.reportHidden(pending.uuid, pending.name, false, "Vanish Event: entity remained", "off TAB, still nearby", 100);
+                     this.reportHidden(pending.uuid, pending.name, false, "vanish event: entity remained", "off TAB, still nearby", 100);
                   } else {
-                     String reason = "Vanish Event: silent TAB disappearance";
+                     String reason = "vanish event: silent TAB disappearance";
                      int score = silentTabRemovalScore(this.serverSendsLeaveMessages);
                      if (this.serverSendsLeaveMessages) {
                         this.reportHidden(pending.uuid, pending.name, false, reason, "left TAB silently", score);
@@ -692,7 +692,7 @@ public final class AntiVanishModule extends ClientModule {
             this.health.reviewedProbe(knownStaff, hidden.size());
             if (!hidden.isEmpty() && hidden.size() <= 3) {
                for (String namex : hidden) {
-                  this.reportHidden(this.knownUuid(namex), namex, false, "Vanish Event: hidden but targetable", "off TAB, still targetable", 90);
+                  this.reportHidden(this.knownUuid(namex), namex, false, "vanish event: hidden but targetable", "off TAB, still targetable", 90);
                   // This exact vanilla completion probe was measured as shard-local.
                   // A hidden name need not have a UUID in the current player list.
                   this.health.alertRequest();
@@ -793,7 +793,7 @@ public final class AntiVanishModule extends ClientModule {
 
       for (Player player : MC.level.players()) {
          if (player != null && player != MC.player && player.isInvisible() && !(player.distanceToSqr(MC.player) > rangeSq) && this.realPlayer(player)) {
-            this.triggerSensor(AntiVanishModule.SignalType.INVISIBLE, player, "Invisible Entity: metadata flag", 35, 5000L);
+            this.triggerSensor(AntiVanishModule.SignalType.INVISIBLE, player, "invisible entity: metadata flag", 35, 5000L);
          }
       }
    }
@@ -802,7 +802,7 @@ public final class AntiVanishModule extends ClientModule {
       if (MC.level.getEntity(entityId) instanceof Player player && player != MC.player && player.isInvisible()) {
          if (!(player.distanceToSqr(MC.player) > this.sensorRangeSq())) {
             if (this.realPlayer(player)) {
-               this.triggerSensor(AntiVanishModule.SignalType.INVISIBLE, player, "Invisible Entity: metadata flag", 35, 5000L);
+               this.triggerSensor(AntiVanishModule.SignalType.INVISIBLE, player, "invisible entity: metadata flag", 35, 5000L);
             }
          }
       }
@@ -828,7 +828,7 @@ public final class AntiVanishModule extends ClientModule {
             && !this.recentlySelfPlaced(source)
             && !this.villagerToggledDoor(observation.detail, source)
             && (!this.selfContainerActive() || !isContainerSignal(observation.detail))) {
-            this.triggerSensor(AntiVanishModule.SignalType.SOUND, this.locatedSubject(source), "Suspicious Sound: " + shortId(observation.detail), 14, 3000L);
+            this.triggerSensor(AntiVanishModule.SignalType.SOUND, this.locatedSubject(source), "suspicious sound: " + shortId(observation.detail), 14, 3000L);
          }
       }
    }
@@ -840,7 +840,7 @@ public final class AntiVanishModule extends ClientModule {
             && player.isInvisible()
             && player.distanceToSqr(MC.player) <= this.sensorRangeSq()
             && this.realPlayer(player)) {
-            this.triggerSensor(AntiVanishModule.SignalType.SOUND, player, "Suspicious Sound: invisible source", 16, 3000L);
+            this.triggerSensor(AntiVanishModule.SignalType.SOUND, player, "suspicious sound: invisible source", 16, 3000L);
          }
       }
    }
@@ -858,7 +858,7 @@ public final class AntiVanishModule extends ClientModule {
             if (!particle.equals("block") && !particle.contains("smoke") || !this.nearSelf(source, 6.25)) {
                if (!particle.equals("block") && !particle.contains("smoke") || this.particleBurstReady(particle, now)) {
                   this.triggerSensor(
-                     AntiVanishModule.SignalType.PARTICLE, this.locatedSubject(source), "Ghost Particle: " + shortId(observation.detail), 16, 3000L
+                     AntiVanishModule.SignalType.PARTICLE, this.locatedSubject(source), "ghost particle: " + shortId(observation.detail), 16, 3000L
                   );
                }
             }
@@ -1012,7 +1012,7 @@ public final class AntiVanishModule extends ClientModule {
          if (known != null && StaffListModule.isStaffName(known.name)) {
             if (GameType.SPECTATOR.getName().equals(gameMode)) {
                if (this.credibleSubject(uuid, known.name)) {
-                  this.reportHidden(uuid, known.name, true, "Vanish Event: switched to spectator", "", 100);
+                  this.reportHidden(uuid, known.name, true, "vanish event: switched to spectator", "", 100);
                   return;
                }
             } else if (this.endSpell(known.name, true, 0L)) {

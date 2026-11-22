@@ -19,7 +19,7 @@ public final class ProxySettings {
                 || !password.isEmpty() && username.isEmpty() || type.equals("SOCKS4") && !password.isEmpty())
                 throw new IllegalArgumentException("Invalid proxy fields. Use SOCKS4/5, a host, port 1–65535, and supported credentials.");
         }
-        @Override public String toString() { return "Proxy profile [details hidden]"; }
+        @Override public String toString() { return "proxy profile [details hidden]"; }
     }
     public record State(boolean enabled, String selected, List<Profile> profiles) {
         public State { profiles = List.copyOf(profiles); }
@@ -55,8 +55,8 @@ public final class ProxySettings {
             State next;
             switch(form.getOrDefault("action", "")) {
                 case "save" -> {
-                    if (!id.isEmpty() && old == null) throw new IllegalArgumentException("That profile no longer exists.");
-                    if (old == null && list.size() >= 100) throw new IllegalArgumentException("At most 100 profiles can be saved.");
+                    if (!id.isEmpty() && old == null) throw new IllegalArgumentException("that profile no longer exists.");
+                    if (old == null && list.size() >= 100) throw new IllegalArgumentException("at most 100 profiles can be saved.");
                     boolean clear = "true".equals(form.get("clearCredentials"));
                     String user = form.getOrDefault("username", ""), pass = form.getOrDefault("password", "");
                     if (!clear && old != null) { if(user.isEmpty())user=old.username(); if(pass.isEmpty())pass=old.password(); }
@@ -65,17 +65,17 @@ public final class ProxySettings {
                     if(old!=null)list.set(list.indexOf(old), profile);else list.add(profile);
                     next = new State(state.enabled() && !unreadable, old==null && state.selected().isEmpty()?profile.id():state.selected(), list);
                 }
-                case "enable" -> { if(old==null)throw new IllegalArgumentException("Save and choose a valid profile first."); next=new State(true,old.id(),list); }
+                case "enable" -> { if(old==null)throw new IllegalArgumentException("save and choose a valid profile first."); next=new State(true,old.id(),list); }
                 case "disable" -> next=new State(false,state.selected(),list);
                 case "delete" -> {
-                    if(old==null)throw new IllegalArgumentException("Choose a profile first.");
+                    if(old==null)throw new IllegalArgumentException("choose a profile first.");
                     if(state.enabled() && state.selected().equals(id))throw new IllegalArgumentException("Disable this proxy before deleting it.");
                     list.remove(old); next=new State(state.enabled(),state.selected().equals(id)?"":state.selected(),list);
                 }
                 default -> throw new IllegalArgumentException("Unknown proxy action.");
             }
             persist(next); state=next; unreadable=false;
-            return JSON.createObjectNode().put("ok",true).put("note","Saved for this client. Applies on its next connection.").toString();
+            return JSON.createObjectNode().put("ok",true).put("note","saved for this client. applies on its next connection.").toString();
         } catch (IllegalArgumentException e) {
             // No invalid input or parser exception is reflected into logs or the UI.
             return JSON.createObjectNode().put("ok",false).put("note","Could not save. Check the profile, host, port and credentials. Disable an active profile before deleting it.").toString();

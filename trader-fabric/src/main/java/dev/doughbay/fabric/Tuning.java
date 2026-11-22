@@ -59,7 +59,7 @@ public final class Tuning {
             new Setting("buy.focus", "Buying", "use trading focus",
                     "Limit new purchases and new bids to Trading focus items while continuing to observe the broader Items list. "
                     + "Existing stock and orders finish normally. Saved presets can switch between Original, Focused and Overnight. "
-                    + "An enabled but empty focus buys nothing (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
+                    + "an enabled but empty focus buys nothing (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("buy.scale_with_bank", "Buying", "limits follow your bank",
                     "On, the most one buy may cost and the most that may be out at once are shares of your balance "
                     + "(the two settings below), so they grow as the bank grows and shrink if it falls; the Max per "
@@ -144,7 +144,7 @@ public final class Tuning {
             new Setting("tier.large_from_pct", "tiers", "large tier starts at",
                     "A buy this share of the bank or more is a large ticket", 1.4, 0.5, 50, Kind.PERCENT),
             new Setting("multi.enabled", "Multi client", "Shared API key",
-                    "Several accounts run Tally against one API key and one ledger. The key's allowance is then divided "
+                    "Several accounts run tally against one API key and one ledger. The key's allowance is then divided "
                     + "between the clients that are running, and each client says whether it trades or only scans (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("multi.scan_only", "Multi client", "This client only scans",
@@ -311,7 +311,7 @@ public final class Tuning {
                     + "down from our own last ask, whatever the market is doing. On, a stack already at or under "
                     + "the market for its own stack size is left alone - the price is not why it is sitting - and "
                     + "one that is above comes down to the market in a single move rather than a rung at a time. "
-                    + "The floor is unchanged either way (1 on, 0 off)",
+                    + "the floor is unchanged either way (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("reprice.retry_min", "Pull-backs", "retry a failed pull-back after",
                     "wait before trying the same listing again", 3, 1, 60, Kind.MINUTES),
@@ -349,7 +349,7 @@ public final class Tuning {
                     + "stops. Your own inventory is untouched (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("quiet.hide_hotbar", "HUD", "hide the hotbar",
-                    "Hide the vanilla hotbar and experience bar; Tally's own panel still draws (1 on, 0 off)",
+                    "Hide the vanilla hotbar and experience bar; tally's own panel still draws (1 on, 0 off)",
                     0, 0, 1, Kind.TOGGLE),
             new Setting("quiet.hide_chat", "HUD", "hide the chat",
                     "Stop drawing the chat box. The bot reads chat off the network rather than off the screen, so "
@@ -451,7 +451,7 @@ public final class Tuning {
             new Setting("hud.alerts", "HUD", "Alerts",
                     "Pop-up alerts for sales and events (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("hud.keys", "HUD", "Key legend",
-                    "A small legend showing what each Tally key does, using your current bindings, so nobody has to "
+                    "A small legend showing what each tally key does, using your current bindings, so nobody has to "
                     + "memorise them (1 on, 0 off)", 1, 0, 1, Kind.TOGGLE),
             new Setting("hud.keys_x", "HUD", "Key legend across",
                     "Where the key legend sits left-to-right, as a percent of the screen: 0 is the left edge, 100 the "
@@ -804,7 +804,7 @@ public final class Tuning {
                     "Weigh candidates by how the number of players online now compares with the population that usually trades (1 on, 0 off)",
                     1, 0, 1, Kind.TOGGLE),
             new Setting("panel.hold_idle_sec", "session", "hold while the screen is open",
-                    "The bot waits while you have the Tally screen open, and carries on this many seconds after your last click or keypress (0 never waits)",
+                    "The bot waits while you have the tally screen open, and carries on this many seconds after your last click or keypress (0 never waits)",
                     45, 0, 900, Kind.SECONDS),
             new Setting("session.auto_resume", "session", "auto-resume a recovered session",
                     "After a restart the session waits at a pause for the Resume button, so a person can confirm the "
@@ -853,7 +853,7 @@ public final class Tuning {
                     + "0 preserves automatic defaults: one normal order, or two Reserve Stock purchases per cycle. "
                     + "Filled orders still awaiting collection count. Existing orders are retained when this is lowered. "
                     + "Stacks per bid, account capacity, shared depth, spending and live-price checks still apply. "
-                    + "Manual Flips keep their own rules",
+                    + "manual flips keep their own rules",
                     0, 0, 90, Kind.COUNT),
             new Setting("orders.reserve_stacks", "Orders", "reserve batch stacks",
                     "Whole stacks in each Reserve Stock batch, limited by Stacks per bid. Buy orders per item controls the batch count, "
@@ -863,7 +863,7 @@ public final class Tuning {
                     "The most stacks one bid may ask for. Each order is sized under this from the market's "
                     + "margin, its daily volume, and how fast our own recent stacks of it sold", 3, 1, 30, Kind.COUNT),
             new Setting("upload.enabled", "Orders", "send order sweeps home",
-                    "Post every order-house sweep to the Tally API so it can serve an order book the public "
+                    "Post every order-house sweep to the tally API so it can serve an order book the public "
                     + "feed does not have. Needs the API's ingest route (1 on, 0 off)", 0, 0, 1, Kind.TOGGLE),
             new Setting("orders.bid_min_confidence", "Orders", "bid: minimum confidence",
                     "How sure the price has to be before the desk bids on a market. Our own ledger says a lower bar "
@@ -953,14 +953,14 @@ public final class Tuning {
                     + "report is posted there: trades, profit, payments, what is listed, the population and the rivals. "
                     + "A joined Hive account with no URL uses its existing Hive owner's enabled destination. "
                     + "Turn off Hourly status webhook to disable notifications for this account. "
-                    + "Outside a Hive, a blank URL posts nothing"),
-            new ListSetting("boxes.sweep_term", "Box markets to sweep",
+                    + "outside a Hive, a blank URL posts nothing"),
+            new ListSetting("boxes.sweep_term", "box markets to sweep",
                     "What the sweep searches for, separated by commas: \"shulker, bundle\". Every one is read each "
                     + "time the sweep comes round, one look each. Blank sweeps shulkers only"),
-            new ListSetting("join.address", "Server to join by itself",
+            new ListSetting("join.address", "server to join by itself",
                     "The address the auto join connects to, e.g. donutsmp.net. Blank uses the last server this client "
                     + "was on, which is usually what you want"),
-            new ListSetting("restart.hop_addresses", "Addresses to come back in through",
+            new ListSetting("restart.hop_addresses", "addresses to come back in through",
                     "The other addresses of the network that 'Restart queue bypass' joins through, in the "
                     + "order to try them. Blank uses east, west, asia, oceania, eu-central and eu-west of the usual "
                     + "address (for example asia.donutsmp.net), skipping the current address. "
@@ -970,19 +970,19 @@ public final class Tuning {
                     "The sorts this client reads, in turn, separated by commas: \"Recently Listed, Lowest Price\". "
                     + "Recently Listed catches a mispriced item as it lands; Lowest Price catches the ones that landed "
                     + "while nobody was looking. Every look moves to the next sort. Blank means Recently Listed only"),
-            new ListSetting("watch.tracked", "Tracked markets (watch list)",
+            new ListSetting("watch.tracked", "tracked markets (watch list)",
                     "The markets the bot watches and may trade, edited from the Items tab in game and applied without a "
                     + "restart. Empty falls back to the tracked commodities set in config.json."),
-            new ListSetting("items.allow", "Only trade these items",
+            new ListSetting("items.allow", "only trade these items",
                     "Comma-separated item names or ids, e.g. redstone, ender_pearl. Empty means everything."),
-            new ListSetting("buy.focus_items", "Trading focus items",
+            new ListSetting("buy.focus_items", "trading focus items",
                     "When Use trading focus is on, only these Items-allowed markets receive new purchases or bids. "
                     + "Observation, pricing and handling existing stock keep using the broader Items list. "
                     + "Use =item_name for an exact item; an empty enabled focus buys nothing."),
-            new ListSetting("items.deny", "Never trade these items",
+            new ListSetting("items.deny", "never trade these items",
                     "Comma-separated item names or ids that are always skipped. A name covers everything ending in it "
                     + "(glass is every stained glass too); =glass is that one item alone."),
-            new ListSetting("prices.own", "Your own prices",
+            new ListSetting("prices.own", "your own prices",
                     "Items to order at a price you set and sell at a price you set, as item, buy price, sell price: "
                     + "\"diamond 80 120, golden apple 4k 5.2k x3\". Prices are per item; x3 orders three stacks at a time. "
                     + "Add the word singles to sell an item one at a time and never as a stack: \"observer 500 900 x15 "
@@ -996,16 +996,16 @@ public final class Tuning {
                     + "The bot keeps a buy order up at your buy price, lists what it delivers at your sell price in the "
                     + "stacks it arrives in, and leaves that listing at your price until it sells. It stops buying these "
                     + "on the auction, and stops re-ordering while a full set of listings of the item is still up. "
-                    + "Blank means the bot prices everything itself."),
-            new ListSetting(ItemPriorities.KEY, "Item priorities",
+                    + "blank means the bot prices everything itself."),
+            new ListSetting(ItemPriorities.KEY, "item priorities",
                     "Use Items > Priority to choose High, Standard or Low for selected items. "
                     + "High is evaluated first among eligible new purchases and bids; Low stays enabled as a fallback. "
                     + "All item restrictions, prices and trading limits still apply. Existing stock and orders keep their normal management."),
-            new ListSetting("items.liquidate", "Sell off and stop buying these",
+            new ListSetting("items.liquidate", "sell off and stop buying these",
                     "Comma-separated item names or ids to clear out: they are never bought, but stock "
                     + "you already hold is pulled back and relisted down to the market even below cost until "
                     + "it is gone. For unwinding a market you no longer want, without freezing the stock in it."),
-            new ListSetting("items.gear", "Gear markets traded as commodities",
+            new ListSetting("items.gear", "gear markets traded as commodities",
                     "Items whose enchanted copies are near-identical, so the plain market's price "
                     + "is the right price for them, e.g. netherite_pickaxe. Damaged ones are never "
                     + "traded whatever is listed here. Empty means gear is left alone."));
@@ -1134,7 +1134,7 @@ public final class Tuning {
             case "Default" -> "Resets ALL numeric settings to their shipped defaults, across every category.\n"
                     + "This includes limits, pacing, protection settings and feature toggles.\n"
                     + "Save a preset first if you want to restore your current setup.";
-            default -> "No included preset selected.";
+            default -> "no included preset selected.";
         };
         return name + "\n" + summary + "\n\n"
                 + ("Default".equals(name) ? "" : "Only this preset's bundled settings change; other settings stay as they are.\n")
@@ -1356,10 +1356,10 @@ public final class Tuning {
     static synchronized void migrateEvasionToggle(boolean legacyEnabled) throws IOException {
         LOCAL_KEYS.add("evasion.enabled");
         Path local = localFile;
-        if (local == null) throw new IOException("Local tuning is not initialized");
+        if (local == null) throw new IOException("local tuning is not initialized");
         ObjectMapper mapper = new ObjectMapper();
         JsonNode read = Files.exists(local) ? mapper.readTree(Files.readString(local, StandardCharsets.UTF_8)) : mapper.createObjectNode();
-        if (!(read instanceof ObjectNode root)) throw new IOException("Local settings must be an object");
+        if (!(read instanceof ObjectNode root)) throw new IOException("local settings must be an object");
         boolean migrated = root.path("_evasionToggleVersion").asInt() == 1;
         double value = migrated
                 ? root.path("evasion.enabled").isNumber() ? setting("evasion.enabled").clamp(root.path("evasion.enabled").asDouble()) : 0

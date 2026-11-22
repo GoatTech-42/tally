@@ -224,25 +224,25 @@ final class DemoData {
         reasons.add("DEMO DATA — invented preview, not a real listing");
         reasons.add(s.reason());
 
-        String demand = s.salesPerHour() >= 12 ? "Strong recent demand"
-                : s.salesPerHour() >= 5 ? "Steady recent demand"
-                : "Thin recent demand — slower exit risk";
+        String demand = s.salesPerHour() >= 12 ? "strong recent demand"
+                : s.salesPerHour() >= 5 ? "steady recent demand"
+                : "thin recent demand — slower exit risk";
         reasons.add(demand + " — " + decimal(s.salesPerHour()) + " demo sales/hour");
 
         double volatilityPercent = s.volatility() * 100.0;
-        String stability = s.volatility() <= 0.04 ? "Low volatility"
-                : s.volatility() <= 0.065 ? "Moderate volatility"
-                : "Elevated volatility — wider price risk";
+        String stability = s.volatility() <= 0.04 ? "low volatility"
+                : s.volatility() <= 0.065 ? "moderate volatility"
+                : "elevated volatility — wider price risk";
         reasons.add(stability + " — " + decimal(volatilityPercent) + "% robust spread");
 
         reasons.add(s.samples() + " invented comparable sales across "
                 + s.sellers() + " demo sellers");
         if (s.trend() >= 0.025) {
-            reasons.add("Positive synthetic trend — +" + decimal(s.trend() * 100.0) + "%");
+            reasons.add("positive synthetic trend — +" + decimal(s.trend() * 100.0) + "%");
         } else if (s.trend() <= -0.025) {
             reasons.add("Falling synthetic trend risk — " + decimal(s.trend() * 100.0) + "%");
         } else {
-            reasons.add("Synthetic price trend is broadly stable");
+            reasons.add("synthetic price trend is broadly stable");
         }
         return List.copyOf(reasons);
     }

@@ -55,7 +55,7 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
     @Override
     public ExecutionResult list(Position position, long price) {
         String message = String.format(Locale.ROOT,
-                "List %s x%d at %,d. Tally cannot list for you — run the sell command yourself.",
+                "List %s x%d at %,d. tally cannot list for you — run the sell command yourself.",
                 shortName(position.itemKey()), position.quantity(), price);
         lastMessage.set(message);
         copyToClipboard(String.valueOf(price));
@@ -79,7 +79,7 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
 
     @Override
     public String modeName() {
-        return "Assisted (you click)";
+        return "assisted (you click)";
     }
 
     /** The opportunity currently armed for verification, or null. */
@@ -122,7 +122,7 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
             checks.add(new Check("Auction screen open", "an auction/container screen",
                     "no container screen open", Check.Status.UNKNOWN));
             checks.add(new Check("Item", expectedItem, "—", Check.Status.UNKNOWN));
-            checks.add(new Check("Stack size", expectedCount, "—", Check.Status.UNKNOWN));
+            checks.add(new Check("stack size", expectedCount, "—", Check.Status.UNKNOWN));
             checks.add(new Check("Price", expectedPrice, "read it on screen", Check.Status.UNKNOWN));
             return checks;
         }
@@ -146,11 +146,11 @@ public final class AssistedExecutionDriver implements ExecutionDriver {
         if (best.isEmpty()) {
             checks.add(new Check("Item", expectedItem,
                     "not visible on this screen", Check.Status.MISMATCH));
-            checks.add(new Check("Stack size", expectedCount, "—", Check.Status.UNKNOWN));
+            checks.add(new Check("stack size", expectedCount, "—", Check.Status.UNKNOWN));
         } else {
             checks.add(new Check("Item", expectedItem, shortName(itemId(best)), Check.Status.MATCH));
             boolean countMatches = best.getCount() == target.listing().itemCount();
-            checks.add(new Check("Stack size", expectedCount, String.valueOf(best.getCount()),
+            checks.add(new Check("stack size", expectedCount, String.valueOf(best.getCount()),
                     countMatches ? Check.Status.MATCH : Check.Status.MISMATCH));
         }
 

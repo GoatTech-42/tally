@@ -22,7 +22,7 @@ public final class ReconnectController {
   if(!config.enabled||!config.autoDisconnect)return "Automatic reconnect is disabled.";
   if(cancelledByUser)return "Automatic reconnect was cancelled by the user.";
   if(!donutSession)return "No eligible server session is retained for automatic reconnect.";
-  if(schedule.active())return "Automatic reconnect countdown active: about "+((schedule.remainingMillis()+999)/1000)+" seconds remaining. Trading resumes only after native recovery checks pass.";
+  if(schedule.active())return "automatic reconnect countdown active: about "+((schedule.remainingMillis()+999)/1000)+" seconds remaining. Trading resumes only after native recovery checks pass.";
   return "Automatic reconnect enabled: normally retries after 2 minutes once the disconnect screen is ready. Trading resumes only after native recovery checks pass.";
  }
 

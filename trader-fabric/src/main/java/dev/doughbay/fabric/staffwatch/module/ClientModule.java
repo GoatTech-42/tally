@@ -7,7 +7,7 @@ public class ClientModule {
  private BooleanSetting notifications;
  protected ClientModule(String id,String name,String description,ModuleCategory category){this.id=id;this.name=name;}
  protected <S extends BooleanSetting> S addSetting(String id,S setting){setting.bindId(id);settings.add(setting);return setting;}
- protected BooleanSetting usesNotifications(){return notifications=addSetting("notifications",new BooleanSetting("Notifications",true));}
+ protected BooleanSetting usesNotifications(){return notifications=addSetting("notifications",new BooleanSetting("notifications",true));}
  public boolean notificationsOn(){return notifications==null||notifications.get();}
  public String name(){return name;} public String id(){return id;} public boolean isEnabled(){return enabled;}
  public List<BooleanSetting> settings(){return Collections.unmodifiableList(settings);}

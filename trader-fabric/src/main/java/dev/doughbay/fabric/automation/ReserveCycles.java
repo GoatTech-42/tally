@@ -17,13 +17,13 @@ final class ReserveCycles {
         if (path != null && Files.exists(path)) {
             for (String line : Files.readAllLines(path)) {
                 int split = line.lastIndexOf('=');
-                if (split <= 0) throw new IOException("Invalid reserve cycle record");
+                if (split <= 0) throw new IOException("invalid reserve cycle record");
                 int count;
                 try { count = Integer.parseInt(line.substring(split+1)); }
-                catch (NumberFormatException e) { throw new IOException("Invalid reserve cycle count",e); }
-                if (count < 1 || count > 90) throw new IOException("Invalid reserve cycle count");
+                catch (NumberFormatException e) { throw new IOException("invalid reserve cycle count",e); }
+                if (count < 1 || count > 90) throw new IOException("invalid reserve cycle count");
                 if (purchases.putIfAbsent(line.substring(0,split),count) != null)
-                    throw new IOException("Duplicate reserve cycle record");
+                    throw new IOException("duplicate reserve cycle record");
             }
         }
         readable = true;
@@ -51,7 +51,7 @@ final class ReserveCycles {
 
     void reservePurchase(String item, int maxBatches) throws IOException {
         if (!readable || maxBatches < 1 || maxBatches > 90 || purchases.getOrDefault(item,0) >= maxBatches)
-            throw new IOException("Reserve cycle is not ready");
+            throw new IOException("reserve cycle is not ready");
         purchases.merge(item,1,Integer::sum);
         save();
     }
@@ -62,7 +62,7 @@ final class ReserveCycles {
     }
 
     private void write() throws IOException {
-        if (path == null) throw new IOException("Reserve cycle storage is unavailable");
+        if (path == null) throw new IOException("reserve cycle storage is unavailable");
         Path temp = path.resolveSibling(path.getFileName()+".tmp");
         List<String> lines = purchases.entrySet().stream().map(e -> e.getKey()+"="+e.getValue()).toList();
         byte[] data = String.join("\n",lines).getBytes(java.nio.charset.StandardCharsets.UTF_8);

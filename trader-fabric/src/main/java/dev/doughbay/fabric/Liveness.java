@@ -175,7 +175,7 @@ final class Liveness {
                 lines.add(new String[] {"still for", (still / 60_000L) + " min"});
                 lines.add(new String[] {"listings up", String.valueOf(listed)});
                 lines.add(new String[] {"session state", state});
-                hook.alert("Nothing is moving", 0xE8B04B, lines, "");
+                hook.alert("nothing is moving", 0xE8B04B, lines, "");
             }
         } catch (Throwable ignored) {
             // a stall is worth saying in the log even if Discord cannot be told

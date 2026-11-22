@@ -20,8 +20,8 @@ public final class StaffWatchReport {
         public boolean fresh(long now){return at>0 && now>=at && now-at<=15_000;}
         public String status(long now) {
             if(!storageStatus.isEmpty())return storageStatus;
-            if(!fresh(now))return "Current observation unavailable or stale";
-            return connected?"Watching with "+observers+" hive observer(s)":"No active observer; current presence unknown";
+            if(!fresh(now))return "current observation unavailable or stale";
+            return connected?"watching with "+observers+" hive observer(s)":"No active observer; current presence unknown";
         }
         public List<Row> current(long now){return fresh(now)&&connected?rows:List.of();}
     }
@@ -95,10 +95,10 @@ public final class StaffWatchReport {
     public static synchronized void close(){if(worker!=null){worker.execute(()->{if(store!=null)try{store.close();}catch(Exception ignored){}store=null;});worker.shutdown();}}
     public static String label(Event event) {
         return switch(event) {
-            case OBSERVED->"Observed in player list";case SPECTATOR->"Spectator mode observed";
-            case HIDDEN_FROM_TAB->"Hidden from TAB (not proof of vanish)";
-            case NO_LONGER_OBSERVED->"No longer observed (not proof of offline)";
-            case NEARBY->"Nearby staff observed";case MODE_CHANGED->"Game-mode change observed";
+            case OBSERVED->"Observed in player list";case SPECTATOR->"spectator mode observed";
+            case HIDDEN_FROM_TAB->"hidden from TAB (not proof of vanish)";
+            case NO_LONGER_OBSERVED->"no longer observed (not proof of offline)";
+            case NEARBY->"nearby staff observed";case MODE_CHANGED->"game-mode change observed";
         };
     }
     public static String scopeLabel(String scope){return scope.replaceFirst(" \\| view [0-9]+$","");}

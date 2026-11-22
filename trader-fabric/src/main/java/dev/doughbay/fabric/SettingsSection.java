@@ -6,11 +6,11 @@ public enum SettingsSection {
     ORDERS("Orders", "Place buy orders, choose batch sizes and collect filled stock."),
     ITEMS("Items & focus", "Choose what to watch and what may be bought. Focus restricts new purchases."),
     CAPITAL("Money & limits", "Set spending limits, listing capacity and allocation between trade sizes."),
-    SAFETY("Safety & recovery", "Evasion, recovery and reconnect behavior. Existing safety gates still apply."),
+    SAFETY("safety & recovery", "Evasion, recovery and reconnect behavior. Existing safety gates still apply."),
     HIVE("Hive & sharing", "Coordinate accounts, share work and manage lending and consignment."),
-    DISPLAY("Display & alerts", "Appearance, notifications, privacy and keyboard shortcuts."),
-    GENERAL("Session & data", "Pacing, market data, startup, updates and support."),
-    ALL("All settings", "Search every setting, including advanced options.");
+    DISPLAY("display & alerts", "appearance, notifications, privacy and keyboard shortcuts."),
+    GENERAL("session & data", "pacing, market data, startup, updates and support."),
+    ALL("all settings", "search every setting, including advanced options.");
 
     public final String label, description;
     SettingsSection(String label,String description){this.label=label;this.description=description;}

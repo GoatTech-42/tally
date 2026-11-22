@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class ManualRegionTransfer {
     private static final AtomicInteger IDS=new AtomicInteger(150_000);
     private static final RegionArrivalProof proof=new RegionArrivalProof();
-    private static volatile String status="Choose a region, then Switch region";
+    private static volatile String status="choose a region, then switch region";
     private static volatile String command="";
     private static long requestedAt;
     private static Object world, player;

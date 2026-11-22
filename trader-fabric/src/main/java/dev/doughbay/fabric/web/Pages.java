@@ -30,7 +30,7 @@ final class Pages {
             a:hover { color:var(--text); }
             .fine { color:var(--muted); font-size:12px; margin:0 0 10px; }
             body { margin:0; background:var(--background); color:var(--text);
-              font: 15px/1.55 system-ui, "Segoe UI", sans-serif; }
+              font: 15px/1.55 system-ui, "segoe UI", sans-serif; }
             main { width:100%; max-width: 1180px; margin: 0 auto; padding: 12px 16px 32px; }
             main img, main svg, main canvas { max-width:100%; }
             .settings-nav { display:flex; flex-direction:row; flex-wrap:wrap; overflow:visible; padding:0; gap:8px; margin-bottom:14px; }

@@ -128,7 +128,7 @@ public final class Payroll {
                 long now = System.currentTimeMillis();
                 String line = text.strip();
                 executor.submit(() -> withRepo("manual", repo -> repo.recordManual(r, amount, now, line)));
-                status = "Recorded your own payment of " + amount + " to " + r.name();
+                status = "recorded your own payment of " + amount + " to " + r.name();
                 DoughBayClient.LOGGER.info("DoughBay payroll: manual payment recorded -> {}", line);
                 return;
             }
@@ -153,8 +153,8 @@ public final class Payroll {
                 repo.markPaid(a.ruleId(), now, a.amount());
             }
         }));
-        status = failed ? "Payment to " + a.name() + " failed and the rule is paused: " + line
-                : "Paid " + a.name() + " " + a.amount() + ": " + line;
+        status = failed ? "payment to " + a.name() + " failed and the rule is paused: " + line
+                : "paid " + a.name() + " " + a.amount() + ": " + line;
         DoughBayClient.LOGGER.info("DoughBay payroll: {} -> {}", failed ? "FAILED" : "PAID", line);
     }
 
@@ -217,7 +217,7 @@ public final class Payroll {
         // stopped looking at all - 21 sales past a 20-sale rule and nothing
         // tried. The spacing is the queue's job now: the /pay waits there for
         // its gap, and the session holds its next action until it has gone.
-        // "Armed" is not the test either. A session recovered after a restart
+        // "armed" is not the test either. A session recovered after a restart
         // goes straight back to trading without being armed, and payroll then
         // sat out the whole session: thirty sales and two jackpot streaks past
         // a twenty-sale rule with nothing sent. Trading is what earns the
@@ -279,7 +279,7 @@ public final class Payroll {
                 String command = "pay " + r.name() + " " + amount;
                 DoughBayClient.LOGGER.info("DoughBay payroll: /{} ({}% of {} profit since {})",
                         command, r.percent(), profit, from);
-                status = "Paying " + r.name() + " " + amount + " (" + r.percent() + "% of " + profit + " profit)";
+                status = "paying " + r.name() + " " + amount + " (" + r.percent() + "% of " + profit + " profit)";
                 client.execute(() -> {
                     try {
                         ClientPacketListener connection = client.getConnection();
