@@ -62,7 +62,7 @@ final class PanelReadModel {
                 var row = out.addObject().put("account", DiscordPrivacy.hide(name));
                 query.setString(1, name);
                 try (var result = query.executeQuery()) {
-                    if (!result.next()) { row.put("state", "Unavailable").put("detail", "No activity received for this account").put("at", 0).put("current", false); continue; }
+                    if (!result.next()) { row.put("state", "Unavailable").put("detail", "no activity received for this account").put("at", 0).put("current", false); continue; }
                     String detail = Objects.requireNonNullElse(result.getString(2), "").replaceAll("[\\p{Cntrl}]", " ");
                     long at = result.getLong(3);
                     boolean connected = current.stream().anyMatch(name::equalsIgnoreCase);

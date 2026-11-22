@@ -12,7 +12,7 @@ public final class DashboardScreen extends GoNutsScreen {
     private final Screen parent;private EditBox code,name;
     private String codeDraft="",nameDraft="Tally client";
     private net.minecraft.client.gui.components.Button link,unlink,retry;
-    public DashboardScreen(Screen parent){super(Component.literal("Hosted Dashboard"));this.parent=parent;}
+    public DashboardScreen(Screen parent){super(Component.literal("hosted dashboard"));this.parent=parent;}
     private int left(){return (width-Math.min(500,width-24))/2;}private int panelWidth(){return Math.min(500,width-24);}
     private boolean compact(){return height<340;}
     private int websiteY(){return compact()?34:48;}
@@ -26,18 +26,18 @@ public final class DashboardScreen extends GoNutsScreen {
         if (!ProjectStatus.publicServicesEnabled()) {
             // The hosted dashboard and pairing went away with the public
             // services; show why instead of controls that can only fail.
-            addRenderableWidget(CockpitButton.builder(Component.literal("Open web panel settings"),b->DoughBayClient.openWebPanelSettings()).bounds(x,height-48,w,18).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("open web panel settings"),b->DoughBayClient.openWebPanelSettings()).bounds(x,height-48,w,18).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("back"),b->onClose()).bounds(x,height-26,w,18).build());
             return;
         }
-        addRenderableWidget(CockpitButton.builder(Component.literal("Open dashboard website"),b->Util.getPlatform().openUri(DashboardProtocol.PAGE)).bounds(x,websiteY(),w,18).build());
-        code=new EditBox(font,x,codeY(),w,18,Component.literal("Pairing code"));code.setMaxLength(16);code.setValue(codeDraft);code.setHint(Component.literal("K7PQ-M3ZD"));code.setResponder(v->codeDraft=v);addRenderableWidget(code);
-        name=new EditBox(font,x,nameY(),w,18,Component.literal("Client label"));name.setMaxLength(48);name.setValue(nameDraft);name.setResponder(v->nameDraft=v);addRenderableWidget(name);
-        link=CockpitButton.builder(Component.literal("Link with code"),b->{HostedDashboardClient.INSTANCE.pair(codeDraft,nameDraft);codeDraft="";code.setValue("");}).bounds(x,linkY(),w,18).build();addRenderableWidget(link);
-        retry=CockpitButton.builder(Component.literal("Reconnect"),b->HostedDashboardClient.INSTANCE.reconnect()).bounds(x,controlsY(),w/2-3,18).build();addRenderableWidget(retry);
-        unlink=CockpitButton.builder(Component.literal("Unlink locally"),b->HostedDashboardClient.INSTANCE.unlink()).bounds(x+w/2+3,controlsY(),w/2-3,18).build();addRenderableWidget(unlink);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Swarm API"),b->minecraft.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("open dashboard website"),b->Util.getPlatform().openUri(DashboardProtocol.PAGE)).bounds(x,websiteY(),w,18).build());
+        code=new EditBox(font,x,codeY(),w,18,Component.literal("pairing code"));code.setMaxLength(16);code.setValue(codeDraft);code.setHint(Component.literal("K7PQ-M3ZD"));code.setResponder(v->codeDraft=v);addRenderableWidget(code);
+        name=new EditBox(font,x,nameY(),w,18,Component.literal("client label"));name.setMaxLength(48);name.setValue(nameDraft);name.setResponder(v->nameDraft=v);addRenderableWidget(name);
+        link=CockpitButton.builder(Component.literal("link with code"),b->{HostedDashboardClient.INSTANCE.pair(codeDraft,nameDraft);codeDraft="";code.setValue("");}).bounds(x,linkY(),w,18).build();addRenderableWidget(link);
+        retry=CockpitButton.builder(Component.literal("reconnect"),b->HostedDashboardClient.INSTANCE.reconnect()).bounds(x,controlsY(),w/2-3,18).build();addRenderableWidget(retry);
+        unlink=CockpitButton.builder(Component.literal("unlink locally"),b->HostedDashboardClient.INSTANCE.unlink()).bounds(x+w/2+3,controlsY(),w/2-3,18).build();addRenderableWidget(unlink);
+        addRenderableWidget(CockpitButton.builder(Component.literal("swarm API"),b->minecraft.setScreen(new CommunityScreen(this))).bounds(x,height-48,w,18).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
         int x=left()+12,w=panelWidth()-24;g.fill(0,0,width,height,0xF0050505);
@@ -53,10 +53,10 @@ public final class DashboardScreen extends GoNutsScreen {
         var view=HostedDashboardClient.INSTANCE.view();boolean idle=!view.busy();
         link.active=idle&&!view.linked()&&System.currentTimeMillis()>=view.retryAt();code.active=name.active=idle&&!view.linked();retry.active=unlink.active=idle&&view.linked();
         g.drawString(font,UiTheme.fit(font,"Sign in on gonuts.at, choose Link client, then enter its code.",w),x,compact()?19:30,UiTheme.SECONDARY);
-        g.drawString(font,"Pairing code (expires after five minutes)",x,codeY()-12,UiTheme.TEXT);
-        g.drawString(font,"Client label (shown on your dashboard)",x,nameY()-12,UiTheme.TEXT);
+        g.drawString(font,"pairing code (expires after five minutes)",x,codeY()-12,UiTheme.TEXT);
+        g.drawString(font,"client label (shown on your dashboard)",x,nameY()-12,UiTheme.TEXT);
         int y=compact()?194:230;
-        if(view.linked()){g.drawString(font,UiTheme.fit(font,"Linked as: "+view.name(),w),x,y,UiTheme.TEXT);y+=17;}
+        if(view.linked()){g.drawString(font,UiTheme.fit(font,"linked as: "+view.name(),w),x,y,UiTheme.TEXT);y+=17;}
         for(var line:font.split(Component.literal(view.status()),w)){if(y>=height-(compact()?56:76))break;g.drawString(font,line,x,y,view.online()?UiTheme.GOOD:UiTheme.SECONDARY);y+=12;}
         g.drawString(font,UiTheme.fit(font,"Linking joins Swarm: share public market data and receive discovery hints.",w),x,height-68,UiTheme.MUTED);
         if(!compact())g.drawString(font,UiTheme.fit(font,"Local unlink disconnects it; remove the entry on the website too.",w),x,height-54,UiTheme.MUTED);

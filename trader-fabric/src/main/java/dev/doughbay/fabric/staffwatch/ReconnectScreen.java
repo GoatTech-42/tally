@@ -6,23 +6,23 @@ public final class ReconnectScreen extends dev.doughbay.fabric.GoNutsScreen {
  public ReconnectScreen(){super(Component.literal("Disconnected"));}
  protected void init(){
   int w=Math.min(200,width-40);
-  reconnect=addRenderableWidget(Button.builder(Component.literal("Reconnect now"),b->ReconnectController.INSTANCE.reconnectNow()).bounds((width-w)/2,height/2+42,w,20).build());
-  addRenderableWidget(Button.builder(Component.literal("Cancel / server list"),b->onClose()).bounds((width-w)/2,height/2+66,w,20).build());
+  reconnect=addRenderableWidget(Button.builder(Component.literal("reconnect now"),b->ReconnectController.INSTANCE.reconnectNow()).bounds((width-w)/2,height/2+42,w,20).build());
+  addRenderableWidget(Button.builder(Component.literal("cancel / server list"),b->onClose()).bounds((width-w)/2,height/2+66,w,20).build());
   updateReconnectButton();
  }
  private void updateReconnectButton(){
   reconnect.active=ReconnectController.INSTANCE.canReconnectNow();
-  reconnect.setMessage(Component.literal(ReconnectController.INSTANCE.schedule.watcher()!=null&&!reconnect.active?"Waiting for staff cooldown":"Reconnect now"));
+  reconnect.setMessage(Component.literal(ReconnectController.INSTANCE.schedule.watcher()!=null&&!reconnect.active?"waiting for staff cooldown":"reconnect now"));
  }
  public void tick(){super.tick();updateReconnectButton();}
  public void onClose(){ReconnectController.INSTANCE.cancel();minecraft.setScreen(new JoinMultiplayerScreen(new TitleScreen()));}
  public void render(GuiGraphics g,int x,int y,float dt){super.render(g,x,y,dt);var schedule=ReconnectController.INSTANCE.schedule;
-  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Connection lost":"Staff Watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
-  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Automatic retry every 2 minutes":"Watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
+  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"Connection lost":"staff watch — disconnected"),width/2,height/2-95,0xFFFFFFFF);
+  g.drawCenteredString(font,Component.literal(schedule.watcher()==null?"automatic retry every 2 minutes":"watcher alert: "+schedule.watcher()),width/2,height/2-72,0xFFFFFFFF);
   g.drawCenteredString(font,Component.literal("Server: "+schedule.address()),width/2,height/2-50,0xFFBDBDBD);
   if(schedule.watcher()==null&&!ReconnectController.INSTANCE.disconnectReason().isBlank()){
    int lineY=height/2-27,n=0;
-   for(var line:font.split(Component.literal("Reason: "+ReconnectController.INSTANCE.disconnectReason()),Math.max(120,width-40))){
+   for(var line:font.split(Component.literal("reason: "+ReconnectController.INSTANCE.disconnectReason()),Math.max(120,width-40))){
     if(n++==3)break;g.drawString(font,line,(width-font.width(line))/2,lineY,0xFFBDBDBD);lineY+=font.lineHeight+2;
    }
   }

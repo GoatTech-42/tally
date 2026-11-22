@@ -23,13 +23,13 @@ public final class SimpleSettingsScreen extends GoNutsScreen {
             }
             int y=Math.min(height-55,70+groups.size()*54+8),bw=(w-8)/3;
             addRenderableWidget(CockpitButton.builder(Component.literal("Items & focus"),b->parent.openAdvancedSettings(SettingsSection.ITEMS)).bounds(x,y,bw,22).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Spending limits"),b->parent.openAdvancedSettings(SettingsSection.CAPITAL)).bounds(x+bw+4,y,bw,22).build());
+            addRenderableWidget(CockpitButton.builder(Component.literal("spending limits"),b->parent.openAdvancedSettings(SettingsSection.CAPITAL)).bounds(x+bw+4,y,bw,22).build());
             addRenderableWidget(CockpitButton.builder(Component.literal("Safety & recovery"),b->parent.openAdvancedSettings(SettingsSection.SAFETY)).bounds(x+2*(bw+4),y,bw,22).build());
         }else{
             var group=SimpleSettings.group(selected);int gap=4,bw=(w-gap*(group.options().size()-1))/group.options().size(),i=0;
             for(var option:group.options())addRenderableWidget(CockpitButton.builder(Component.literal(option.label()),b->{choice=option.id();draft=SimpleSettings.preview(selected,choice);message="";rebuildWidgets();}).bounds(x+i++*(bw+gap),76,bw,24).build());
-            if(draft!=null){var apply=CockpitButton.builder(Component.literal("Apply "+draft.changes().size()+" change(s)"),b->{try{int n=SimpleSettings.apply(selected,choice,draft.expected());selected="";choice="";draft=null;message="Applied "+n+" setting(s). Everything else was kept.";}catch(IllegalArgumentException e){message=e.getMessage();draft=SimpleSettings.preview(selected,choice);}rebuildWidgets();}).bounds(x,height-56,Math.min(180,w/2),22).build();apply.active=!draft.changes().isEmpty();addRenderableWidget(apply);}
-            addRenderableWidget(CockpitButton.builder(Component.literal("Cancel / back"),b->{selected="";choice="";draft=null;message="No settings changed.";rebuildWidgets();}).bounds(x+w-110,height-56,110,22).build());
+            if(draft!=null){var apply=CockpitButton.builder(Component.literal("apply "+draft.changes().size()+" change(s)"),b->{try{int n=SimpleSettings.apply(selected,choice,draft.expected());selected="";choice="";draft=null;message="Applied "+n+" setting(s). Everything else was kept.";}catch(IllegalArgumentException e){message=e.getMessage();draft=SimpleSettings.preview(selected,choice);}rebuildWidgets();}).bounds(x,height-56,Math.min(180,w/2),22).build();apply.active=!draft.changes().isEmpty();addRenderableWidget(apply);}
+            addRenderableWidget(CockpitButton.builder(Component.literal("cancel / back"),b->{selected="";choice="";draft=null;message="No settings changed.";rebuildWidgets();}).bounds(x+w-110,height-56,110,22).build());
         }
         addRenderableWidget(CockpitButton.builder(Component.literal("Help & setup"),b->minecraft.setScreen(new StartHereScreen(parent))).bounds(x,height-27,Math.min(140,(w-8)/2),20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Done"),b->onClose()).bounds(x+w-90,height-27,90,20).build());

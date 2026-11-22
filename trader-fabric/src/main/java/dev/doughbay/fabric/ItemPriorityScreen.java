@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 final class ItemPriorityScreen extends GoNutsScreen {
     private final Screen parent;
     private final List<String> selected;
-    ItemPriorityScreen(Screen parent,Collection<String> selected){super(Component.literal("Item priority"));this.parent=parent;this.selected=List.copyOf(selected);}
+    ItemPriorityScreen(Screen parent,Collection<String> selected){super(Component.literal("item priority"));this.parent=parent;this.selected=List.copyOf(selected);}
     private int bodyWidth(){return Math.max(1,Math.min(440,width-24));}
     private int left(){return (width-bodyWidth())/2;}
     private int top(){return Math.max(8,(height-174)/2);}
@@ -30,10 +30,10 @@ final class ItemPriorityScreen extends GoNutsScreen {
         g.drawString(font,"ITEM PRIORITY",x,y,UiTheme.GOLD);
         var counts=new EnumMap<ItemPriorities.Level,Integer>(ItemPriorities.Level.class);
         for(String item:selected)counts.merge(ItemPriorities.level(item),1,Integer::sum);
-        String summary=selected.isEmpty()?"Tick item icons in Items before choosing a priority.":selected.size()+" selected · High "+counts.getOrDefault(ItemPriorities.Level.HIGH,0)+" · Standard "+counts.getOrDefault(ItemPriorities.Level.STANDARD,0)+" · Low "+counts.getOrDefault(ItemPriorities.Level.LOW,0);
+        String summary=selected.isEmpty()?"tick item icons in items before choosing a priority.":selected.size()+" selected · High "+counts.getOrDefault(ItemPriorities.Level.HIGH,0)+" · Standard "+counts.getOrDefault(ItemPriorities.Level.STANDARD,0)+" · Low "+counts.getOrDefault(ItemPriorities.Level.LOW,0);
         g.drawString(font,UiTheme.fit(font,summary,w),x,y+18,UiTheme.TEXT);
         int line=y+33;
-        for(var text:font.split(Component.literal("New trades only. Limits and safety checks still apply."),w)){g.drawString(font,text,x,line,UiTheme.SECONDARY);line+=10;}
+        for(var text:font.split(Component.literal("new trades only. limits and safety checks still apply."),w)){g.drawString(font,text,x,line,UiTheme.SECONDARY);line+=10;}
         super.render(g,mx,my,dt);
     }
     @Override public void onClose(){minecraft.setScreen(parent);}

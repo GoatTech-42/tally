@@ -99,7 +99,7 @@ public final class HiveControl {
             try {
                 result = apply(session, command);
             } catch (RuntimeException e) {
-                result = "Failed: " + e.getMessage();
+                result = "failed: " + e.getMessage();
             }
             DoughBayClient.LOGGER.info("DoughBay hive: {} from {} -> {}", command, o[2], result);
             try (Database db = new Database(databasePath);

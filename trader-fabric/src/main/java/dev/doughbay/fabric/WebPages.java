@@ -710,17 +710,17 @@ public final class WebPages {
         int repeat = 0;
         for (RivalIntel.Buyer b : s.buyers()) if (b.purchases() >= 2) repeat++;
         ArrayNode cards = root.putArray("cards");
-        card(cards, "Auto-traders (est.)",
+        card(cards, "auto-traders (est.)",
                 s.traders() > 0 ? String.format(Locale.ROOT, "%.0f%%", s.botSharePercent()) : "n/a",
                 s.likelyBots() + " of " + s.traders() + " sellers with 20+ sales look automated", "text");
-        card(cards, "Rivals active", s.activeNow() + " of " + s.rivals().size(),
+        card(cards, "rivals active", s.activeNow() + " of " + s.rivals().size(),
                 s.quietField() ? "field is quiet: bot looks faster, wider small pool"
                         : "sold or listed in the last 10 min", s.quietField() ? "good" : "text");
-        card(cards, "Crowded markets", Figures.grouped(s.crowded().size()),
+        card(cards, "crowded markets", Figures.grouped(s.crowded().size()),
                 "a rival is working these right now", s.crowded().isEmpty() ? "text" : "warn");
-        card(cards, "Rival-proven markets", Figures.grouped(s.proven().size()),
+        card(cards, "rival-proven markets", Figures.grouped(s.proven().size()),
                 "3+ reconstructed rival flips today", "text");
-        card(cards, "Repeat buyers", Figures.grouped(repeat), "bought from you more than once", "text");
+        card(cards, "repeat buyers", Figures.grouped(repeat), "bought from you more than once", "text");
 
         ArrayNode heads = root.putArray("heads");
         for (String h : s.fromFollows()
@@ -963,7 +963,7 @@ public final class WebPages {
         if (follows == null) return answer(false, "Following is not running yet. Join the server first.").toString();
         try {
             int added = follows.followKnownBots();
-            return answer(true, "Known bots queued (" + added + " new list entries). " + follows.status()
+            return answer(true, "known bots queued (" + added + " new list entries). " + follows.status()
                     + ". Close in-game menus to allow commands; this is not a server confirmation.").toString();
         } catch (java.io.IOException e) {
             LOG.warn("DoughBay follows: the known bots could not be added: {}", e.toString());

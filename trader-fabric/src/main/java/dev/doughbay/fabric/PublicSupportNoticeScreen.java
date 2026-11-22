@@ -16,7 +16,7 @@ final class PublicSupportNoticeScreen extends GoNutsScreen {
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int w=Math.max(100,Math.min(640,width-32)),x=(width-w)/2,half=(w-8)/2;
         addRenderableWidget(CockpitButton.builder(Component.literal("Tally source code"),b->Util.getPlatform().openUri(URI.create(ProjectStatus.SOURCE))).bounds(x,height-40,half,24).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Continue to local Tally"),b->onClose()).bounds(x+half+8,height-40,half,24).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("continue to local tally"),b->onClose()).bounds(x+half+8,height-40,half,24).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,UiTheme.BACKGROUND);

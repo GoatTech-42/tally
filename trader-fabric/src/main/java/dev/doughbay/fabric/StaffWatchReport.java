@@ -102,5 +102,5 @@ public final class StaffWatchReport {
         };
     }
     public static String scopeLabel(String scope){return scope.replaceFirst(" \\| view [0-9]+$","");}
-    public static String presenceLabel(String presence){return switch(presence){case "SPECTATOR"->"Spectator observed";case "VANISHED"->"Hidden from TAB";default->"In player list";};}
+    public static String presenceLabel(String presence){return switch(presence){case "SPECTATOR"->"Spectator observed";case "VANISHED"->"Hidden from TAB";default->"in player list";};}
 }

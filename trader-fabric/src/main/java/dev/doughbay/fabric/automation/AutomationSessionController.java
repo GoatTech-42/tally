@@ -2563,7 +2563,7 @@ public final class AutomationSessionController {
         }
         if (sessionStartPersistenceGeneration > 0
                 && !persistence.status().durable(sessionStartPersistenceGeneration)) {
-            detail = "Waiting for the session-open checkpoint to become durable";
+            detail = "waiting for the session-open checkpoint to become durable";
             return;
         }
         sessionStartPersistenceGeneration = 0;
@@ -2651,7 +2651,7 @@ public final class AutomationSessionController {
                     return;
                 }
                 if (trackedPosition == null || trackedPosition.status() != PositionStatus.LISTED) {
-                    pauseInternal("Monitoring lost its exact listed position");
+                    pauseInternal("monitoring lost its exact listed position");
                 } else if (bufferedSaleNotice != null) {
                     reconcileSaleDisappearance(client, marketSnapshot, now);
                 } else if (now - trackedPosition.listedAt() > policy.maximumHoldMillis()) {
@@ -3445,7 +3445,7 @@ public final class AutomationSessionController {
         // authorize a buy: only a status written after a complete live scan is
         // eligible.
         if (!healthyFeedStatus(snapshot.status())) {
-            detail = "Market feed is not a completed healthy live scan: "
+            detail = "market feed is not a completed healthy live scan: "
                     + (snapshot.status() == null ? "missing status" : snapshot.status());
             return;
         }
@@ -11064,7 +11064,7 @@ public final class AutomationSessionController {
     private void prepareAndList(Minecraft client, MarketWatcher.Snapshot marketSnapshot,
                                 long now) {
         if (trackedPosition == null || trackedPosition.status() != PositionStatus.PURCHASED) {
-            pauseInternal("No exact purchased position is available to list");
+            pauseInternal("no exact purchased position is available to list");
             return;
         }
         // Before anything else: never let a stack sit on the cursor. A peel that
@@ -13577,7 +13577,7 @@ public final class AutomationSessionController {
             return false;
         }
         if (persistence == null || !persistence.status().ready()) {
-            detail = "Cannot end session until persistence is READY";
+            detail = "cannot end session until persistence is READY";
             return false;
         }
         endSessionPersistenceGeneration = persistence.submit(checkpoint(

@@ -33,7 +33,7 @@ final class PanelBotRegistry {
     Bot target(String id,long now){return bots(now).stream().filter(b->b.id().equals(id)).findFirst().orElseThrow(()->new IllegalArgumentException("Bot is offline or needs the current update"));}
     void post(String target,String id,String action,Map<String,String> fields,long now) throws Exception {
         target(target,now);UUID.fromString(id);
-        if(fields.keySet().stream().anyMatch(Set.of("target","from","id","at","action")::contains))throw new IllegalArgumentException("Invalid request fields");
+        if(fields.keySet().stream().anyMatch(Set.of("target","from","id","at","action")::contains))throw new IllegalArgumentException("invalid request fields");
         var request=JSON.createObjectNode().put("target",target).put("from",run).put("id",id).put("at",now).put("action",action);
         fields.forEach(request::put);
         write(directory.resolve(target+"-"+id+".request"),request,true);

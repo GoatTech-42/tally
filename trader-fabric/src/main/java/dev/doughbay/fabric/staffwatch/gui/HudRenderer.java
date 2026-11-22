@@ -282,7 +282,7 @@ public final class HudRenderer {
 
          this.removeSlot("vanish", t.textPx());
 
-         float w = editMode ? 8.0F * s * 2.0F + HudChrome.width(t.label(), t.labelPx(), "No vanish alerts") : 1.0F;
+         float w = editMode ? 8.0F * s * 2.0F + HudChrome.width(t.label(), t.labelPx(), "no vanish alerts") : 1.0F;
 
          return new HudRenderer.VanishPlan(lines, t, 0.0F, (float)Math.round(w), (float)Math.round(rowFull));
 
@@ -374,7 +374,7 @@ public final class HudRenderer {
 
                HudChrome.scaleAlpha(HudChrome.TEXT_LABEL, a),
 
-               "No vanish alerts",
+               "no vanish alerts",
 
                true
 
@@ -520,7 +520,7 @@ public final class HudRenderer {
 
          boolean placeholder = editMode || StaffListModule.shouldShowHud();
 
-         float w = placeholder ? 8.0F * s * 2.0F + HudChrome.width(t.label(), t.labelPx(), "No staff online") : 1.0F;
+         float w = placeholder ? 8.0F * s * 2.0F + HudChrome.width(t.label(), t.labelPx(), "no staff online") : 1.0F;
 
          return new HudRenderer.StaffPlan(lines, t, "", (float)Math.round(w), (float)Math.round(rowFull));
 
@@ -590,7 +590,7 @@ public final class HudRenderer {
 
             this.drawRows(dl, empty, hudSurface(state), x, y, w, h, rowsRadius(s), s, shadow);
 
-            HudChrome.text(dl, t.label(), t.labelPx(), x + pad, y + labelInset, HudChrome.scaleAlpha(HudChrome.TEXT_LABEL, a), "No staff online", true);
+            HudChrome.text(dl, t.label(), t.labelPx(), x + pad, y + labelInset, HudChrome.scaleAlpha(HudChrome.TEXT_LABEL, a), "no staff online", true);
 
          } else {
 

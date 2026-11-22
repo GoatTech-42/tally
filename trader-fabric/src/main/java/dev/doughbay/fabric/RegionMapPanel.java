@@ -9,12 +9,12 @@ final class RegionMapPanel {
     private String selected="asia";
     void init(int x,int y,int width,java.util.function.Consumer<net.minecraft.client.gui.components.AbstractWidget> add) {
         int left=Math.min(170,Math.max(80,width/2-4));
-        add.accept(CockpitButton.builder(net.minecraft.network.chat.Component.literal("Region: "+selected),b->{
+        add.accept(CockpitButton.builder(net.minecraft.network.chat.Component.literal("region: "+selected),b->{
             var regions=dev.doughbay.fabric.staffwatch.ManualRegionFlow.DESTINATIONS;
             selected=regions.get((regions.indexOf(selected)+1)%regions.size());
-            b.setMessage(net.minecraft.network.chat.Component.literal("Region: "+selected));
+            b.setMessage(net.minecraft.network.chat.Component.literal("region: "+selected));
         }).bounds(x,y+74,left,20).build());
-        add.accept(CockpitButton.builder(net.minecraft.network.chat.Component.literal("Switch this client"),b->{
+        add.accept(CockpitButton.builder(net.minecraft.network.chat.Component.literal("switch this client"),b->{
             dev.doughbay.fabric.staffwatch.ManualRegionTransfer.request(selected);
         }).bounds(x+left+6,y+74,Math.min(160,width-left-6),20).build());
     }
@@ -23,7 +23,7 @@ final class RegionMapPanel {
         var client = Minecraft.getInstance();
         var view = RegionMapReport.snapshot();
         g.drawString(font, "REGION MAP", x, y + 3, UiTheme.GOLD);
-        g.drawString(font, UiTheme.fit(font, "This client · " + view.server(), width), x, y + 22, UiTheme.TEXT);
+        g.drawString(font, UiTheme.fit(font, "this client · " + view.server(), width), x, y + 22, UiTheme.TEXT);
         String coords = NameMask.on() ? RegionMapReport.coordinates(0, 0, 0, true)
                 : client.player == null || client.getConnection() == null ? "XYZ unavailable"
                 : RegionMapReport.coordinates(client.player.getX(), client.player.getY(), client.player.getZ(), false);

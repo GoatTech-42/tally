@@ -206,7 +206,7 @@ final class DoughBayHudAlerts {
                 "SALE REPORTED",
                 compactWhitespace(item) + " sold",
                 money(sale.price()) + "  •  buyer " + sale.buyer(),
-                "Server sale confirmation received",
+                "server sale confirmation received",
                 now, 7_000L, ItemIcons.keyForDisplayName(sale.itemText())));
     }
 
@@ -224,7 +224,7 @@ final class DoughBayHudAlerts {
         add(new Alert(Type.LISTING, "LISTED",
                 named + " listed",
                 money(price) + (count > 1 ? "  •  " + money(price / count) + " each" : ""),
-                "Server listing confirmation received",
+                "server listing confirmation received",
                 now, 7_000L, ItemIcons.keyForDisplayName(item)));
     }
 
@@ -234,7 +234,7 @@ final class DoughBayHudAlerts {
         add(new Alert(Type.ORDER, "ORDER PLACED",
                 compactWhitespace(item) + " x" + count + " wanted",
                 money(unitPrice) + " each  •  " + money(unitPrice * (long) count) + " committed",
-                "Bid accepted by the order house",
+                "bid accepted by the order house",
                 now, 7_000L, ItemIcons.keyForDisplayName(item)));
     }
 
@@ -254,7 +254,7 @@ final class DoughBayHudAlerts {
         add(new Alert(Type.SALE, "JACKPOT",
                 compactWhitespace(item) + " x" + sold + " in a row",
                 money(profit) + " profit on the streak",
-                "Singles selling as fast as they go up",
+                "singles selling as fast as they go up",
                 now, 9_000L, ItemIcons.keyForDisplayName(item)));
     }
 
@@ -265,7 +265,7 @@ final class DoughBayHudAlerts {
                 compactWhitespace(item) + " sold",
                 compactWhitespace(amount) + (buyer == null || buyer.isBlank()
                         ? "" : "  •  buyer " + compactWhitespace(buyer)),
-                "Server sale confirmation received", now, 7_000L));
+                "server sale confirmation received", now, 7_000L));
     }
 
     void showWarning(String title, String detail) {
@@ -333,11 +333,11 @@ final class DoughBayHudAlerts {
         if (opportunity == null || opportunity.listing() == null) return;
         String item = displayItem(opportunity.listing().itemId())
                 + " x" + opportunity.listing().itemCount();
-        String priceLine = "Buy " + money(opportunity.buyPrice())
+        String priceLine = "buy " + money(opportunity.buyPrice())
                 + "  •  Target " + money(opportunity.recommendedSellPrice())
                 + "  •  ROI " + percent(opportunity.expectedRoiPercent());
         String resultLine = demo
-                ? "Invented preview  •  no live action"
+                ? "invented preview  •  no live action"
                 : "+" + money(Math.max(0, Math.round(opportunity.expectedNetProfit())))
                 + " est  •  " + (opportunity.stats() == null ? 0 : opportunity.stats().sampleCount()) + " completed sales  •  "
                 + percent(opportunity.confidence() * 100.0) + " conf";
@@ -350,9 +350,9 @@ final class DoughBayHudAlerts {
     private void showDemoSale(long now) {
         add(new Alert(Type.SALE,
                 "DEMO SALE",
-                "Ender Chest x1 sold",
+                "ender chest x1 sold",
                 "$15.0k  •  buyer DemoBuyer",
-                "Invented preview  •  no trade recorded",
+                "invented preview  •  no trade recorded",
                 now, 8_000L));
     }
 
@@ -374,16 +374,16 @@ final class DoughBayHudAlerts {
             // This unclicked watch ends normally so the trading loop can service
             // orders and stock. Keep genuine aborts on the error path below.
             add(new Alert(Type.INFO, "AUCTION WATCH FINISHED",
-                    "Checking orders and existing stock", "No purchase made; continuing trading", "",
+                    "checking orders and existing stock", "No purchase made; continuing trading", "",
                     now, 5_000L));
         } else if (status.state() == ExecutionStatus.State.ABORTED) {
             add(new Alert(Type.ERROR, "EXECUTION ABORTED",
-                    status.description(), "No further action was sent", "",
+                    status.description(), "no further action was sent", "",
                     now, 8_000L));
         } else if (status.description() != null
                 && status.description().toLowerCase(Locale.ROOT).startsWith("emergency stop")) {
             add(new Alert(Type.WARNING, "EXECUTION STOPPED",
-                    "Emergency stop activated", "Verify inventory and balance", "",
+                    "emergency stop activated", "verify inventory and balance", "",
                     now, 8_000L));
         }
     }
@@ -693,22 +693,22 @@ final class DoughBayHudAlerts {
         if (Tuning.get("underdog.enabled") >= 0.5 && rivals != null) {
             var snap = rivals.snapshot();
             int shadowed = snap == null ? 0 : snap.shadows().size();
-            if (shadowed > 0) details.add("Shadowing " + shadowed + " markets");
+            if (shadowed > 0) details.add("shadowing " + shadowed + " markets");
         }
         String action = shortStatus(session, running);
         if (evasion != null && evasion.triggered()) action = "Paused: " + evasion.lastIntruder() + " nearby";
-        else if (evasion != null && evasion.enabled()) details.add("Proximity guard on");
+        else if (evasion != null && evasion.enabled()) details.add("proximity guard on");
         String sale = Tuning.get("hud.sale_line") >= 0.5 ? Mascot.recentSaleLine() : "";
         if (!sale.isEmpty()) action = sale;
         if (Tuning.get("hud.status_line") < 0.5 && sale.isEmpty()) action = "";
         if (preview) {
             action = switch (previewFace) {
-                case SALE -> "Sample sale: the dollar reels spin and settle independently.";
+                case SALE -> "sample sale: the dollar reels spin and settle independently.";
                 case IDLE -> "Waiting for the next opportunity. Your copilot is getting a little bored.";
-                case WORK -> "Preparing the next listing. Keeping an eye on the market.";
+                case WORK -> "preparing the next listing. keeping an eye on the market.";
                 default -> "Reading the order house. Waiting for the next complete scan before placing another bid.";
             };
-            details = new ArrayList<>(List.of("Rivals: watching 12 traders", "Shadowing 5 markets", "Proximity guard on"));
+            details = new ArrayList<>(List.of("rivals: watching 12 traders", "shadowing 5 markets", "proximity guard on"));
         }
         boolean showMascot = Tuning.get("hud.mascot") >= 0.5;
         boolean showGrid = Tuning.get("hud.grid") >= 0.5;
@@ -866,19 +866,19 @@ final class DoughBayHudAlerts {
                 if (d.startsWith("Recent listing")) yield "Found: " + firstClause(d.substring(15));
                 yield firstClause(d);
             }
-            case PREPARING_LIST, LISTING -> item.isBlank() ? "Listing"
-                    : "Listing " + item + " at " + money(position.targetPrice());
+            case PREPARING_LIST, LISTING -> item.isBlank() ? "listing"
+                    : "listing " + item + " at " + money(position.targetPrice());
             case MONITORING -> item.isBlank() ? "Listed" : "Listed " + item;
-            case COOLDOWN -> "Next buy in " + remaining(session.cooldownUntilMillis());
-            case REPRICING -> "Pulling back a stale listing";
+            case COOLDOWN -> "next buy in " + remaining(session.cooldownUntilMillis());
+            case REPRICING -> "pulling back a stale listing";
             case AUDITING_SLOTS -> "Checking your auction slots";
             case READING_ORDERS -> "Reading the order house";
             case BID_DESK -> {
                 String d = session.detail() == null ? "" : session.detail();
                 yield d.startsWith("Bid desk: ") ? "Bids: " + d.substring(10) : "Working your bids";
             }
-            case PAUSED -> "Paused: press Resume or End";
-            case STOPPED -> running ? "" : "Idle, " + "listings still up";
+            case PAUSED -> "paused: press resume or end";
+            case STOPPED -> running ? "" : "idle, " + "listings still up";
         };
     }
 
@@ -1034,7 +1034,7 @@ final class DoughBayHudAlerts {
     }
 
     private static String displayItem(String itemId) {
-        if (itemId == null || itemId.isBlank()) return "Unknown item";
+        if (itemId == null || itemId.isBlank()) return "unknown item";
         String value = itemId;
         int colon = value.indexOf(':');
         if (colon >= 0 && colon + 1 < value.length()) value = value.substring(colon + 1);

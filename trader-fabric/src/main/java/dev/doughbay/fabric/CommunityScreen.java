@@ -8,11 +8,11 @@ import net.minecraft.network.chat.Component;
 public final class CommunityScreen extends GoNutsScreen {
     private final Screen parent;
     private final SwarmPanel panel = new SwarmPanel();
-    public CommunityScreen(Screen parent){super(Component.literal("Swarm"));this.parent=parent;}
+    public CommunityScreen(Screen parent){super(Component.literal("swarm"));this.parent=parent;}
     @Override protected void init(){
         int w=Math.min(600,width-24),x=(width-w)/2;
         panel.init(font,x,24,w,height-40,this::addRenderableWidget);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back"),b->onClose()).bounds(x,height-26,w,18).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("back"),b->onClose()).bounds(x,height-26,w,18).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
         g.fill(0,0,width,height,0xF0050505);panel.render(g,font);super.render(g,mx,my,delta);

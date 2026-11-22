@@ -125,7 +125,7 @@ public final class EvasionGuard {
             try {
                 String staff = who == null || who.isBlank() ? "Staff" : who;
                 staffAlertSink.send(dev.doughbay.storage.StaffWatchAlerts.title(action),
-                        java.util.List.of(new String[]{"Staff", staff}, new String[]{"Response", action}), staff);
+                        java.util.List.of(new String[]{"Staff", staff}, new String[]{"response", action}), staff);
             } catch (RuntimeException failure) {
                 // Reporting cannot cancel a protective escape or its durable history.
                 DoughBayClient.LOGGER.warn("GoNuts could not queue the Staff Watch webhook notification");
@@ -1215,7 +1215,7 @@ public final class EvasionGuard {
                     + (home.isEmpty() ? "teleporting away" : "going to home '" + home + "'");
             DoughBayClient.LOGGER.info("DoughBay {}", message);
             client.player.displayClientMessage(Component.literal("[Tally]" + message), false);
-            reportEscape(client, "Escape requested: " + lastIntruder + " came too close",
+            reportEscape(client, "escape requested: " + lastIntruder + " came too close",
                     "waiting for teleport", lastIntruder);
             DoughBayClient.executionDriver().sendEscapeWhenClear(client, command);
         } catch (RuntimeException e) {

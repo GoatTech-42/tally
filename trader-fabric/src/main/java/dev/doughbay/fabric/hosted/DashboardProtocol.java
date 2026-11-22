@@ -59,5 +59,5 @@ public final class DashboardProtocol {
         return j;
     }
     public static long backoff(int attempt,double jitter){long base=Math.min(60_000,1000L<<Math.min(6,Math.max(0,attempt)));return Math.round(base*Math.max(.7,Math.min(1.3,jitter)));}
-    public static String pairError(int code){return switch(code){case 400->"Check the pairing code and client label";case 404->"Code not found; check it and try again";case 409->"Code already used; request a new code";case 410->"Code expired; request a new code";case 429->"Too many attempts; wait before trying again";case 503->"The dashboard is currently disabled";default->"Could not link; try again later";};}
+    public static String pairError(int code){return switch(code){case 400->"check the pairing code and client label";case 404->"Code not found; check it and try again";case 409->"Code already used; request a new code";case 410->"Code expired; request a new code";case 429->"Too many attempts; wait before trying again";case 503->"the dashboard is currently disabled";default->"Could not link; try again later";};}
 }

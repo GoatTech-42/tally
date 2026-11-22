@@ -38,7 +38,7 @@ public final class DashboardPanel implements AutoCloseable {
         String key=epoch+":"+id;var old=requests.get(key);
         if(old!=null){if(!old.identity.equals(frame.toString()))reply.accept(error(id,409,"Request id already used"));else if(old.result!=null)reply.accept(old.result.deepCopy());return;}
         requests.entrySet().removeIf(e->e.getValue().answered&&!e.getValue().running&&now-e.getValue().expires>30_000);
-        if(inFlight>=8||requests.size()>=256){reply.accept(error(id,429,"Panel busy"));return;}
+        if(inFlight>=8||requests.size()>=256){reply.accept(error(id,429,"panel busy"));return;}
         if(frame.path("op").asText().equals("png")&&picturesInFlight>=1){reply.accept(error(id,429,"Panel picture busy; status is still available"));return;}
         try{validate(frame);}catch(IllegalArgumentException e){reply.accept(error(id,400,"Invalid panel request"));return;}
         var request=new Request(epoch,frame,current,reply);requests.put(key,request);inFlight++;if(request.picture)picturesInFlight++;
@@ -105,11 +105,11 @@ public final class DashboardPanel implements AutoCloseable {
         }return Map.copyOf(values);
     }
     static ObjectNode text(String id,String type,String body){
-        if(body==null)return error(id,404,"Not found");if(body.getBytes(StandardCharsets.UTF_8).length>MAX_TEXT)return error(id,413,"Panel response too large");
+        if(body==null)return error(id,404,"not found");if(body.getBytes(StandardCharsets.UTF_8).length>MAX_TEXT)return error(id,413,"Panel response too large");
         return bounded(result(id,200,type,body));
     }
     static ObjectNode binary(String id,String type,byte[] body,boolean downscale)throws IOException {
-        if(body==null||body.length==0)return error(id,404,"Not found");
+        if(body==null||body.length==0)return error(id,404,"not found");
         if(body.length>MAX_BINARY&&downscale)body=downscale(body);
         if(body.length>MAX_BINARY)return error(id,413,"Panel response too large");
         return bounded(result(id,200,type,Base64.getEncoder().encodeToString(body)).put("encoding","base64"));

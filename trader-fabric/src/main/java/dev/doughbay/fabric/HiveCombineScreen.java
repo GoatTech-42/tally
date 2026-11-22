@@ -8,24 +8,24 @@ import net.minecraft.network.chat.Component;
 final class HiveCombineScreen extends GoNutsScreen {
     private final Screen parent;private final String code;
     private String message="";private boolean queued,joined;private int scroll,maxScroll;
-    HiveCombineScreen(Screen parent,String code){super(Component.literal("Review joining these accounts"));this.parent=parent;this.code=code;}
+    HiveCombineScreen(Screen parent,String code){super(Component.literal("review joining these accounts"));this.parent=parent;this.code=code;}
     @Override protected void init(){
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int w=Math.min(600,width-24),x=(width-w)/2;
-        var join=CockpitButton.builder(Component.literal(joined?"Account linked - restart this instance":"Join existing hive (new account)"),b->{
+        var join=CockpitButton.builder(Component.literal(joined?"account linked - restart this instance":"join existing hive (new account)"),b->{
             try {
-                if(minecraft.getConnection()!=null)throw new java.io.IOException("Disconnect before setting up a hive");
+                if(minecraft.getConnection()!=null)throw new java.io.IOException("disconnect before setting up a hive");
                 var game=net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
                 HiveSetup.joinFresh(game,DoughBayClient.activeConfig().directory(),code,DoughBayClient.account());
                 joined=true;scroll=0;
                 ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.SUCCEEDED,ActionTrace.Code.JOIN,"PERSISTENCE_WAIT",-1,-1,-1);
                 message="Account linked. Close and restart ONLY this Minecraft instance. Existing hive members can keep running. Your settings and Swarm link are kept; trading is not started by joining.";
-            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException?e.getMessage():"This account could not join safely. Existing data was kept.";}
+            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException?e.getMessage():"this account could not join safely. existing data was kept.";}
             rebuildWidgets();
         }).bounds(x,height-107,w,22).build();join.active=!queued&&!joined;addRenderableWidget(join);
-        var restore=CockpitButton.builder(Component.literal(joined?"Account linked - restart this instance":"Restore existing Hive account"),b->{
+        var restore=CockpitButton.builder(Component.literal(joined?"account linked - restart this instance":"restore existing hive account"),b->{
             try {
-                if(minecraft.getConnection()!=null)throw new java.io.IOException("Disconnect before restoring a Hive account");
+                if(minecraft.getConnection()!=null)throw new java.io.IOException("disconnect before restoring a hive account");
                 var game=net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
                 HiveSetup.restoreExisting(game,DoughBayClient.activeConfig().directory(),code,DoughBayClient.account());
                 joined=true;scroll=0;
@@ -33,9 +33,9 @@ final class HiveCombineScreen extends GoNutsScreen {
             }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException?e.getMessage():"The saved account could not be restored safely. Existing data was kept.";}
             rebuildWidgets();
         }).bounds(x,height-81,w,22).build();restore.active=!queued&&!joined;addRenderableWidget(restore);
-        var confirm=CockpitButton.builder(Component.literal(queued?"Combination queued":"Queue safe combination"),b->{
+        var confirm=CockpitButton.builder(Component.literal(queued?"combination queued":"queue safe combination"),b->{
             try {
-                if(minecraft.getConnection()!=null)throw new java.io.IOException("Disconnect before setting up a hive");
+                if(minecraft.getConnection()!=null)throw new java.io.IOException("disconnect before setting up a hive");
                 var game=net.fabricmc.loader.api.FabricLoader.getInstance().getGameDir();
                 var target=HiveSetup.decode(code);
                 if(HiveSetup.configured(game)==null){HiveSetup.create(game,DoughBayClient.activeConfig().directory(),DoughBayClient.account());}
@@ -43,10 +43,10 @@ final class HiveCombineScreen extends GoNutsScreen {
                 HiveCombine.queue(game,code);queued=true;scroll=0;
                 ActionTrace.INSTANCE.record(ActionTrace.Scope.HIVE,ActionTrace.Event.RESULT,ActionTrace.Code.COMBINE,"PERSISTENCE_WAIT",-1,-1,-1);
                 message="Queued. Close BOTH Minecraft instances. Start THIS instance first; when it finishes importing, start the other. Originals stay intact.";
-            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException||e instanceof java.sql.SQLException?e.getMessage():"Setup could not finish. Both original hives were kept.";}
+            }catch(Exception e){FaultTrace.INSTANCE.record(FaultTrace.Stage.HIVE_SETUP,e,System.currentTimeMillis());message=e instanceof java.io.IOException||e instanceof java.sql.SQLException?e.getMessage():"setup could not finish. both original hives were kept.";}
             rebuildWidgets();
         }).bounds(x,height-55,w,22).build();confirm.active=!queued&&!joined;addRenderableWidget(confirm);
-        addRenderableWidget(CockpitButton.builder(Component.literal(queued||joined?"Back to Hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal(queued||joined?"back to hive setup":"Back without changes"),b->onClose()).bounds(x,height-27,w,20).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float dt){
         g.fill(0,0,width,height,0xF0050505);int w=Math.min(600,width-24),x=(width-w)/2,y=42;

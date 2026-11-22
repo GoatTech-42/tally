@@ -143,7 +143,7 @@ public final class DiagnosticOutbox implements AutoCloseable {
     }
     /** A server TTL expiry is not permission to invent old events; declare its lost prefix explicitly. */
     public synchronized void reconcileStatus(JsonNode status)throws SQLException{
-        if(!status.path("known").isBoolean()||status.path("known").asBoolean()&&!status.path("sessions").isArray())throw new IllegalArgumentException("Invalid diagnostic status");
+        if(!status.path("known").isBoolean()||status.path("known").asBoolean()&&!status.path("sessions").isArray())throw new IllegalArgumentException("invalid diagnostic status");
         var known=new HashSet<String>();for(var item:status.path("sessions"))known.add(item.path("sessionId").asText());
         var missing=new LinkedHashMap<String,Long>();try(var s=db.createStatement();var r=s.executeQuery("SELECT id,acked_through FROM sessions WHERE acked_through>0 AND id IN (SELECT session FROM events UNION SELECT session FROM gaps)")){while(r.next())if(!known.contains(r.getString(1)))missing.put(r.getString(1),r.getLong(2));}
         for(var entry:missing.entrySet()){gap(entry.getKey(),1,entry.getValue(),"OUTBOX_EXPIRED");metadata("settings_ack:"+entry.getKey(),"");}

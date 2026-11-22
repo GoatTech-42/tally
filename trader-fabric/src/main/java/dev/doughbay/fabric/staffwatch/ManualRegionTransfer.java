@@ -83,5 +83,5 @@ public final class ManualRegionTransfer {
     public static boolean request(String region) { boolean accepted=FLOW.request(region);status=FLOW.status();return accepted; }
     public static String status() { return status; }
     public static void tick(Minecraft mc) { FLOW.tick();status=FLOW.status(); }
-    public static void cancel() { FLOW.cancel("Region switch cancelled by another connection action");resume=false;status=FLOW.status(); }
+    public static void cancel() { FLOW.cancel("region switch cancelled by another connection action");resume=false;status=FLOW.status(); }
 }

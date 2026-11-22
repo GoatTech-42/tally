@@ -35,20 +35,20 @@ final class TutorialScreen extends GoNutsScreen {
             }
         }else{
             int bw=(w-12)/3,y=height-56;
-            var back=CockpitButton.builder(Component.literal("Previous"),b->{step--;scroll=0;rebuildWidgets();}).bounds(x,y,bw,22).build();
+            var back=CockpitButton.builder(Component.literal("previous"),b->{step--;scroll=0;rebuildWidgets();}).bounds(x,y,bw,22).build();
             back.active=step>0;addRenderableWidget(back);
             var lesson=course.steps().get(step);
             addRenderableWidget(CockpitButton.builder(Component.literal(lesson.action()),b->parent.openTutorialTarget(lesson.target(),this))
                 .bounds(x+bw+6,y,bw,22).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal(step+1==course.steps().size()?"Finish":"Next"),b->{
+            addRenderableWidget(CockpitButton.builder(Component.literal(step+1==course.steps().size()?"finish":"Next"),b->{
                 if(step+1==course.steps().size()){TutorialProgress.completed(course.id());course=null;step=scroll=0;}
                 else{step++;scroll=0;}rebuildWidgets();
             }).bounds(x+2*(bw+6),y,bw,22).build());
         }
-        addRenderableWidget(CockpitButton.builder(Component.literal(course==null?(home instanceof QuickStartScreen?"Back to setup":"Back to Tally"):"All tutorials"),b->{
+        addRenderableWidget(CockpitButton.builder(Component.literal(course==null?(home instanceof QuickStartScreen?"back to setup":"back to tally"):"all tutorials"),b->{
             if(course==null)onClose();else{course=null;step=scroll=0;rebuildWidgets();}
         }).bounds(x,height-28,(w-6)/2,20).build());
-        if(course!=null)addRenderableWidget(CockpitButton.builder(Component.literal("Skip / return later"),b->onClose())
+        if(course!=null)addRenderableWidget(CockpitButton.builder(Component.literal("skip / return later"),b->onClose())
             .bounds(x+(w+6)/2,height-28,(w-6)/2,20).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float delta){

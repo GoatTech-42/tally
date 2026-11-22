@@ -120,7 +120,7 @@ public final class StatsImage {
     private static void drawSparkline(Graphics2D g, String value, int x, int y, int width,
                                       Font labelFont, Font small) {
         int bar = value.indexOf('|');
-        String label = bar > 0 ? value.substring(0, bar) : "Profit/h";
+        String label = bar > 0 ? value.substring(0, bar) : "profit/h";
         String[] nums = (bar > 0 ? value.substring(bar + 1) : value).split(",");
         long[] v = new long[nums.length];
         long max = 1;
@@ -348,7 +348,7 @@ public final class StatsImage {
         if (page.gridTotal() > 0) {
             g.setFont(small);
             g.setColor(DIM);
-            g.drawString("Auction slots " + (page.gridUsed()<0?"unknown":page.gridUsed()) + " / " + page.gridTotal(), 28, y + 12);
+            g.drawString("auction slots " + (page.gridUsed()<0?"unknown":page.gridUsed()) + " / " + page.gridTotal(), 28, y + 12);
             y += 20;
             for (int i = 0; i < page.gridTotal(); i++) {
                 int cx = 28 + (i % 30) * 14;

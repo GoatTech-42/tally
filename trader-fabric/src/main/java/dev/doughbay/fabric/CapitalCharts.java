@@ -10,7 +10,7 @@ final class CapitalCharts {
  void range(){span=span==3_600_000L?86_400_000L:span==86_400_000L?7*86_400_000L:3_600_000L;}
  String rangeLabel(){return span==3_600_000L?"1 hour":span==86_400_000L?"24 hours":"7 days";}
  void render(GuiGraphics g,Font font,SettingsAnalyzer.Report report,int x,int y,int w,int bottom,int mx,int my,Charts.Pending tip){
-  var snapshot=report.capital();if(snapshot==null){g.drawString(font,"Analyze again to capture the capital breakdown",x,y,UiTheme.SECONDARY);return;}
+  var snapshot=report.capital();if(snapshot==null){g.drawString(font,"analyze again to capture the capital breakdown",x,y,UiTheme.SECONDARY);return;}
   g.drawString(font,"OBSERVED CAPITAL — this account, at cost",x,y,UiTheme.GOLD);
   int radius=Math.min(62,Math.max(30,(bottom-y-145)/3)),cx=x+radius+5,cy=y+radius+21;
   double total=snapshot.knownTotal();
@@ -22,7 +22,7 @@ final class CapitalCharts {
     if(dx==-radius){previous=color;start=dx;}else if(color!=previous){if(previous!=0)g.fill(cx+start,cy+dy,cx+dx,cy+dy+1,previous);start=dx;previous=color;}
    }
   }
-  g.drawString(font,"At cost",cx-font.width("At cost")/2,cy-5,UiTheme.SECONDARY);
+  g.drawString(font,"at cost",cx-font.width("at cost")/2,cy-5,UiTheme.SECONDARY);
   double before=0;
   for(int i=0;i<6;i++){
    Long value=snapshot.value(i);double fraction=value==null||total<=0?0:value/total;
@@ -40,7 +40,7 @@ final class CapitalCharts {
   g.fill(x,plotTop,x+w,plotBottom,0xFF0A0A0A);g.fill(x,plotBottom-1,x+w,plotBottom,Charts.AXIS);
   long end=snapshot.at(),start=end-span;var points=report.capitalHistory().stream().filter(p->p.at()>=start&&p.at()<=end).toList();
   double max=points.stream().map(p->p.value(category)).filter(Objects::nonNull).mapToDouble(Long::doubleValue).max().orElse(0);
-  g.drawString(font,UiTheme.fit(font,"Top "+SettingsAnalyzer.money(max)+"; snapshots only, gaps stay blank",w),x,plotBottom+3,UiTheme.MUTED);
+  g.drawString(font,UiTheme.fit(font,"top "+SettingsAnalyzer.money(max)+"; snapshots only, gaps stay blank",w),x,plotBottom+3,UiTheme.MUTED);
   var format=java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm");var zone=java.time.ZoneId.systemDefault();
   String from=java.time.Instant.ofEpochMilli(start).atZone(zone).format(format),to=java.time.Instant.ofEpochMilli(end).atZone(zone).format(format);
   g.drawString(font,from,x,plotBottom+15,UiTheme.MUTED);g.drawString(font,to,x+w-font.width(to),plotBottom+15,UiTheme.MUTED);
@@ -56,6 +56,6 @@ final class CapitalCharts {
  }
  private static void tooltip(Charts.Pending tip,int mx,int my,int index,CapitalBreakdown.Snapshot snapshot){
   Long value=snapshot.value(index);long at=snapshot.at(),source=index==0?snapshot.bankAt():index<3?snapshot.ordersAt():snapshot.stockAt();
-  tip.x=mx;tip.y=my;tip.rows=List.of(new Charts.TooltipRow(CapitalBreakdown.COLORS[index],CapitalBreakdown.LABELS.get(index),value==null?"unknown":SettingsAnalyzer.money(value)),new Charts.TooltipRow(0xFFBDBDBD,"Snapshot",java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))),new Charts.TooltipRow(0xFFBDBDBD,"Source read",source<=0?"unknown":java.time.Instant.ofEpochMilli(source).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))));
+  tip.x=mx;tip.y=my;tip.rows=List.of(new Charts.TooltipRow(CapitalBreakdown.COLORS[index],CapitalBreakdown.LABELS.get(index),value==null?"unknown":SettingsAnalyzer.money(value)),new Charts.TooltipRow(0xFFBDBDBD,"snapshot",java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))),new Charts.TooltipRow(0xFFBDBDBD,"source read",source<=0?"unknown":java.time.Instant.ofEpochMilli(source).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("MMM d HH:mm"))));
  }
 }

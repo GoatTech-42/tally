@@ -28,7 +28,7 @@ final class AppearancePanel {
         int artSize=artSize();
         i=0;
         for(var character:Appearance.Character.values()) {
-            var button=CockpitButton.builder(Component.literal(Appearance.mascot()==character?"Selected":"Choose "+label(character.name())),b->{
+            var button=CockpitButton.builder(Component.literal(Appearance.mascot()==character?"Selected":"choose "+label(character.name())),b->{
                 Appearance.choose(Appearance.theme(),character); rebuild.run();
             }).bounds(x+i++*(card+8)+6,y+112+artSize,card-12,22).build();
             ((CockpitButton)button).navigation(Appearance.mascot()==character);
@@ -48,7 +48,7 @@ final class AppearancePanel {
         widgetOffsets.forEach((widget,offset)->{int wy=top+offset-scroll;widget.setY(wy);widget.visible=wy>=top&&wy+widget.getHeight()<=bottom;});
         g.enableScissor(x,top,x+width,bottom);
         g.drawString(font,"MAKE IT YOURS",x+6,y+8,UiTheme.GOLD);
-        g.drawString(font,UiTheme.fit(font,"Pick a theme and a character. Changes save immediately.",width-12),x+6,y+22,UiTheme.SECONDARY);
+        g.drawString(font,UiTheme.fit(font,"pick a theme and a character. changes save immediately.",width-12),x+6,y+22,UiTheme.SECONDARY);
         int card=(width-16)/3;
         int artSize=artSize();
         int i=0;

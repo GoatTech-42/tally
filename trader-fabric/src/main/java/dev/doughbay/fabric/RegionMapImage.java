@@ -17,9 +17,9 @@ public final class RegionMapImage {
             g.setColor(new Color(14, 14, 14)); g.fillRect(0, 0, 1200, 870);
             g.setColor(new Color(48, 48, 48)); g.drawRoundRect(12, 12, 1175, 845, 18, 18);
             g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 30));
-            g.setColor(new Color(255, 255, 255)); g.drawString("Tally  /  Region Map", 32, 60);
+            g.setColor(new Color(255, 255, 255)); g.drawString("tally  /  region map", 32, 60);
             g.setColor(new Color(240, 240, 240)); g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 24));
-            g.drawString("This client · " + snapshot.server(), 32, 102);
+            g.drawString("this client · " + snapshot.server(), 32, 102);
             g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 19));
             g.setColor(new Color(180, 180, 180)); g.drawString("X ******   Y ******   Z ******", 32, 137);
             g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18));
@@ -46,9 +46,9 @@ public final class RegionMapImage {
                 g.setColor(new Color(180, 180, 180)); g.drawString(names[i], 690, y);
             }
             g.setColor(new Color(240, 240, 240)); g.fillRect(660, 524, 16, 16);
-            g.drawString("Your server area", 690, 540);
+            g.drawString("your server area", 690, 540);
             g.setColor(new Color(140, 140, 140));
-            g.drawString("Coordinates always hidden in web and Discord images.", 36, 805);
+            g.drawString("coordinates always hidden in web and Discord images.", 36, 805);
             g.drawString("Exact position is not plotted. Map applies to the DonutSMP Overworld.", 36, 833);
         } finally { g.dispose(); }
         var bytes = new ByteArrayOutputStream(); ImageIO.write(image, "png", bytes); return bytes.toByteArray();

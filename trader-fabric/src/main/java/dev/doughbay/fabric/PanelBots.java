@@ -46,15 +46,15 @@ final class PanelBots {
         try{
             if(action.equals("review")) {
                 var b=REGISTRY.target(form.getOrDefault("bot",""),now);
-                if(!sameRoot(b.root()))return answer(false,"Choose a bot already in this Hive");
-                if(b.connection().isEmpty())return answer(false,"Connect the selected bot before reviewing a server command");
+                if(!sameRoot(b.root()))return answer(false,"choose a bot already in this hive");
+                if(b.connection().isEmpty())return answer(false,"connect the selected bot before reviewing a server command");
                 if(REGISTRY.bots(now).stream().filter(other->other.account().equalsIgnoreCase(b.account())).count()!=1)
                     return answer(false,"This account is running in more than one instance. Close the duplicate before queuing commands");
                 String command=PanelCommandQueue.normalize(form.get("command"));
                 REVIEWS.entrySet().removeIf(e->now-e.getValue().at()>30_000);
-                if(REVIEWS.size()>=32)return answer(false,"Too many pending command reviews");
+                if(REVIEWS.size()>=32)return answer(false,"too many pending command reviews");
                 String id=UUID.randomUUID().toString();REVIEWS.put(id,new Review(b.id(),command,b.connection(),now));
-                return PanelBotRegistry.JSON.createObjectNode().put("ok",true).put("note","Review the exact bot and command, then queue once")
+                return PanelBotRegistry.JSON.createObjectNode().put("ok",true).put("note","review the exact bot and command, then queue once")
                         .put("review",id).put("bot",NameMask.on()?"Selected bot":b.account()).put("command","/"+command).toString();
             }
             if(action.equals("send")) {
@@ -77,8 +77,8 @@ final class PanelBots {
                 REGISTRY.post(target.id(),UUID.randomUUID().toString(),"join",Map.of("source",source.id()),now);
                 return answer(true,"Hive setup queued. The new bot will leave its world safely; only that instance needs a normal restart after linking");
             }
-            return answer(false,"Unknown bot action");
-        }catch(IllegalArgumentException e){return answer(false,e.getMessage()==null?"Check the selected bot and command":e.getMessage());}
+            return answer(false,"unknown bot action");
+        }catch(IllegalArgumentException e){return answer(false,e.getMessage()==null?"check the selected bot and command":e.getMessage());}
         catch(Exception e){return answer(false,"Could not submit safely. Check the selected bot's status before repeating");}
     }
     private static String answer(boolean ok,String note){return PanelBotRegistry.JSON.createObjectNode().put("ok",ok).put("note",note).toString();}

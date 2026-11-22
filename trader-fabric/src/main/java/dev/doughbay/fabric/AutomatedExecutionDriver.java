@@ -938,7 +938,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /orders: " + e.getMessage();
+            lastMessage = "could not send /orders: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING, message);
@@ -1677,7 +1677,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     // "shows no cancel control" says nothing about what it did
                     // show, which is the one thing needed to tell a renamed
                     // button from a page that genuinely has no such control.
-                    abort(client, "Edit Order shows no " + control + " control; the page offers "
+                    abort(client, "edit order shows no " + control + " control; the page offers "
                             + controlNames(container, inventory));
                 }
                 return;
@@ -2020,7 +2020,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 Button search = searchButton(dialogScreen);
                 if (boxes.isEmpty() || search == null) {
                     if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
-                        abort(client, "The item chooser has no search box (buttons: "
+                        abort(client, "the item chooser has no search box (buttons: "
                                 + dialogButtonNames(dialogScreen) + ")");
                     }
                     return;
@@ -2101,10 +2101,10 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
         // as one the server would not take.
         if (title.contains("choose enchantments") || title.contains("enchantment")) {
             Button skip = dialogButton(dialogScreen, "Skip Enchantments");
-            if (skip == null) skip = dialogButton(dialogScreen, "Skip");
+            if (skip == null) skip = dialogButton(dialogScreen, "skip");
             if (skip == null) {
                 if (ticksInPhase >= OPEN_TIMEOUT_TICKS) {
-                    abort(client, "The enchantment chooser has no skip (buttons: " + dialogButtonNames(dialogScreen) + ")");
+                    abort(client, "the enchantment chooser has no skip (buttons: " + dialogButtonNames(dialogScreen) + ")");
                 }
                 return;
             }
@@ -2149,7 +2149,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     }
                 }
             }
-            Button create = dialogButton(dialogScreen, "Create Order");
+            Button create = dialogButton(dialogScreen, "create order");
             if (!itemOk || !amountOk || !priceOk || create == null) {
                 abort(client, "Review Order does not match the bid (" + String.join(" | ", lines) + ")");
                 return;
@@ -2263,7 +2263,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /orders: " + e.getMessage();
+            lastMessage = "could not send /orders: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING, String.format(Locale.ROOT,
@@ -2333,7 +2333,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /orders: " + e.getMessage();
+            lastMessage = "could not send /orders: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING, "Checking what orders pay for " + shortName(canonical));
@@ -2366,7 +2366,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             if (b.getMessage().getString().strip().equalsIgnoreCase("search")) search = b;
         }
         if (boxes.isEmpty() || search == null) {
-            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "The order search dialog has no text box or Search button");
+            if (ticksInPhase >= OPEN_TIMEOUT_TICKS) abort(client, "the order search dialog has no text box or search button");
             return;
         }
         boxes.get(0).setValue(deliverSearch);
@@ -2691,7 +2691,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the order house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /orders: " + e.getMessage();
+            lastMessage = "could not send /orders: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING, "Reading the order house");
@@ -2799,7 +2799,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             final int filter = filterSlot;
             if (!tryFilterClick(true, () -> clickSlot(client, container, filter))) {
                 if (clickDeferred) return;   // paced, not impossible: try again next tick
-                abort(client, "The order house sort button could not be clicked");
+                abort(client, "the order house sort button could not be clicked");
                 return;
             }
             resetPhaseObservation();
@@ -3028,7 +3028,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     "Could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start automated buy", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -3131,7 +3131,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     "Could not send the auction search command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start screen-driven buy", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -3221,7 +3221,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /ah: " + e.getMessage();
+            lastMessage = "could not send /ah: " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start the recent-listings watch", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -3302,7 +3302,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /ah: " + e.getMessage();
+            lastMessage = "could not send /ah: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
@@ -3378,7 +3378,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not open the auction house");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /ah: " + e.getMessage();
+            lastMessage = "could not send /ah: " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING, "Checking your auction slots");
@@ -3459,7 +3459,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
             publishTerminal(TerminalOutcome.ABORTED, "Could not send the auction search");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = command.isEmpty() ? e.getMessage() : "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = command.isEmpty() ? e.getMessage() : "could not send /" + command + ": " + e.getMessage();
             return ExecutionResult.aborted(lastMessage);
         }
         enterPhase(Phase.WAITING_FOR_LISTING,
@@ -4216,7 +4216,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                 final int filter = filterSlot;
                 if (!tryFilterClick(false, () -> clickSlot(client, container, filter))) {
                     if (clickDeferred) return;   // paced, not impossible: try again next tick
-                    abort(client, "The auction filter button could not be clicked");
+                    abort(client, "the auction filter button could not be clicked");
                     return;
                 }
                 resetPhaseObservation();
@@ -5183,7 +5183,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     "Could not send the auction listing command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = "could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start held-stack listing", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -5274,7 +5274,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
                     "Could not send the auction listing command");
             clearTarget();
             phase = Phase.ABORTED;
-            lastMessage = "Could not send /" + command + ": " + e.getMessage();
+            lastMessage = "could not send /" + command + ": " + e.getMessage();
             DoughBayClient.LOGGER.error("DoughBay could not start automated listing", e);
             return ExecutionResult.aborted(lastMessage);
         }
@@ -6625,7 +6625,7 @@ public final class AutomatedExecutionDriver implements ExecutionDriver {
     private String phaseTimeoutDetail(Minecraft client, long budget) {
         Screen screen = client.screen;
         String page = screen == null ? "no screen" : screen.getTitle().getString();
-        return "No phase progress for " + budget / 1000 + "s; operation=" + operation
+        return "no phase progress for " + budget / 1000 + "s; operation=" + operation
                 + ", phase=" + phase + ", orderStage=" + ownStage + ", ticks=" + ticksInPhase
                 + ", pageChanges=" + pageChangesInPhase + ", stableTicks=" + stableTicks
                 + ", page=\"" + page + "\"; stopping without another action";

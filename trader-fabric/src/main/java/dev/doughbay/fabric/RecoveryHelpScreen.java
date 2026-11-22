@@ -16,7 +16,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
 
     RecoveryHelpScreen(Screen parent, String instructions, String confirmation,
                        Runnable confirm, BooleanSupplier stillAllowed) {
-        super(Component.literal("Check interrupted trade"));
+        super(Component.literal("check interrupted trade"));
         this.parent = parent;
         this.instructions = instructions;
         this.confirmation = confirmation;
@@ -28,7 +28,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
     @Override protected void init() {
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int w = bodyWidth(), x = (width - w) / 2, half = (w - 8) / 2;
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back to Trade"), b -> onClose())
+        addRenderableWidget(CockpitButton.builder(Component.literal("back to trade"), b -> onClose())
                 .bounds(x, height - 32, half, 22).build());
         primary = CockpitButton.builder(Component.literal(confirmation), b -> {
             if (scroll >= maxScroll && stillAllowed.getAsBoolean()) confirm.run();
@@ -40,7 +40,7 @@ final class RecoveryHelpScreen extends GoNutsScreen {
     @Override public void render(GuiGraphics g, int mx, int my, float dt) {
         g.fill(0, 0, width, height, UiTheme.BACKGROUND);
         int w = bodyWidth(), x = (width - w) / 2;
-        g.drawString(font, "Tally - Check interrupted trade", x, 14, UiTheme.TEXT);
+        g.drawString(font, "tally - check interrupted trade", x, 14, UiTheme.TEXT);
         int bottom = height - 60, y = 40 - scroll;
         g.enableScissor(x, 36, x + w, bottom);
         for (String paragraph : instructions.split("\n")) {
@@ -54,8 +54,8 @@ final class RecoveryHelpScreen extends GoNutsScreen {
         g.disableScissor();
         boolean allowed = stillAllowed.getAsBoolean();
         primary.active = scroll >= maxScroll && allowed;
-        g.drawString(font, scroll < maxScroll ? "Scroll down to read all steps before confirming."
-                : allowed ? "Confirm only what you checked. Your limits stay in place."
+        g.drawString(font, scroll < maxScroll ? "scroll down to read all steps before confirming."
+                : allowed ? "confirm only what you checked. your limits stay in place."
                 : "No confirmation available. Follow the steps above, then return to Trade.",
                 x, height - 51, UiTheme.MUTED);
         super.render(g, mx, my, dt);

@@ -290,7 +290,7 @@ public final class Payroll {
                         long at = System.currentTimeMillis();
                         executor.submit(() -> withRepo("send-failed", repo2 ->
                                 repo2.settle(payment.paymentId(), "FAILED", at, "could not send: " + e.getMessage())));
-                        status = "Could not send /" + command + ": " + e.getMessage();
+                        status = "could not send /" + command + ": " + e.getMessage();
                     }
                 });
                 break;   // one payment per check; the receipt must settle before the next
@@ -298,7 +298,7 @@ public final class Payroll {
             rules = repo.rules();
             payments = repo.recentPayments(12);
         } catch (Exception e) {
-            status = "Payroll error: " + e.getMessage();
+            status = "payroll error: " + e.getMessage();
             DoughBayClient.LOGGER.warn("DoughBay payroll check failed", e);
         }
     }
@@ -347,7 +347,7 @@ public final class Payroll {
             rules = repo.rules();
             payments = repo.recentPayments(12);
         } catch (Exception e) {
-            status = "Payroll " + what + " failed: " + e.getMessage();
+            status = "payroll " + what + " failed: " + e.getMessage();
             DoughBayClient.LOGGER.warn("DoughBay payroll {} failed", what, e);
         }
     }

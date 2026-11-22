@@ -52,32 +52,32 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     private enum Tab {
         START_HERE("START HERE"),
-        OVERVIEW("Dashboard"),
-        SWARM("Project status"),
+        OVERVIEW("dashboard"),
+        SWARM("project status"),
         AUCTION("Auction"),
         OPPORTUNITIES("Opportunities"),
         MARKETS("Markets"),
         SEARCH("Search"),
         ITEMS("Items"),
         FLIPS("Flips"),
-        STATS("Performance"),
-        ANALYZER("Analyzer"),
+        STATS("performance"),
+        ANALYZER("analyzer"),
         RIVALS("Rivals"),
         ORDERS("Orders"),
-        AUTOMATION("Trade"),
+        AUTOMATION("trade"),
         EVASION("Evasion"),
-        ACTIVITY("Activity"),
+        ACTIVITY("activity"),
         STAFF_WATCH("Staff Watch"),
         REGION_MAP("Region Map"),
-        PROXIES("Proxies"),
+        PROXIES("proxies"),
         HIVE("Hive setup"),
-        DIAGNOSTICS("Diagnostics"),
-        LOGS("Logs"),
+        DIAGNOSTICS("diagnostics"),
+        LOGS("logs"),
         PAYROLL("Payroll"),
         SETTINGS("Settings"),
-        APPEARANCE("Appearance"),
-        TUTORIALS("Tutorials"),
-        ABOUT("About");
+        APPEARANCE("appearance"),
+        TUTORIALS("tutorials"),
+        ABOUT("about");
 
         final String label;
 
@@ -302,7 +302,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     /** Creative-menu-style buckets for the Items grid, so it is not one wall of icons. */
     private enum ItemCat {
         ALL("All"), BLOCKS("Blocks"), REDSTONE("Redstone"), COMBAT("Combat"), TOOLS("Tools"),
-        ARMOR("Armor"), FOOD("Food"), OTHER("Other");
+        ARMOR("Armor"), FOOD("food"), OTHER("Other");
         final String label;
         ItemCat(String label) { this.label = label; }
     }
@@ -458,7 +458,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             follows.followKnownBots();
             knownBotsNote = "Queued; close GUI to follow";
         } catch (java.io.IOException e) {
-            knownBotsNote = "Could not write the list";
+            knownBotsNote = "could not write the list";
             DoughBayClient.LOGGER.warn("DoughBay follows: the known bots could not be added: {}", e.toString());
         }
         rebuildWidgets();
@@ -654,7 +654,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         UiLayout ui = layout();
 
         int columns = ui.navColumns();
-        if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof StartHereScreen?"Back to Start here":tutorialReturn instanceof QuickStartScreen?"Return to setup":"Return to tutorial"),b->{
+        if(tutorialReturn!=null)addRenderableWidget(CockpitButton.builder(Component.literal(tutorialReturn instanceof StartHereScreen?"back to start here":tutorialReturn instanceof QuickStartScreen?"return to setup":"return to tutorial"),b->{
             var guide=tutorialReturn;tutorialReturn=null;Minecraft.getInstance().setScreen(guide);
         }).bounds(ui.innerRight()-158,ui.contentTop()-(tab==Tab.ORDERS?52:26),158,20).build());
         int gap = 4;
@@ -724,7 +724,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if(tab==Tab.ORDERS){
             int w=Math.min(140,(ui.innerWidth()-6)/2),y=ui.contentTop()-24;
             for(boolean settings:new boolean[]{true,false}){
-                var button=CockpitButton.builder(Component.literal(settings?"Order settings":"Order book"),b->{
+                var button=CockpitButton.builder(Component.literal(settings?"order settings":"order book"),b->{
                     ordersSettingsMode=settings;selectedSetting=null;settingsSearch="";settingsScroll=0;rebuildWidgets();
                 }).bounds(ui.innerLeft()+(settings?0:w+6),y,w,20).build();
                 if(button instanceof CockpitButton c)c.navigation(ordersSettingsMode==settings);
@@ -742,11 +742,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             int aboutX = ui.innerRight() - 8;
             int aboutCardTop=ui.contentTop()+8;
             int aboutCardHeight=(ui.bottom()-10-aboutCardTop-8)/2;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Project status"),b->navigate(Tab.SWARM))
+            addRenderableWidget(CockpitButton.builder(Component.literal("project status"),b->navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+9,aboutCardTop+aboutCardHeight-25,Math.max(40,Math.min(150,aboutCard-18)),18).build());
             if (aboutRight >= 330) {
                 aboutX -= 132;
-                addRenderableWidget(CockpitButton.builder(Component.literal("Preview update notice"), b -> {
+                addRenderableWidget(CockpitButton.builder(Component.literal("preview update notice"), b -> {
                     UpdateCheck.preview();
                     onClose();
                 }).bounds(aboutX, ui.contentTop() + 10, 132, 16).build());
@@ -754,22 +754,22 @@ public final class DoughBayScreen extends GoNutsScreen {
             }
             if (aboutRight >= 190) {
                 // The notes of the last few builds, for anyone who missed them going past.
-                addRenderableWidget(CockpitButton.builder(Component.literal("What's new"), b ->
+                addRenderableWidget(CockpitButton.builder(Component.literal("what's new"), b ->
                         Minecraft.getInstance().setScreen(new UpdateScreen(this, UpdateScreen.Mode.HISTORY)))
                         .bounds(aboutX - 78, ui.contentTop() + 10, 78, 16).build());
             }
         }
 
         if (tab == Tab.OVERVIEW) {
-            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Project status"), b -> navigate(Tab.SWARM))
+            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("project status"), b -> navigate(Tab.SWARM))
                     .bounds(ui.innerLeft()+286,ui.contentTop()+69,120,22).build());
-            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("Preview HUD"), b -> {
+            if (ui.innerWidth() >= 420) addRenderableWidget(CockpitButton.builder(Component.literal("preview HUD"), b -> {
                 DoughBayClient.previewHud();
                 onClose();
             }).bounds(ui.innerRight() - 184, ui.top() + 30, 98, 18).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Find opportunities"), b -> navigate(Tab.OPPORTUNITIES))
+            addRenderableWidget(CockpitButton.builder(Component.literal("find opportunities"), b -> navigate(Tab.OPPORTUNITIES))
                     .bounds(ui.innerLeft() + 16, ui.contentTop() + 69, 128, 22).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Manage trading"), b -> navigate(Tab.AUTOMATION))
+            addRenderableWidget(CockpitButton.builder(Component.literal("manage trading"), b -> navigate(Tab.AUTOMATION))
                     .bounds(ui.innerLeft() + 151, ui.contentTop() + 69, 128, 22).build());
         }
 
@@ -785,7 +785,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             if (ui.innerWidth() >= KNOWN_BOTS_MIN_WIDTH) {
                 int count = Follows.knownBots().size();
                 Button bots = CockpitButton.builder(Component.literal(knownBotsNote.isEmpty()
-                                ? "Follow known bots (" + count + ")" : knownBotsNote), ignored -> followKnownBots())
+                                ? "follow known bots (" + count + ")" : knownBotsNote), ignored -> followKnownBots())
                         .bounds(ui.innerRight() - 58 - 4 - KNOWN_BOTS_WIDTH, ui.contentTop() + 3, KNOWN_BOTS_WIDTH, 18).build();
                 bots.active = count > 0 && DoughBayClient.follows() != null;
                 addRenderableWidget(bots);
@@ -795,7 +795,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (tab == Tab.RIVALS && rivalsMoney && selectedMoney != null) {
             int moneyY = ui.contentTop() + 3;
             int moneyX = ui.innerRight() - 58;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Back"), ignored -> {
+            addRenderableWidget(CockpitButton.builder(Component.literal("back"), ignored -> {
                 selectedMoney = null;
                 moneyMessage = "";
                 rebuildWidgets();
@@ -807,12 +807,12 @@ public final class DoughBayScreen extends GoNutsScreen {
             addRenderableWidget(CockpitButton.builder(Component.literal("→ Follow"),
                     ignored -> followAroundMoney()).bounds(moneyX, moneyY, 70, 18).build());
             moneyX -= 4 + 54;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Copy"),
+            addRenderableWidget(CockpitButton.builder(Component.literal("copy"),
                     ignored -> copyAroundMoney()).bounds(moneyX, moneyY, 54, 18).build());
         }
 
         if (tab == Tab.RIVALS && selectedRival != null) {
-            Button back = CockpitButton.builder(Component.literal("Back"), ignored -> {
+            Button back = CockpitButton.builder(Component.literal("back"), ignored -> {
                 selectedRival = null;
                 rivalMessage = "";
                 rebuildWidgets();
@@ -828,7 +828,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             addRenderableWidget(CockpitButton.builder(Component.literal("→ Include"),
                     ignored -> includeRivalMarkets()).bounds(rx, wy, 74, 18).build());
             rx -= rivalGap + 54;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Copy"),
+            addRenderableWidget(CockpitButton.builder(Component.literal("copy"),
                     ignored -> copyRivalMarkets()).bounds(rx, wy, 54, 18).build());
             rx -= rivalGap + 64;
             addRenderableWidget(CockpitButton.builder(Component.literal("→ Track"),
@@ -836,7 +836,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
 
         if (tab == Tab.OPPORTUNITIES && selected != null) {
-            Button back = CockpitButton.builder(Component.literal("Back"), ignored -> {
+            Button back = CockpitButton.builder(Component.literal("back"), ignored -> {
                 selected = null;
                 scroll = 0;
                 pageScrollPixels = 0;
@@ -853,8 +853,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                     ? "Emergency stop"
                     : session.state() != AutomationSessionController.State.STOPPED
                     || session.unresolvedExposure()
-                    ? "View active Automation session"
-                    : "Open Automation";
+                    ? "view active automation session"
+                    : "open automation";
 
             int actionWidth = Math.min(ui.innerWidth(), Math.max(190, this.font.width(label) + 20));
             actionButton = CockpitButton.builder(Component.literal(label), ignored -> handleDetailAction())
@@ -920,14 +920,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         boolean active = true;
         switch (session.state()) {
             case STOPPED -> {
-                label = showLiveTradingSetup()?"Set up trading":"▶ Start";
+                label = showLiveTradingSetup()?"set up trading":"▶ Start";
                 action = showLiveTradingSetup()?()->Minecraft.getInstance().setScreen(new QuickStartScreen(this))
                         :()->handleSessionStart(AutomationSessionController.RunMode.CONTINUOUS);
             }
             case PAUSED -> {
                 label = "▶ Resume";
                 if (session.recoveredSession() || AUTOMATION_SESSION.recoverableInHand()) {
-                    label = "Review trade";
+                    label = "review trade";
                     action = () -> {
                         tab = Tab.AUTOMATION;
                         automationMode = AutomationMode.CONTINUOUS;
@@ -944,14 +944,14 @@ public final class DoughBayScreen extends GoNutsScreen {
                         tab = Tab.AUTOMATION;
                         rebuildWidgets();
                     };
-                    label = "Paused: see Trade";
+                    label = "paused: see trade";
                 }
             }
             default -> {
                 label = "■ Stop";
                 action = () -> {
                     AUTOMATION_SESSION.stop();
-                    driverMessage = "Session stopped";
+                    driverMessage = "session stopped";
                     rebuildWidgets();
                 };
             }
@@ -1059,7 +1059,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         if(tutorialReturn!=null){
             int y=ui.contentTop()-(tab==Tab.ORDERS?53:27);
-            graphics.drawString(font,truncate(tutorialReturn instanceof QuickStartScreen?"Setup · review, then return":"Tutorial page · review the controls, then continue",Math.max(0,ui.innerWidth()-164)),ui.innerLeft(),y+7,GOLD);
+            graphics.drawString(font,truncate(tutorialReturn instanceof QuickStartScreen?"setup · review, then return":"tutorial page · review the controls, then continue",Math.max(0,ui.innerWidth()-164)),ui.innerLeft(),y+7,GOLD);
         }
 
         // Widgets are extracted after the cards they sit on. Gui render states
@@ -1079,8 +1079,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         } else {
             scaledText(graphics, tab.label, x, top + 11, 1.35f, TEXT);
         }
-        String age = snapshot.updatedAt() == 0 ? "Waiting for feed"
-                : "Updated " + relativeAge(System.currentTimeMillis() - snapshot.updatedAt());
+        String age = snapshot.updatedAt() == 0 ? "waiting for feed"
+                : "updated " + relativeAge(System.currentTimeMillis() - snapshot.updatedAt());
         if (ui.innerWidth() > 360) {
             graphics.drawString(this.font, age, ui.innerRight() - this.font.width(age), top + 12, MUTED);
         }
@@ -1117,7 +1117,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.drawString(this.font, "TRADE", x + 14, ui.top() + 53, MUTED);
         graphics.drawString(this.font, "OPERATIONS", x + 14, ui.top() + 236, MUTED);
         graphics.drawString(this.font, "WORKSPACE", x + 14, ui.top() + 378, MUTED);
-        graphics.drawString(this.font, "Esc  /  Back to game", x + 12, ui.bottom() - 15, MUTED);
+        graphics.drawString(this.font, "esc  /  back to game", x + 12, ui.bottom() - 15, MUTED);
     }
 
     /**
@@ -1284,7 +1284,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         String[] labels = {"REALIZED PROFIT", "ACTIVE LISTINGS", "OPPORTUNITIES", "WIN RATE"};
         String[] values = {signedMoney(stats.realizedProfit()), String.valueOf(stats.openTrades()),
                 String.valueOf(snapshot.opportunities().size()), stats.completedSales() == 0 ? "--" : percent(stats.winRatePercent())};
-        String[] notes = {"Closed sales, after fees",
+        String[] notes = {"closed sales, after fees",
                 money(stats.openCostBasis()) + " at cost", snapshot.markets().size() + " markets watched",
                 stats.completedSales() + " completed sales"};
         for (int i = 0; i < 4; i++) {
@@ -1297,23 +1297,23 @@ public final class DoughBayScreen extends GoNutsScreen {
         int rightWidth = spacious ? w - leftWidth - 10 : w;
         int chartY = below - shift;
         UiTheme.panel(g, x, chartY, leftWidth, 137, CARD);
-        g.drawString(this.font, "Profit over time", x + 13, chartY + 12, TEXT);
+        g.drawString(this.font, "profit over time", x + 13, chartY + 12, TEXT);
         g.drawString(this.font, "REALIZED / ALL TIME", x + 13, chartY + 28, MUTED);
         var points = stats.profitHistory().stream().map(p -> new Charts.Point(p.atMillis(), p.cumulativeProfit())).toList();
         if (points.size() >= 2) {
             for (int row = 0; row < 3; row++) g.fill(x + 13, chartY + 51 + row * 30, x + leftWidth - 13, chartY + 52 + row * 30, PANEL_EDGE);
             Charts.sparkline(g, x + 13, chartY + 45, leftWidth - 26, 64, points, Charts.SERIES_BLUE);
-            g.drawString(this.font, "First recorded trade", x + 13, chartY + 118, MUTED);
+            g.drawString(this.font, "first recorded trade", x + 13, chartY + 118, MUTED);
             g.drawString(this.font, "Now", x + leftWidth - 32, chartY + 118, MUTED);
         } else drawWrapped(g, "Your realized profit history will appear after completed sales are recorded.",
                 x + 13, chartY + 58, leftWidth - 26, chartY + 123, MUTED);
         int activityY = chartY + 147;
         UiTheme.panel(g, x, activityY, leftWidth, 83, CARD);
-        g.drawString(this.font, "Latest activity", x + 13, activityY + 12, TEXT);
+        g.drawString(this.font, "latest activity", x + 13, activityY + 12, TEXT);
         var activity = DoughBayClient.recentActivity();
         if (activity.isEmpty()) {
-            g.drawString(this.font, "All quiet for now", x + 13, activityY + 34, SECONDARY);
-            g.drawString(this.font, "Sales, orders and alerts will show here.", x + 13, activityY + 51, MUTED);
+            g.drawString(this.font, "all quiet for now", x + 13, activityY + 34, SECONDARY);
+            g.drawString(this.font, "sales, orders and alerts will show here.", x + 13, activityY + 51, MUTED);
         } else {
             var event = activity.getFirst();
             g.drawString(this.font, truncate(event.title(), leftWidth - 26), x + 13, activityY + 32, event.type().accent);
@@ -1321,8 +1321,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         int signalsY = spacious ? chartY : activityY + 94;
         UiTheme.panel(g, rightX, signalsY, rightWidth, 230, CARD_DARK);
-        g.drawString(this.font, "On the radar", rightX + 13, signalsY + 12, TEXT);
-        g.drawString(this.font, "Top opportunities to review", rightX + 13, signalsY + 27, MUTED);
+        g.drawString(this.font, "on the radar", rightX + 13, signalsY + 12, TEXT);
+        g.drawString(this.font, "top opportunities to review", rightX + 13, signalsY + 27, MUTED);
         var opportunities = snapshot.opportunities();
         if (opportunities.isEmpty()) drawWrapped(g, "No signals pass the filters yet. Your copilot is watching for the next opening.",
                 rightX + 13, signalsY + 60, rightWidth - 26, signalsY + 170, SECONDARY);
@@ -1336,7 +1336,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             overviewSignals.add(new SignalHit(rightX + 8, sy, rightWidth - 16, 51, opportunity));
         }
         g.disableScissor();
-        if (maxPageScrollPixels > 0) g.drawString(this.font, "Scroll to explore", ui.innerRight() - 90, ui.bottom() - 9, MUTED);
+        if (maxPageScrollPixels > 0) g.drawString(this.font, "scroll to explore", ui.innerRight() - 90, ui.bottom() - 9, MUTED);
     }
 
     private void overviewMetric(GuiGraphics g, int x, int y, int w,
@@ -1350,8 +1350,8 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void renderActivity(GuiGraphics g, UiLayout ui) {
         resetListGeometry();
         int x = ui.innerLeft(), w = ui.innerWidth(), top = ui.contentTop() + 9;
-        g.drawString(this.font, "Every event, in one place", x, top, TEXT);
-        g.drawString(this.font, "Recent alerts stay here after their popups disappear.", x, top + 16, MUTED);
+        g.drawString(this.font, "every event, in one place", x, top, TEXT);
+        g.drawString(this.font, "recent alerts stay here after their popups disappear.", x, top + 16, MUTED);
         var events = DoughBayClient.recentActivity();
         int totalHeight = 0;
         for (var e : events) totalHeight += 35 + this.font.split(Component.literal(e.lineOne() + "  " + e.lineTwo() + "  " + e.lineThree()), w - 40).size() * 12;
@@ -1359,8 +1359,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         maxPageScrollPixels = Math.max(0, listY + totalHeight - ui.bottom() + 16);
         pageScrollPixels = clamp(pageScrollPixels, 0, maxPageScrollPixels);
         if (events.isEmpty()) {
-            renderEmptyState(g, x, listY, w, "No events yet", "Your next sale, order, warning or error will appear here.",
-                    "This history covers the current game session.");
+            renderEmptyState(g, x, listY, w, "no events yet", "your next sale, order, warning or error will appear here.",
+                    "this history covers the current game session.");
             return;
         }
         g.enableScissor(x, listY, ui.innerRight(), ui.bottom() - 10);
@@ -1387,9 +1387,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         graphics.drawString(this.font, "A shortlist worth a closer look", x, top, TEXT);
         graphics.drawString(this.font, rows.size() + " signals / ranked by the engine", x, top + 15, MUTED);
         if (rows.isEmpty()) {
-            renderEmptyState(graphics, x, top + 38, w, "Nothing clears your filters yet",
-                    "Your copilot is waiting for a worthwhile opportunity.",
-                    "Open Markets to review coverage and pricing confidence.");
+            renderEmptyState(graphics, x, top + 38, w, "nothing clears your filters yet",
+                    "your copilot is waiting for a worthwhile opportunity.",
+                    "open markets to review coverage and pricing confidence.");
             resetListGeometry();
             return;
         }
@@ -1409,7 +1409,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         graphics.disableScissor();
         drawScrollBar(graphics, ui.innerRight(), listTop, bottom, rows.size());
-        graphics.drawString(this.font, "Select a signal for price history and the full breakdown", x, ui.bottom() - 17, MUTED);
+        graphics.drawString(this.font, "select a signal for price history and the full breakdown", x, ui.bottom() - 17, MUTED);
     }
 
     private void opportunityCard(GuiGraphics g, Opportunity o, MarketWatcher.Snapshot snapshot,
@@ -1585,27 +1585,27 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerWidth = width - 16;
         if (signal) {
             yy = kvRight(graphics, innerX, yy, innerWidth,
-                    "Buy up to", money(opportunity.buyPrice()), GOOD);
+                    "buy up to", money(opportunity.buyPrice()), GOOD);
             yy = kvRight(graphics, innerX, yy, innerWidth,
-                    "Per unit", money(opportunity.buyPrice()
+                    "per unit", money(opportunity.buyPrice()
                             / (double) Math.max(1, opportunity.listing().itemCount())), SECONDARY);
             yy = kvRight(graphics, innerX, yy, innerWidth,
-                    "Resell at", money(opportunity.recommendedSellPrice()), TEXT);
+                    "resell at", money(opportunity.recommendedSellPrice()), TEXT);
             yy = kvRight(graphics, innerX, yy, innerWidth,
                     "Seller", "any live row on the screen", SECONDARY);
             yy = kvRight(graphics, innerX, yy, innerWidth,
-                    "Stats age", relativeAge(Math.max(0,
+                    "stats age", relativeAge(Math.max(0,
                             System.currentTimeMillis() - opportunity.stats().calculatedAt())), SECONDARY);
             String note = AUTOMATION_SESSION.huntNote(opportunity.listing().itemId());
-            drawWrapped(graphics, note.isBlank() ? "Not hunted yet this session" : "Last hunt: " + note,
+            drawWrapped(graphics, note.isBlank() ? "not hunted yet this session" : "last hunt: " + note,
                     innerX, yy + 2, innerWidth, y + height - 6,
                     note.startsWith("bought") ? GOOD : SECONDARY);
             return;
         }
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Current", money(opportunity.buyPrice()), TEXT);
+                "current", money(opportunity.buyPrice()), TEXT);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Per unit", money(opportunity.buyPrice()
+                "per unit", money(opportunity.buyPrice()
                         / (double) Math.max(1, opportunity.listing().itemCount())), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth,
                 "Seller", opportunity.listing().sellerName(), SECONDARY);
@@ -1613,7 +1613,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 "Observed", relativeAge(Math.max(0,
                         System.currentTimeMillis() - opportunity.listing().observedAt())), SECONDARY);
         kvRight(graphics, innerX, yy, innerWidth,
-                "Time left", opportunity.listing().timeLeftMillis() == null
+                "time left", opportunity.listing().timeLeftMillis() == null
                         ? "unknown" : duration(opportunity.listing().timeLeftMillis()), SECONDARY);
     }
 
@@ -1625,7 +1625,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 8;
         int innerWidth = width - 16;
         if (stats == null) {
-            graphics.drawString(this.font, truncate("No completed-sale statistics", innerWidth),
+            graphics.drawString(this.font, truncate("no completed-sale statistics", innerWidth),
                     innerX, yy, MUTED);
             return;
         }
@@ -1634,11 +1634,11 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy = kvRight(graphics, innerX, yy, innerWidth,
                 "Quick sale", money(stats.quickSalePrice()), GOOD);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Patient", money(stats.patientSalePrice()), SECONDARY);
+                "patient", money(stats.patientSalePrice()), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Samples", stats.sampleCount() + " / " + stats.uniqueSellers() + " sellers", SECONDARY);
+                "samples", stats.sampleCount() + " / " + stats.uniqueSellers() + " sellers", SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Sales/hour", String.format(Locale.ROOT, "%.1f", stats.salesPerHour()), SECONDARY);
+                "sales/hour", String.format(Locale.ROOT, "%.1f", stats.salesPerHour()), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth,
                 "Volatility", String.format(Locale.ROOT, "%.1f%%", stats.robustVolatility() * 100), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth,
@@ -1720,7 +1720,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         double hi = Math.max(Math.max(stats.upperBound(), stats.patientSalePrice()),
                 opportunity.recommendedSellPrice());
         if (!Double.isFinite(lo) || !Double.isFinite(hi) || hi <= lo) {
-            graphics.drawString(this.font, "Price band unavailable", x + 8, y + 12, MUTED);
+            graphics.drawString(this.font, "price band unavailable", x + 8, y + 12, MUTED);
             return;
         }
 
@@ -1770,16 +1770,16 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 8;
         int innerWidth = width - 16;
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Resale target", money(opportunity.recommendedSellPrice()), TEXT);
+                "resale target", money(opportunity.recommendedSellPrice()), TEXT);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Net profit", money(opportunity.expectedNetProfit()),
+                "net profit", money(opportunity.expectedNetProfit()),
                 opportunity.expectedNetProfit() > 0 ? GOOD : BAD);
         yy = kvRight(graphics, innerX, yy, innerWidth,
                 "ROI", percent(opportunity.expectedRoiPercent()), GOOD);
         yy = kvRight(graphics, innerX, yy, innerWidth,
-                "Est. hold", holdTime(opportunity.estimatedHoldHours()), TEXT);
+                "est. hold", holdTime(opportunity.estimatedHoldHours()), TEXT);
         kvRight(graphics, innerX, yy, innerWidth,
-                "Sale chance", percent(opportunity.saleProbability() * 100), GOOD);
+                "sale chance", percent(opportunity.saleProbability() * 100), GOOD);
     }
 
     private void renderExecutionCard(GuiGraphics graphics, MarketWatcher.Snapshot snapshot,
@@ -1841,8 +1841,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy = statusLine(graphics, textX, yy, textWidth, "•  Seller + live price", MUTED);
         yy = statusLine(graphics, textX, yy, textWidth, "•  Controller state + one-position gate", MUTED);
         yy = statusLine(graphics, textX, yy, textWidth,
-                "Open Automation — the session selects the best fresh signal", GOOD);
-        statusLine(graphics, textX, yy, textWidth, "No command is sent from this detail screen", SECONDARY);
+                "open automation — the session selects the best fresh signal", GOOD);
+        statusLine(graphics, textX, yy, textWidth, "no command is sent from this detail screen", SECONDARY);
     }
 
     private void renderReasonsCard(GuiGraphics graphics, Opportunity opportunity,
@@ -1919,8 +1919,8 @@ public final class DoughBayScreen extends GoNutsScreen {
                             ? totalMarkets + " markets are loaded but none match the search or toggles."
                             : "Markets appear after enough valid completed sales have been collected.",
                     filtered
-                            ? "Clear the search box or switch a toggle off."
-                            : "Use Diagnostics to check API and collector health.");
+                            ? "clear the search box or switch a toggle off."
+                            : "use diagnostics to check API and collector health.");
             resetListGeometry();
             return;
         }
@@ -2053,7 +2053,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void initStatsWidgets(UiLayout ui) {
         int y = ui.contentTop() + 3;
         int x = ui.innerRight() - 74;
-        addRenderableWidget(CockpitButton.builder(Component.literal(statsBoard ? "Overview" : "Items"), b -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal(statsBoard ? "overview" : "Items"), b -> {
             statsBoard = !statsBoard;
             boardScroll = 0;
             rebuildWidgets();
@@ -2120,7 +2120,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (board.rows().isEmpty()) {
             card(graphics, x, mainTop, width, Math.max(60, contentBottom - mainTop), CARD_DARK);
             sectionTitle(graphics, "EVERY ITEM", x, mainTop, width);
-            drawWrapped(graphics, board.builtAt() == 0 ? "Reading the ledger." : "Nothing has sold in this stretch and nothing is listed.",
+            drawWrapped(graphics, board.builtAt() == 0 ? "reading the ledger." : "nothing has sold in this stretch and nothing is listed.",
                     x + 9, mainTop + 27, width - 18, contentBottom - 8, MUTED);
             return;
         }
@@ -2246,7 +2246,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             int best = -1;
             for (int h = 0; h < 24; h++) if (board.byHour()[h] > 0 && (best < 0 || board.byHour()[h] > board.byHour()[best])) best = h;
             if (best >= 0 && yy + 11 <= bottom) {
-                yy = kvRight(graphics, innerX, yy, innerWidth, "Best hour",
+                yy = kvRight(graphics, innerX, yy, innerWidth, "best hour",
                         String.format(Locale.ROOT, "%02d:00  ·  %s", best, money(board.byHour()[best])), GOOD);
             }
             drawWrapped(graphics, "Click an item for the rest of what it has done: what it costs and sells for, "
@@ -2261,21 +2261,21 @@ public final class DoughBayScreen extends GoNutsScreen {
         String[][] lines = {
                 {"Profit", any ? signedMoney(row.profit()) : "nothing sold"},
                 {"Sales", any ? grouped(row.sales()) + "  ·  " + grouped(row.units()) + " units" : "-"},
-                {"Bought for (each)", any && row.units() > 0 ? money(row.cost() / row.units()) : "-"},
-                {"Sold for (each)", any && row.units() > 0 ? money(row.revenue() / row.units()) : "-"},
-                {"Return on money spent", any && row.cost() > 0 ? String.format(Locale.ROOT, "%.0f%%", row.returnPercent()) : "-"},
+                {"bought for (each)", any && row.units() > 0 ? money(row.cost() / row.units()) : "-"},
+                {"sold for (each)", any && row.units() > 0 ? money(row.revenue() / row.units()) : "-"},
+                {"return on money spent", any && row.cost() > 0 ? String.format(Locale.ROOT, "%.0f%%", row.returnPercent()) : "-"},
                 {"Per sale", any ? money(row.perSale()) : "-"},
                 {"Per slot-hour", any ? money(row.perSlotHour()) : "-"},
-                {"Sells in (typical)", span(row.medianSellMillis())},
-                {"Sold at a profit", any ? row.wins() + " of " + row.sales()
+                {"sells in (typical)", span(row.medianSellMillis())},
+                {"sold at a profit", any ? row.wins() + " of " + row.sales()
                         + (row.losses() > 0 ? "  ·  " + row.losses() + " at a loss" : "") : "-"},
-                {"Best sale / worst", any ? signedMoney(row.best()) + " / " + signedMoney(row.worst()) : "-"},
-                {"As singles", row.singleSales() > 0 ? row.singleSales() + " sale(s)  ·  " + signedMoney(row.singleProfit()) : "-"},
-                {"As stacks", row.lotSales() > 0 ? row.lotSales() + " sale(s)  ·  " + signedMoney(row.lotProfit()) : "-"},
-                {"On the shelf now", row.open() > 0 ? row.open() + "  ·  " + money(row.openCost()) + " at cost" : "nothing"},
-                {"Oldest on the shelf", row.open() > 0 && row.oldestOpenMillis() > 0 ? span(row.oldestOpenMillis()) : "-"},
-                {"Best hour", row.bestHour() >= 0 ? String.format(Locale.ROOT, "%02d:00", row.bestHour()) : "-"},
-                {"Against the stretch before", any && row.compared() ? signedMoney(row.change())
+                {"best sale / worst", any ? signedMoney(row.best()) + " / " + signedMoney(row.worst()) : "-"},
+                {"as singles", row.singleSales() > 0 ? row.singleSales() + " sale(s)  ·  " + signedMoney(row.singleProfit()) : "-"},
+                {"as stacks", row.lotSales() > 0 ? row.lotSales() + " sale(s)  ·  " + signedMoney(row.lotProfit()) : "-"},
+                {"on the shelf now", row.open() > 0 ? row.open() + "  ·  " + money(row.openCost()) + " at cost" : "nothing"},
+                {"oldest on the shelf", row.open() > 0 && row.oldestOpenMillis() > 0 ? span(row.oldestOpenMillis()) : "-"},
+                {"best hour", row.bestHour() >= 0 ? String.format(Locale.ROOT, "%02d:00", row.bestHour()) : "-"},
+                {"against the stretch before", any && row.compared() ? signedMoney(row.change())
                         + " (was " + signedMoney(row.before()) + ")" : "-"},
         };
         int[] colors = new int[lines.length];
@@ -2295,7 +2295,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     mode, marketSnapshot.demo(), System.currentTimeMillis());
             if (result == null) {
                 return PerformanceStatsSnapshot.empty(mode,
-                        "Performance snapshot is unavailable");
+                        "performance snapshot is unavailable");
             }
             if (result.mode() != mode) {
                 return PerformanceStatsSnapshot.empty(mode,
@@ -2304,7 +2304,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             return result;
         } catch (RuntimeException failure) {
             return PerformanceStatsSnapshot.empty(mode,
-                    "Performance snapshot could not be loaded");
+                    "performance snapshot could not be loaded");
         }
     }
 
@@ -2688,29 +2688,29 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 27;
         boolean open = a.privacy() == MoneyFlows.Privacy.OPEN;
         int leftWidth = Math.min(340, Math.max(160, innerWidth / 2 - 8));
-        yy = kvRight(graphics, innerX, yy, leftWidth, "Received", a.in() == 0 ? "nothing seen"
+        yy = kvRight(graphics, innerX, yy, leftWidth, "received", a.in() == 0 ? "nothing seen"
                 : cash(a.in()) + " in " + a.paymentsIn() + " from " + a.payers() + " player(s)", a.in() > 0 ? GOOD : MUTED);
-        yy = kvRight(graphics, innerX, yy, leftWidth, "Paid out", a.out() == 0 ? "nothing seen"
+        yy = kvRight(graphics, innerX, yy, leftWidth, "paid out", a.out() == 0 ? "nothing seen"
                 : cash(a.out()) + " in " + a.paymentsOut() + " to " + a.payees() + " player(s)", a.out() > 0 ? TEXT : MUTED);
-        yy = kvRight(graphics, innerX, yy, leftWidth, "Kept", (a.net() > 0 ? "+" : "") + cash(a.net()),
+        yy = kvRight(graphics, innerX, yy, leftWidth, "kept", (a.net() > 0 ? "+" : "") + cash(a.net()),
                 a.net() >= 0 ? GOOD : BAD);
         if (a.payers() > 0) {
-            yy = kvRight(graphics, innerX, yy, leftWidth, "Pays back", a.bothWays() + " of the " + a.payers()
+            yy = kvRight(graphics, innerX, yy, leftWidth, "pays back", a.bothWays() + " of the " + a.payers()
                     + " who pay them", a.bothWays() > 0 ? TEXT : SECONDARY);
         }
-        yy = kvRight(graphics, innerX, yy, leftWidth, "Trades seen", !open ? "not shown to us"
+        yy = kvRight(graphics, innerX, yy, leftWidth, "trades seen", !open ? "not shown to us"
                 : a.trades() == 0 ? "none: moves money, does not trade" : grouped(a.trades()),
                 open && a.trades() == 0 ? WARN : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, leftWidth, "Last payment",
+        yy = kvRight(graphics, innerX, yy, leftWidth, "last payment",
                 a.lastAt() > 0 ? relativeAge(now - a.lastAt()) : "unknown", SECONDARY);
 
         int noteX = innerX + leftWidth + 14;
         int noteWidth = innerWidth - leftWidth - 14;
         if (noteWidth >= 120) {
             int ny = drawWrapped(graphics, a.shape().reading, noteX, y + 27, noteWidth, yy + 22, TEXT);
-            ny = drawWrapped(graphics, "Privacy: " + a.privacy().reading + ".", noteX, ny + 2, noteWidth, yy + 33,
+            ny = drawWrapped(graphics, "privacy: " + a.privacy().reading + ".", noteX, ny + 2, noteWidth, yy + 33,
                     privacyColor(a.privacy()));
-            drawWrapped(graphics, "This is who moves money and how much, not why.", noteX, ny + 2, noteWidth,
+            drawWrapped(graphics, "this is who moves money and how much, not why.", noteX, ny + 2, noteWidth,
                     yy + 44, MUTED);
         }
 
@@ -2808,7 +2808,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         List<Integer> colors = new ArrayList<>();
         lines.add(r.name());
         colors.add(GOLD);
-        lines.add("Bot likelihood " + r.botScore() + "%  ·  active " + r.activeHours() + " of 24 hours");
+        lines.add("bot likelihood " + r.botScore() + "%  ·  active " + r.activeHours() + " of 24 hours");
         colors.add(r.botScore() >= 60 ? WARN : SECONDARY);
         lines.add(rivalsFromFollows
                 ? grouped(r.sales()) + " listing(s)  ·  avg ask " + money(r.averageTicket())
@@ -2817,10 +2817,10 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + "  ·  " + money(r.revenue()) + " revenue");
         colors.add(TEXT);
         lines.add(rivalsFromFollows
-                ? "Asked over their order prices " + money(r.estimatedProfit()) + String.format(Locale.ROOT,
+                ? "asked over their order prices " + money(r.estimatedProfit()) + String.format(Locale.ROOT,
                         "  (typically x%.0f, %d order-and-listing pairs)", 1 + r.averageMarginPercent() / 100.0,
                         r.flips().size())
-                : "Est. profit/day " + money(r.estimatedProfit())
+                : "est. profit/day " + money(r.estimatedProfit())
                 + (r.profitFromFlips() ? String.format(Locale.ROOT, "  (%.0f%% margin from %d flips)",
                 r.averageMarginPercent(), r.flips().size()) : "  (assumed 20% margin)"));
         colors.add(GOOD);
@@ -2829,9 +2829,9 @@ public final class DoughBayScreen extends GoNutsScreen {
             if (markets.length() > 0) markets.append(", ");
             markets.append(titleCase(shortName(item)));
         }
-        lines.add("Markets: " + (markets.length() == 0 ? "unknown" : markets) + "  ·  " + r.items() + " items");
+        lines.add("markets: " + (markets.length() == 0 ? "unknown" : markets) + "  ·  " + r.items() + " items");
         colors.add(SECONDARY);
-        lines.add("Competes with you on " + r.overlap() + " of your markets  ·  click for their trades");
+        lines.add("competes with you on " + r.overlap() + " of your markets  ·  click for their trades");
         colors.add(r.overlap() > 0 ? WARN : MUTED);
 
         int width = 0;
@@ -3120,7 +3120,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 addRenderableWidget(CockpitButton.builder(Component.literal(settingsSection.label+(settingsCategoriesExpanded?" — close categories":" — choose category")),b->{
                     settingsCategoriesExpanded=!settingsCategoriesExpanded;rebuildWidgets();
                 }).bounds(ui.innerLeft(),controlsTop+2,Math.max(90,ui.innerWidth()-110),20).build());
-                addRenderableWidget(CockpitButton.builder(Component.literal("Simple view"),b->Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this))).bounds(ui.innerRight()-104,controlsTop+2,104,20).build());
+                addRenderableWidget(CockpitButton.builder(Component.literal("simple view"),b->Minecraft.getInstance().setScreen(new SimpleSettingsScreen(this))).bounds(ui.innerRight()-104,controlsTop+2,104,20).build());
                 navTop+=24;
             }
             if(!compact||settingsCategoriesExpanded){
@@ -3140,9 +3140,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         // letters is faster than reading down the cards.
         int searchW = tab!=Tab.EVASION?Math.min(200,Math.max(70,ui.innerWidth()-186)):Math.min(200, Math.max(120, ui.innerWidth() / 3));
         settingsSearchField = new EditBox(this.font, ui.innerLeft(), controlsTop + 2, searchW, 16,
-                Component.literal("Search settings"));
+                Component.literal("search settings"));
         settingsSearchField.setMaxLength(48);
-        settingsSearchField.setHint(Component.literal(tab!=Tab.EVASION?"Search "+settingsSection.label+"...":"Search settings..."));
+        settingsSearchField.setHint(Component.literal(tab!=Tab.EVASION?"search "+settingsSection.label+"...":"search settings..."));
         settingsSearchField.setValue(settingsSearch);
         settingsSearchField.setResponder(value -> {
             settingsSearch = value;
@@ -3156,14 +3156,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         if(tab!=Tab.EVASION){
             int presetY=controlsTop+2+(ui.innerWidth()<270?24:0);
             int presetX=ui.innerWidth()<270?ui.innerLeft():ui.innerRight()-176;
-            var presetButton = CockpitButton.builder(Component.literal("Preset: "+settingsPreset),b->{
+            var presetButton = CockpitButton.builder(Component.literal("preset: "+settingsPreset),b->{
                 var choices=new ArrayList<>(Tuning.PRESETS.keySet());choices.add("Default");
                 settingsPreset=choices.get((choices.indexOf(settingsPreset)+1)%choices.size());rebuildWidgets();
             }).bounds(presetX,presetY,120,18).build();
             presetButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
                     Component.literal(Tuning.presetDescription(settingsPreset))));
             addRenderableWidget(presetButton);
-            var applyPresetButton = CockpitButton.builder(Component.literal("Apply"),b->{
+            var applyPresetButton = CockpitButton.builder(Component.literal("apply"),b->{
                 int n=Tuning.applyPreset(settingsPreset);settingsMessage=settingsPreset+" preset: "+n+" setting(s) changed";
                 selectedSetting=null;rebuildWidgets();
             }).bounds(presetX+124,presetY,52,18).build();
@@ -3173,7 +3173,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         if (tab == Tab.EVASION) {
             EvasionGuard guard = DoughBayClient.evasionGuard();
-            addRenderableWidget(CockpitButton.builder(Component.literal(guard != null && guard.enabled() ? "Guard: ON" : "Guard: OFF"), b -> {
+            addRenderableWidget(CockpitButton.builder(Component.literal(guard != null && guard.enabled() ? "guard: ON" : "guard: OFF"), b -> {
                 if (guard == null) return;
                 boolean on = !guard.enabled();
                 Tuning.set("evasion.enabled", on ? 1 : 0); guard.setEnabled(on); rebuildWidgets();
@@ -3188,11 +3188,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             int bx = ui.innerLeft();
             int w1 = Math.min(156,(ui.innerWidth()-12)/3);
             int w2 = Math.min(172,(ui.innerWidth()-12)/3);
-            addRenderableWidget(CockpitButton.builder(Component.literal(ui.innerWidth()<470?"Copy code":"Copy settings code"),
+            addRenderableWidget(CockpitButton.builder(Component.literal(ui.innerWidth()<470?"copy code":"copy settings code"),
                     ignored -> exportSettingsCode()).bounds(bx, by, w1, 20).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal(ui.innerWidth()<470?"Import code":"Import from clipboard"),
+            addRenderableWidget(CockpitButton.builder(Component.literal(ui.innerWidth()<470?"import code":"import from clipboard"),
                     ignored -> importSettingsCode()).bounds(bx + w1 + 6, by, w2, 20).build());
-            addRenderableWidget(CockpitButton.builder(Component.literal("Saved presets"),
+            addRenderableWidget(CockpitButton.builder(Component.literal("saved presets"),
                     ignored -> Minecraft.getInstance().setScreen(new PresetsScreen(this)))
                     .bounds(bx + w1 + w2 + 12, by, Math.min(116,ui.innerWidth()-w1-w2-12), 20).build());
             return;
@@ -3208,18 +3208,18 @@ public final class DoughBayScreen extends GoNutsScreen {
         settingField.setResponder(value -> settingDraft = value);
         addRenderableWidget(settingField);
         int bx = x + fieldWidth + 6;
-        addRenderableWidget(CockpitButton.builder(Component.literal("Apply"), ignored -> applySetting())
+        addRenderableWidget(CockpitButton.builder(Component.literal("apply"), ignored -> applySetting())
                 .bounds(bx, y, 64, 20).build());
         addRenderableWidget(CockpitButton.builder(Component.literal("Default"), ignored -> {
             if ("evasion.homes".equals(selectedSetting)) {
                 try { SafeHomes.saveHomes(""); }
-                catch (java.io.IOException e) { settingsMessage = "Could not save home names"; return; }
+                catch (java.io.IOException e) { settingsMessage = "could not save home names"; return; }
             } else if (isListSetting(selectedSetting)) {
                 Tuning.setText(selectedSetting, "");
             } else {
                 Tuning.reset(selectedSetting);
             }
-            settingsMessage = "Reset to default";
+            settingsMessage = "reset to default";
             if ("evasion.enabled".equals(selectedSetting) && DoughBayClient.evasionGuard() != null)
                 DoughBayClient.evasionGuard().setEnabled(Tuning.get(selectedSetting) >= .5);
             selectedSetting = null;
@@ -3230,12 +3230,12 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void exportSettingsCode() {
         String code = SettingsCode.export();
         if (code.isBlank()) {
-            settingsMessage = "Could not build a settings code";
+            settingsMessage = "could not build a settings code";
             rebuildWidgets();
             return;
         }
         Minecraft.getInstance().keyboardHandler.setClipboard(code);
-        settingsMessage = "Settings code copied to clipboard (" + code.length()
+        settingsMessage = "settings code copied to clipboard (" + code.length()
                 + " chars) — paste it to share (your webhook is not included)";
         rebuildWidgets();
     }
@@ -3261,7 +3261,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         } else if (isListSetting(selectedSetting)) {
             Tuning.setText(selectedSetting, settingDraft);
             int n = Tuning.itemSet(selectedSetting).size();
-            settingsMessage = "Saved: " + n + " item(s)";
+            settingsMessage = "saved: " + n + " item(s)";
         } else {
             Tuning.Setting setting = Tuning.setting(selectedSetting);
             String raw = settingDraft.replaceAll("[^0-9.\\-]", "");
@@ -3375,7 +3375,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     if (!settingHidden(l.key(), l.label(), l.description())) rows++;
                 }
             } else if (keys) {
-                if (!settingHidden("key.open", "Open the Tally screen", "")) rows++;
+                if (!settingHidden("key.open", "open the tally screen", "")) rows++;
                 if (!settingHidden("key.stop", "Emergency stop", "")) rows++;
             } else {
                 for (Tuning.Setting setting : Tuning.SETTINGS) {
@@ -3403,21 +3403,21 @@ public final class DoughBayScreen extends GoNutsScreen {
             int innerWidth = colWidth - 18;
             if (group.equals("Homes")) {
                 yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
-                        "evasion.homes", "Home names (click to edit)", "Enter base, vault, farm. These homes must already exist on the server. Cycles in that order; an empty list uses /rtp.",
-                        SafeHomes.homes().isEmpty() ? "No homes saved" : String.join(", ", SafeHomes.homes()),
+                        "evasion.homes", "home names (click to edit)", "Enter base, vault, farm. These homes must already exist on the server. Cycles in that order; an empty list uses /rtp.",
+                        SafeHomes.homes().isEmpty() ? "no homes saved" : String.join(", ", SafeHomes.homes()),
                         SafeHomes.homes().isEmpty(), index++, mouseX, mouseY);
             } else if (keys) {
                 KeyMapping open = DoughBayClient.keyOpenScreen();
                 KeyMapping stop = DoughBayClient.keyEmergencyStop();
-                if (!settingHidden("key.open", "Open the Tally screen", "")) {
+                if (!settingHidden("key.open", "open the tally screen", "")) {
                     yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
-                            "key.open", "Open the Tally screen", "Click, then press the new key",
+                            "key.open", "open the tally screen", "click, then press the new key",
                             rebindingKey == open ? "press a key…" : keyName(open), open == null || open.isDefault(),
                             index++, mouseX, mouseY);
                 }
                 if (!settingHidden("key.stop", "Emergency stop", "")) {
                     yy = renderSettingRow(graphics, innerX, yy, innerWidth, rowHeight, listTopY, listBottomY,
-                            "key.stop", "Emergency stop", "Click, then press the new key",
+                            "key.stop", "Emergency stop", "click, then press the new key",
                             rebindingKey == stop ? "press a key…" : keyName(stop), stop == null || stop.isDefault(),
                             index++, mouseX, mouseY);
                 }
@@ -3472,7 +3472,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 details = setting.description() + ".  Range " + setting.format(setting.min()) + " to "
                         + setting.format(setting.max()) + ", default " + setting.format(setting.defaultValue()) + ".";
             }
-            graphics.drawString(this.font, truncate("Editing: " + label, width), x + 2, barY, GOLD);
+            graphics.drawString(this.font, truncate("editing: " + label, width), x + 2, barY, GOLD);
             graphics.drawString(this.font, truncate(details, width), x + 2, barY + 11, SECONDARY);
             if (!settingsMessage.isBlank()) {
                 graphics.drawString(this.font, truncate(settingsMessage, width / 2),
@@ -3527,14 +3527,14 @@ public final class DoughBayScreen extends GoNutsScreen {
                 colors.add(SECONDARY);
                 wrappedTooltipLines.add(line);
             }
-            lines.add("Range " + setting.format(setting.min()) + " to " + setting.format(setting.max())
+            lines.add("range " + setting.format(setting.min()) + " to " + setting.format(setting.max())
                     + "  ·  default " + setting.format(setting.defaultValue()));
             colors.add(MUTED);
             if (!Tuning.isDefault(key)) {
                 lines.add("Changed from the default; click to edit or reset");
                 colors.add(WARN);
             } else {
-                lines.add("Click to edit");
+                lines.add("click to edit");
                 colors.add(MUTED);
             }
         }
@@ -3654,7 +3654,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             stack = stackFor(l.itemKey(), l.quantity());
             lines.add(titleCase(shortName(l.itemKey())) + " x" + l.quantity());
             lines.add("Bought " + money(l.purchasePrice()) + "  →  listed " + money(l.targetPrice()));
-            lines.add("Profit if sold " + signedMoney(l.targetPrice() - l.purchasePrice()));
+            lines.add("profit if sold " + signedMoney(l.targetPrice() - l.purchasePrice()));
             lines.add("Listed " + relativeAge(Math.max(0, now - l.listedAt())) + " ago");
         } else if (hovered < Math.min(SlotTracker.slots(),
                 Math.max(open.size(), AUTOMATION_SESSION.serverListedSlots()))) {
@@ -3663,11 +3663,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             // blamed the player for it, on an account that has never listed
             // anything by hand. The blue cells are the size of the gap between
             // what the bot owns and what it knows it owns.
-            lines.add("Unmatched listing");
+            lines.add("unmatched listing");
             lines.add("Up on the auction house; the ledger has lost its record");
-            lines.add("Not repriced or pulled back until the audit reclaims it");
+            lines.add("not repriced or pulled back until the audit reclaims it");
         } else {
-            lines.add("Empty slot");
+            lines.add("empty slot");
         }
         int textWidth = 0;
         for (String line : lines) textWidth = Math.max(textWidth, this.font.width(line));
@@ -3710,7 +3710,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 27;
         List<PerformanceStatsSnapshot.ItemPerformance> ranked = stats.mostProfitableItems();
         if (ranked.isEmpty()) {
-            drawWrapped(graphics, "No closed sales yet.", innerX, yy, innerWidth, y + height - 8, MUTED);
+            drawWrapped(graphics, "no closed sales yet.", innerX, yy, innerWidth, y + height - 8, MUTED);
             return;
         }
         int shown = 0;
@@ -3730,7 +3730,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         var mostSold = stats.mostSoldItem();
         if (mostSold != null && yy + 12 <= y + height - 8) {
-            kvRight(graphics, innerX, yy + 4, innerWidth, "Most sold", mostSold.displayName()
+            kvRight(graphics, innerX, yy + 4, innerWidth, "most sold", mostSold.displayName()
                     + " (" + mostSold.completedSales() + ")", SECONDARY);
         }
     }
@@ -3827,7 +3827,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             yy += 11;
         }
         if (height >= 174) {
-            String note = "Fingerprint + stack size stay separate";
+            String note = "fingerprint + stack size stay separate";
             graphics.drawString(this.font, truncate(note, width - 16), x + 8, y + height - 13, MUTED);
         }
     }
@@ -3839,32 +3839,32 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 8;
         int innerWidth = width - 16;
         int yy = y + 26;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Profitable sales",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "profitable sales",
                 String.format(Locale.ROOT, "%.1f%%", stats.winRatePercent()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Closed W / L / even",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "closed W / L / even",
                 stats.profitableSales() + " / " + stats.netNegativeSales()
                         + " / " + stats.breakEvenSales(),
                 stats.netNegativeSales() == 0 ? GOOD : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Purchased / open",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "purchased / open",
                 stats.purchasedTrades() + " / " + stats.openTrades(), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Best sale ROI",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "best sale ROI",
                 String.format(Locale.ROOT, "%.1f%%", stats.bestRoiPercent()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Best closed sale",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "best closed sale",
                 signedMoney(stats.bestTradeProfit()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Median reconciled hold",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "median reconciled hold",
                 duration(stats.medianHoldMillis()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Open cost basis",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "open cost basis",
                 money(stats.openCostBasis()), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Unreconciled",
                 stats.unreconciledTrades() + " / " + money(stats.unreconciledCost()),
                 stats.unreconciledTrades() == 0 ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Realized P/L per hour",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "realized P/L per hour",
                 stats.profitPerHour() == null ? "not measured" : signedMoney(stats.profitPerHour()),
                 stats.profitPerHour() != null && stats.profitPerHour() < 0 ? BAD : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Session active",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "session active",
                 duration(stats.currentSessionActiveMillis()), Charts.SERIES_AQUA);
         if (yy <= y + height - 12) {
-            kvRight(graphics, innerX, yy, innerWidth, "Lifetime active",
+            kvRight(graphics, innerX, yy, innerWidth, "lifetime active",
                     duration(stats.lifetimeActiveMillis()), GOLD);
         }
     }
@@ -3950,10 +3950,10 @@ public final class DoughBayScreen extends GoNutsScreen {
                         Component.literal(automationMode == AutomationMode.WEB
                                 ? "◀ Back to Continuous"
                                 : automationMode == AutomationMode.DISCORD
-                                ? "Web panel ▶"
+                                ? "web panel ▶"
                                 : automationMode == AutomationMode.TOOLS
                                 ? "Discord command centre ▶"
-                                : "Tools: API key / test ▶"), ignored -> {
+                                : "tools: API key / test ▶"), ignored -> {
                             automationMode = automationMode.next();
                             driverMessage = "";
                             rebuildWidgets();
@@ -3965,7 +3965,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         EvasionGuard evasion = DoughBayClient.evasionGuard();
         if (evasion != null) {
             addRenderableWidget(CockpitButton.builder(
-                            Component.literal("Evasion settings"), ignored -> {
+                            Component.literal("evasion settings"), ignored -> {
                                 tab = Tab.EVASION; selectedSetting = null; settingsSearch = ""; settingsScroll = 0;
                                 rebuildWidgets();
                             })
@@ -3998,14 +3998,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         ModeActionGeometry actions = modeActionGeometry(geometry);
         String blocker = preflightBlocker(snapshot, automationCandidate);
         automationPreflightButton = CockpitButton.builder(
-                        Component.literal("Run one-shot preflight — ZERO CLICKS"),
+                        Component.literal("run one-shot preflight — ZERO CLICKS"),
                         ignored -> handleAutomationPreflight())
                 .bounds(actions.primaryX(), actions.primaryY(), actions.primaryWidth(), 20)
                 .build();
         automationPreflightButton.active = !active && blocker == null;
         addRenderableWidget(automationPreflightButton);
         addAutomationStatusButton(actions.secondaryX(), actions.secondaryY(),
-                actions.secondaryWidth(), "Clear preflight report");
+                actions.secondaryWidth(), "clear preflight report");
         initTestBuyWidgets(geometry, active);
     }
 
@@ -4024,7 +4024,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int itemWidth = Math.max(80, innerWidth - 70 - 6);
 
         testBuyItemField = new EditBox(this.font, innerX, fieldY, itemWidth, 20,
-                Component.literal("Item id"));
+                Component.literal("item id"));
         testBuyItemField.setMaxLength(64);
         testBuyItemField.setHint(Component.literal("item, e.g. dirt x64"));
         testBuyItemField.setValue(testBuyItemDraft);
@@ -4036,7 +4036,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (testBuyItemFocused) setFocused(testBuyItemField);
 
         testBuyPriceField = new EditBox(this.font, innerX + itemWidth + 6, fieldY, 70, 20,
-                Component.literal("Max price"));
+                Component.literal("max price"));
         testBuyPriceField.setMaxLength(9);
         testBuyPriceField.setHint(Component.literal("max $"));
         testBuyPriceField.setValue(testBuyPriceDraft);
@@ -4058,7 +4058,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         int sellY = fieldY + 46;
         testSellPriceField = new EditBox(this.font, innerX, sellY, 70, 20,
-                Component.literal("Sell price"));
+                Component.literal("sell price"));
         testSellPriceField.setMaxLength(9);
         testSellPriceField.setHint(Component.literal("price $"));
         testSellPriceField.setValue(testSellPriceDraft);
@@ -4085,13 +4085,13 @@ public final class DoughBayScreen extends GoNutsScreen {
             price = 0;
         }
         if (price <= 0) {
-            testBuyMessage = "Type a whole-number sell price";
+            testBuyMessage = "type a whole-number sell price";
             testBuyMessageColor = WARN;
             rebuildWidgets();
             return;
         }
         ExecutionResult result = DRIVER.sellHeldStack(price);
-        testBuyMessage = (result.ok() ? "Started: " : "Refused: ") + result.detail();
+        testBuyMessage = (result.ok() ? "started: " : "Refused: ") + result.detail();
         testBuyMessageColor = result.ok() ? GOOD : WARN;
         driverMessage = result.detail();
         rebuildWidgets();
@@ -4112,7 +4112,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             maxPrice = 0;
         }
         if (itemId.isBlank() || maxPrice <= 0) {
-            testBuyMessage = "Type an item id and a whole-number max price";
+            testBuyMessage = "type an item id and a whole-number max price";
             testBuyMessageColor = WARN;
             rebuildWidgets();
             return;
@@ -4124,7 +4124,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         // appears after the first look and is gone seconds later.
         ExecutionResult result = DRIVER.buyCheapestVisible(
                 itemId, maxPrice, TestBuyPicker.requiredCount(testBuyItemDraft), 15);
-        testBuyMessage = (result.ok() ? "Started: " : "Refused: ") + result.detail();
+        testBuyMessage = (result.ok() ? "started: " : "Refused: ") + result.detail();
         testBuyMessageColor = result.ok() ? GOOD : WARN;
         driverMessage = result.detail();
         rebuildWidgets();
@@ -4159,8 +4159,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int usable = geometry.width() - 18;
         int y = geometry.bottom() - 28;
         String startLabel = runMode == AutomationSessionController.RunMode.SINGLE
-                ? geometry.compact() ? "Start 1" : "Start ONE complete trade"
-                : geometry.compact() ? "Start" : "Start CONTINUOUS session";
+                ? geometry.compact() ? "start 1" : "start ONE complete trade"
+                : geometry.compact() ? "Start" : "start CONTINUOUS session";
 
         if (session.state() == AutomationSessionController.State.STOPPED
                 && !session.unresolvedExposure()) {
@@ -4176,7 +4176,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             addRenderableWidget(automationSessionStartButton);
             if (offButton) {
                 addRenderableWidget(CockpitButton.builder(
-                                Component.literal(geometry.compact() ? "Turn off" : "Turn off live trading"),
+                                Component.literal(geometry.compact() ? "turn off" : "turn off live trading"),
                                 ignored -> handleLiveTradingOff())
                         .bounds(innerX + usable - offWidth, y, offWidth, 20).build());
             }
@@ -4191,8 +4191,8 @@ public final class DoughBayScreen extends GoNutsScreen {
             if (canResumeSession(session)) {
                 automationSessionResumeButton = CockpitButton.builder(
                                 Component.literal(geometry.compact()
-                                        ? "Resume monitored position"
-                                        : "Resume safely monitored position"),
+                                        ? "resume monitored position"
+                                        : "resume safely monitored position"),
                                 ignored -> {
                                     ExecutionResult result = AUTOMATION_SESSION.resume();
                                     driverMessage = result.detail();
@@ -4241,8 +4241,8 @@ public final class DoughBayScreen extends GoNutsScreen {
             if ("SESSION_CLOSE_PENDING".equals(session.manualResolutionStage())) {
                 automationRecoveryPrimaryButton = CockpitButton.builder(
                                 Component.literal(geometry.compact()
-                                        ? "Closing session…"
-                                        : "Closing recovered session — waiting for durable write…"),
+                                        ? "closing session…"
+                                        : "closing recovered session — waiting for durable write…"),
                                 ignored -> {
                                 })
                         .bounds(x, y, width, 20).build();
@@ -4254,7 +4254,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             int leftWidth = (width - gap) / 2;
             automationRecoveryPrimaryButton = CockpitButton.builder(
                             Component.literal(geometry.compact()
-                                    ? "Resume trading" : "Resume trading — keep existing limits"), ignored -> {
+                                    ? "resume trading" : "resume trading — keep existing limits"), ignored -> {
                                 ExecutionResult result =
                                         AUTOMATION_SESSION.resumeRecoveredSession(policy);
                                 driverMessage = result.detail();
@@ -4265,7 +4265,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             addRenderableWidget(automationRecoveryPrimaryButton);
             automationRecoverySecondaryButton = CockpitButton.builder(
                             Component.literal(geometry.compact()
-                                    ? "End session" : "End recovered session deliberately"), ignored -> {
+                                    ? "end session" : "end recovered session deliberately"), ignored -> {
                                 ExecutionResult result = AUTOMATION_SESSION.endRecoveredSession();
                                 driverMessage = result.detail();
                                 rebuildWidgets();
@@ -4277,7 +4277,7 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         if (AUTOMATION_SESSION.recoverableInHand()) {
             automationRecoveryPrimaryButton = CockpitButton.builder(Component.literal(geometry.compact()
-                            ? "List bought item" : "List the bought item, then continue"), ignored -> {
+                            ? "list bought item" : "list the bought item, then continue"), ignored -> {
                         ExecutionResult result = AUTOMATION_SESSION.resumeRecoveredSession(policy);
                         DoughBayClient.LOGGER.info("DoughBay resume with item in hand: {}", result.detail());
                         driverMessage = result.detail();
@@ -4291,12 +4291,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         String stage = session.manualResolutionStage();
         String label = switch (stage) {
             case "FIRST_CONFIRMATION_REQUIRED" -> geometry.compact()
-                    ? "Show recovery steps" : "Show recovery steps — check inventory and listings";
-            case "EVIDENCE_SCANNING" -> "Checking listings — show next step";
+                    ? "show recovery steps" : "show recovery steps — check inventory and listings";
+            case "EVIDENCE_SCANNING" -> "checking listings — show next step";
             case "SECOND_CONFIRMATION_REQUIRED" -> geometry.compact()
-                    ? "Review final check" : "Review final check — item still in neither place";
-            case "AUDIT_WRITE_PENDING" -> "Saving your checks — show next step";
-            default -> "Show recovery help";
+                    ? "review final check" : "review final check — item still in neither place";
+            case "AUDIT_WRITE_PENDING" -> "saving your checks — show next step";
+            default -> "show recovery help";
         };
         automationRecoveryPrimaryButton = CockpitButton.builder(Component.literal(label), ignored -> {
                     String confirmation = "FIRST_CONFIRMATION_REQUIRED".equals(stage)
@@ -4304,10 +4304,10 @@ public final class DoughBayScreen extends GoNutsScreen {
                     String item = AUTOMATION_SESSION.recoveredExposureItemId();
                     String instructions = "A trade was interrupted. New purchases are paused to avoid buying twice.\n"
                             + (item.isBlank() ? "The item could not be identified safely.\n"
-                            : "Item to check: " + titleCase(shortName(item)) + " x"
+                            : "item to check: " + titleCase(shortName(item)) + " x"
                             + AUTOMATION_SESSION.recoveredExposureItemCount() + "\n")
                             + recoveryNextStep(session) + "\n"
-                            + (driverMessage.isBlank() ? "" : "Last action: " + driverMessage + "\n")
+                            + (driverMessage.isBlank() ? "" : "last action: " + driverMessage + "\n")
                             + "Your existing limits stay in place. A recovery confirmation does not start a new trade.\n"
                             + "If a check keeps waiting or the item is not recognized, go Back to Trade"
                             + " and keep the local evidence for your own investigation. Do not reset or remove saved trade records.";
@@ -4364,11 +4364,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             case "SECOND_CONFIRMATION_REQUIRED" ->
                     "The listing checks are ready.\nOnly if the item is still in neither your inventory"
                     + " nor your listings, continue with step 2 below.\n"
-                    + "Then wait for the saved confirmation.";
+                    + "then wait for the saved confirmation.";
             case "AUDIT_WRITE_PENDING" ->
                     "Saving your recovery checks. Wait for Resume trading; do not repeat the confirmation."
                     + " If this keeps waiting, keep the local evidence for your own investigation.";
-            default -> "Recovery needs another check. Read Last action below."
+            default -> "recovery needs another check. read last action below."
                     + " If no next step is shown, keep the local evidence for your own investigation.";
         };
     }
@@ -4381,20 +4381,20 @@ public final class DoughBayScreen extends GoNutsScreen {
         y = statusLine(graphics, x, y, width,
                 "SESSION_CLOSE_PENDING".equals(session.manualResolutionStage()) ? "Closing saved session…"
                         : session.unresolvedExposure() ? "Trade interrupted — check before continuing"
-                        : "Ready to continue your saved session", WARN);
+                        : "ready to continue your saved session", WARN);
         String itemId = AUTOMATION_SESSION.recoveredExposureItemId();
         if (session.unresolvedExposure() && session.recoveredExposureCount() == 1
                 && !itemId.isBlank() && y < maxY - 10) {
-            y = statusLine(graphics, x, y + 2, width, "Item to check: "
+            y = statusLine(graphics, x, y + 2, width, "item to check: "
                     + titleCase(shortName(itemId)) + " x"
                     + AUTOMATION_SESSION.recoveredExposureItemCount(), TEXT);
         }
         y = drawWrapped(graphics, recoveryNextStep(session), x, y + 2, width, maxY, TEXT);
         if (y < maxY - 10) {
-            y = statusLine(graphics, x, y + 2, width, "Your existing spending limits stay in place", SECONDARY);
+            y = statusLine(graphics, x, y + 2, width, "your existing spending limits stay in place", SECONDARY);
         }
         if (!driverMessage.isBlank() && y < maxY - 10) {
-            y = drawWrapped(graphics, "Last action: " + driverMessage, x, y + 2, width, maxY, WARN);
+            y = drawWrapped(graphics, "last action: " + driverMessage, x, y + 2, width, maxY, WARN);
         }
         return y + 5;
     }
@@ -4407,8 +4407,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         int y = geometry.compact() ? geometry.bodyY() + 20 : geometry.bodyY() + 48;
         boolean rehearsing = current != null && current.stats() == null;
         String label = current == null
-                ? "Choose a listing to preflight"
-                : "View " + titleCase(shortName(current.listing().itemId()))
+                ? "choose a listing to preflight"
+                : "view " + titleCase(shortName(current.listing().itemId()))
                 + " x" + current.listing().itemCount();
         automationChooseButton = CockpitButton.builder(Component.literal(label), ignored -> {
                     MarketWatcher.Snapshot latest = snapshot();
@@ -4419,7 +4419,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         rebound = rehearsalTarget(latest);
                         if (rebound != null) {
                             automationCandidate = rebound;
-                            driverMessage = "Rehearsal target selected — reads the auction"
+                            driverMessage = "rehearsal target selected — reads the auction"
                                     + " screen only, this is not a valued trade";
                             rebuildWidgets();
                             return;
@@ -4448,7 +4448,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     } else {
                         driverMessage = DRIVER.clearStatus()
                                 ? "Status cleared; all permission settings were unchanged"
-                                : "Status cannot be cleared while an operation is active";
+                                : "status cannot be cleared while an operation is active";
                     }
                     rebuildWidgets();
                 })
@@ -4497,12 +4497,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         ContinuousAutomationPolicy policy = DoughBayClient.continuousPolicy();
         if (policy == null) {
-            return "Continuous automation safety policy is unavailable";
+            return "continuous automation safety policy is unavailable";
         }
         AutomationSessionController.SessionSnapshot session = AUTOMATION_SESSION.snapshot();
         if (!session.persistenceStatus().startsWith("READY")) {
             return session.persistenceStatus().isBlank()
-                    ? "Automation recovery is not ready"
+                    ? "automation recovery is not ready"
                     : session.persistenceStatus();
         }
         if (session.recoveredSession()) {
@@ -4511,7 +4511,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (session.state() != AutomationSessionController.State.STOPPED) {
             return session.state() == AutomationSessionController.State.PAUSED
                     ? "Session is PAUSED; resolve or resume it before starting another"
-                    : "An automation session is already active";
+                    : "an automation session is already active";
         }
         if (session.unresolvedExposure()) {
             return "A previous session still has unresolved trade exposure";
@@ -4650,9 +4650,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = geometry.candidateY();
 
         String candidate = current == null
-                ? automationCandidate == null ? "Candidate: none selected"
-                : "Candidate: expired — choose a fresh listing"
-                : "Candidate: " + titleCase(shortName(current.listing().itemId()))
+                ? automationCandidate == null ? "candidate: none selected"
+                : "candidate: expired — choose a fresh listing"
+                : "candidate: " + titleCase(shortName(current.listing().itemId()))
                 + " x" + current.listing().itemCount() + " at " + money(current.buyPrice());
         graphics.drawString(this.font, truncate(candidate, width), x, yy,
                 current == null ? WARN : TEXT);
@@ -4662,17 +4662,17 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (statusY <= bottom - this.font.lineHeight) {
             String gate = preflightBlocker(snapshot, automationCandidate);
             String line = report.outcome() != AutomatedExecutionDriver.PreflightOutcome.NOT_RUN
-                    ? "Preflight " + report.outcome().name().toLowerCase(Locale.ROOT)
+                    ? "preflight " + report.outcome().name().toLowerCase(Locale.ROOT)
                     + ": " + report.detail()
-                    : gate == null ? "Preflight ready: one search, exact verification, zero clicks"
-                    : "Preflight locked: " + gate;
+                    : gate == null ? "preflight ready: one search, exact verification, zero clicks"
+                    : "preflight locked: " + gate;
             graphics.drawString(this.font, truncate(line, width), x, statusY,
                     report.outcome() == AutomatedExecutionDriver.PreflightOutcome.PASSED
                             ? GOOD : gate == null ? SECONDARY : WARN);
         }
         if (statusY + 12 <= bottom - this.font.lineHeight) {
             String event = DRIVER.inspect().description();
-            graphics.drawString(this.font, truncate("Last event: " + event, width),
+            graphics.drawString(this.font, truncate("last event: " + event, width),
                     x, statusY + 12, MUTED);
         }
     }
@@ -4697,7 +4697,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                             textWidth), x + 9, yy, MUTED);
         } else if (current == null) {
             graphics.drawString(this.font,
-                    truncate("Saved listing expired or changed — commands remain locked.", textWidth),
+                    truncate("saved listing expired or changed — commands remain locked.", textWidth),
                     x + 9, yy, WARN);
             graphics.drawString(this.font,
                     truncate(titleCase(shortName(automationCandidate.listing().itemId()))
@@ -4707,11 +4707,11 @@ public final class DoughBayScreen extends GoNutsScreen {
             String name = titleCase(shortName(current.listing().itemId()))
                     + " x" + current.listing().itemCount();
             graphics.drawString(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
-            String valuation = "Buy " + money(current.buyPrice())
+            String valuation = "buy " + money(current.buyPrice())
                     + "  •  completed-sale target " + money(current.recommendedSellPrice())
                     + "  •  " + (current.stats() == null ? 0 : current.stats().sampleCount()) + " completed samples";
             graphics.drawString(this.font, truncate(valuation, textWidth), x + 9, yy + 12, GOOD);
-            String identity = "Seller " + current.listing().sellerName()
+            String identity = "seller " + current.listing().sellerName()
                     + "  •  exact listing " + current.listing().listingKey();
             graphics.drawString(this.font, truncate(identity, textWidth), x + 9, yy + 24, SECONDARY);
         }
@@ -4747,16 +4747,16 @@ public final class DoughBayScreen extends GoNutsScreen {
                 "4  Capture evidence and STOP — zero clicks", GOOD);
 
         yy += 3;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Preflight config",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "preflight config",
                 DRIVER.preflightEnabled() ? "enabled" : "disabled",
                 DRIVER.preflightEnabled() ? GOOD : WARN);
         String environment = DRIVER.currentPreflightBlocker();
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Exact server gate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "exact server gate",
                 environment == null ? "allowed" : "locked",
                 environment == null ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Fresh exact candidate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "fresh exact candidate",
                 current == null ? "no" : "yes", current == null ? WARN : GOOD);
-        kvRight(graphics, innerX, yy, innerWidth, "Last result",
+        kvRight(graphics, innerX, yy, innerWidth, "last result",
                 report.outcome().name().toLowerCase(Locale.ROOT),
                 preflightOutcomeColor(report.outcome()));
     }
@@ -4778,7 +4778,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         ExecutionStatus status = DRIVER.inspect();
         String intent = DRIVER.operationIntent().name().toLowerCase(Locale.ROOT);
         yy = statusLine(graphics, innerX, yy, innerWidth,
-                "Active intent: " + intent + "  •  driver "
+                "active intent: " + intent + "  •  driver "
                         + status.state().name().toLowerCase(Locale.ROOT),
                 DRIVER.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
                         ? SECONDARY : WARN);
@@ -4793,7 +4793,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         } else {
             event = !driverMessage.isBlank() ? driverMessage : status.description();
         }
-        yy = drawWrapped(graphics, "Last event: " + event,
+        yy = drawWrapped(graphics, "last event: " + event,
                 innerX, yy, eventWidth, maxY, MUTED);
 
         List<AutomatedExecutionDriver.Check> checks = report.checks();
@@ -4826,7 +4826,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 ? report.diagnosticsPath() : DRIVER.lastCapturePath();
         if (capture != null && yy <= maxY - 9) {
             graphics.drawString(this.font,
-                    truncate("Evidence: " + capture.getFileName(), innerWidth),
+                    truncate("evidence: " + capture.getFileName(), innerWidth),
                     innerX, maxY - 9, Charts.SERIES_AQUA);
         }
     }
@@ -5013,7 +5013,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = b[0] + 9;
 
         setupPerTradeField = new EditBox(this.font, innerX, b[4], b[5], 20,
-                Component.literal("Max per trade"));
+                Component.literal("max per trade"));
         setupPerTradeField.setMaxLength(16);
         setupPerTradeField.setHint(Component.literal("e.g. 5m"));
         setupPerTradeField.setValue(setupPerTradeDraft);
@@ -5026,7 +5026,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (setupPerTradeFocused) setFocused(setupPerTradeField);
 
         setupPerSessionField = new EditBox(this.font, innerX + b[5] + 8, b[4], b[5], 20,
-                Component.literal("Max per session"));
+                Component.literal("max per session"));
         setupPerSessionField.setMaxLength(16);
         setupPerSessionField.setHint(Component.literal("e.g. 75m"));
         setupPerSessionField.setValue(setupPerSessionDraft);
@@ -5040,8 +5040,8 @@ public final class DoughBayScreen extends GoNutsScreen {
 
         boolean confirming = System.currentTimeMillis() < setupConfirmUntil;
         String label = confirming
-                ? (geometry.compact() ? "Click again to confirm" : "Click again to confirm: turn on live trading")
-                : (geometry.compact() ? "Enable live trading" : "Enable live trading on DonutSMP");
+                ? (geometry.compact() ? "click again to confirm" : "click again to confirm: turn on live trading")
+                : (geometry.compact() ? "enable live trading" : "enable live trading on DonutSMP");
         addRenderableWidget(CockpitButton.builder(Component.literal(label),
                         ignored -> handleLiveTradingEnable())
                 .bounds(innerX, geometry.bottom() - 28, geometry.width() - 18, 20).build());
@@ -5073,10 +5073,10 @@ public final class DoughBayScreen extends GoNutsScreen {
                 key ? "saved" : keyless ? "not needed: keyless mode" : "missing: add it under Tools (top right)",
                 key || keyless ? GOOD : BAD);
         boolean live = FeedTruth.live(snapshot, System.currentTimeMillis());
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Market data",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "market data",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo (keyless mode is off)", "live"),
                 live ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Live trading", "off", MUTED);
+        yy = kvRight(graphics, innerX, yy, innerWidth, "live trading", "off", MUTED);
 
         int labelsY = b[4] - 11;
         int textBottom = labelsY - 4;
@@ -5089,7 +5089,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         // true once the balance had been read.
         boolean followBank = Tuning.get("buy.scale_with_bank") >= 0.5;
         String limits = followBank
-                ? "Limits follow your bank: one buy may cost up to "
+                ? "limits follow your bank: one buy may cost up to "
                         + String.format(Locale.ROOT, "%.0f%%", Tuning.get("buy.purchase_cap_pct"))
                         + " of it and up to " + String.format(Locale.ROOT, "%.0f%%", Tuning.get("buy.outstanding_cap_pct"))
                         + " may be out at once. The two amounts below are used until your balance is read. "
@@ -5100,22 +5100,22 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + " Stop any time with Stop, E-stop or B. DonutSMP's rules ban bots, "
                         + "so running this is a ban risk you are choosing to take.",
                 innerX, yy + 4, innerWidth, textBottom, SECONDARY);
-        graphics.drawString(this.font, "Max per trade", innerX, labelsY, MUTED);
-        graphics.drawString(this.font, "Max per session", innerX + b[5] + 8, labelsY, MUTED);
+        graphics.drawString(this.font, "max per trade", innerX, labelsY, MUTED);
+        graphics.drawString(this.font, "max per session", innerX + b[5] + 8, labelsY, MUTED);
     }
 
     private void handleLiveTradingEnable() {
         long perTrade = MoneyInput.parse(setupPerTradeDraft);
         long perSession = MoneyInput.parse(setupPerSessionDraft);
         if (perTrade <= 0 || perSession <= 0) {
-            setupMessage = "Enter both limits, like 5m and 75m";
+            setupMessage = "enter both limits, like 5m and 75m";
             setupMessageColor = WARN;
             setupConfirmUntil = 0;
             rebuildWidgets();
             return;
         }
         if (perTrade > perSession) {
-            setupMessage = "The per-trade limit can't be more than the per-session limit";
+            setupMessage = "the per-trade limit can't be more than the per-session limit";
             setupMessageColor = WARN;
             setupConfirmUntil = 0;
             rebuildWidgets();
@@ -5126,7 +5126,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             // First press: arm, never act. A second press inside the window is
             // the deliberate opt-in that actually widens what GoNuts may do.
             setupConfirmUntil = now + 8_000L;
-            setupMessage = "This lets Tally buy and relist for you on DonutSMP, up to "
+            setupMessage = "this lets tally buy and relist for you on DonutSMP, up to "
                     + money(perTrade) + " a trade and " + money(perSession) + " a session. Click again to confirm.";
             setupMessageColor = WARN;
             rebuildWidgets();
@@ -5142,14 +5142,14 @@ public final class DoughBayScreen extends GoNutsScreen {
             return;
         }
         setupMessage = "";
-        driverMessage = "Live trading is on. Press Start when you're ready.";
+        driverMessage = "live trading is on. press start when you're ready.";
         rebuildWidgets();
     }
 
     private void handleLiveTradingOff() {
         String failure = DoughBayClient.setDonutAutomation(false, 0, 0, null);
         driverMessage = failure.isBlank()
-                ? "Live trading is off. Nothing will be bought or listed." : failure;
+                ? "live trading is off. nothing will be bought or listed." : failure;
         setupPerTradeDraft = null;
         setupPerSessionDraft = null;
         rebuildWidgets();
@@ -5219,19 +5219,19 @@ public final class DoughBayScreen extends GoNutsScreen {
         boolean proxy = apiKeySourceProxy;
 
         apiKeySourceButton = CockpitButton.builder(
-                        Component.literal(proxy ? "Key type: Server  (a shared server key)"
-                                : "Key type: Donut  (your own API key)"),
+                        Component.literal(proxy ? "key type: server  (a shared server key)"
+                                : "key type: donut  (your own API key)"),
                         ignored -> { apiKeySourceProxy = !apiKeySourceProxy; apiKeyMessage = ""; rebuildWidgets(); })
                 .bounds(key.sourceX(), key.sourceY(), key.sourceWidth(), 18).build();
         apiKeySourceButton.active = !testing;
         addRenderableWidget(apiKeySourceButton);
 
         apiKeyField = new EditBox(this.font, key.fieldX(), key.fieldY(),
-                key.fieldWidth(), 20, Component.literal(proxy ? "Server key" : "Donut API key"));
+                key.fieldWidth(), 20, Component.literal(proxy ? "server key" : "Donut API key"));
         apiKeyField.setMaxLength(API_KEY_MAX_INPUT);
         apiKeyField.setHint(Component.literal(
-                saved ? "Key saved — type to replace"
-                        : proxy ? "Paste your server key" : "Paste your Donut API key"));
+                saved ? "key saved — type to replace"
+                        : proxy ? "paste your server key" : "paste your donut API key"));
         // The value is stored in full but never drawn: the formatter replaces
         // every character so a stream, screenshot, or shoulder cannot read it.
         apiKeyField.addFormatter((text, offset) -> FormattedCharSequence.forward(
@@ -5246,14 +5246,14 @@ public final class DoughBayScreen extends GoNutsScreen {
         addRenderableWidget(apiKeyField);
         if (apiKeyFieldFocused) setFocused(apiKeyField);
 
-        apiKeySaveButton = CockpitButton.builder(Component.literal("Save"),
+        apiKeySaveButton = CockpitButton.builder(Component.literal("save"),
                         ignored -> handleApiKeySave())
                 .bounds(key.saveX(), key.saveY(), key.saveWidth(), 20).build();
         apiKeySaveButton.active = !apiKeyDraft.isBlank() && !testing;
         addRenderableWidget(apiKeySaveButton);
 
         apiKeyTestButton = CockpitButton.builder(
-                        Component.literal(testing ? "Testing..." : "Test history"),
+                        Component.literal(testing ? "testing..." : "test history"),
                         ignored -> handleApiKeyTest())
                 .bounds(key.testX(), key.testY(), key.testWidth(), 20).build();
         apiKeyTestButton.active = !testing && (saved || !apiKeyDraft.isBlank());
@@ -5305,7 +5305,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void handleApiKeySave() {
         String candidate = apiKeyDraft.strip();
         if (candidate.isBlank()) {
-            apiKeyMessage = "Enter a key first";
+            apiKeyMessage = "enter a key first";
             apiKeyMessageColor = WARN;
             rebuildWidgets();
             return;
@@ -5373,42 +5373,42 @@ public final class DoughBayScreen extends GoNutsScreen {
         int y = geometry.bodyY() + 26;
         int half = (width - 6) / 2;
 
-        discordTokenField = new EditBox(this.font, x, y, width - 62, 20, Component.literal("Bot token"));
+        discordTokenField = new EditBox(this.font, x, y, width - 62, 20, Component.literal("bot token"));
         discordTokenField.setMaxLength(120);
-        discordTokenField.setHint(Component.literal(cfg.token().isBlank() ? "Bot token" : "Token saved; type to replace"));
+        discordTokenField.setHint(Component.literal(cfg.token().isBlank() ? "bot token" : "Token saved; type to replace"));
         discordTokenField.addFormatter((text, offset) -> FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
         discordTokenField.setValue(discordTokenDraft);
         discordTokenField.setResponder(v -> discordTokenDraft = v);
         addRenderableWidget(discordTokenField);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Save"), ignored -> handleDiscordSave())
+        addRenderableWidget(CockpitButton.builder(Component.literal("save"), ignored -> handleDiscordSave())
                 .bounds(x + width - 56, y, 56, 20).build());
 
         y += 24;
-        discordChannelField = new EditBox(this.font, x, y, half, 20, Component.literal("Channel id"));
+        discordChannelField = new EditBox(this.font, x, y, half, 20, Component.literal("channel id"));
         discordChannelField.setMaxLength(32);
-        discordChannelField.setHint(Component.literal("Channel id"));
+        discordChannelField.setHint(Component.literal("channel id"));
         discordChannelField.setValue(discordChannelDraft);
         discordChannelField.setResponder(v -> discordChannelDraft = v);
         addRenderableWidget(discordChannelField);
-        discordOperatorField = new EditBox(this.font, x + half + 6, y, width - half - 6, 20, Component.literal("Your user id"));
+        discordOperatorField = new EditBox(this.font, x + half + 6, y, width - half - 6, 20, Component.literal("your user id"));
         discordOperatorField.setMaxLength(32);
-        discordOperatorField.setHint(Component.literal("Your Discord user id"));
+        discordOperatorField.setHint(Component.literal("your Discord user id"));
         discordOperatorField.setValue(discordOperatorDraft);
         discordOperatorField.setResponder(v -> discordOperatorDraft = v);
         addRenderableWidget(discordOperatorField);
 
         y += 24;
-        discordGuildField = new EditBox(this.font, x, y, half, 20, Component.literal("Server id"));
+        discordGuildField = new EditBox(this.font, x, y, half, 20, Component.literal("server id"));
         discordGuildField.setMaxLength(32);
-        discordGuildField.setHint(Component.literal("Server (guild) id, optional"));
+        discordGuildField.setHint(Component.literal("server (guild) id, optional"));
         discordGuildField.setValue(discordGuildDraft);
         discordGuildField.setResponder(v -> discordGuildDraft = v);
         addRenderableWidget(discordGuildField);
         // A second channel for the running account of what the bot does:
         // orders, listings, sales, payments and the guard. Optional.
-        discordFeedField = new EditBox(this.font, x + half + 6, y, width - half - 6, 20, Component.literal("Activity channel id"));
+        discordFeedField = new EditBox(this.font, x + half + 6, y, width - half - 6, 20, Component.literal("activity channel id"));
         discordFeedField.setMaxLength(32);
-        discordFeedField.setHint(Component.literal("Separate activity channel, optional"));
+        discordFeedField.setHint(Component.literal("separate activity channel, optional"));
         discordFeedField.setValue(discordFeedDraft);
         discordFeedField.setResponder(v -> discordFeedDraft = v);
         addRenderableWidget(discordFeedField);
@@ -5427,9 +5427,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         webhookField.setValue(webhookDraft);
         webhookField.setResponder(v -> webhookDraft = v);
         addRenderableWidget(webhookField);
-        addRenderableWidget(CockpitButton.builder(Component.literal("Save"), ignored -> handleWebhookSave())
+        addRenderableWidget(CockpitButton.builder(Component.literal("save"), ignored -> handleWebhookSave())
                 .bounds(x + width - 118, y, 56, 20).build());
-        Button test = CockpitButton.builder(Component.literal("Test"), ignored -> handleWebhookTest())
+        Button test = CockpitButton.builder(Component.literal("test"), ignored -> handleWebhookTest())
                 .bounds(x + width - 56, y, 56, 20).build();
         test.active = !Tuning.text("webhook.url").isBlank();
         addRenderableWidget(test);
@@ -5461,7 +5461,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void handleWebhookTest() {
         StatusWebhook hook = DoughBayClient.webhook();
         if (hook == null) {
-            discordMessage = "The webhook is not running yet";
+            discordMessage = "the webhook is not running yet";
             discordMessageColor = BAD;
         } else {
             hook.postNow();
@@ -5474,7 +5474,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void handleDiscordSave() {
         dev.doughbay.fabric.discord.DiscordBridge bridge = DoughBayClient.discord();
         if (bridge == null) {
-            discordMessage = "The Discord bridge is not running";
+            discordMessage = "the Discord bridge is not running";
             discordMessageColor = BAD;
             rebuildWidgets();
             return;
@@ -5498,7 +5498,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             return;
         }
         if (token.isBlank() || channel.isBlank() || operator.isBlank()) {
-            discordMessage = "Token, channel id and your user id are all needed";
+            discordMessage = "token, channel id and your user id are all needed";
             discordMessageColor = WARN;
             rebuildWidgets();
             return;
@@ -5531,7 +5531,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerWidth = width - 18;
         textY = drawWrapped(graphics, "One message in the channel, refreshed every 30 s with pages for money, listings, "
                 + "opportunities, orders, rivals and payroll; buttons start and stop the trader and tune every setting. "
-                + "Only the user id above may press them.", innerX, textY, innerWidth, y + height - 14, SECONDARY);
+                + "only the user id above may press them.", innerX, textY, innerWidth, y + height - 14, SECONDARY);
         if (!discordMessage.isBlank()) {
             drawWrapped(graphics, discordMessage, innerX, textY + 4, innerWidth, y + height - 4, discordMessageColor);
         }
@@ -5552,24 +5552,24 @@ public final class DoughBayScreen extends GoNutsScreen {
         boolean pinSet = host != null && host.pinSet();
         webPinField = new EditBox(this.font, x, y, width - 92, 20, Component.literal("PIN"));
         webPinField.setMaxLength(dev.doughbay.fabric.web.WebPanelHost.PIN_MAX);
-        webPinField.setHint(Component.literal(pinSet ? "PIN set; type a new one to change it" : "Choose a PIN, 4 to 8 digits"));
+        webPinField.setHint(Component.literal(pinSet ? "PIN set; type a new one to change it" : "choose a PIN, 4 to 8 digits"));
         webPinField.addFormatter((text, offset) -> FormattedCharSequence.forward("*".repeat(text.length()), Style.EMPTY));
         webPinField.setValue(webPinDraft);
         webPinField.setResponder(v -> webPinDraft = v);
         addRenderableWidget(webPinField);
-        addRenderableWidget(CockpitButton.builder(Component.literal(pinSet ? "Change PIN" : "Set PIN"), ignored -> handleWebPinSave())
+        addRenderableWidget(CockpitButton.builder(Component.literal(pinSet ? "change PIN" : "set PIN"), ignored -> handleWebPinSave())
                 .bounds(x + width - 86, y, 86, 20).build());
 
         y += 26;
         int half = (width - 6) / 2;
         Button reach = CockpitButton.builder(Component.literal(host != null && host.lan()
-                        ? "Phones on your Wi-Fi: ON" : "Phones on your Wi-Fi: OFF"), ignored -> {
+                        ? "phones on your Wi-Fi: ON" : "phones on your Wi-Fi: OFF"), ignored -> {
                     dev.doughbay.fabric.web.WebPanelHost h = DoughBayClient.webPanel();
                     if (h != null) {
                         h.setLan(!h.lan());
                         webMessage = h.lan()
                                 ? "Phones and other devices on this network can now open the panel with the PIN"
-                                : "Only this PC can open the panel now";
+                                : "only this PC can open the panel now";
                         webMessageColor = h.lan() ? WARN : GOOD;
                     }
                     rebuildWidgets();
@@ -5578,11 +5578,11 @@ public final class DoughBayScreen extends GoNutsScreen {
         reach.active = host != null;
         addRenderableWidget(reach);
         Button power = CockpitButton.builder(Component.literal(host != null && host.enabled()
-                        ? "Turn the panel off" : "Turn the panel on"), ignored -> {
+                        ? "turn the panel off" : "turn the panel on"), ignored -> {
                     dev.doughbay.fabric.web.WebPanelHost h = DoughBayClient.webPanel();
                     if (h != null) {
                         h.setEnabled(!h.enabled());
-                        webMessage = h.enabled() ? "Web panel on" : "Web panel off; nothing is listening";
+                        webMessage = h.enabled() ? "web panel on" : "Web panel off; nothing is listening";
                         webMessageColor = h.enabled() ? GOOD : WARN;
                     }
                     rebuildWidgets();
@@ -5596,7 +5596,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void handleWebPinSave() {
         dev.doughbay.fabric.web.WebPanelHost host = DoughBayClient.webPanel();
         if (host == null) {
-            webMessage = "The web panel is not running yet";
+            webMessage = "the web panel is not running yet";
             webMessageColor = BAD;
         } else {
             String problem = host.setPin(webPinDraft == null ? "" : webPinDraft.strip());
@@ -5627,7 +5627,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (host != null && host.running()) {
             java.util.List<String> addresses = host.addresses();
             for (int i = 0; i < addresses.size(); i++) {
-                textY = drawWrapped(graphics, (i == 0 ? "On this PC: " : "On your phone, same Wi-Fi: ") + addresses.get(i),
+                textY = drawWrapped(graphics, (i == 0 ? "on this PC: " : "on your phone, same Wi-Fi: ") + addresses.get(i),
                         innerX, textY, innerWidth, y + height - 14, GOOD);
             }
             textY += 4;
@@ -5663,18 +5663,18 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 9;
         int innerWidth = width - 18;
         ExecutionStatus status = DRIVER.inspect();
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "market feed",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Opportunities / markets",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "opportunities / markets",
                 snapshot.opportunities().size() + " / " + snapshot.markets().size(), TEXT);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Completed sales",
                 grouped(snapshot.diagnostics().transactions()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Driver / intent",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "driver / intent",
                 status.state().name().toLowerCase(Locale.ROOT) + " / "
                         + DRIVER.operationIntent().name().toLowerCase(Locale.ROOT),
                 status.armed() ? WARN : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Saved candidate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "saved candidate",
                 current == null ? "none / expired"
                         : titleCase(shortName(current.listing().itemId()))
                         + " x" + current.listing().itemCount(),
@@ -5693,16 +5693,16 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 27;
         int innerX = x + 9;
         int innerWidth = width - 18;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "market feed",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Opportunities",
                 Integer.toString(snapshot.opportunities().size()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Exact-stack markets",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "exact-stack markets",
                 Integer.toString(snapshot.markets().size()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Completed sales stored",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "completed sales stored",
                 grouped(snapshot.diagnostics().transactions()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Snapshot",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "snapshot",
                 snapshot.updatedAt() == 0 ? "never"
                         : relativeAge(System.currentTimeMillis() - snapshot.updatedAt()),
                 isFresh(snapshot) ? GOOD : WARN);
@@ -5722,25 +5722,25 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerWidth = width - 18;
         ExecutionStatus status = DRIVER.inspect();
         AutomationSessionController.SessionSnapshot session = AUTOMATION_SESSION.snapshot();
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Automation session",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "automation session",
                 session.state().name().toLowerCase(Locale.ROOT) + " / "
                         + session.runMode().name().toLowerCase(Locale.ROOT),
                 sessionStateColor(session));
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Active intent",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "active intent",
                 DRIVER.operationIntent().name().toLowerCase(Locale.ROOT),
                 DRIVER.operationIntent() == AutomatedExecutionDriver.OperationIntent.NONE
                         ? MUTED : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Driver state",
                 status.state().name().toLowerCase(Locale.ROOT),
                 status.armed() ? WARN : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Saved candidate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "saved candidate",
                 current == null ? "none / expired"
                         : titleCase(shortName(current.listing().itemId()))
                         + " x" + current.listing().itemCount(),
                 current == null ? MUTED : GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Preflight permission",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "preflight permission",
                 DRIVER.preflightEnabled() ? "configured" : "off", SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Live permission",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "live permission",
                 DRIVER.authorizedExecutionEnabled() ? "configured" : "off",
                 DRIVER.authorizedExecutionEnabled() ? WARN : GOOD);
         yy += 5;
@@ -5772,7 +5772,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     textBottom, preflightEventColor(report, blocker));
             if (yy <= textBottom - 2) {
                 graphics.drawString(this.font,
-                        truncate("Search → stable GUI → exact verify → capture → STOP", innerWidth),
+                        truncate("search → stable GUI → exact verify → capture → STOP", innerWidth),
                         innerX, yy + 2, GOOD);
             }
             renderTestBuyCard(graphics, geometry);
@@ -5813,7 +5813,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     + " x" + current.listing().itemCount();
             graphics.drawString(this.font, truncate(name, textWidth), x + 9, yy, TEXT);
             graphics.drawString(this.font,
-                    truncate("Buy " + money(current.buyPrice())
+                    truncate("buy " + money(current.buyPrice())
                             + "  •  completed-sale target "
                             + money(current.recommendedSellPrice())
                             + "  •  seller " + current.listing().sellerName(), textWidth),
@@ -5843,13 +5843,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy = statusLine(graphics, innerX, yy, innerWidth,
                 "4  Capture evidence and STOP — zero clicks", GOOD);
         yy += 4;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Preflight config",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "preflight config",
                 DRIVER.preflightEnabled() ? "enabled" : "disabled",
                 DRIVER.preflightEnabled() ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Exact server gate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "exact server gate",
                 DRIVER.currentPreflightBlocker() == null ? "allowed" : "locked",
                 DRIVER.currentPreflightBlocker() == null ? GOOD : WARN);
-        kvRight(graphics, innerX, yy, innerWidth, "Fresh exact candidate",
+        kvRight(graphics, innerX, yy, innerWidth, "fresh exact candidate",
                 current == null ? "no" : "yes", current == null ? WARN : GOOD);
     }
 
@@ -5885,7 +5885,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 ? report.diagnosticsPath() : DRIVER.lastCapturePath();
         if (capture != null && yy <= maxY - this.font.lineHeight) {
             graphics.drawString(this.font,
-                    truncate("Evidence: " + capture.getFileName(), innerWidth),
+                    truncate("evidence: " + capture.getFileName(), innerWidth),
                     innerX, maxY - this.font.lineHeight, Charts.SERIES_AQUA);
         }
     }
@@ -5938,26 +5938,26 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 27;
         int innerX = x + 9;
         int innerWidth = width - 18;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Controller / session",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "controller / session",
                 continuousControllerAvailable() ? "connected / stopped" : "not connected / stopped",
                 continuousControllerAvailable() ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Current position",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "current position",
                 "none", MUTED);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "market feed",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo — locked", "fresh"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         if (config != null) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Permission / servers",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "permission / servers",
                     (config.continuousAutomationEnabled() ? "on" : "off") + " / "
                             + config.continuousAutomationServers().size(),
                     config.continuousAutomationEnabled() ? WARN : GOOD);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Purchase / session cap",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "purchase / session cap",
                     money(config.continuousMaxPurchasePrice()) + " / "
                             + money(config.continuousMaxSessionSpend()), TEXT);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Trades / cooldown",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "trades / cooldown",
                     config.continuousMaxTradesPerSession() + " / "
                             + config.continuousCooldownSeconds() + "s", SECONDARY);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Min profit / ROI / confidence",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "min profit / ROI / confidence",
                     money(config.continuousMinimumProfit()) + " / "
                             + percent(config.continuousMinimumRoiPercent()) + " / "
                             + percent(config.continuousMinimumConfidencePercent()), GOOD);
@@ -5980,26 +5980,26 @@ public final class DoughBayScreen extends GoNutsScreen {
                     innerX, yy, innerWidth, y + height - 10, WARN);
             return;
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Continuous permission",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "continuous permission",
                 config.continuousAutomationEnabled() ? "configured" : "off",
                 config.continuousAutomationEnabled() ? WARN : GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Exact server entries",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "exact server entries",
                 Integer.toString(config.continuousAutomationServers().size()), SECONDARY);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Per-purchase cap",
                 money(config.continuousMaxPurchasePrice()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Session spend cap",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "session spend cap",
                 money(config.continuousMaxSessionSpend()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Trades per session",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "trades per session",
                 Integer.toString(config.continuousMaxTradesPerSession()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Minimum profit",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "minimum profit",
                 money(config.continuousMinimumProfit()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Minimum ROI / confidence",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "minimum ROI / confidence",
                 percent(config.continuousMinimumRoiPercent()) + " / "
                         + percent(config.continuousMinimumConfidencePercent()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Cooldown / max hold",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "cooldown / max hold",
                 config.continuousCooldownSeconds() + "s / "
                         + config.continuousMaximumHoldMinutes() + "m", SECONDARY);
-        kvRight(graphics, innerX, yy, innerWidth, "Reserved hotbar slot",
+        kvRight(graphics, innerX, yy, innerWidth, "reserved hotbar slot",
                 Integer.toString(config.continuousReservedHotbarSlot() + 1), SECONDARY);
     }
 
@@ -6012,20 +6012,20 @@ public final class DoughBayScreen extends GoNutsScreen {
         int yy = y + 27;
         int innerX = x + 9;
         int innerWidth = width - 18;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Controller",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "controller",
                 continuousControllerAvailable() ? "connected" : "not connected",
                 continuousControllerAvailable() ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Session",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "session",
                 "STOPPED", MUTED);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Current position",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "current position",
                 "none", MUTED);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Underlying driver",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "underlying driver",
                 DRIVER.operationIntent().name().toLowerCase(Locale.ROOT),
                 DRIVER.inspect().armed() ? WARN : SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Market feed",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "market feed",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo — locked", "fresh"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Start gate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "start gate",
                 config == null || !config.continuousAutomationEnabled()
                         ? "permission off" : "awaiting controller",
                 WARN);
@@ -6076,36 +6076,36 @@ public final class DoughBayScreen extends GoNutsScreen {
         AutomationSessionController.RunMode shownMode = displayedRunMode(session, requestedMode);
         yy = renderRecoveryHelp(graphics, session, innerX, yy, innerWidth, y + height - 10);
         if (session.recoveredSession()) return;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "State / run mode",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "state / run mode",
                 session.state().name().toLowerCase(Locale.ROOT) + " / "
                         + shownMode.name().toLowerCase(Locale.ROOT),
                 sessionStateColor(session));
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Persistence",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "persistence",
                 session.persistenceStatus(),
                 session.persistenceStatus().startsWith("READY") ? GOOD : BAD);
         if (session.recoveredSession()) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Recovery / stage",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "recovery / stage",
                     session.recoveredExposureCount() + " / "
                             + session.manualResolutionStage(), WARN);
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Trades / spend",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "trades / spend",
                 session.tradesStarted() + " / " + money(session.committedSpend()), TEXT);
         yy = renderSlotTracker(graphics, innerX, yy + 2, innerWidth, y + height - 12, 3);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Current position",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "current position",
                 compactPositionSummary(session),
                 pausedWithUnresolvedPosition(session) ? BAD
                         : session.position() == null ? MUTED : GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Bound listing",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "bound listing",
                 session.boundListingKey().isBlank() ? "none" : session.boundListingKey(),
                 session.boundListingKey().isBlank() ? MUTED : Charts.SERIES_AQUA);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Reconciliation",
                 session.reconciliationStatus(),
                 session.boundListingKey().isBlank() ? MUTED : WARN);
         if (policy != null) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Purchase / session cap",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "purchase / session cap",
                     money(policy.maxPurchasePrice()) + " / "
                             + money(policy.maxSessionSpend()), TEXT);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Trade cap / cooldown",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "trade cap / cooldown",
                     (shownMode == AutomationSessionController.RunMode.SINGLE
                             ? "1" : Integer.toString(policy.maxTradesPerSession())) + " / "
                             + automationDuration(policy.cooldownMillis()), SECONDARY);
@@ -6114,12 +6114,12 @@ public final class DoughBayScreen extends GoNutsScreen {
                     "LOCKED — " + safePolicyBlocker(), WARN);
         }
         String startBlocker = sessionStartBlocker(marketSnapshot);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Start gate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "start gate",
                 startBlocker == null ? "authorized; exact server matched" : startBlocker,
                 startBlocker == null ? GOOD : WARN);
         if (pausedWithUnresolvedPosition(session)) {
             yy = statusLine(graphics, innerX, yy + 3, innerWidth,
-                    "New purchases wait until the interrupted trade is checked", WARN);
+                    "new purchases wait until the interrupted trade is checked", WARN);
         }
         if (requestedMode == AutomationSessionController.RunMode.CONTINUOUS
                 && yy <= y + height - 23) {
@@ -6133,7 +6133,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         // What the last button press answered, e.g. why a recovery step was
         // refused. Without it a refused click looked like nothing happened.
         if (!driverMessage.isBlank() && yy <= y + height - 12) {
-            drawWrapped(graphics, "Last action: " + driverMessage, innerX, yy + 2, innerWidth,
+            drawWrapped(graphics, "last action: " + driverMessage, innerX, yy + 2, innerWidth,
                     y + height - 10, WARN);
         }
     }
@@ -6158,11 +6158,11 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         if (requestedMode == AutomationSessionController.RunMode.SINGLE) {
             yy = statusLine(graphics, innerX, yy, innerWidth,
-                    "One selection → buy → exact stack prep → relist", SECONDARY);
+                    "one selection → buy → exact stack prep → relist", SECONDARY);
             yy = statusLine(graphics, innerX, yy, innerWidth,
                     "→ monitor trusted sale → stop", GOOD);
             yy = statusLine(graphics, innerX, yy + 3, innerWidth,
-                    "Uses the same authorization and caps as Continuous", WARN);
+                    "uses the same authorization and caps as continuous", WARN);
         } else {
             yy = statusLine(graphics, innerX, yy, innerWidth,
                     "At most one open position; every ambiguity PAUSES", GOOD);
@@ -6172,24 +6172,24 @@ public final class DoughBayScreen extends GoNutsScreen {
         yy += 5;
         yy = kvRight(graphics, innerX, yy, innerWidth, "Per-purchase cap",
                 money(policy.maxPurchasePrice()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Session spend cap",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "session spend cap",
                 money(policy.maxSessionSpend()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Trades per session",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "trades per session",
                 requestedMode == AutomationSessionController.RunMode.SINGLE
                         ? "1 (single mode)" : Integer.toString(policy.maxTradesPerSession()), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Minimum net profit",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "minimum net profit",
                 money(policy.minimumProfit()), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Minimum ROI / confidence",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "minimum ROI / confidence",
                 percent(policy.minimumRoiPercent()) + " / "
                         + percent(policy.minimumConfidence() * 100.0), GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Cooldown / max hold",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "cooldown / max hold",
                 automationDuration(policy.cooldownMillis()) + " / "
                         + automationDuration(policy.maximumHoldMillis()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Snapshot freshness",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "snapshot freshness",
                 automationDuration(policy.maximumSnapshotAgeMillis()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Open listings cap",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "open listings cap",
                 policy.maxOpenListings() + " of " + SlotTracker.slots(), SECONDARY);
-        return kvRight(graphics, innerX, yy, innerWidth, "Reserved hotbar slot",
+        return kvRight(graphics, innerX, yy, innerWidth, "reserved hotbar slot",
                 Integer.toString(policy.reservedHotbarSlot() + 1), SECONDARY);
     }
 
@@ -6210,16 +6210,16 @@ public final class DoughBayScreen extends GoNutsScreen {
             out += listing.purchasePrice();
             back += listing.targetPrice();
         }
-        int yy = kvRight(graphics, x, y, width, "Auction slots",
+        int yy = kvRight(graphics, x, y, width, "auction slots",
                 (open.size() + other) + " / " + SlotTracker.slots() + " used"
                         + (other > 0 ? " (" + other + " yours)" : "") + " · cap " + cap,
                 open.size() >= cap ? WARN : open.isEmpty() ? SECONDARY : GOOD);
         yy = SlotTracker.drawGrid(graphics, x, yy + 1, width, open.size() + other, cap) + 3;
         if (yy + 10 <= maxY) {
-            yy = kvRight(graphics, x, yy, width, "Ticket tiers", AUTOMATION_SESSION.tierSummary(), SECONDARY);
+            yy = kvRight(graphics, x, yy, width, "ticket tiers", AUTOMATION_SESSION.tierSummary(), SECONDARY);
         }
         if (!open.isEmpty() && yy + 10 <= maxY) {
-            yy = kvRight(graphics, x, yy, width, "Out / back at target",
+            yy = kvRight(graphics, x, yy, width, "out / back at target",
                     money(out) + " / " + money(back), TEXT);
         }
         long now = System.currentTimeMillis();
@@ -6254,9 +6254,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (session.recoveredSession()) return;
         yy = kvRight(graphics, innerX, yy, innerWidth, "State",
                 session.state().name(), sessionStateColor(session));
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Run mode",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "run mode",
                 displayedRunMode(session, requestedMode).name(), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Persistence",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "persistence",
                 session.persistenceStatus(),
                 session.persistenceStatus().startsWith("READY") ? GOOD : BAD);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Recovery lock / stage",
@@ -6265,19 +6265,19 @@ public final class DoughBayScreen extends GoNutsScreen {
                         + session.manualResolutionStage()
                         : "none",
                 session.recoveredSession() ? WARN : MUTED);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Trades started",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "trades started",
                 session.tradesStarted() + (policy == null ? ""
                         : " / " + (displayedRunMode(session, requestedMode)
                         == AutomationSessionController.RunMode.SINGLE
                         ? 1 : policy.maxTradesPerSession())), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Committed spend",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "committed spend",
                 money(session.committedSpend()) + (policy == null ? ""
                         : " / " + money(policy.maxSessionSpend())), TEXT);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Attempted listings",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "attempted listings",
                 Integer.toString(session.attemptedListings()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Cooldown remaining",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "cooldown remaining",
                 remainingDuration(session.cooldownUntilMillis()), SECONDARY);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Pending exact listing",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "pending exact listing",
                 session.pendingListingKey().isBlank() ? "none" : session.pendingListingKey(),
                 session.pendingListingKey().isBlank() ? MUTED : WARN);
         yy = kvRight(graphics, innerX, yy, innerWidth, "Bound active listing",
@@ -6288,26 +6288,26 @@ public final class DoughBayScreen extends GoNutsScreen {
                 session.boundListingKey().isBlank() ? MUTED : WARN);
         yy += 2;
         if (session.position() == null) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Current position",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "current position",
                     "none", MUTED);
         } else {
             var position = session.position();
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Position",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "position",
                     titleCase(shortName(position.itemKey())) + " x" + position.quantity(), TEXT);
             yy = kvRight(graphics, innerX, yy, innerWidth, "Position status",
                     position.status().name(),
                     pausedWithUnresolvedPosition(session) ? BAD : GOOD);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Buy / target",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "buy / target",
                     money(position.purchasePrice()) + " / " + money(position.targetPrice()), GOOD);
         }
 
         String startBlocker = sessionStartBlocker(marketSnapshot);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "New-session gate",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "new-session gate",
                 startBlocker == null ? "authorized; exact server allowlists match" : startBlocker,
                 startBlocker == null ? GOOD : WARN);
         if (pausedWithUnresolvedPosition(session)) {
             yy = statusLine(graphics, innerX, yy + 4, innerWidth,
-                    "New purchases wait until the interrupted trade is checked", WARN);
+                    "new purchases wait until the interrupted trade is checked", WARN);
         }
         drawWrapped(graphics, session.detail(), innerX, yy + 4, innerWidth,
                 y + height - 10, sessionStateColor(session));
@@ -6444,7 +6444,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             String path = watcher == null ? "config/doughbay"
                     : watcher.config().directory().toString();
             graphics.drawString(this.font,
-                    truncate("Config: " + path, width - controlsWidth - 30),
+                    truncate("config: " + path, width - controlsWidth - 30),
                     x + 8, statusY + 18, MUTED);
             graphics.drawString(this.font, controls,
                     ui.innerRight() - 8 - controlsWidth, statusY + 18, SECONDARY);
@@ -6473,15 +6473,15 @@ public final class DoughBayScreen extends GoNutsScreen {
                     snapshot.demo() || snapshot.updatedAt() == 0 || !isFresh(snapshot)
                             ? WARN : GOOD);
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Transactions",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "transactions",
                 grouped(diagnostics.transactions()), diagnostics.transactions() > 0 ? TEXT : MUTED);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Distinct markets",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "distinct markets",
                 grouped(diagnostics.markets()), diagnostics.markets() > 0 ? TEXT : MUTED);
         if (!compact) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Flagged outliers",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "flagged outliers",
                     grouped(diagnostics.outliers()), SECONDARY);
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Parse failures",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "parse failures",
                 Integer.toString(diagnostics.parseFailures()),
                 diagnostics.parseFailures() > 0 ? WARN : GOOD);
         if (!compact) {
@@ -6495,14 +6495,14 @@ public final class DoughBayScreen extends GoNutsScreen {
                                     ? "balance unavailable" : money(snapshot.accountBalance())),
                     snapshot.accountName().isEmpty() || snapshot.accountBalance() < 0
                             ? WARN : GOOD);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "History window",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "history window",
                     diagnostics.historyPagesPerPoll() + " page(s)/poll"
                             + (gaps == 0 ? "" : " • " + grouped(gaps) + " gap(s)"),
                     gaps > 0 ? BAD
                             : diagnostics.historyPagesPerPoll() > 2 ? WARN : GOOD);
         }
         if (!compact) {
-            kvRight(graphics, innerX, yy, innerWidth, "Latest snapshot",
+            kvRight(graphics, innerX, yy, innerWidth, "latest snapshot",
                     snapshot.updatedAt() == 0 ? "never"
                             : relativeAge(System.currentTimeMillis() - snapshot.updatedAt()),
                     isFresh(snapshot) ? GOOD : WARN);
@@ -6526,12 +6526,12 @@ public final class DoughBayScreen extends GoNutsScreen {
             boolean healthy = "healthy".equalsIgnoreCase(diagnostics.apiConnectionState());
             yy = kvRight(graphics, innerX, yy, innerWidth, "API health",
                     diagnostics.apiConnectionState(), healthy ? GOOD : WARN);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Requests total",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "requests total",
                     grouped(diagnostics.apiRequests()), TEXT);
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Errors",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "errors",
                 grouped(diagnostics.apiErrors()), diagnostics.apiErrors() > 0 ? WARN : GOOD);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "This minute",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "this minute",
                 diagnostics.requestsLastMinute() + " / " + diagnostics.requestBudget(), SECONDARY);
         if (!compact) {
             String transport = diagnostics.apiCooldownRemainingMillis() > 0
@@ -6540,7 +6540,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     : diagnostics.apiLatencyMillis() + " ms"
                     + (diagnostics.apiLastStatusCode() > 0
                     ? " • HTTP " + diagnostics.apiLastStatusCode() : "");
-            kvRight(graphics, innerX, yy, innerWidth, "Transport", transport,
+            kvRight(graphics, innerX, yy, innerWidth, "transport", transport,
                     diagnostics.apiConsecutiveFailures() > 0 ? WARN : SECONDARY);
         }
 
@@ -6574,14 +6574,14 @@ public final class DoughBayScreen extends GoNutsScreen {
                 snapshot.demo() ? MUTED
                         : snapshot.status().startsWith("STOPPED") ? BAD : GOOD);
         if (!compact) {
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Raw responses",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "raw responses",
                     snapshot.demo() ? "none" : "retained per record", SECONDARY);
         }
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Long-term history",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "long-term history",
                 snapshot.demo() ? "waiting for API key" : "building locally",
                 snapshot.demo() ? MUTED : GOOD);
         if (!compact) {
-            kvRight(graphics, innerX, yy, innerWidth, "Schema",
+            kvRight(graphics, innerX, yy, innerWidth, "schema",
                     "migrated on startup", SECONDARY);
         }
     }
@@ -6596,25 +6596,25 @@ public final class DoughBayScreen extends GoNutsScreen {
         int innerX = x + 9;
         int innerWidth = Math.min(width - 18, 310);
         boolean compact = height < 105;
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Data feed",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "data feed",
                 FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live API"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
-        yy = kvRight(graphics, innerX, yy, innerWidth, "Execution",
+        yy = kvRight(graphics, innerX, yy, innerWidth, "execution",
                 DRIVER.modeName(), DRIVER.authorizedExecutionEnabled() ? WARN : GOOD);
         if (!compact) {
             String gate = !DRIVER.authorizedExecutionEnabled() ? "disabled"
                     : DRIVER.currentEnvironmentBlocker() == null ? "authorized" : "locked";
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Server gate", gate,
+            yy = kvRight(graphics, innerX, yy, innerWidth, "server gate", gate,
                     "authorized".equals(gate) ? GOOD : WARN);
             yy = kvRight(graphics, innerX, yy, innerWidth, "Driver state",
                     DRIVER.inspect().state().name().toLowerCase(Locale.ROOT),
                     DRIVER.inspect().armed() ? WARN : SECONDARY);
-            yy = kvRight(graphics, innerX, yy, innerWidth, "Snapshot age",
+            yy = kvRight(graphics, innerX, yy, innerWidth, "snapshot age",
                     snapshot.updatedAt() == 0 ? "never"
                             : relativeAge(System.currentTimeMillis() - snapshot.updatedAt()),
                     isFresh(snapshot) ? GOOD : WARN);
         }
-        kvRight(graphics, innerX, yy, innerWidth, "Emergency key", "END", SECONDARY);
+        kvRight(graphics, innerX, yy, innerWidth, "emergency key", "END", SECONDARY);
     }
 
     // --------------------------------------------------------------------- about
@@ -6649,17 +6649,17 @@ public final class DoughBayScreen extends GoNutsScreen {
         sectionTitle(graphics, "CURRENT MODE", rightX, y, rightWidth);
         int modeY = y + 25;
         modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18,
-                "Market feed", FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live API"),
+                "market feed", FeedTruth.label(snapshot, System.currentTimeMillis(), "demo preview", "live API"),
                 FeedTruth.live(snapshot, System.currentTimeMillis()) ? GOOD : WARN);
         modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18,
-                "Game actions", DRIVER.authorizedExecutionEnabled()
-                        ? "authorized test mode" : "Observe / disabled",
+                "game actions", DRIVER.authorizedExecutionEnabled()
+                        ? "authorized test mode" : "observe / disabled",
                 DRIVER.authorizedExecutionEnabled() ? WARN : GOOD);
         modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18,
-                "Paper trading", "CLI", SECONDARY);
+                "paper trading", "CLI", SECONDARY);
         UpdateCheck.Status update = UpdateCheck.status();
         long updateNow = System.currentTimeMillis();
-        modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18, "This build", switch (update.state()) {
+        modeY = kvRight(graphics, rightX + 9, modeY, rightWidth - 18, "this build", switch (update.state()) {
             case OFF -> "update check is off";
             case UNCHECKED -> "not checked yet";
             case CURRENT -> "up to date, checked " + relativeAge(updateNow - update.checkedAt());
@@ -6676,8 +6676,8 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         drawWrapped(graphics,
                 snapshot.demo()
-                        ? "Demo opportunities are invented and can never execute."
-                        : "Execution remains player-initiated and aborts on ambiguity.",
+                        ? "demo opportunities are invented and can never execute."
+                        : "execution remains player-initiated and aborts on ambiguity.",
                 rightX + 9, modeY + 4, rightWidth - 18,
                 y + cardHeight - 8, snapshot.demo() ? WARN : SECONDARY);
 
@@ -6701,10 +6701,10 @@ public final class DoughBayScreen extends GoNutsScreen {
         sectionTitle(graphics, "CONTROLS & SAFETY", rightX, lowerY, rightWidth);
         int controlsY = lowerY + 25;
         String[] controls = {
-                "B  Open Tally / emergency stop",
-                "Click  Open a signal or switch tabs",
-                "Wheel  Scroll long market tables",
-                "Esc  Back from detail, then close",
+                "B  open tally / emergency stop",
+                "click  open a signal or switch tabs",
+                "wheel  scroll long market tables",
+                "esc  back from detail, then close",
                 "Live automation defaults OFF"
         };
         for (String line : controls) {
@@ -7004,9 +7004,9 @@ public final class DoughBayScreen extends GoNutsScreen {
                 mapping.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(event.key()));
                 KeyMapping.resetMapping();
                 Minecraft.getInstance().options.save();
-                settingsMessage = "Saved: " + keyName(mapping) + " (kept in Minecraft's controls)";
+                settingsMessage = "saved: " + keyName(mapping) + " (kept in Minecraft's controls)";
             } else {
-                settingsMessage = "Kept " + keyName(mapping);
+                settingsMessage = "kept " + keyName(mapping);
             }
             return true;
         }
@@ -7201,9 +7201,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         int searchWidth = Math.max(70, width - (toggleWidth + gap) * 3);
 
         marketSearchField = new EditBox(this.font, left, y, searchWidth, 18,
-                Component.literal("Filter markets"));
+                Component.literal("filter markets"));
         marketSearchField.setMaxLength(128);
-        marketSearchField.setHint(Component.literal("Search markets..."));
+        marketSearchField.setHint(Component.literal("search markets..."));
         marketSearchField.setValue(marketSearch);
         // Attached after setValue so restoring the text does not reset scroll.
         marketSearchField.setResponder(value -> {
@@ -7216,9 +7216,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         int x = left + searchWidth + gap;
         x = addMarketToggle(x, y, toggleWidth, wide ? "Confidence" : "Conf",
                 hideLowConfidence, () -> hideLowConfidence = !hideLowConfidence) + gap;
-        x = addMarketToggle(x, y, toggleWidth, wide ? "Liquid only" : "Liquid",
+        x = addMarketToggle(x, y, toggleWidth, wide ? "liquid only" : "liquid",
                 hideIlliquid, () -> hideIlliquid = !hideIlliquid) + gap;
-        addMarketToggle(x, y, toggleWidth, wide ? "Plain only" : "Plain",
+        addMarketToggle(x, y, toggleWidth, wide ? "plain only" : "plain",
                 hideVariants, () -> hideVariants = !hideVariants);
     }
 
@@ -7245,7 +7245,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (searchDetailItem == null && searchSellerName == null) {
             searchField = new EditBox(this.font, left, y, width, 18, Component.literal("Search"));
             searchField.setMaxLength(128);
-            searchField.setHint(Component.literal("Search item or seller — e.g. redstone, beforewing"));
+            searchField.setHint(Component.literal("search item or seller — e.g. redstone, beforewing"));
             searchField.setValue(searchQuery);
             // Responder only stores text; typing never rebuilds the widgets, so
             // the caret keeps its place and one cached /v1/markets feeds every
@@ -7259,7 +7259,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             return;
         }
         // Detail mode: a Back control, and for a seller the window toggles.
-        Button back = CockpitButton.builder(Component.literal("Back"), ignored -> {
+        Button back = CockpitButton.builder(Component.literal("back"), ignored -> {
             searchDetailItem = null;
             searchSellerName = null;
             rebuildWidgets();
@@ -7289,7 +7289,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                     ignored -> addSellerItemsToList("items.deny", "items.allow"))
                     .bounds(rx, wy, exclW, 18).build());
             rx -= gap + copyW;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Copy"),
+            addRenderableWidget(CockpitButton.builder(Component.literal("copy"),
                     ignored -> copySellerItems()).bounds(rx, wy, copyW, 18).build());
             rx -= gap + trackW;
             addRenderableWidget(CockpitButton.builder(Component.literal("→ Track"),
@@ -7301,7 +7301,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void addSellerItemsToTracked() {
         java.util.LinkedHashSet<String> ids = sellerItemIds();
         if (ids.isEmpty()) {
-            searchMessage = "No items yet";
+            searchMessage = "no items yet";
             rebuildWidgets();
             return;
         }
@@ -7326,12 +7326,12 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void copySellerItems() {
         java.util.LinkedHashSet<String> ids = sellerItemIds();
         if (ids.isEmpty()) {
-            searchMessage = "No items to copy yet";
+            searchMessage = "no items to copy yet";
             rebuildWidgets();
             return;
         }
         Minecraft.getInstance().keyboardHandler.setClipboard(String.join(", ", ids));
-        searchMessage = "Copied " + ids.size() + " item(s) to the clipboard";
+        searchMessage = "copied " + ids.size() + " item(s) to the clipboard";
         rebuildWidgets();
     }
 
@@ -7339,7 +7339,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private void addSellerItemsToList(String listKey, String otherKey) {
         java.util.LinkedHashSet<String> ids = sellerItemIds();
         if (ids.isEmpty()) {
-            searchMessage = "No items yet";
+            searchMessage = "no items yet";
             rebuildWidgets();
             return;
         }
@@ -7414,7 +7414,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         seedTrackedIfNeeded();
         for (String id : ids) Tuning.addToList("watch.tracked", id);
-        searchMessage = "Tracked " + ids.size() + " item(s) from " + v.name();
+        searchMessage = "tracked " + ids.size() + " item(s) from " + v.name();
     }
 
     private void renderSearch(GuiGraphics graphics, UiLayout ui, int mouseX, int mouseY) {
@@ -7439,7 +7439,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int bottom = ui.bottom() - 10;
         MarketQueryClient client = DoughBayClient.marketQuery();
         if (client == null) {
-            graphics.drawString(this.font, "Search is unavailable (no API base URL configured).", x, top, MUTED);
+            graphics.drawString(this.font, "search is unavailable (no API base URL configured).", x, top, MUTED);
             searchRows = List.of();
             return;
         }
@@ -7462,7 +7462,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                         grouped(r.sales()) + " sales · " + money(r.revenue()) + " · " + r.items() + " item(s)"));
             }
             if (rows.isEmpty()) {
-                graphics.drawString(this.font, "Loading the seller board…", x, top + 4, MUTED);
+                graphics.drawString(this.font, "loading the seller board…", x, top + 4, MUTED);
             }
         } else {
             for (MarketQueryClient.ItemMatch m : client.matchItems(q, 8)) {
@@ -7506,7 +7506,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int cardHeight = Math.min(150, ui.bottom() - 10 - cardTop);
         renderMarketCard(graphics, stats, x, cardTop, cardWidth, cardHeight);
         if (stats == null && width > cardWidth + 24) {
-            graphics.drawString(this.font, "No cached market stats for this item yet.",
+            graphics.drawString(this.font, "no cached market stats for this item yet.",
                     x + cardWidth + 12, cardTop + 6, MUTED);
         }
     }
@@ -7520,11 +7520,11 @@ public final class DoughBayScreen extends GoNutsScreen {
         String windowLabel = searchWindowMillis >= 30L * 24 * 3_600_000L ? "30 d"
                 : searchWindowMillis >= 7L * 24 * 3_600_000L ? "7 d" : "24 h";
         if (view == null) {
-            graphics.drawString(this.font, "Seller lookup is unavailable.", x, top + 14, MUTED);
+            graphics.drawString(this.font, "seller lookup is unavailable.", x, top + 14, MUTED);
             return;
         }
         if (view.loading()) {
-            graphics.drawString(this.font, "Loading " + searchSellerName + "…", x, top + 14, SECONDARY);
+            graphics.drawString(this.font, "loading " + searchSellerName + "…", x, top + 14, SECONDARY);
             return;
         }
         if (view.error() != null) {
@@ -7541,7 +7541,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int listTop = top + 28;
         int bottom = ui.bottom() - 10;
         if (sales.isEmpty()) {
-            graphics.drawString(this.font, "No sales in this window.", x, listTop + 4, MUTED);
+            graphics.drawString(this.font, "no sales in this window.", x, listTop + 4, MUTED);
             return;
         }
         int rowHeight = 12;
@@ -7633,9 +7633,9 @@ public final class DoughBayScreen extends GoNutsScreen {
         int catW = width >= 560 ? 118 : 92;
         int gap = 4;
         int searchW = Math.max(70, width - filterW - catW - gap * 2);
-        itemsSearchField = new EditBox(this.font, left, y, searchW, 18, Component.literal("Filter items"));
+        itemsSearchField = new EditBox(this.font, left, y, searchW, 18, Component.literal("filter items"));
         itemsSearchField.setMaxLength(128);
-        itemsSearchField.setHint(Component.literal("Search items..."));
+        itemsSearchField.setHint(Component.literal("search items..."));
         itemsSearchField.setValue(itemsSearch);
         itemsSearchField.setResponder(value -> {
             itemsSearch = value;
@@ -7645,12 +7645,12 @@ public final class DoughBayScreen extends GoNutsScreen {
         setFocused(itemsSearchField);
         // One button that cycles the view: all, included, excluded, tracked.
         String showing = switch (itemsFilter) {
-            case ALL -> "All items";
-            case INCLUDED -> "Included only";
-            case EXCLUDED -> "Excluded only";
-            case TRACKED -> "Tracked only";
+            case ALL -> "all items";
+            case INCLUDED -> "included only";
+            case EXCLUDED -> "excluded only";
+            case TRACKED -> "tracked only";
         };
-        addRenderableWidget(CockpitButton.builder(Component.literal("Show: " + showing), ignored -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal("show: " + showing), ignored -> {
             itemsFilter = switch (itemsFilter) {
                 case ALL -> ItemsFilter.INCLUDED;
                 case INCLUDED -> ItemsFilter.EXCLUDED;
@@ -7662,7 +7662,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }).bounds(left + searchW + gap, y, filterW, 18).build());
 
         // A second cycle button groups the grid like the creative menu.
-        addRenderableWidget(CockpitButton.builder(Component.literal("Cat: " + itemsCat.label), ignored -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal("cat: " + itemsCat.label), ignored -> {
             ItemCat[] all = ItemCat.values();
             itemsCat = all[(itemsCat.ordinal() + 1) % all.length];
             itemsScrollRow = 0;
@@ -7681,7 +7681,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int aGap = 4;
         int aw = (width - aGap * 6) / 7;
         int ax = left;
-        String[] labels = {"Exclude", "Include", "Clear", "Track", "Untrack", "All", "None"};
+        String[] labels = {"exclude", "include", "clear", "track", "untrack", "All", "none"};
         Runnable[] actions = {
             () -> applyItemsSelection(0),
             () -> applyItemsSelection(1),
@@ -7820,7 +7820,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         AutomationSessionController.State st = s.state();
         int stColor = st == AutomationSessionController.State.PAUSED ? WARN
                 : st == AutomationSessionController.State.STOPPED ? MUTED : GOOD;
-        graphics.drawString(this.font, "State: " + st.name(), x, top + 14, stColor);
+        graphics.drawString(this.font, "state: " + st.name(), x, top + 14, stColor);
 
         // The one line that matters when it stops: why, and what to do about it.
         String guidance = AUTOMATION_SESSION.pauseGuidance();
@@ -7832,7 +7832,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         int bottom = ui.bottom() - 10;
         List<AutomationLog.Line> lines = AutomationLog.recent();
         if (lines.isEmpty()) {
-            graphics.drawString(this.font, "No steps captured yet this session.", x, listTop + 4, MUTED);
+            graphics.drawString(this.font, "no steps captured yet this session.", x, listTop + 4, MUTED);
             return;
         }
         int rowH = 11;
@@ -8152,18 +8152,18 @@ public final class DoughBayScreen extends GoNutsScreen {
         flipField(flipFieldX[1], y, w[1], 14, flipBuy, v -> flipBuy = v);
         flipField(flipFieldX[2], y, w[2], 14, flipSell, v -> flipSell = v);
         flipField(flipFieldX[3], y, w[3], 6, flipQty, v -> flipQty = v);
-        addRenderableWidget(CockpitButton.builder(Component.literal(flipTop ? "Over top order" : "Fixed price"), b -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipTop ? "over top order" : "fixed price"), b -> {
             flipTop = !flipTop;
-            b.setMessage(Component.literal(flipTop ? "Over top order" : "Fixed price"));
+            b.setMessage(Component.literal(flipTop ? "over top order" : "fixed price"));
         }).bounds(flipFieldX[4], y, w[4], 20).build());
         flipField(flipFieldX[5], y, w[5], 10, flipOver, v -> flipOver = v);
-        addRenderableWidget(CockpitButton.builder(Component.literal(flipSingles ? "One at a time" : "Whole stacks"), b -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipSingles ? "one at a time" : "Whole stacks"), b -> {
             flipSingles = !flipSingles;
-            b.setMessage(Component.literal(flipSingles ? "One at a time" : "Whole stacks"));
+            b.setMessage(Component.literal(flipSingles ? "one at a time" : "Whole stacks"));
         }).bounds(flipFieldX[6], y, w[6], 20).build());
         flipField(flipFieldX[7], y, w[7], 8, flipTotal, v -> flipTotal = v);
         flipField(flipFieldX[8], y, w[8], 12, flipBudget, v -> flipBudget = v);
-        addRenderableWidget(CockpitButton.builder(Component.literal(flipSelected.isEmpty() ? "Add" : "Save"), ignored -> saveFlip())
+        addRenderableWidget(CockpitButton.builder(Component.literal(flipSelected.isEmpty() ? "Add" : "save"), ignored -> saveFlip())
                 .bounds(flipFieldX[9], y, w[9], 20).build());
 
         // On the title line, right-aligned: whether the list is all that is traded, and the row's own actions.
@@ -8171,19 +8171,19 @@ public final class DoughBayScreen extends GoNutsScreen {
         int rx = ui.innerRight();
         boolean only = Tuning.get("prices.only") >= 0.5;
         rx -= 150;
-        addRenderableWidget(CockpitButton.builder(Component.literal(only ? "Flips only: ON" : "Flips only: OFF"), ignored -> {
+        addRenderableWidget(CockpitButton.builder(Component.literal(only ? "flips only: ON" : "flips only: OFF"), ignored -> {
             Tuning.set("prices.only", only ? 0 : 1);
-            flipSay(only ? "The bot trades your list alongside everything else again."
+            flipSay(only ? "the bot trades your list alongside everything else again."
                     : "The bot now buys only what is on this list: its other orders are cancelled. What it holds is still sold.", false);
             rebuildWidgets();
         }).bounds(rx, ty, 150, 18).build());
         if (!flipSelected.isEmpty()) {
             rx -= 62;
-            addRenderableWidget(CockpitButton.builder(Component.literal("Remove"), ignored -> {
+            addRenderableWidget(CockpitButton.builder(Component.literal("remove"), ignored -> {
                 String gone = flipSelected;
                 Tuning.setText(OwnPrices.KEY, OwnPrices.without(Tuning.text(OwnPrices.KEY), gone));
                 selectFlip("");
-                flipSay("Removed " + MarketQueryClient.displayName(gone) + ". Its open order is now the bot's to manage or pull.", false);
+                flipSay("removed " + MarketQueryClient.displayName(gone) + ". Its open order is now the bot's to manage or pull.", false);
                 rebuildWidgets();
             }).bounds(rx, ty, 58, 18).build());
             rx -= 50;
@@ -8242,7 +8242,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (!flipQty.isBlank()) {
             long asked = MoneyInput.parse(flipQty);
             if (asked <= 0) {
-                flipSay("Per order is how many items one order asks for: 1000.", true);
+                flipSay("per order is how many items one order asks for: 1000.", true);
                 return;
             }
             stacks = (int) Math.max(1, Math.min(most, (asked + full - 1) / full));
@@ -8393,7 +8393,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (!flipMessage.isBlank()) {
             graphics.drawString(this.font, truncate(flipMessage, width), x, barY - 23, flipMessageBad ? BAD : GOOD);
         } else if (!problems.isEmpty()) {
-            graphics.drawString(this.font, truncate("Not understood in the list: " + String.join("; ", problems), width), x, barY - 23, BAD);
+            graphics.drawString(this.font, truncate("not understood in the list: " + String.join("; ", problems), width), x, barY - 23, BAD);
         }
     }
 
@@ -8438,13 +8438,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         payrollFieldX[5] = x;
         payrollField(x, y, 72, payrollCap, v -> payrollCap = v);
         x += 76;
-        Button online = CockpitButton.builder(Component.literal(payrollOnline ? "Online only" : "Any time"), b -> {
+        Button online = CockpitButton.builder(Component.literal(payrollOnline ? "online only" : "any time"), b -> {
             payrollOnline = !payrollOnline;
-            b.setMessage(Component.literal(payrollOnline ? "Online only" : "Any time"));
+            b.setMessage(Component.literal(payrollOnline ? "online only" : "any time"));
         }).bounds(x, y, 84, 20).build();
         addRenderableWidget(online);
         x += 88;
-        addRenderableWidget(CockpitButton.builder(Component.literal(selectedRule == 0 ? "Add" : "Save"), ignored -> savePayrollRule())
+        addRenderableWidget(CockpitButton.builder(Component.literal(selectedRule == 0 ? "Add" : "save"), ignored -> savePayrollRule())
                 .bounds(x, y, 56, 20).build());
 
         // Row actions on the title line, right-aligned.
@@ -8460,20 +8460,20 @@ public final class DoughBayScreen extends GoNutsScreen {
                 rx -= 58;
                 addRenderableWidget(CockpitButton.builder(Component.literal("Delete"), ignored -> {
                     payroll.delete(id);
-                    payrollMessage = "Deleted the rule";
+                    payrollMessage = "deleted the rule";
                     selectRule(0);
                 }).bounds(rx, ty, 58, 18).build());
                 rx -= 64;
-                addRenderableWidget(CockpitButton.builder(Component.literal(paused ? "Resume" : "Pause"), ignored -> {
+                addRenderableWidget(CockpitButton.builder(Component.literal(paused ? "Resume" : "pause"), ignored -> {
                     payroll.setPaused(id, !paused);
-                    payrollMessage = paused ? "Rule resumed" : "Rule paused";
+                    payrollMessage = paused ? "rule resumed" : "rule paused";
                     rebuildWidgets();
                 }).bounds(rx, ty, 60, 18).build());
             }
         }
         if (payroll != null && payroll.pendingConfirmation() != null) {
             Payroll.PendingConfirmation p = payroll.pendingConfirmation();
-            String label = "Confirm first payment: " + p.name() + " " + money(p.amount());
+            String label = "confirm first payment: " + p.name() + " " + money(p.amount());
             int w = this.font.width(label) + 16;
             rx -= w + 4;
             addRenderableWidget(CockpitButton.builder(Component.literal(label), ignored -> {
@@ -8486,9 +8486,9 @@ public final class DoughBayScreen extends GoNutsScreen {
 
     private static String triggerLabel(String kind) {
         return switch (kind) {
-            case "SALES" -> "Every N sales";
-            case "BALANCE" -> "Balance ≥ $";
-            default -> "Every N hours";
+            case "SALES" -> "every N sales";
+            case "BALANCE" -> "balance ≥ $";
+            default -> "every N hours";
         };
     }
 
@@ -8551,15 +8551,15 @@ public final class DoughBayScreen extends GoNutsScreen {
         double reserve = parseMoney(payrollReserve);
         double cap = parseMoney(payrollCap);
         if (!(percent > 0 && percent <= 100)) {
-            payrollMessage = "Share must be between 0 and 100 percent of profit";
+            payrollMessage = "share must be between 0 and 100 percent of profit";
             return;
         }
         if (!(value > 0)) {
-            payrollMessage = "The trigger value must be positive";
+            payrollMessage = "the trigger value must be positive";
             return;
         }
         if (Double.isNaN(reserve) || Double.isNaN(cap)) {
-            payrollMessage = "Reserve and daily cap must be amounts (0 for none)";
+            payrollMessage = "reserve and daily cap must be amounts (0 for none)";
             return;
         }
         dev.doughbay.storage.PayrollRepository.Rule existing = null;
@@ -8573,7 +8573,7 @@ public final class DoughBayScreen extends GoNutsScreen {
                 existing == null ? now : existing.createdAt(), existing == null ? 0 : existing.lastPaidAt(),
                 existing == null ? 0 : existing.totalPaid());
         payroll.addOrUpdate(rule);
-        payrollMessage = (existing == null ? "Added " : "Saved ") + name + ": " + trimNumber(percent) + "% of profit, "
+        payrollMessage = (existing == null ? "added " : "Saved ") + name + ": " + trimNumber(percent) + "% of profit, "
                 + triggerText(rule) + " · pays while the session runs";
         selectRule(0);
     }
@@ -8635,7 +8635,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             sectionTitle(graphics, "YOUR BIDS  ·  " + bids.size() + " open  ·  " + money(held) + " held"
                     + (AUTOMATION_SESSION.ownOrdersReadAt() > 0 ? "  ·  read " + relativeAge(Math.max(0, now - AUTOMATION_SESSION.ownOrdersReadAt())) : ""), x, y, width);
             int by = y + 27;
-            if (bids.isEmpty()) graphics.drawString(this.font, "No bids yet. The desk places them after the next order read.", x + 9, by + 1, MUTED);
+            if (bids.isEmpty()) graphics.drawString(this.font, "no bids yet. the desk places them after the next order read.", x + 9, by + 1, MUTED);
             for (var b : bids) {
                 if (by + rowHeight > y + bidHeight - 4) break;
                 net.minecraft.world.item.ItemStack stack = stackFor(b.itemKey(), 1);
@@ -8765,7 +8765,7 @@ public final class DoughBayScreen extends GoNutsScreen {
             sectionTitle(graphics, "PAYMENTS  ·  written before /pay goes out, settled by the chat receipt", x, y, width);
             yy = y + 27;
             if (shown == 0) {
-                graphics.drawString(this.font, "No payments yet.", innerX, yy + 1, MUTED);
+                graphics.drawString(this.font, "no payments yet.", innerX, yy + 1, MUTED);
             }
             for (int i = 0; i < shown; i++) {
                 var p = payments.get(i);
@@ -8912,7 +8912,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private String preflightBlocker(MarketWatcher.Snapshot snapshot,
                                     Opportunity opportunity) {
         if (opportunity == null || opportunity.listing() == null) {
-            return "Choose an opportunity before running a preflight";
+            return "choose an opportunity before running a preflight";
         }
         String listingKey = opportunity.listing().listingKey();
         if (snapshot.demo() || (listingKey != null && listingKey.startsWith("demo-"))) {
@@ -8923,7 +8923,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         }
         if (opportunity.listing().sellerName() == null
                 || opportunity.listing().sellerName().isBlank()) {
-            return "An exact seller is required for a no-guess preflight";
+            return "an exact seller is required for a no-guess preflight";
         }
         if (snapshot.status().startsWith("STOPPED")) {
             return "Market watcher is stopped; preflight is locked";
@@ -8942,7 +8942,7 @@ public final class DoughBayScreen extends GoNutsScreen {
         String environment = DRIVER.currentPreflightBlocker();
         if (environment != null) return environment;
         if (DRIVER.operationIntent() != AutomatedExecutionDriver.OperationIntent.NONE) {
-            return "Another one-shot operation is already in progress";
+            return "another one-shot operation is already in progress";
         }
         return null;
     }
@@ -8953,13 +8953,13 @@ public final class DoughBayScreen extends GoNutsScreen {
         if (session.state() != AutomationSessionController.State.STOPPED) {
             return session.state() == AutomationSessionController.State.PAUSED
                     ? "Automation is PAUSED; resolve or resume its position first"
-                    : "An Automation session is already active";
+                    : "an automation session is already active";
         }
         if (!session.pendingListingKey().isBlank()) {
             return "Automation still has a pending exact listing";
         }
         if (session.position() != null && !session.position().status().isClosed()) {
-            return "Automation still has an unresolved position";
+            return "automation still has an unresolved position";
         }
         if (snapshot.demo() || (listingKey != null && listingKey.startsWith("demo-"))) {
             return "Demo data is preview-only and can never execute";
@@ -9109,7 +9109,7 @@ public final class DoughBayScreen extends GoNutsScreen {
     private static Opportunity rehearsalCandidate(Listing listing) {
         return new Opportunity(listing, null, listing.totalPrice(), 0,
                 0, 0, 0, 0, 0, 0,
-                List.of("Preflight rehearsal only — not a valued opportunity"));
+                List.of("preflight rehearsal only — not a valued opportunity"));
     }
 
     /**

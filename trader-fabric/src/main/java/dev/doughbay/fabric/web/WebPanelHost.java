@@ -97,7 +97,7 @@ public final class WebPanelHost {
     public static String pinProblem(String pin) {
         if (pin == null || !pin.matches("[0-9]+")) return "A PIN is digits only";
         if (pin.length() < PIN_MIN || pin.length() > PIN_MAX) return "A PIN is " + PIN_MIN + " to " + PIN_MAX + " digits";
-        if (pin.chars().distinct().count() == 1) return "Not the same digit " + pin.length() + " times";
+        if (pin.chars().distinct().count() == 1) return "not the same digit " + pin.length() + " times";
         if ("0123456789".contains(pin) || "9876543210".contains(pin)) return "Not digits in a row";
         return null;
     }
@@ -127,7 +127,7 @@ public final class WebPanelHost {
             config = new Config(true, config.lan(), config.port(), saltHex, stretch(pin, saltHex));
             save();
         } catch (Exception e) {
-            return "The PIN could not be saved: " + e.getMessage();
+            return "the PIN could not be saved: " + e.getMessage();
         }
         apply();
         return null;

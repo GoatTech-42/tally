@@ -269,7 +269,7 @@ public final class LocalPanel implements AutoCloseable {
             Request request = read(socket.getInputStream());
             OutputStream out = socket.getOutputStream();
             if (request == null) {
-                send(out, 400, "text/plain; charset=utf-8", "Bad request".getBytes(StandardCharsets.UTF_8), "");
+                send(out, 400, "text/plain; charset=utf-8", "bad request".getBytes(StandardCharsets.UTF_8), "");
                 return;
             }
             respond(request, out);
@@ -282,7 +282,7 @@ public final class LocalPanel implements AutoCloseable {
 
     private void respond(Request r, OutputStream out) throws Exception {
         if (!plainHost(r.headers().get("host"))) {
-            send(out, 403, "text/plain; charset=utf-8", "Open this page by its address.".getBytes(StandardCharsets.UTF_8), "");
+            send(out, 403, "text/plain; charset=utf-8", "open this page by its address.".getBytes(StandardCharsets.UTF_8), "");
             return;
         }
         // The mod's own logo and the page's font, which the door uses too: the
@@ -308,7 +308,7 @@ public final class LocalPanel implements AutoCloseable {
             return;
         }
         if (!in) {
-            send(out, 401, "text/plain; charset=utf-8", "Sign in first.".getBytes(StandardCharsets.UTF_8), "");
+            send(out, 401, "text/plain; charset=utf-8", "sign in first.".getBytes(StandardCharsets.UTF_8), "");
             return;
         }
         if (r.method().equals("GET") && r.path().equals("/panel.png")) {
@@ -343,7 +343,7 @@ public final class LocalPanel implements AutoCloseable {
                 json = backend.change(name, r.form());
             }
             if (json == null) {
-                send(out, 404, "text/plain; charset=utf-8", "Not found".getBytes(StandardCharsets.UTF_8), "");
+                send(out, 404, "text/plain; charset=utf-8", "not found".getBytes(StandardCharsets.UTF_8), "");
             } else {
                 send(out, 200, "application/json; charset=utf-8", json.getBytes(StandardCharsets.UTF_8), "");
             }
@@ -378,7 +378,7 @@ public final class LocalPanel implements AutoCloseable {
                     "Location: /\r\nSet-Cookie: gonuts=; Max-Age=0; HttpOnly; SameSite=Strict; Path=/\r\n");
             return;
         }
-        send(out, 404, "text/plain; charset=utf-8", "Not found".getBytes(StandardCharsets.UTF_8), "");
+        send(out, 404, "text/plain; charset=utf-8", "not found".getBytes(StandardCharsets.UTF_8), "");
     }
 
     private void login(Request r, OutputStream out) throws IOException {
@@ -471,13 +471,13 @@ public final class LocalPanel implements AutoCloseable {
             throws IOException {
         String reason = switch (status) {
             case 200 -> "OK";
-            case 204 -> "No Content";
-            case 303 -> "See Other";
-            case 400 -> "Bad Request";
-            case 401 -> "Unauthorized";
-            case 403 -> "Forbidden";
-            case 503 -> "Service Unavailable";
-            default -> "Not Found";
+            case 204 -> "no content";
+            case 303 -> "see other";
+            case 400 -> "bad request";
+            case 401 -> "unauthorized";
+            case 403 -> "forbidden";
+            case 503 -> "service unavailable";
+            default -> "not found";
         };
         String head = "HTTP/1.1 " + status + " " + reason + "\r\n"
                 + "Content-Type: " + type + "\r\n"

@@ -69,7 +69,7 @@ public final class MandatoryDiagnostics {
             drain();if(now<nextAttempt)return;
             if(!supported){if(now<capabilityAt)return;capabilityAt=now+60_000;var reply=request(HttpRequest.newBuilder(CAPABILITIES).timeout(Duration.ofSeconds(15)).GET().build());var cap=reply.body;supported=reply.status==200&&cap.path("supported").asBoolean()&&cap.path("version").asInt()==1;if(!supported){state="Queued; server capability pending";return;}}
             // A long-running process can outlive the server's retained session after an outage too.
-            if(!statusChecked||now<statusAt||now-statusAt>=300_000){var reply=request(HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/diagnostics/status")).timeout(Duration.ofSeconds(15)).header(HEADER,credential).GET().build());if(reply.status!=200)throw new java.io.IOException("Diagnostic status unavailable");outbox.reconcileStatus(reply.body);statusChecked=true;statusAt=now;}
+            if(!statusChecked||now<statusAt||now-statusAt>=300_000){var reply=request(HttpRequest.newBuilder(URI.create("https://gonuts.at/v1/bugs/diagnostics/status")).timeout(Duration.ofSeconds(15)).header(HEADER,credential).GET().build());if(reply.status!=200)throw new java.io.IOException("diagnostic status unavailable");outbox.reconcileStatus(reply.body);statusChecked=true;statusAt=now;}
             var frame=outbox.batch(now,frameEvents);if(frame==null){state="Uploaded; no pending events";return;}
             outbox.sent(frame);var reply=request(uploadRequest(frame,credential));nextAttempt=now+5000;
             switch(reply.status){

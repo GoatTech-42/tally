@@ -8,13 +8,13 @@ import net.minecraft.network.chat.Component;
 final class HiveDiscoveryScreen extends GoNutsScreen {
     private final Screen parent;
     private int scroll,maxScroll;
-    HiveDiscoveryScreen(Screen parent) { super(Component.literal("Another Tally account detected")); this.parent=parent; }
+    HiveDiscoveryScreen(Screen parent) { super(Component.literal("another tally account detected")); this.parent=parent; }
     @Override protected void init() {
         DoughBayClient.automationSessionController().setPanelOpen(true);
         int w=Math.min(480,width-24),x=(width-w)/2,y=height-86;
         addRenderableWidget(CockpitButton.builder(Component.literal("Review setup"),b->DoughBayClient.openHiveSetup()).bounds(x,y,w,22).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Not now"),b->onClose()).bounds(x,y+28,(w-6)/2,22).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Don't ask again"),b->{HiveDiscovery.dismissAll();onClose();}).bounds(x+(w+6)/2,y+28,(w-6)/2,22).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("not now"),b->onClose()).bounds(x,y+28,(w-6)/2,22).build());
+        addRenderableWidget(CockpitButton.builder(Component.literal("don't ask again"),b->{HiveDiscovery.dismissAll();onClose();}).bounds(x+(w+6)/2,y+28,(w-6)/2,22).build());
     }
     @Override public void render(GuiGraphics g,int mx,int my,float dt) {
         g.fill(0,0,width,height,0xF0050505); int w=Math.min(480,width-24),x=(width-w)/2,y=24;

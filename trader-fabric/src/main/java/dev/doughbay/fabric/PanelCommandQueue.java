@@ -15,7 +15,7 @@ final class PanelCommandQueue {
         boolean cancel(String id);
     }
     private static final class Job {
-        final String id,command;final long at;final Object connection;String status="QUEUED",note="Waiting for a safe checkpoint";
+        final String id,command;final long at;final Object connection;String status="QUEUED",note="waiting for a safe checkpoint";
         Job(String id,String command,long at,Object connection){this.id=id;this.command=command;this.at=at;this.connection=connection;}
         View view(){return new View(id,"/"+command.split(" ",2)[0],status,note,at);}
     }
@@ -47,7 +47,7 @@ final class PanelCommandQueue {
             if(job.status.equals("WAITING"))return;
             String blocker=port.blocker();if(blocker!=null){job.note=blocker;return;}
             // Mark before handing off: a transport exception is not permission to replay a payment.
-            job.status="WAITING";job.note="Waiting for normal command pacing";
+            job.status="WAITING";job.note="waiting for normal command pacing";
             try{port.queue(job.id,job.command,job.at+LIFETIME);}catch(RuntimeException e){job.status="UNCERTAIN";job.note="Handoff uncertain; no automatic retry";}
             return;
         }
@@ -55,7 +55,7 @@ final class PanelCommandQueue {
     synchronized boolean cancel(String id,Port port){Job j=jobs.get(id);if(j==null||!pending(j.status))return false;if(j.status.equals("WAITING")&&!port.cancel(id))return false;j.status="CANCELLED";j.note="Cancelled before sending";return true;}
     private static boolean pending(String state){return state.equals("QUEUED")||state.equals("WAITING");}
     static String normalize(String text) {
-        if(text==null||text.length()>256||text.codePoints().anyMatch(c->Character.isISOControl(c)))throw new IllegalArgumentException("Use one command, at most 256 characters");
+        if(text==null||text.length()>256||text.codePoints().anyMatch(c->Character.isISOControl(c)))throw new IllegalArgumentException("use one command, at most 256 characters");
         String command=text.replaceAll("^ +| +$", "");if(command.startsWith("/"))command=command.substring(1);
         OutgoingCommandText.requireValid(command);
         String head=command.split(" ",2)[0].toLowerCase(Locale.ROOT);

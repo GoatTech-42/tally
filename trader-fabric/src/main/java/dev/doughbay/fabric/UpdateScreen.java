@@ -72,7 +72,7 @@ public final class UpdateScreen extends GoNutsScreen {
     }
 
     private String title() {
-        if (!aboutAnUpdate()) return "What's new in Tally";
+        if (!aboutAnUpdate()) return "what's new in tally";
         return alert().title() + (mode == Mode.SAMPLE ? "  (preview)" : "");
     }
 
@@ -109,7 +109,7 @@ public final class UpdateScreen extends GoNutsScreen {
         List<Changelog.Entry> entries = entries();
         if (entries.isEmpty()) {
             if (!aboutAnUpdate()) {
-                out.add(new Line(Component.literal("No notes came with this build.").getVisualOrderText(),
+                out.add(new Line(Component.literal("no notes came with this build.").getVisualOrderText(),
                         UiTheme.MUTED, 0, 0));
             }
             return out;
@@ -168,7 +168,7 @@ public final class UpdateScreen extends GoNutsScreen {
         int count = offerAuto ? 3 : 2;
         int each = (width - 20 - gap * (count - 1)) / count;
         int x = left + 10;
-        addRenderableWidget(CockpitButton.builder(Component.literal("Open download page"), b -> openPage())
+        addRenderableWidget(CockpitButton.builder(Component.literal("open download page"), b -> openPage())
                 .bounds(x, y, each, 20).build());
         x += each + gap;
         if (offerAuto) {
@@ -179,7 +179,7 @@ public final class UpdateScreen extends GoNutsScreen {
             }).bounds(x, y, each, 20).build());
             x += each + gap;
         }
-        addRenderableWidget(CockpitButton.builder(Component.literal(offerAuto ? "Later" : "OK"), b -> leave())
+        addRenderableWidget(CockpitButton.builder(Component.literal(offerAuto ? "later" : "OK"), b -> leave())
                 .bounds(x, y, each, 20).build());
     }
 
@@ -240,7 +240,7 @@ public final class UpdateScreen extends GoNutsScreen {
             y += line.gapAbove();
             // Room for this line and, unless it is the last, for the note that there is more.
             if (y + 11 > limit - (i < lines.size() - 1 ? 11 : 0) && line.gapAbove() >= 0) {
-                graphics.drawString(this.font, "More on the download page and the About tab.", left + 12, y, UiTheme.MUTED);
+                graphics.drawString(this.font, "more on the download page and the about tab.", left + 12, y, UiTheme.MUTED);
                 break;
             }
             graphics.drawString(this.font, line.text(), left + 12 + line.indent(), y, line.color());

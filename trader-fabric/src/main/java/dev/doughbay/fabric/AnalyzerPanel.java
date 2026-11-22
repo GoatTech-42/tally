@@ -19,18 +19,18 @@ final class AnalyzerPanel {
     void init(int x,int y,int w,int bottom,Consumer<AbstractWidget> add,Runnable rebuild,Screen parent){
         this.x=x;this.y=y;this.w=w;this.bottom=bottom;
         int half=(w-6)/2,third=(w-12)/3;
-        add.accept(CockpitButton.builder(Component.literal("Analyze local data"),b->{message="";SettingsAnalyzer.refresh();}).bounds(x,y+26,half,20).build());
-        add.accept(CockpitButton.builder(Component.literal(showCapital?"Back to report":"Capital charts"),b->{showCapital=!showCapital;scroll=0;rebuild.run();}).bounds(x+half+6,y+26,half,20).build());
-        previous=CockpitButton.builder(Component.literal("Previous"),b->{if(showCapital)capitalCharts.step(-1);else index=Math.max(0,index-1);scroll=0;}).bounds(x,y+50,third,20).build();add.accept(previous);
-        add.accept(CockpitButton.builder(Component.literal(showCapital?capitalCharts.rangeLabel():"Overview"),b->{if(showCapital)capitalCharts.range();else index=0;scroll=0;rebuild.run();}).bounds(x+third+6,y+50,third,20).build());
+        add.accept(CockpitButton.builder(Component.literal("analyze local data"),b->{message="";SettingsAnalyzer.refresh();}).bounds(x,y+26,half,20).build());
+        add.accept(CockpitButton.builder(Component.literal(showCapital?"back to report":"Capital charts"),b->{showCapital=!showCapital;scroll=0;rebuild.run();}).bounds(x+half+6,y+26,half,20).build());
+        previous=CockpitButton.builder(Component.literal("previous"),b->{if(showCapital)capitalCharts.step(-1);else index=Math.max(0,index-1);scroll=0;}).bounds(x,y+50,third,20).build();add.accept(previous);
+        add.accept(CockpitButton.builder(Component.literal(showCapital?capitalCharts.rangeLabel():"overview"),b->{if(showCapital)capitalCharts.range();else index=0;scroll=0;rebuild.run();}).bounds(x+third+6,y+50,third,20).build());
         next=CockpitButton.builder(Component.literal("Next"),b->{if(showCapital)capitalCharts.step(1);else {var r=SettingsAnalyzer.report();if(r!=null)index=Math.min(r.findings().size(),index+1);}scroll=0;}).bounds(x+2*(third+6),y+50,third,20).build();add.accept(next);
-        save=CockpitButton.builder(Component.literal("Review suggested preset"),b->{var r=SettingsAnalyzer.report();if(r!=null&&(!r.numbers().isEmpty()||!r.lists().isEmpty()))Minecraft.getInstance().setScreen(new PresetsScreen(parent,r.proposedCode()));else message="No settings change suggested. Review the findings for manual next steps.";}).bounds(x,bottom-23,Math.max(80,w-110),20).build();
+        save=CockpitButton.builder(Component.literal("review suggested preset"),b->{var r=SettingsAnalyzer.report();if(r!=null&&(!r.numbers().isEmpty()||!r.lists().isEmpty()))Minecraft.getInstance().setScreen(new PresetsScreen(parent,r.proposedCode()));else message="No settings change suggested. Review the findings for manual next steps.";}).bounds(x,bottom-23,Math.max(80,w-110),20).build();
         save.setTooltip(Tooltip.create(Component.literal("Open a separate preset review. Nothing is applied by the Analyzer.")));add.accept(save);
-        copy=CockpitButton.builder(Component.literal("Copy report"),b->{var r=SettingsAnalyzer.report();if(r!=null)try{Minecraft.getInstance().keyboardHandler.setClipboard(new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(r));message="Report copied. Review it before sharing.";}catch(Exception ignored){message="Could not copy the report. Your settings are unchanged.";}}).bounds(x+w-104,bottom-23,104,20).build();add.accept(copy);
+        copy=CockpitButton.builder(Component.literal("copy report"),b->{var r=SettingsAnalyzer.report();if(r!=null)try{Minecraft.getInstance().keyboardHandler.setClipboard(new com.fasterxml.jackson.databind.ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(r));message="report copied. review it before sharing.";}catch(Exception ignored){message="could not copy the report. your settings are unchanged.";}}).bounds(x+w-104,bottom-23,104,20).build();add.accept(copy);
     }
     void render(GuiGraphics g,Font font,int mx,int my,Charts.Pending tooltip){
         g.drawString(font,UiTheme.fit(font,"UNDERSTAND YOUR TRADING",w),x,y,UiTheme.GOLD);
-        g.drawString(font,UiTheme.fit(font,"Analyze > review findings > choose a small experiment",w),x,y+13,UiTheme.SECONDARY);
+        g.drawString(font,UiTheme.fit(font,"analyze > review findings > choose a small experiment",w),x,y+13,UiTheme.SECONDARY);
         var r=SettingsAnalyzer.report();
         previous.active=showCapital||(r!=null&&index>0);next.active=showCapital||(r!=null&&index<r.findings().size());
         save.active=r!=null&&(!r.numbers().isEmpty()||!r.lists().isEmpty());copy.active=r!=null;

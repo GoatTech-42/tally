@@ -40,7 +40,7 @@ public final class CapitalHistory {
     DoughBayClient.automationSessionController().capitalOrders(),stock);
  }
  static List<CapitalBreakdown.Snapshot> points(){var h=active;return h==null?List.of():h.copy();}
- static String status(){var h=active;return h==null?"Capital history has not started yet":h.status;}
+ static String status(){var h=active;return h==null?"capital history has not started yet":h.status;}
  synchronized List<CapitalBreakdown.Snapshot> copy(){return List.copyOf(points);}
  private void load(){
   if(!Files.exists(file))return;

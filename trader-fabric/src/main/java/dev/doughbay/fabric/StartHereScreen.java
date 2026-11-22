@@ -12,7 +12,7 @@ final class StartHereScreen extends GoNutsScreen {
     private final DoughBayScreen parent;
     private String message = "";
     StartHereScreen(DoughBayScreen parent) {
-        super(Component.literal("Tally - Start here")); this.parent = parent;
+        super(Component.literal("tally - start here")); this.parent = parent;
     }
     private int bodyWidth() { return Math.min(600, width - 24); }
     private int left() { return (width - bodyWidth()) / 2; }
@@ -31,18 +31,18 @@ final class StartHereScreen extends GoNutsScreen {
         setInitialFocus(setup);
         button("2  Open Trade - status, Start, Stop and recovery", row(1),
                 b -> parent.openBeginnerTarget("autopilot", this));
-        button("Existing releases (public support has ended)", row(2),
+        button("existing releases (public support has ended)", row(2),
                 b -> Util.getPlatform().openUri(URI.create("https://github.com/cody-raves/Gonuts/releases/latest")));
-        button("Show menus + hotbar", row(3), b -> {
-            try { BeginnerHelp.showGameUi(); message = "Menus and hotbar are visible. Trading settings were kept."; }
+        button("show menus + hotbar", row(3), b -> {
+            try { BeginnerHelp.showGameUi(); message = "menus and hotbar are visible. trading settings were kept."; }
             catch (java.io.IOException e) { message = "Could not save display settings. Open Settings and try again."; }
         });
         int half = (bodyWidth() - 6) / 2;
         int footer = Math.min(height - 31, y + 234);
-        addRenderableWidget(CockpitButton.builder(Component.literal("More tutorials"),
+        addRenderableWidget(CockpitButton.builder(Component.literal("more tutorials"),
                 b -> minecraft.setScreen(new TutorialScreen(parent, this, false)))
                 .bounds(left(), footer, half, 23).build());
-        addRenderableWidget(CockpitButton.builder(Component.literal("Back to Tally"), b -> onClose())
+        addRenderableWidget(CockpitButton.builder(Component.literal("back to tally"), b -> onClose())
                 .bounds(left() + half + 6, footer, half, 23).build());
     }
     @Override public void render(GuiGraphics g, int mx, int my, float dt) {
@@ -50,7 +50,7 @@ final class StartHereScreen extends GoNutsScreen {
         int x = left(), y = top(), w = bodyWidth();
         g.drawString(font, "NEW TO TALLY? START HERE", x, y, UiTheme.GOLD);
         g.drawString(font, UiTheme.fit(font, "Join DonutSMP, choose your limits, then review and Start. No code needed.", w), x, y + 23, UiTheme.TEXT);
-        g.drawString(font, UiTheme.fit(font, "Reopen this page: B > Settings > Help & setup.", w), x, y + 42, UiTheme.MUTED);
+        g.drawString(font, UiTheme.fit(font, "reopen this page: B > settings > help & setup.", w), x, y + 42, UiTheme.MUTED);
         int lineY = row(3) + 32;
         for (var line : font.split(Component.literal(message.isBlank()
                 ? "Trading is called Trade. If it is paused or blocked, open Trade to see why."

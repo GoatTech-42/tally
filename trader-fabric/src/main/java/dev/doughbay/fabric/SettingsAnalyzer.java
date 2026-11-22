@@ -60,7 +60,7 @@ public final class SettingsAnalyzer {
                 var baseline = new ArrayList<>(analyzed.baseline());
                 baseline.add("CAPITAL — this account, observed at purchase cost; not booked profit");
                 for(int i=0;i<CapitalBreakdown.LABELS.size();i++)baseline.add(CapitalBreakdown.LABELS.get(i)+": "+(capital.value(i)==null?"unknown":money(capital.value(i))));
-                baseline.add("Auction asking prices (potential gross revenue): "+(capital.asking()==null?"unknown":money(capital.asking())));
+                baseline.add("auction asking prices (potential gross revenue): "+(capital.asking()==null?"unknown":money(capital.asking())));
                 baseline.addAll(capital.notes());
                 var findings = new ArrayList<>(analyzed.findings());
                 if((capital.orders()!=null&&capital.orders()>0)||(capital.awaitingCollection()!=null&&capital.awaitingCollection()>0)||(capital.unlisted()!=null&&capital.unlisted()>0)||(capital.listed()!=null&&capital.listed()>0)){

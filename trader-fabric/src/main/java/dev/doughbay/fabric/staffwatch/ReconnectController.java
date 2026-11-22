@@ -49,7 +49,7 @@ public final class ReconnectController {
   public void automaticRetryScheduled(){
    tradingResume.automaticRetryScheduled(System.currentTimeMillis());
   }
-  public void disconnect(String watcher){mc().getConnection().getConnection().disconnect(Component.literal("Staff Watch: "+watcher+" triggered a watcher alert. Reconnecting in 5-10 minutes."));}
+  public void disconnect(String watcher){mc().getConnection().getConnection().disconnect(Component.literal("staff watch: "+watcher+" triggered a watcher alert. Reconnecting in 5-10 minutes."));}
   public void showCountdown(){mc().setScreen(new ReconnectScreen());}
   public void connect(String address){var server=target;if(server==null||!address.equals(server.ip))server=new ServerData("Staff Watch",address,ServerData.Type.OTHER);automaticAttempt=true;try{ConnectScreen.startConnecting(new JoinMultiplayerScreen(new TitleScreen()),mc(),ServerAddress.parseString(address),server,false,null);}finally{automaticAttempt=false;}}
  },schedule);

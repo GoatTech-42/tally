@@ -595,7 +595,7 @@ public final class DiscordBridge {
         // page used to mean rearranging the rows; a select holds twenty-five
         // and takes the page count off the critical path for good.
         ArrayNode r1 = row(rows);
-        ObjectNode picker = select(r1, "page:pick", "Page - " + label(page));
+        ObjectNode picker = select(r1, "page:pick", "page - " + label(page));
         ArrayNode opts = picker.putArray("options");
         for (Page pg : Page.values()) {
             if (pg == Page.SEARCH) continue;   // reached by the Search button, not a page of its own
@@ -618,20 +618,20 @@ public final class DiscordBridge {
             }
         }
         ArrayNode r2 = row(rows);
-        if(page==Page.FLIPS)button(r2,"flips:only",dev.doughbay.fabric.FlipsMode.only()?"Flips only: ON":"Flips only: OFF",2,false);
+        if(page==Page.FLIPS)button(r2,"flips:only",dev.doughbay.fabric.FlipsMode.only()?"flips only: ON":"flips only: OFF",2,false);
         else button(r2, "ctl:search", "Search", 2, false);
-        if(page==Page.REGIONS)button(r2,"regions:switch","Switch selected account",1,
+        if(page==Page.REGIONS)button(r2,"regions:switch","switch selected account",1,
                 account.isBlank() && panelAccounts().size()>1);
         if (page == Page.STAFF) button(r2,"staff:response",
-                dev.doughbay.fabric.staffwatch.WatchConfig.get().regionSwitch?"Response: Switch region":"Response: Disconnect",2,false);
+                dev.doughbay.fabric.staffwatch.WatchConfig.get().regionSwitch?"response: switch region":"response: disconnect",2,false);
         if (page == Page.FLIPS) {
             // On the Search row, which has room: the page's own row goes to
             // the list to pick from, and Discord takes five rows and no more.
             boolean none = flip() == null;
-            button(r2, "flips:sell", "Sell price", 1, none);
-            button(r2, "flips:buy", "Buy price", 1, none);
-            button(r2, "flips:add", "Add item", 3, false);
-            button(r2, "flips:remove", "Remove", 4, none);
+            button(r2, "flips:sell", "sell price", 1, none);
+            button(r2, "flips:buy", "buy price", 1, none);
+            button(r2, "flips:add", "add item", 3, false);
+            button(r2, "flips:remove", "remove", 4, none);
         }
         // Discord allows five buttons to a row and silently rejects the whole
         // message with "Invalid Form Body" at six, so Start and Stop get their
@@ -648,8 +648,8 @@ public final class DiscordBridge {
             // "All accounts" on screen means all of them: this client
             // directly, the others through the ledger. Both stay live, since
             // one may be running while another is parked.
-            button(controls, "ctl:start", "Start all", 3, false);
-            button(controls, "ctl:stop", "Stop all", 4, false);
+            button(controls, "ctl:start", "start all", 3, false);
+            button(controls, "ctl:stop", "stop all", 4, false);
         } else if (mine) {
             button(controls, "ctl:start", s.state() == AutomationSessionController.State.PAUSED ? "Resume" : "Start", 3, running);
             button(controls, "ctl:stop", "Stop", 4, !running && s.state() != AutomationSessionController.State.PAUSED);
@@ -663,7 +663,7 @@ public final class DiscordBridge {
             boolean theirsPaused = "PAUSED".equals(theirs);
             boolean theirsStopped = theirs.isBlank() || "STOPPED".equals(theirs);
             button(controls, "ctl:start", (theirsPaused ? "Resume " : "Start ") + account, 3, ctl == null || (!theirsPaused && !theirsStopped));
-            button(controls, "ctl:stop", "Stop " + account, 4, ctl == null || theirsStopped);
+            button(controls, "ctl:stop", "stop " + account, 4, ctl == null || theirsStopped);
         }
         // Replies to orders sent to the other clients, as they come in.
         dev.doughbay.fabric.HiveControl replies = DoughBayClient.hiveControl();
@@ -677,9 +677,9 @@ public final class DiscordBridge {
             // Three buttons that each step to the next choice: a dropdown
             // would take a row apiece, and there is one row to spare.
             ArrayNode ri = row(rows);
-            button(ri, "items:range", "Range: " + itemsRange.label, 2, false);
-            button(ri, "items:sort", "Sort: " + itemsSort.label, 2, false);
-            button(ri, "items:flip", itemsBest ? "Best first" : "Worst first", 2, false);
+            button(ri, "items:range", "range: " + itemsRange.label, 2, false);
+            button(ri, "items:sort", "sort: " + itemsSort.label, 2, false);
+            button(ri, "items:flip", itemsBest ? "best first" : "worst first", 2, false);
         }
         if (page == Page.FLIPS && !dev.doughbay.fabric.OwnPrices.all().isEmpty()) {
             dev.doughbay.fabric.OwnPrices.Entry chosen = flip();
@@ -725,11 +725,11 @@ public final class DiscordBridge {
                 ArrayNode r5 = row(rows);
                 boolean none = current == null;
                 boolean toggle = current != null && current.kind() == Tuning.Kind.TOGGLE;
-                button(r5, "tune:toggle", "Toggle", 1, none || !toggle);
-                button(r5, "tune:set", "Set value", 1, none || toggle);
+                button(r5, "tune:toggle", "toggle", 1, none || !toggle);
+                button(r5, "tune:set", "set value", 1, none || toggle);
                 button(r5, "tune:dec", "−", 2, none || toggle);
                 button(r5, "tune:inc", "+", 2, none || toggle);
-                button(r5, "tune:reset", "Reset", 2, none);
+                button(r5, "tune:reset", "reset", 2, none);
             }
         }
         return rows;
@@ -1038,7 +1038,7 @@ public final class DiscordBridge {
         Minecraft mc = Minecraft.getInstance();
         if (mc != null) {
             Runnable action=()->{
-                try { r.run(); } catch (Exception e) { note("Failed: " + e.getMessage()); }
+                try { r.run(); } catch (Exception e) { note("failed: " + e.getMessage()); }
                 refreshNow=true;
             };
             if(mc.isSameThread())action.run();else mc.execute(action);
@@ -1653,7 +1653,7 @@ public final class DiscordBridge {
             head.add(new String[]{"Live queue", "Not available for this selection from the host", "gold"});
             return new StatsImage.Page("Status", subtitle, color, head, 0, 0,
                     new String[]{"Account", "Status"}, new boolean[]{false, false},
-                    List.<String[]>of(new String[]{v.label(), "Select the account's own panel for live queue history."}), footer);
+                    List.<String[]>of(new String[]{v.label(), "select the account's own panel for live queue history."}), footer);
         }
 
         // The queue and the history live in this client's memory and nowhere
@@ -1838,8 +1838,8 @@ public final class DiscordBridge {
     static StatsImage.Page staffPageFor(dev.doughbay.fabric.StaffWatchReport.Snapshot snapshot,long now,String host,ZoneId zone) {
         List<String[]> head = new ArrayList<>();
         List<String[]> rows = new ArrayList<>();
-        head.add(new String[]{"Detector", snapshot.status(now)});
-        head.add(new String[]{"Watched",dev.doughbay.fabric.StaffActivityMetrics.durationLabel(snapshot.watchedMillis())});
+        head.add(new String[]{"detector", snapshot.status(now)});
+        head.add(new String[]{"watched",dev.doughbay.fabric.StaffActivityMetrics.durationLabel(snapshot.watchedMillis())});
         head.add(new String[]{"Clock",zone.getId()});
         for (var row : snapshot.current(now)) rows.add(new String[]{"Now", dev.doughbay.fabric.staffwatch.util.NameFilter.apply(row.name()),
                 row.presence().equals("SPECTATOR") ? "Spectator observed" : row.presence().equals("VANISHED") ? "Hidden from TAB" : "Online in player list",
@@ -1847,13 +1847,13 @@ public final class DiscordBridge {
         for(var summary:snapshot.summaries().stream().limit(8).toList()) {
             rows.add(new String[]{"History",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),
                 dev.doughbay.fabric.StaffActivityMetrics.durationLabel(summary.observedMillis())+" detected",summary.intervals()+" intervals; last "+Instant.ofEpochMilli(summary.lastSeen()).atZone(zone).format(DateTimeFormatter.ofPattern("MMM d HH:mm"))});
-            rows.add(new String[]{"Usual hours",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),summary.usualHours(),"Observed, not predicted"});
+            rows.add(new String[]{"usual hours",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),summary.usualHours(),"observed, not predicted"});
             rows.add(new String[]{"First seen",dev.doughbay.fabric.staffwatch.util.NameFilter.apply(summary.name()),Instant.ofEpochMilli(summary.firstSeen()).atZone(zone).format(DateTimeFormatter.ofPattern("MMM d HH:mm")),"In retained 30-day history"});
         }
         for (var sighting : snapshot.history().stream().limit(8).toList()) rows.add(new String[]{
                 Instant.ofEpochMilli(sighting.at()).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm:ss")),
                 dev.doughbay.fabric.staffwatch.util.NameFilter.apply(sighting.name()), dev.doughbay.fabric.StaffWatchReport.label(sighting.event()), sighting.observer()});
-        if (rows.isEmpty()) rows.add(new String[]{"", "No staff observations", "", ""});
+        if (rows.isEmpty()) rows.add(new String[]{"", "no staff observations", "", ""});
         return new StatsImage.Page("Staff Watch", host + " · " + Instant.ofEpochMilli(now).atZone(zone).format(DateTimeFormatter.ofPattern("HH:mm:ss")),
                 "green", head, 0, 0,
                 new String[]{"Time", "Staff", "Observation", "Observer / history"},
@@ -1867,7 +1867,7 @@ public final class DiscordBridge {
         dev.doughbay.fabric.EvasionGuard ev = DoughBayClient.evasionGuard();
         int mode = (int) Tuning.get("evasion.escape");
         boolean armed = ev != null && ev.enabled();
-        head.add(new String[] {"Guard", ev == null ? "off" : ev.status(), !armed ? "red" : ev.triggered() ? "gold" : "green"});
+        head.add(new String[] {"guard", ev == null ? "off" : ev.status(), !armed ? "red" : ev.triggered() ? "gold" : "green"});
         head.add(new String[] {"Pause ring", (int) Tuning.get("evasion.radius_blocks") + " blocks"});
         head.add(new String[] {"Escape ring", (int) Tuning.get("evasion.disconnect_blocks") + " blocks"});
         head.add(new String[] {"On contact", mode == 0 ? "pause only" : mode == 1 ? "teleport away" : "leave the server"});
@@ -1972,7 +1972,7 @@ public final class DiscordBridge {
                     any ? money(r.perSale()) : "-", any ? money(r.perSlotHour()) : "-", sellsIn,
                     r.openCost() > 0 ? money(r.openCost()) : "-"});
         }
-        return new StatsImage.Page("Items · by " + itemsSort.label.toLowerCase(Locale.ROOT)
+        return new StatsImage.Page("items · by " + itemsSort.label.toLowerCase(Locale.ROOT)
                 + (itemsBest ? "" : ", worst first"), subtitle, color, head, 0, 0,
                 new String[] {"Item", "Profit", "Sales", "Per sale", "Per slot-hr", "Sells in", "Tied up"},
                 new boolean[] {false, true, true, true, true, true, true}, rows, footer);
