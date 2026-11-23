@@ -1000,7 +1000,8 @@ final class Pages {
             const CAPITAL={category:0,span:86400000};
             const CAPITAL_LABELS=['Available bank','Unfilled order funds','Order stock awaiting collection','Collected / unlisted stock','Auction stock at cost','Unreconciled stock at cost'];
             const CAPITAL_KEYS=['bank','orders','awaitingCollection','unlisted','listed','unresolved'];
-            const CAPITAL_COLORS=['#3987e5','#d95926','#199e70','#ffd966','#c08cff','#9eb6c9'];
+            const CAPITAL_COLORS=['#e8e8e8','#c4c4c4','#a0a0a0','#7c7c7c','#585858','#343434'];
+            const CAPITAL_BAR_COLORS=['#e8e8e8','#c4c4c4','#a0a0a0','#8c8c8c','#7c7c7c','#6a6a6a'];
             function capitalMoney(v){return v===null||v===undefined?'unknown':new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}).format(v);}
             function capitalSvg(tag,attrs={},title=''){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,String(v));if(title){const t=document.createElementNS('http://www.w3.org/2000/svg','title');t.textContent=title;n.appendChild(t);}return n;}
             function drawCapital(box,report){
@@ -1012,9 +1013,9 @@ final class Pages {
                 const title=CAPITAL_LABELS[i]+': '+capitalMoney(v)+' ('+(slice*100).toFixed(1)+'% of known observed amounts)';
                 if(slice>.999999)pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:85,fill:CAPITAL_COLORS[i]},title));
                 else pie.appendChild(capitalSvg('path',{d:'M 0 0 L '+Math.cos(angle)*85+' '+Math.sin(angle)*85+' A 85 85 0 '+(slice>.5?1:0)+' 1 '+Math.cos(next)*85+' '+Math.sin(next)*85+' Z',fill:CAPITAL_COLORS[i]},title));
-                if(slice>.035){const mid=(angle+next)/2,n=capitalSvg('text',{x:Math.cos(mid)*67,y:Math.sin(mid)*67+4,fill:'#111820','text-anchor':'middle','font-size':12});n.textContent=String(i+1);pie.appendChild(n);}angle=next;
+                if(slice>.035){const mid=(angle+next)/2,n=capitalSvg('text',{x:Math.cos(mid)*67,y:Math.sin(mid)*67+4,fill:i<4?'#0a0a0a':'#f2f2f2','text-anchor':'middle','font-size':12});n.textContent=String(i+1);pie.appendChild(n);}angle=next;
               });
-              pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:42,fill:'#101820'}));const middle=capitalSvg('text',{x:0,y:4,fill:'#c3c2b7','text-anchor':'middle','font-size':12});middle.textContent=total>0?'At cost':'No known amount';pie.appendChild(middle);box.appendChild(pie);
+              pie.appendChild(capitalSvg('circle',{cx:0,cy:0,r:42,fill:'#0a0a0a'}));const middle=capitalSvg('text',{x:0,y:4,fill:'#bdbdbd','text-anchor':'middle','font-size':12});middle.textContent=total>0?'At cost':'No known amount';pie.appendChild(middle);box.appendChild(pie);
               values.forEach((v,i)=>box.appendChild(el('p','desc',(i+1)+'. '+CAPITAL_LABELS[i]+': '+capitalMoney(v))));
               box.appendChild(el('p','desc','Auction asking total: '+capitalMoney(c.asking)+' — potential gross revenue only'));
               const pick=el('select');pick.setAttribute('aria-label','Capital history category');CAPITAL_LABELS.forEach((label,i)=>{const o=el('option','',label);o.value=i;pick.appendChild(o);});pick.value=CAPITAL.category;pick.addEventListener('change',()=>{CAPITAL.category=Number(pick.value);drawCapital(box,report);});box.appendChild(pick);
@@ -1022,10 +1023,10 @@ final class Pages {
               const points=(report.capitalHistory||[]).filter(p=>p.at>=c.at-CAPITAL.span&&p.at<=c.at),key=CAPITAL_KEYS[CAPITAL.category];
               if(points.length<2)box.appendChild(el('p','muted','History is collecting. At least two snapshots are needed.'));
               else{const max=Math.max(1,...points.map(p=>Number.isFinite(p[key])?p[key]:0));const plot=capitalSvg('svg',{viewBox:'0 0 560 190',width:560,height:190,role:'img','aria-label':CAPITAL_LABELS[CAPITAL.category]+' sampled capital history'});plot.style.maxWidth='100%';
-                plot.appendChild(capitalSvg('rect',{x:0,y:0,width:560,height:190,fill:'#101820'}));
+                plot.appendChild(capitalSvg('rect',{x:0,y:0,width:560,height:190,fill:'#0a0a0a'}));
                 points.forEach(p=>{if(!Number.isFinite(p[key]))return;const px=35+(p.at-(c.at-CAPITAL.span))/CAPITAL.span*510,h=Math.max(1,p[key]/max*145),source=CAPITAL.category===0?p.bankAt:CAPITAL.category<3?p.ordersAt:p.stockAt;
-                  plot.appendChild(capitalSvg('rect',{x:px-1,y:160-h,width:3,height:h,fill:CAPITAL_COLORS[CAPITAL.category]},'Snapshot '+new Date(p.at).toLocaleString()+': '+CAPITAL_LABELS[CAPITAL.category]+' '+capitalMoney(p[key])+'; source read '+(source?new Date(source).toLocaleString():'unknown')));});
-                const top=capitalSvg('text',{x:6,y:13,fill:'#c3c2b7','font-size':11});top.textContent=capitalMoney(max);plot.appendChild(top);box.appendChild(plot);
+                  plot.appendChild(capitalSvg('rect',{x:px-1,y:160-h,width:3,height:h,fill:CAPITAL_BAR_COLORS[CAPITAL.category]},'Snapshot '+new Date(p.at).toLocaleString()+': '+CAPITAL_LABELS[CAPITAL.category]+' '+capitalMoney(p[key])+'; source read '+(source?new Date(source).toLocaleString():'unknown')));});
+                const top=capitalSvg('text',{x:6,y:13,fill:'#bdbdbd','font-size':11});top.textContent=capitalMoney(max);plot.appendChild(top);box.appendChild(plot);
               }
               box.appendChild(el('p','muted',report.capitalHistoryStatus||'History starts when recording begins.'));
               for(const note of c.notes||[])box.appendChild(el('p','muted',note));
